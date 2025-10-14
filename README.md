@@ -17,6 +17,7 @@
 - 💬 **Natural Dialog** - Conversational AI for elderly-friendly interactions
 - 🔄 **Multi-Agent Orchestration** - Coordinated agent collaboration
 - 📱 **LINE Integration** - Seamless LINE Messaging API support
+- 🔗 **N8N Automation** - Workflow automation and external service integration
 
 ---
 
@@ -83,6 +84,7 @@ npm run dev
 ## 📚 Documentation
 
 - **[Setup Guide](docs/SETUP.md)** - Complete installation instructions
+- **[N8N Integration](docs/N8N_INTEGRATION.md)** - Workflow automation & external services
 - **[Database Schema](docs/database-schema.sql)** - Supabase migration script
 - **[API References](docs/REFERENCES.md)** - External documentation links
 - **[Claude Specifications](docs/CLAUDE.md)** - Agent behavior and prompts
