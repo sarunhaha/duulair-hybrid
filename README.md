@@ -10,6 +10,7 @@
 
 ## 🌟 Features
 
+### Healthcare Agents
 - 🎯 **Intent Classification** - Automatically categorize user messages
 - 💊 **Health Monitoring** - Track medications, vitals, water intake, and activities
 - 📊 **Smart Reporting** - Generate daily and weekly health summaries
@@ -18,6 +19,17 @@
 - 🔄 **Multi-Agent Orchestration** - Coordinated agent collaboration
 - 📱 **LINE Integration** - Seamless LINE Messaging API support
 - 🔗 **N8N Automation** - Workflow automation and external service integration
+
+### 🤖 Development Agents (NEW!)
+AI-powered assistants to accelerate platform development:
+- 🔍 **Code Review Agent** - Automated code quality, security, and performance analysis
+- 🧪 **Test Generator Agent** - Generate unit and integration tests automatically
+- 📚 **Documentation Agent** - Auto-generate JSDoc, README, API docs, and diagrams
+- 🐛 **Debug Agent** - Analyze errors, suggest fixes, and troubleshoot issues
+
+**Try it:** `npm run dev-agent review src/agents/specialized/HealthAgent.ts`
+
+[📖 Full Documentation](docs/DEVELOPMENT_AGENTS.md) | [💡 Usage Examples](examples/dev-agents/usage-examples.md)
 
 ---
 
@@ -83,11 +95,18 @@ npm run dev
 
 ## 📚 Documentation
 
+### Platform Documentation
 - **[Setup Guide](docs/SETUP.md)** - Complete installation instructions
 - **[N8N Integration](docs/N8N_INTEGRATION.md)** - Workflow automation & external services
 - **[Database Schema](docs/database-schema.sql)** - Supabase migration script
 - **[API References](docs/REFERENCES.md)** - External documentation links
 - **[Claude Specifications](docs/CLAUDE.md)** - Agent behavior and prompts
+- **[Business Requirements](BUSINESS_REQUIREMENTS.md)** - Business tasks and requirements
+- **[Technical Roadmap](ROADMAP.md)** - 7-phase development plan
+
+### Development Agents Documentation
+- **[Development Agents Guide](docs/DEVELOPMENT_AGENTS.md)** - Complete guide to dev agents
+- **[Usage Examples](examples/dev-agents/usage-examples.md)** - Real-world usage scenarios
 
 ---
 
@@ -121,17 +140,30 @@ duulair-hybrid/
 │   │   ├── core/              # Base agent classes
 │   │   │   ├── BaseAgent.ts
 │   │   │   └── OrchestratorAgent.ts
-│   │   └── specialized/       # Specialized agents
-│   │       ├── IntentAgent.ts
-│   │       ├── HealthAgent.ts
-│   │       ├── ReportAgent.ts
-│   │       ├── AlertAgent.ts
-│   │       └── DialogAgent.ts
+│   │   ├── specialized/       # Healthcare agents
+│   │   │   ├── IntentAgent.ts
+│   │   │   ├── HealthAgent.ts
+│   │   │   ├── ReportAgent.ts
+│   │   │   ├── AlertAgent.ts
+│   │   │   └── DialogAgent.ts
+│   │   └── development/       # Development agents (NEW!)
+│   │       ├── BaseDevAgent.ts
+│   │       ├── CodeReviewAgent.ts
+│   │       ├── TestGeneratorAgent.ts
+│   │       ├── DocumentationAgent.ts
+│   │       ├── DebugAgent.ts
+│   │       └── DevAgentCLI.ts
 │   ├── services/
 │   │   ├── supabase.service.ts
 │   │   └── line.service.ts
 │   └── index.ts
 ├── docs/                      # Documentation
+│   ├── SETUP.md
+│   ├── N8N_INTEGRATION.md
+│   ├── DEVELOPMENT_AGENTS.md  # Dev agents guide
+│   └── ...
+├── examples/
+│   └── dev-agents/            # Dev agent examples
 ├── specs/                     # Agent specifications
 └── package.json
 ```
