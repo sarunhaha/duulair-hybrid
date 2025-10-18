@@ -8,6 +8,7 @@ import { DocumentationAgent } from './DocumentationAgent';
 import { DebugAgent } from './DebugAgent';
 import { DeveloperAgent } from './DeveloperAgent';
 import { ProjectManagerAgent } from './ProjectManagerAgent';
+import { VibeAgent } from './VibeAgent';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
@@ -28,6 +29,7 @@ class DevAgentCLI {
   private debugAgent: DebugAgent;
   private developerAgent: DeveloperAgent;
   private pmAgent: ProjectManagerAgent;
+  private vibeAgent: VibeAgent;
 
   constructor() {
     this.reviewAgent = new CodeReviewAgent();
@@ -36,6 +38,7 @@ class DevAgentCLI {
     this.debugAgent = new DebugAgent();
     this.developerAgent = new DeveloperAgent();
     this.pmAgent = new ProjectManagerAgent();
+    this.vibeAgent = new VibeAgent();
   }
 
   /**
@@ -134,6 +137,17 @@ class DevAgentCLI {
       .option('--output <path>', 'Output file path')
       .action(async (action, options) => {
         await this.handlePM(action, options);
+      });
+
+    // Vibe Agent - Auto workflow
+    program
+      .command('vibe <description>')
+      .description('Auto workflow: Plan → Implement → Test → Review → Doc')
+      .option('--file <path>', 'Target file to modify')
+      .option('--quick', 'Quick mode (skip documentation)')
+      .option('--skip <steps>', 'Steps to skip (comma-separated: plan,test,doc,review)')
+      .action(async (description, options) => {
+        await this.handleVibe(description, options);
       });
 
     // Interactive mode
@@ -436,6 +450,63 @@ class DevAgentCLI {
   }
 
   /**
+   * Handle Vibe command - Auto workflow
+   */
+  private async handleVibe(description: string, options: any) {
+    console.log(`\n🎵 Vibe Mode: ${description}\n`);
+
+    try {
+      // Parse skip options
+      let skipSteps: string[] = [];
+      if (options.quick) {
+        skipSteps = ['doc'];
+      }
+      if (options.skip) {
+        skipSteps = options.skip.split(',').map((s: string) => s.trim());
+      }
+
+      const result = await this.vibeAgent.process({
+        id: '',
+        command: 'vibe',
+        target: description,
+        context: {
+          options: {
+            file: options.file,
+            skip: skipSteps
+          },
+          timestamp: new Date()
+        }
+      });
+
+      if (result.success) {
+        // Print summary
+        if (result.data.summary) {
+          console.log(result.data.summary);
+        }
+
+        // Print suggestions
+        if (result.suggestions && result.suggestions.length > 0) {
+          console.log('\n💡 Next Steps:');
+          result.suggestions.forEach((s: string) => console.log(`   - ${s}`));
+        }
+
+        console.log('\n✨ Vibe session complete! ✨\n');
+      } else {
+        console.error('❌ Vibe workflow failed:', result.errors);
+        if (result.data?.workflow?.steps) {
+          console.log('\nCompleted steps:');
+          result.data.workflow.steps.forEach((step: any) => {
+            const status = step.success ? '✅' : '❌';
+            console.log(`  ${status} ${step.name}`);
+          });
+        }
+      }
+    } catch (error: any) {
+      console.error('❌ Error:', error.message);
+    }
+  }
+
+  /**
    * Start interactive mode
    */
   private async startInteractive() {
@@ -447,6 +518,7 @@ class DevAgentCLI {
     console.log('  @debug <file>        - Debug code');
     console.log('  @dev <description>   - Implement feature');
     console.log('  @pm <action>         - Project management');
+    console.log('  @vibe <description>  - Auto workflow (Plan→Dev→Test→Review→Doc)');
     console.log('  help                 - Show help');
     console.log('  exit                 - Exit interactive mode\n');
 
@@ -469,7 +541,7 @@ class DevAgentCLI {
       }
 
       if (input === 'help') {
-        console.log('\nCommands: @review, @test, @doc, @debug, @dev, @pm, help, exit\n');
+        console.log('\nCommands: @review, @test, @doc, @debug, @dev, @pm, @vibe, help, exit\n');
         rl.prompt();
         return;
       }
@@ -510,6 +582,9 @@ class DevAgentCLI {
           break;
         case 'pm':
           await this.handlePM(target, {});
+          break;
+        case 'vibe':
+          await this.handleVibe(target, {});
           break;
         default:
           console.log(`Unknown command: ${command}`);

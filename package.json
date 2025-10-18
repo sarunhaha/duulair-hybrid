@@ -22,7 +22,8 @@
     "doc:gen": "npm run dev-agent doc",
     "debug:agent": "npm run dev-agent debug",
     "dev:implement": "npm run dev-agent dev",
-    "pm": "npm run dev-agent pm"
+    "pm": "npm run dev-agent pm",
+    "vibe": "npm run dev-agent vibe"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.17.0",
