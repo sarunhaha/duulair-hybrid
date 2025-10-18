@@ -6,6 +6,8 @@ import { CodeReviewAgent } from './CodeReviewAgent';
 import { TestGeneratorAgent } from './TestGeneratorAgent';
 import { DocumentationAgent } from './DocumentationAgent';
 import { DebugAgent } from './DebugAgent';
+import { DeveloperAgent } from './DeveloperAgent';
+import { ProjectManagerAgent } from './ProjectManagerAgent';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
@@ -24,12 +26,16 @@ class DevAgentCLI {
   private testAgent: TestGeneratorAgent;
   private docAgent: DocumentationAgent;
   private debugAgent: DebugAgent;
+  private developerAgent: DeveloperAgent;
+  private pmAgent: ProjectManagerAgent;
 
   constructor() {
     this.reviewAgent = new CodeReviewAgent();
     this.testAgent = new TestGeneratorAgent();
     this.docAgent = new DocumentationAgent();
     this.debugAgent = new DebugAgent();
+    this.developerAgent = new DeveloperAgent();
+    this.pmAgent = new ProjectManagerAgent();
   }
 
   /**
@@ -104,6 +110,30 @@ class DevAgentCLI {
       .option('--output <path>', 'Output report to file')
       .action(async (file, options) => {
         await this.handleDebug(file, options);
+      });
+
+    // Developer Agent - Implement features
+    program
+      .command('dev <description>')
+      .description('Implement a feature or create new code')
+      .option('--file <path>', 'Target file to modify')
+      .option('--create', 'Create new file')
+      .option('--modify', 'Modify existing file')
+      .option('--fix', 'Fix a bug')
+      .option('--refactor', 'Refactor code')
+      .action(async (description, options) => {
+        await this.handleDev(description, options);
+      });
+
+    // Project Manager - Plan and track
+    program
+      .command('pm <action>')
+      .description('Project management (plan, sprint, progress, roadmap)')
+      .option('--feature <description>', 'Feature to plan')
+      .option('--duration <time>', 'Sprint duration (e.g. "2 weeks")')
+      .option('--output <path>', 'Output file path')
+      .action(async (action, options) => {
+        await this.handlePM(action, options);
       });
 
     // Interactive mode
@@ -317,6 +347,95 @@ class DevAgentCLI {
   }
 
   /**
+   * Handle dev command
+   */
+  private async handleDev(description: string, options: any) {
+    console.log(`\n🧑‍💻 Implementing: ${description}\n`);
+
+    try {
+      let type = 'implement';
+      if (options.create) type = 'create';
+      else if (options.modify) type = 'modify';
+      else if (options.fix) type = 'fix';
+      else if (options.refactor) type = 'refactor';
+
+      const result = await this.developerAgent.process({
+        id: '',
+        command: 'dev',
+        target: description,
+        context: {
+          options: {
+            type,
+            file: options.file
+          },
+          timestamp: new Date()
+        }
+      });
+
+      if (result.success) {
+        console.log('✅ Implementation successful!');
+        if (result.data.file) {
+          console.log(`📄 File: ${result.data.file}`);
+        }
+        if (result.data.backup) {
+          console.log(`💾 Backup: ${result.data.backup}`);
+        }
+        if (result.suggestions) {
+          console.log('\n💡 Suggestions:');
+          result.suggestions.forEach((s: string) => console.log(`   - ${s}`));
+        }
+      } else {
+        console.error('❌ Implementation failed:', result.errors);
+      }
+    } catch (error: any) {
+      console.error('❌ Error:', error.message);
+    }
+  }
+
+  /**
+   * Handle PM command
+   */
+  private async handlePM(action: string, options: any) {
+    console.log(`\n👔 PM Action: ${action}\n`);
+
+    try {
+      const target = options.feature || action;
+
+      const result = await this.pmAgent.process({
+        id: '',
+        command: 'pm',
+        target,
+        context: {
+          options: {
+            action,
+            duration: options.duration,
+            output: options.output
+          },
+          timestamp: new Date()
+        }
+      });
+
+      if (result.success) {
+        console.log('✅ PM action completed!');
+        if (result.data.summary) {
+          console.log('\n' + result.data.summary);
+        }
+        if (result.data.report) {
+          console.log('\n' + result.data.report);
+        }
+        if (result.suggestions) {
+          console.log('\n💡 Suggestions:');
+          result.suggestions.forEach((s: string) => console.log(`   - ${s}`));
+        }
+      } else {
+        console.error('❌ PM action failed:', result.errors);
+      }
+    } catch (error: any) {
+      console.error('❌ Error:', error.message);
+    }
+  }
+
+  /**
    * Start interactive mode
    */
   private async startInteractive() {
@@ -326,6 +445,8 @@ class DevAgentCLI {
     console.log('  @test <file>         - Generate tests');
     console.log('  @doc <file>          - Generate documentation');
     console.log('  @debug <file>        - Debug code');
+    console.log('  @dev <description>   - Implement feature');
+    console.log('  @pm <action>         - Project management');
     console.log('  help                 - Show help');
     console.log('  exit                 - Exit interactive mode\n');
 
@@ -348,7 +469,7 @@ class DevAgentCLI {
       }
 
       if (input === 'help') {
-        console.log('\nCommands: @review, @test, @doc, @debug, help, exit\n');
+        console.log('\nCommands: @review, @test, @doc, @debug, @dev, @pm, help, exit\n');
         rl.prompt();
         return;
       }
@@ -383,6 +504,12 @@ class DevAgentCLI {
           break;
         case 'debug':
           await this.handleDebug(target, {});
+          break;
+        case 'dev':
+          await this.handleDev(target, {});
+          break;
+        case 'pm':
+          await this.handlePM(target, {});
           break;
         default:
           console.log(`Unknown command: ${command}`);
