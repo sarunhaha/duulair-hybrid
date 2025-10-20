@@ -2,6 +2,7 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import { OrchestratorAgent } from './agents';
+import registrationRoutes from './routes/registration.routes';
 
 dotenv.config();
 
@@ -9,6 +10,9 @@ const app = express();
 const orchestrator = new OrchestratorAgent();
 
 app.use(express.json());
+
+// Registration API routes
+app.use('/api/registration', registrationRoutes);
 
 // Initialize
 async function start() {

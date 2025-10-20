@@ -114,4 +114,13 @@ export class SupabaseService {
       }, callback)
       .subscribe();
   }
+
+  // Get client instance (for direct queries)
+  getClient() {
+    return this.client;
+  }
 }
+
+// Export singleton instance and client
+export const supabaseService = new SupabaseService();
+export const supabase = supabaseService.getClient();
