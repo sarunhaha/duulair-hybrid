@@ -23,6 +23,7 @@ Duulair is an elderly care platform powered by multi-agent AI system. This roadm
 
 | Feature | Priority | Effort | Status | Spec File |
 |---------|----------|--------|--------|-----------|
+| **👤 User Registration (LIFF)** | **CRITICAL** | **24h** | **📋 Ready** | **[user-registration-liff.md](specs/user-registration-liff.md)** |
 | 🚨 Emergency Alert System | CRITICAL | 16h | 📋 Ready | [emergency-alert.md](specs/emergency-alert.md) |
 | 💊 Medication Reminder | High | 20h | 📋 Ready | [medication-reminder.md](specs/medication-reminder.md) |
 | 🩺 Blood Sugar Tracking | High | 8h | 📋 Ready | [blood-sugar-tracking.md](specs/blood-sugar-tracking.md) |
@@ -31,8 +32,58 @@ Duulair is an elderly care platform powered by multi-agent AI system. This roadm
 | 💧 Water Intake Tracking | Medium | 6h | 📋 Ready | [water-intake-tracking.md](specs/water-intake-tracking.md) |
 | 🏃 Exercise Tracking | Medium | 8h | 📋 Ready | [exercise-tracking.md](specs/exercise-tracking.md) |
 
-**Total Estimated Effort**: ~90 hours (~11 days)
-**With Auto-Dev**: ~2-3 hours (90-95% time saved!)
+**Total Estimated Effort**: ~114 hours (~14 days)
+**With Auto-Dev**: ~3-4 hours (96% time saved!)
+
+⚠️ **Note**: User Registration ต้องทำก่อนทุก features เพราะต้องมี patient profile!
+
+---
+
+## 👤 Phase 0.5: User Registration (Week 0 - ต้องทำก่อน!)
+
+### ⚡ Foundation Requirement
+
+#### 0. 👤 User Registration & LIFF App
+**Priority**: CRITICAL (ต้องทำก่อนทุก feature!)
+**Effort**: 24 hours
+**Spec**: [docs/specs/user-registration-liff.md](specs/user-registration-liff.md)
+
+**Why Critical**:
+- **ทุก feature ต้องใช้ patient profile**
+- ไม่มี user profile = ไม่รู้ว่าใครเป็นใคร
+- ต้องมี patient-caregiver relationship
+- ต้องมี health goals & settings
+
+**Key Features**:
+- LINE LIFF App (ภาษาไทย)
+- Patient registration & profile
+- Caregiver registration
+- Patient-Caregiver linking (6-digit code + QR)
+- Health goals setup
+- Notification settings
+- Emergency contacts
+
+**Implementation**:
+```bash
+/auto-dev docs/specs/user-registration-liff.md
+```
+
+**Success Criteria**:
+- [ ] LIFF app loads < 3s
+- [ ] Registration flow สำเร็จ
+- [ ] Patient-caregiver linking working
+- [ ] ข้อมูลบันทึกครบถ้วน
+- [ ] UI ใช้งานง่ายสำหรับผู้สูงอายุ
+
+**Database Tables**:
+- `users` - Base user table
+- `patient_profiles` - ข้อมูลผู้ป่วย
+- `caregiver_profiles` - ข้อมูลผู้ดูแล
+- `patient_caregivers` - ความสัมพันธ์
+- `link_codes` - รหัสเชื่อมต่อ
+- `patient_medications` - ยาประจำ
+- `health_goals` - เป้าหมายสุขภาพ
+- `notification_settings` - ตั้งค่าการแจ้งเตือน
 
 ---
 
@@ -391,13 +442,14 @@ graph TB
 All specification files are in `docs/specs/`:
 
 1. **[TEMPLATE.md](specs/TEMPLATE.md)** - Spec template for new features
-2. **[blood-sugar-tracking.md](specs/blood-sugar-tracking.md)** - Blood sugar monitoring
-3. **[medication-reminder.md](specs/medication-reminder.md)** - Medication management
-4. **[water-intake-tracking.md](specs/water-intake-tracking.md)** - Water tracking
-5. **[exercise-tracking.md](specs/exercise-tracking.md)** - Exercise logging
-6. **[emergency-alert.md](specs/emergency-alert.md)** - Emergency system
-7. **[daily-health-report.md](specs/daily-health-report.md)** - Health reports
-8. **[ai-health-insights.md](specs/ai-health-insights.md)** - AI analytics
+2. **[user-registration-liff.md](specs/user-registration-liff.md)** - ⭐ User Registration (ทำก่อน!)
+3. **[blood-sugar-tracking.md](specs/blood-sugar-tracking.md)** - Blood sugar monitoring
+4. **[medication-reminder.md](specs/medication-reminder.md)** - Medication management
+5. **[water-intake-tracking.md](specs/water-intake-tracking.md)** - Water tracking
+6. **[exercise-tracking.md](specs/exercise-tracking.md)** - Exercise logging
+7. **[emergency-alert.md](specs/emergency-alert.md)** - Emergency system
+8. **[daily-health-report.md](specs/daily-health-report.md)** - Health reports
+9. **[ai-health-insights.md](specs/ai-health-insights.md)** - AI analytics
 
 ---
 
