@@ -1,65 +1,15 @@
 {
   "version": 2,
-  "name": "duulair-hybrid",
   "builds": [
     {
       "src": "src/index.ts",
-      "use": "@vercel/node",
-      "config": {
-        "includeFiles": [
-          "src/**",
-          "package.json",
-          "tsconfig.json"
-        ]
-      }
+      "use": "@vercel/node"
     }
   ],
   "routes": [
     {
-      "src": "/api/registration/(.*)",
-      "dest": "/src/index.ts"
-    },
-    {
-      "src": "/api/profile/(.*)",
-      "dest": "/src/index.ts"
-    },
-    {
-      "src": "/api/health-goals/(.*)",
-      "dest": "/src/index.ts"
-    },
-    {
-      "src": "/api/notification-settings/(.*)",
-      "dest": "/src/index.ts"
-    },
-    {
-      "src": "/api/medications/(.*)",
-      "dest": "/src/index.ts"
-    },
-    {
-      "src": "/api/(.*)",
-      "dest": "/src/index.ts"
-    },
-    {
-      "src": "/webhook",
-      "dest": "/src/index.ts"
-    },
-    {
-      "src": "/test",
-      "dest": "/src/index.ts"
-    },
-    {
       "src": "/(.*)",
-      "dest": "/src/index.ts"
+      "dest": "src/index.ts"
     }
-  ],
-  "env": {
-    "NODE_ENV": "production"
-  },
-  "regions": ["sin1"],
-  "functions": {
-    "src/index.ts": {
-      "memory": 1024,
-      "maxDuration": 30
-    }
-  }
+  ]
 }

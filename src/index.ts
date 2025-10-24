@@ -9,28 +9,33 @@ dotenv.config();
 const app = express();
 const orchestrator = new OrchestratorAgent();
 
+// Initialize orchestrator (once)
+let initialized = false;
+async function initializeIfNeeded() {
+  if (!initialized) {
+    console.log('🚀 Initializing Duulair Multi-Agent System...');
+    initialized = await orchestrator.initialize();
+    if (initialized) {
+      console.log('✅ All agents ready!');
+    } else {
+      console.error('❌ Failed to initialize agents');
+    }
+  }
+  return initialized;
+}
+
 app.use(express.json());
 
 // Registration API routes
 app.use('/api/registration', registrationRoutes);
 
-// Initialize
-async function start() {
-  console.log('🚀 Starting Duulair Multi-Agent System...');
-  
-  const initialized = await orchestrator.initialize();
-  
-  if (!initialized) {
-    console.error('❌ Failed to initialize agents');
-    process.exit(1);
-  }
-  
-  console.log('✅ All agents ready!');
-  
-  // API Endpoints
-  app.post('/webhook', async (req, res) => {
+// API Endpoints
+app.post('/webhook', async (req, res) => {
+  try {
+    await initializeIfNeeded();
+
     const { events } = req.body;
-    
+
     for (const event of events) {
       if (event.type === 'message') {
         const result = await orchestrator.process({
@@ -42,16 +47,23 @@ async function start() {
             timestamp: new Date()
           }
         });
-        
+
         console.log('Result:', result);
       }
     }
-    
-    res.json({ status: 'ok' });
-  });
 
-  // Test endpoint
-  app.post('/test', async (req, res) => {
+    res.json({ status: 'ok' });
+  } catch (error) {
+    console.error('Webhook error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Test endpoint
+app.post('/test', async (req, res) => {
+  try {
+    await initializeIfNeeded();
+
     const result = await orchestrator.process({
       id: 'test-' + Date.now(),
       content: req.body.message,
@@ -62,13 +74,31 @@ async function start() {
         timestamp: new Date()
       }
     });
-    
-    res.json(result);
-  });
 
-  app.listen(process.env.PORT || 3000, () => {
-    console.log(`📡 Server running on port ${process.env.PORT || 3000}`);
+    res.json(result);
+  } catch (error) {
+    console.error('Test error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Health check endpoint
+app.get('/', (req, res) => {
+  res.json({
+    status: 'ok',
+    service: 'Duulair Multi-Agent System',
+    initialized
+  });
+});
+
+// For local development
+if (process.env.NODE_ENV !== 'production') {
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => {
+    console.log(`📡 Server running on port ${PORT}`);
+    initializeIfNeeded();
   });
 }
 
-start().catch(console.error);
+// Export for Vercel serverless
+export default app;
