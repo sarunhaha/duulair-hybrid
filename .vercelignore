@@ -1,0 +1,54 @@
+# Dependencies
+node_modules
+npm-debug.log
+yarn-error.log
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Build outputs
+dist
+.next
+out
+.vercel
+
+# Development
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Testing
+coverage
+.nyc_output
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git
+.gitignore
+
+# Documentation (ไม่ต้อง deploy)
+docs/
+*.md
+!README.md
+
+# Test files
+test/
+*.test.ts
+*.spec.ts
+
+# TypeScript cache
+*.tsbuildinfo
+.ts-node
+
+# Misc
+.cache
+tmp
+temp
