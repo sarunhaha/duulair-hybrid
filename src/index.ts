@@ -127,14 +127,17 @@ async function handleTextMessage(event: any) {
     console.log('🤖 Agent result:', result);
 
     // Send reply back to LINE
-    if (result.success && result.data?.response) {
+    const responseText = result.data?.combined?.response;
+    if (result.success && responseText) {
       const replyMessage: TextMessage = {
         type: 'text',
-        text: result.data.response
+        text: responseText
       };
 
       await lineClient.replyMessage(replyToken, replyMessage);
-      console.log('✅ Reply sent to LINE');
+      console.log('✅ Reply sent to LINE:', responseText);
+    } else {
+      console.log('⚠️ No response to send:', { success: result.success, hasResponse: !!responseText });
     }
 
     return result;
