@@ -393,6 +393,9 @@ async function initializeIfNeeded() {
   return initialized;
 }
 
+// Serve static files from public directory (for LIFF)
+app.use(express.static('public'));
+
 // Use express.json() with verify to capture raw body
 app.use(express.json({
   verify: (req: any, res, buf) => {
