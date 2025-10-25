@@ -41,6 +41,14 @@ app.use('/api/registration', registrationRoutes);
 // LINE Webhook - with signature verification
 app.post('/webhook', middleware(lineConfig), async (req, res) => {
   try {
+    console.log('📨 Webhook received:', JSON.stringify(req.body));
+
+    // Handle verification request (LINE sends empty body or no events)
+    if (!req.body.events || req.body.events.length === 0) {
+      console.log('✅ Webhook verification or empty event');
+      return res.json({ status: 'ok', message: 'No events to process' });
+    }
+
     await initializeIfNeeded();
 
     const events: WebhookEvent[] = req.body.events;
@@ -67,8 +75,8 @@ app.post('/webhook', middleware(lineConfig), async (req, res) => {
 
     res.json({ status: 'ok', processed: results.length });
   } catch (error) {
-    console.error('Webhook error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error('❌ Webhook error:', error);
+    res.status(500).json({ error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' });
   }
 });
 
