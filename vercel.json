@@ -12,7 +12,31 @@
   ],
   "routes": [
     {
-      "src": "/liff/(.*)",
+      "src": "/liff/?$",
+      "dest": "/public/liff/index.html"
+    },
+    {
+      "src": "/liff/register/?$",
+      "dest": "/public/liff/register.html"
+    },
+    {
+      "src": "/liff/role-selection/?$",
+      "dest": "/public/liff/role-selection.html"
+    },
+    {
+      "src": "/liff/patient-registration/?$",
+      "dest": "/public/liff/patient-registration.html"
+    },
+    {
+      "src": "/liff/caregiver-registration/?$",
+      "dest": "/public/liff/caregiver-registration.html"
+    },
+    {
+      "src": "/liff/success/?$",
+      "dest": "/public/liff/success.html"
+    },
+    {
+      "src": "/liff/(.*\\.(html|css|js|png|jpg|jpeg|gif|svg|ico))",
       "dest": "/public/liff/$1"
     },
     {

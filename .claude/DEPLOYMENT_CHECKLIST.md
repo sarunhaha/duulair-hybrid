@@ -33,31 +33,50 @@
 
 ## Known Issues & Solutions
 
-### Issue 1: LIFF 404 Error (2025-10-25)
+### Issue 1: LIFF 404 Error (2025-10-25) - UPDATED
 
 **Problem:**
 - LIFF files not accessible on Vercel
-- `Cannot GET /liff/register`
+- `Cannot GET /liff/register` returns 404
+- `/liff/register` doesn't map to `/liff/register.html`
 
-**Root Cause:**
-- Vercel's `@vercel/node` doesn't automatically serve `public/` directory
-- Using `express.static('public')` with relative path fails in serverless environment
+**Root Causes:**
+1. Vercel's `@vercel/node` doesn't automatically serve `public/` directory
+2. Using `express.static('public')` fails in serverless environment
+3. **Route pattern doesn't add `.html` extension automatically**
+4. `/liff/register` maps to `/public/liff/register` (no file) instead of `/public/liff/register.html`
 
-**Solution:**
+**Solutions Applied:**
+
+**Step 1: Add @vercel/static builder**
 ```json
-// vercel.json - Use hybrid approach
+// vercel.json
 {
   "builds": [
     {"src": "public/**", "use": "@vercel/static"},
     {"src": "src/index.ts", "use": "@vercel/node"}
-  ],
+  ]
+}
+```
+
+**Step 2: Add explicit routes for each LIFF page**
+```json
+// vercel.json - Explicit HTML routes
+{
   "routes": [
-    {"src": "/liff/(.*)", "dest": "/public/liff/$1"},
+    {"src": "/liff/?$", "dest": "/public/liff/index.html"},
+    {"src": "/liff/register/?$", "dest": "/public/liff/register.html"},
+    {"src": "/liff/role-selection/?$", "dest": "/public/liff/role-selection.html"},
+    {"src": "/liff/patient-registration/?$", "dest": "/public/liff/patient-registration.html"},
+    {"src": "/liff/caregiver-registration/?$", "dest": "/public/liff/caregiver-registration.html"},
+    {"src": "/liff/success/?$", "dest": "/public/liff/success.html"},
+    {"src": "/liff/(.*\\.(html|css|js|png|jpg|jpeg|gif|svg|ico))", "dest": "/public/liff/$1"},
     {"src": "/(.*)", "dest": "src/index.ts"}
   ]
 }
 ```
 
+**Step 3: Dev-only static middleware**
 ```typescript
 // src/index.ts - Static files only in development
 if (process.env.NODE_ENV !== 'production') {
@@ -68,6 +87,8 @@ if (process.env.NODE_ENV !== 'production') {
 **Lessons Learned:**
 - Vercel serverless functions != traditional servers
 - Static files need separate builder in Vercel
+- **Routes must be explicit - no auto .html extension**
+- Order matters: specific routes before catch-all
 - Always check Vercel build logs for ignored files
 
 ---
@@ -221,12 +242,23 @@ catch (error) {
 
 ## Quick Reference
 
-**Vercel Static Files Pattern:**
+**Vercel Static Files Pattern (LIFF):**
 ```json
 {
   "builds": [
     {"src": "public/**", "use": "@vercel/static"},
     {"src": "src/index.ts", "use": "@vercel/node"}
+  ],
+  "routes": [
+    // Explicit LIFF pages (with .html extension)
+    {"src": "/liff/?$", "dest": "/public/liff/index.html"},
+    {"src": "/liff/register/?$", "dest": "/public/liff/register.html"},
+
+    // Static assets (CSS, JS, images)
+    {"src": "/liff/(.*\\.(html|css|js|png|jpg|svg))", "dest": "/public/liff/$1"},
+
+    // Catch-all for API/webhook
+    {"src": "/(.*)", "dest": "src/index.ts"}
   ]
 }
 ```
