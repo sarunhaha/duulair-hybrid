@@ -33,6 +33,49 @@
 
 ## Known Issues & Solutions
 
+### Issue 0: LIFF "External Page" Warning (2025-10-25) 🔴 CRITICAL
+
+**Problem:**
+- After registration, LINE shows: "This is an external page. Some features may not work in this browser and there may be security concerns."
+- User sees "400 Bad Request" toast
+- Redirects within LIFF trigger external page warnings
+
+**Root Cause:**
+- **LIFF Endpoint URL configured incorrectly**
+- Endpoint URL set to specific file: `/liff/register.html` instead of base path: `/liff/`
+- Per LINE LIFF docs: "The `liff.init()` method only functions reliably on URLs matching your endpoint URL or at deeper path levels."
+
+**Solution:**
+
+1. **Go to LINE Developers Console**
+   - URL: https://developers.line.biz/console/
+   - Select your Messaging API Channel
+   - Go to **LIFF** tab
+
+2. **Update Endpoint URL**
+   ```
+   ❌ WRONG: https://duulair-hybrid.vercel.app/liff/register.html
+   ✅ CORRECT: https://duulair-hybrid.vercel.app/liff/
+   ```
+
+3. **IMPORTANT Rules:**
+   - Must be BASE PATH, not specific file
+   - Must end with trailing slash `/`
+   - All LIFF pages must be within this path
+
+**Why This Works:**
+- Endpoint = `https://app.vercel.app/liff/`
+- All pages are within path:
+  - ✅ `/liff/index.html` - covered
+  - ✅ `/liff/register.html` - covered
+  - ✅ `/liff/success.html` - covered
+  - ✅ `/liff/role-selection.html` - covered
+- No external page warnings!
+
+**Complete Guide:** See `.claude/LIFF_FIX_GUIDE.md`
+
+---
+
 ### Issue 1: LIFF 404 Error (2025-10-25) - UPDATED
 
 **Problem:**
