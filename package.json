@@ -27,7 +27,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.17.0",
-    "@line/bot-sdk": "^8.0.0",
+    "@line/bot-sdk": "^8.4.1",
     "@supabase/supabase-js": "^2.39.0",
     "@types/qrcode": "^1.5.5",
     "axios": "^1.6.0",
