@@ -112,7 +112,9 @@ export class OrchestratorAgent extends BaseAgent {
         metadata: {
           intent,
           confidence,
-          agentsInvolved: routingPlan.agents
+          agentsInvolved: routingPlan.agents,
+          quickReplyType: routingPlan.quickReplyType,
+          flexMessageType: routingPlan.flexMessageType
         }
       };
 
@@ -162,6 +164,8 @@ export class OrchestratorAgent extends BaseAgent {
       fallback: string;
       requiresFlexMessage?: boolean;
       flexMessageType?: string;
+      requiresQuickReply?: boolean;
+      quickReplyType?: string;
     } = {
       agents: [] as string[],
       parallel: false,
@@ -190,6 +194,26 @@ export class OrchestratorAgent extends BaseAgent {
           plan.agents = ['dialog'];
           plan.requiresFlexMessage = true;
           plan.flexMessageType = 'registration';
+          break;
+        case 'health_menu':
+          plan.agents = ['dialog'];
+          plan.requiresQuickReply = true;
+          plan.quickReplyType = 'health_menu';
+          break;
+        case 'view_report':
+          plan.agents = ['dialog'];
+          plan.requiresQuickReply = true;
+          plan.quickReplyType = 'view_report';
+          break;
+        case 'package':
+          plan.agents = ['dialog'];
+          plan.requiresFlexMessage = true;
+          plan.flexMessageType = 'package';
+          break;
+        case 'help':
+          plan.agents = ['dialog'];
+          plan.requiresFlexMessage = true;
+          plan.flexMessageType = 'help';
           break;
         default:
           plan.agents = ['dialog'];

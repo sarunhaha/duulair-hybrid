@@ -20,6 +20,86 @@ const LIFF_ID = process.env.LIFF_ID || '';
 const app = express();
 const orchestrator = new OrchestratorAgent();
 
+// Quick Reply for Health Menu
+function createHealthMenuQuickReply() {
+  return {
+    items: [
+      {
+        type: 'action',
+        action: {
+          type: 'message',
+          label: '💊 ยา',
+          text: 'บันทึกยา'
+        }
+      },
+      {
+        type: 'action',
+        action: {
+          type: 'message',
+          label: '🩺 ความดัน',
+          text: 'วัดความดัน'
+        }
+      },
+      {
+        type: 'action',
+        action: {
+          type: 'message',
+          label: '💧 น้ำ',
+          text: 'ดื่มน้ำ'
+        }
+      },
+      {
+        type: 'action',
+        action: {
+          type: 'message',
+          label: '🚶 ออกกำลังกาย',
+          text: 'ออกกำลังกาย'
+        }
+      },
+      {
+        type: 'action',
+        action: {
+          type: 'message',
+          label: '🍚 อาหาร',
+          text: 'บันทึกอาหาร'
+        }
+      }
+    ]
+  };
+}
+
+// Quick Reply for View Report
+function createViewReportQuickReply() {
+  return {
+    items: [
+      {
+        type: 'action',
+        action: {
+          type: 'message',
+          label: '📅 รายงานวันนี้',
+          text: 'รายงานวันนี้'
+        }
+      },
+      {
+        type: 'action',
+        action: {
+          type: 'message',
+          label: '📊 รายงานสัปดาห์',
+          text: 'รายงานสัปดาห์นี้'
+        }
+      },
+      {
+        type: 'action',
+        action: {
+          type: 'message',
+          label: '📈 รายงานเดือน',
+          text: 'รายงานเดือนนี้'
+        }
+      }
+    ]
+  };
+}
+
 // Create Flex Message for registration
 function createRegistrationFlexMessage(): FlexMessage {
   return {
@@ -135,6 +215,169 @@ function createRegistrationFlexMessage(): FlexMessage {
   };
 }
 
+// Flex Message for Package Info
+function createPackageFlexMessage(): FlexMessage {
+  return {
+    type: 'flex',
+    altText: 'แพ็กเกจบริการ Duulair',
+    contents: {
+      type: 'bubble',
+      header: {
+        type: 'box',
+        layout: 'vertical',
+        contents: [
+          {
+            type: 'text',
+            text: 'แพ็กเกจบริการ',
+            weight: 'bold',
+            size: 'xl',
+            color: '#4CAF50'
+          }
+        ]
+      },
+      body: {
+        type: 'box',
+        layout: 'vertical',
+        contents: [
+          {
+            type: 'text',
+            text: '✨ Free Plan (ฟรี)',
+            weight: 'bold',
+            size: 'lg',
+            color: '#4CAF50'
+          },
+          {
+            type: 'text',
+            text: '• บันทึกข้อมูลสุขภาพ\n• รายงานประจำวัน\n• เชื่อมต่อผู้ดูแล 1 คน',
+            wrap: true,
+            size: 'sm',
+            color: '#666666',
+            margin: 'md'
+          },
+          {
+            type: 'separator',
+            margin: 'lg'
+          },
+          {
+            type: 'text',
+            text: '🌟 Premium Plan (เร็วๆ นี้)',
+            weight: 'bold',
+            size: 'lg',
+            color: '#FF9800',
+            margin: 'lg'
+          },
+          {
+            type: 'text',
+            text: '• ทุกอย่างใน Free\n• แจ้งเตือนอัจฉริยะ\n• วิเคราะห์ข้อมูลขั้นสูง\n• เชื่อมต่อผู้ดูแลไม่จำกัด',
+            wrap: true,
+            size: 'sm',
+            color: '#666666',
+            margin: 'md'
+          }
+        ]
+      }
+    }
+  };
+}
+
+// Flex Message for Help/FAQ
+function createHelpFlexMessage(): FlexMessage {
+  return {
+    type: 'flex',
+    altText: 'ช่วยเหลือ - วิธีใช้งาน',
+    contents: {
+      type: 'bubble',
+      header: {
+        type: 'box',
+        layout: 'vertical',
+        contents: [
+          {
+            type: 'text',
+            text: 'วิธีใช้งาน Duulair',
+            weight: 'bold',
+            size: 'xl',
+            color: '#4CAF50'
+          }
+        ]
+      },
+      body: {
+        type: 'box',
+        layout: 'vertical',
+        contents: [
+          {
+            type: 'text',
+            text: '📝 การเริ่มต้น',
+            weight: 'bold',
+            size: 'md'
+          },
+          {
+            type: 'text',
+            text: '1. ลงทะเบียน (ผู้ป่วย/ผู้ดูแล)\n2. กรอกข้อมูลสุขภาพ\n3. เริ่มบันทึกข้อมูล',
+            wrap: true,
+            size: 'sm',
+            color: '#666666',
+            margin: 'sm'
+          },
+          {
+            type: 'separator',
+            margin: 'lg'
+          },
+          {
+            type: 'text',
+            text: '💊 การบันทึกข้อมูล',
+            weight: 'bold',
+            size: 'md',
+            margin: 'lg'
+          },
+          {
+            type: 'text',
+            text: '• พิมพ์ "กินยาแล้ว"\n• พิมพ์ "วัดความดัน 120/80"\n• พิมพ์ "ดื่มน้ำ 500 ml"\n• พิมพ์ "เดินแล้ว 30 นาที"',
+            wrap: true,
+            size: 'sm',
+            color: '#666666',
+            margin: 'sm'
+          },
+          {
+            type: 'separator',
+            margin: 'lg'
+          },
+          {
+            type: 'text',
+            text: '🆘 กรณีฉุกเฉิน',
+            weight: 'bold',
+            size: 'md',
+            margin: 'lg'
+          },
+          {
+            type: 'text',
+            text: 'พิมพ์ "ฉุกเฉิน" ระบบจะแจ้งผู้ดูแลทันที',
+            wrap: true,
+            size: 'sm',
+            color: '#F44336',
+            margin: 'sm'
+          }
+        ]
+      },
+      footer: {
+        type: 'box',
+        layout: 'vertical',
+        contents: [
+          {
+            type: 'button',
+            action: {
+              type: 'message',
+              label: 'เริ่มลงทะเบียน',
+              text: 'ลงทะเบียน'
+            },
+            style: 'primary',
+            color: '#4CAF50'
+          }
+        ]
+      }
+    }
+  };
+}
+
 // Initialize orchestrator (once)
 let initialized = false;
 async function initializeIfNeeded() {
@@ -242,28 +485,67 @@ async function handleTextMessage(event: any) {
 
     console.log('🤖 Agent result:', result);
 
-    // Check if this is a registration intent
     const intent = result.metadata?.intent;
+    const quickReplyType = result.metadata?.quickReplyType;
+    const flexMessageType = result.metadata?.flexMessageType;
 
-    if (intent === 'registration') {
-      // Send Flex Message for registration
-      const flexMessage = createRegistrationFlexMessage();
-      await lineClient.replyMessage(replyToken, flexMessage);
-      console.log('✅ Flex Message sent for registration');
-    } else {
-      // Send normal text reply
-      const responseText = result.data?.combined?.response;
-      if (result.success && responseText) {
+    // Check if needs Quick Reply
+    if (quickReplyType) {
+      let quickReply;
+      let text = 'กรุณาเลือกรายการ:';
+
+      if (quickReplyType === 'health_menu') {
+        quickReply = createHealthMenuQuickReply();
+        text = 'คุณต้องการบันทึกสุขภาพประเภทไหนคะ?';
+      } else if (quickReplyType === 'view_report') {
+        quickReply = createViewReportQuickReply();
+        text = 'คุณต้องการดูรายงานช่วงไหนคะ?';
+      }
+
+      if (quickReply) {
         const replyMessage: TextMessage = {
           type: 'text',
-          text: responseText
+          text,
+          quickReply
         };
 
         await lineClient.replyMessage(replyToken, replyMessage);
-        console.log('✅ Reply sent to LINE:', responseText);
-      } else {
-        console.log('⚠️ No response to send:', { success: result.success, hasResponse: !!responseText });
+        console.log('✅ Quick Reply sent:', quickReplyType);
+        return result;
       }
+    }
+
+    // Check if needs Flex Message
+    if (flexMessageType) {
+      let flexMessage;
+
+      if (flexMessageType === 'registration') {
+        flexMessage = createRegistrationFlexMessage();
+      } else if (flexMessageType === 'package') {
+        flexMessage = createPackageFlexMessage();
+      } else if (flexMessageType === 'help') {
+        flexMessage = createHelpFlexMessage();
+      }
+
+      if (flexMessage) {
+        await lineClient.replyMessage(replyToken, flexMessage);
+        console.log('✅ Flex Message sent:', flexMessageType);
+        return result;
+      }
+    }
+
+    // Send normal text reply
+    const responseText = result.data?.combined?.response;
+    if (result.success && responseText) {
+      const replyMessage: TextMessage = {
+        type: 'text',
+        text: responseText
+      };
+
+      await lineClient.replyMessage(replyToken, replyMessage);
+      console.log('✅ Reply sent to LINE:', responseText);
+    } else {
+      console.log('⚠️ No response to send:', { success: result.success, hasResponse: !!responseText });
     }
 
     return result;

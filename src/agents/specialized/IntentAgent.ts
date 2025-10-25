@@ -11,7 +11,11 @@ export class IntentAgent extends BaseAgent {
     food: [/อาหาร/, /กิน/, /ข้าว/, /มื้อ/, /เช้า/, /กลางวัน/, /เย็น/],
     emergency: [/ฉุกเฉิน/, /ช่วย/, /เจ็บ/, /ปวด/, /ล้ม/, /หาย.*ใจ.*ไม่.*ออก/],
     report: [/รายงาน/, /สรุป/, /ดู.*ผล/, /วันนี้/, /สัปดาห์/],
-    registration: [/ลงทะเบียน/, /สมัคร/, /ลงชื่อ/, /register/, /สร้างบัญชี/, /เริ่มใช้งาน/, /ลงทะเบียนใหม่/]
+    registration: [/ลงทะเบียน/, /สมัคร/, /ลงชื่อ/, /register/, /สร้างบัญชี/, /เริ่มใช้งาน/, /ลงทะเบียนใหม่/],
+    health_menu: [/^บันทึกสุขภาพ$/, /^บันทึก$/],
+    view_report: [/^ดูรายงาน$/],
+    package: [/แพ็กเกจ/, /บริการ/, /ราคา/, /package/],
+    help: [/ช่วยเหลือ/, /help/, /วิธีใช้/, /คำถาม/, /faq/]
   };
 
   constructor(config?: Partial<Config>) {
@@ -115,6 +119,10 @@ Classify into these intents:
 - emergency (ฉุกเฉิน, ต้องการความช่วยเหลือ)
 - report (ขอรายงาน, ดูสรุป)
 - registration (ลงทะเบียน, สมัครใช้งาน, เริ่มใช้งาน)
+- health_menu (เมนูบันทึกสุขภาพ)
+- view_report (เมนูดูรายงาน)
+- package (ถามเกี่ยวกับแพ็กเกจบริการ)
+- help (ขอความช่วยเหลือ, FAQ)
 - other (อื่นๆ)`;
 
     const userPrompt = `Classify this message: "${text}"
