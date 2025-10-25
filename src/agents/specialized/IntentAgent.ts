@@ -10,7 +10,8 @@ export class IntentAgent extends BaseAgent {
     walk: [/เดิน/, /ออกกำลัง/, /วิ่ง/, /กีฬา/, /กายภาพ/],
     food: [/อาหาร/, /กิน/, /ข้าว/, /มื้อ/, /เช้า/, /กลางวัน/, /เย็น/],
     emergency: [/ฉุกเฉิน/, /ช่วย/, /เจ็บ/, /ปวด/, /ล้ม/, /หาย.*ใจ.*ไม่.*ออก/],
-    report: [/รายงาน/, /สรุป/, /ดู.*ผล/, /วันนี้/, /สัปดาห์/]
+    report: [/รายงาน/, /สรุป/, /ดู.*ผล/, /วันนี้/, /สัปดาห์/],
+    registration: [/ลงทะเบียน/, /สมัคร/, /ลงชื่อ/, /register/, /สร้างบัญชี/, /เริ่มใช้งาน/, /ลงทะเบียนใหม่/]
   };
 
   constructor(config?: Partial<Config>) {
@@ -102,17 +103,18 @@ export class IntentAgent extends BaseAgent {
 
   private async classifyWithClaude(text: string) {
     const systemPrompt = `You are an intent classifier for a Thai elderly care system.
-    
+
 IMPORTANT: Respond with ONLY valid JSON, no other text.
 
 Classify into these intents:
-- medication (ยา, การกินยา) 
+- medication (ยา, การกินยา)
 - vitals (ความดัน, วัดผลเลือด, น้ำตาล)
 - water (น้ำ, การดื่มน้ำ)
 - walk (เดิน, ออกกำลังกาย)
 - food (อาหาร, มื้ออาหาร)
 - emergency (ฉุกเฉิน, ต้องการความช่วยเหลือ)
 - report (ขอรายงาน, ดูสรุป)
+- registration (ลงทะเบียน, สมัครใช้งาน, เริ่มใช้งาน)
 - other (อื่นๆ)`;
 
     const userPrompt = `Classify this message: "${text}"

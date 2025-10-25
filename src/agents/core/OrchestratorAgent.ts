@@ -156,7 +156,13 @@ export class OrchestratorAgent extends BaseAgent {
   }
 
   private createRoutingPlan(intent: string, confidence: number) {
-    const plan = {
+    const plan: {
+      agents: string[];
+      parallel: boolean;
+      fallback: string;
+      requiresFlexMessage?: boolean;
+      flexMessageType?: string;
+    } = {
       agents: [] as string[],
       parallel: false,
       fallback: 'dialog'
@@ -178,6 +184,12 @@ export class OrchestratorAgent extends BaseAgent {
           break;
         case 'report':
           plan.agents = ['report'];
+          break;
+        case 'registration':
+          // Return special marker for registration
+          plan.agents = ['dialog'];
+          plan.requiresFlexMessage = true;
+          plan.flexMessageType = 'registration';
           break;
         default:
           plan.agents = ['dialog'];

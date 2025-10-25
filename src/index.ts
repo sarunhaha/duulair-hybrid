@@ -1,7 +1,7 @@
 // src/index.ts
 import express from 'express';
 import dotenv from 'dotenv';
-import { Client, WebhookEvent, TextMessage, validateSignature } from '@line/bot-sdk';
+import { Client, WebhookEvent, TextMessage, FlexMessage, validateSignature } from '@line/bot-sdk';
 import { OrchestratorAgent } from './agents';
 import registrationRoutes from './routes/registration.routes';
 import crypto from 'crypto';
@@ -15,9 +15,125 @@ const lineConfig = {
 };
 
 const lineClient = new Client(lineConfig);
+const LIFF_ID = process.env.LIFF_ID || '';
 
 const app = express();
 const orchestrator = new OrchestratorAgent();
+
+// Create Flex Message for registration
+function createRegistrationFlexMessage(): FlexMessage {
+  return {
+    type: 'flex',
+    altText: 'ลงทะเบียนใช้งาน Duulair',
+    contents: {
+      type: 'bubble',
+      hero: {
+        type: 'image',
+        url: 'https://scdn.line-apps.com/n/channel_devcenter/img/fx/01_1_cafe.png',
+        size: 'full',
+        aspectRatio: '20:13',
+        aspectMode: 'cover'
+      },
+      body: {
+        type: 'box',
+        layout: 'vertical',
+        contents: [
+          {
+            type: 'text',
+            text: 'ลงทะเบียนใช้งาน',
+            weight: 'bold',
+            size: 'xl',
+            color: '#4CAF50'
+          },
+          {
+            type: 'box',
+            layout: 'vertical',
+            margin: 'lg',
+            spacing: 'sm',
+            contents: [
+              {
+                type: 'text',
+                text: 'ยินดีต้อนรับสู่ Duulair',
+                size: 'md',
+                color: '#555555',
+                flex: 0,
+                wrap: true
+              },
+              {
+                type: 'text',
+                text: 'ระบบดูแลสุขภาพผู้สูงอายุ',
+                size: 'sm',
+                color: '#999999',
+                margin: 'md',
+                wrap: true
+              },
+              {
+                type: 'separator',
+                margin: 'lg'
+              },
+              {
+                type: 'box',
+                layout: 'vertical',
+                margin: 'lg',
+                spacing: 'sm',
+                contents: [
+                  {
+                    type: 'text',
+                    text: 'เลือกบทบาทของคุณ:',
+                    size: 'sm',
+                    color: '#555555',
+                    weight: 'bold'
+                  },
+                  {
+                    type: 'text',
+                    text: '• ผู้ป่วย - บันทึกข้อมูลสุขภาพตัวเอง',
+                    size: 'xs',
+                    color: '#666666',
+                    margin: 'sm',
+                    wrap: true
+                  },
+                  {
+                    type: 'text',
+                    text: '• ผู้ดูแล - ติดตามดูแลคนในครอบครัว',
+                    size: 'xs',
+                    color: '#666666',
+                    margin: 'xs',
+                    wrap: true
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      footer: {
+        type: 'box',
+        layout: 'vertical',
+        spacing: 'sm',
+        contents: [
+          {
+            type: 'button',
+            style: 'primary',
+            height: 'sm',
+            color: '#4CAF50',
+            action: {
+              type: 'uri',
+              label: 'เริ่มลงทะเบียน',
+              uri: `https://liff.line.me/${LIFF_ID}`
+            }
+          },
+          {
+            type: 'box',
+            layout: 'vertical',
+            contents: [],
+            margin: 'sm'
+          }
+        ],
+        flex: 0
+      }
+    }
+  };
+}
 
 // Initialize orchestrator (once)
 let initialized = false;
@@ -126,18 +242,28 @@ async function handleTextMessage(event: any) {
 
     console.log('🤖 Agent result:', result);
 
-    // Send reply back to LINE
-    const responseText = result.data?.combined?.response;
-    if (result.success && responseText) {
-      const replyMessage: TextMessage = {
-        type: 'text',
-        text: responseText
-      };
+    // Check if this is a registration intent
+    const intent = result.metadata?.intent;
 
-      await lineClient.replyMessage(replyToken, replyMessage);
-      console.log('✅ Reply sent to LINE:', responseText);
+    if (intent === 'registration') {
+      // Send Flex Message for registration
+      const flexMessage = createRegistrationFlexMessage();
+      await lineClient.replyMessage(replyToken, flexMessage);
+      console.log('✅ Flex Message sent for registration');
     } else {
-      console.log('⚠️ No response to send:', { success: result.success, hasResponse: !!responseText });
+      // Send normal text reply
+      const responseText = result.data?.combined?.response;
+      if (result.success && responseText) {
+        const replyMessage: TextMessage = {
+          type: 'text',
+          text: responseText
+        };
+
+        await lineClient.replyMessage(replyToken, replyMessage);
+        console.log('✅ Reply sent to LINE:', responseText);
+      } else {
+        console.log('⚠️ No response to send:', { success: result.success, hasResponse: !!responseText });
+      }
     }
 
     return result;
