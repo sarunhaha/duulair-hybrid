@@ -114,6 +114,82 @@ return { success: false, error: error.message };
 
 ---
 
+### Issue 4: Incomplete Error Logging (2025-10-25)
+
+**Problem:**
+- Flex Message fails with 400 but error details not visible
+- Can't diagnose root cause from logs
+
+**Root Cause:**
+- Error logging doesn't include `response.data` from LINE API
+- LINE API error details are in `error.originalError?.response?.data`
+
+**Solution:**
+```typescript
+// Proper error logging for LINE API calls
+try {
+  await lineClient.replyMessage(replyToken, flexMessage);
+  console.log('✅ Flex Message sent:', flexMessageType);
+} catch (sendError: any) {
+  // Log ALL error details including LINE API response
+  console.error('❌ Failed to send Flex Message:', {
+    error: sendError.message,
+    statusCode: sendError.statusCode,
+    statusMessage: sendError.statusMessage,
+    responseData: sendError.originalError?.response?.data  // ← CRITICAL!
+  });
+
+  // Fallback: Send text message instead
+  const responseText = result.data?.combined?.response;
+  if (responseText) {
+    try {
+      await lineClient.replyMessage(replyToken, { type: 'text', text: responseText });
+      console.log('✅ Sent fallback text message');
+    } catch (fallbackError) {
+      console.error('❌ Fallback also failed:', fallbackError);
+    }
+  }
+}
+```
+
+**Lessons Learned:**
+- Always log `error.originalError?.response?.data` for LINE API errors
+- Add fallback text message when Flex Message fails
+- Don't leave users without a response
+
+---
+
+### Issue 5: Webhook Returns 500 on Error (2025-10-25)
+
+**Problem:**
+- Webhook handler returns 500 on internal errors
+- Causes LINE to retry infinitely (`"isRedelivery":true`)
+
+**Root Cause:**
+```typescript
+// ❌ WRONG - Returns 500
+catch (error) {
+  res.status(500).json({ error: 'Internal server error' });
+}
+```
+
+**Solution:**
+```typescript
+// ✅ CORRECT - Always return 200
+catch (error) {
+  console.error('❌ Webhook error:', error);
+  // Return 200 to prevent LINE retry loop
+  res.json({ status: 'error', error: 'Internal server error', details: error.message });
+}
+```
+
+**Lessons Learned:**
+- Webhook must ALWAYS return 200 OK
+- Errors are logged, no need for LINE to retry
+- 500 errors cause infinite retry loops
+
+---
+
 ## Documentation Reading Protocol
 
 **Before ANY deployment work, read:**
@@ -172,4 +248,34 @@ try {
   // DON'T throw!
 }
 return result; // Always return, never throw
+```
+
+**LINE API Error Logging (with response.data):**
+```typescript
+try {
+  await lineClient.replyMessage(replyToken, flexMessage);
+} catch (sendError: any) {
+  console.error('❌ Failed:', {
+    error: sendError.message,
+    statusCode: sendError.statusCode,
+    responseData: sendError.originalError?.response?.data  // ← Get error details!
+  });
+
+  // Fallback to text message
+  await lineClient.replyMessage(replyToken, { type: 'text', text: fallbackText });
+}
+```
+
+**Webhook Handler (Always Return 200):**
+```typescript
+app.post('/webhook', async (req, res) => {
+  try {
+    // ... process events ...
+    res.json({ status: 'ok', processed: results.length });
+  } catch (error) {
+    console.error('❌ Webhook error:', error);
+    // ✅ Return 200 to prevent LINE retry loop
+    res.json({ status: 'error', error: error.message });
+  }
+});
 ```

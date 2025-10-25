@@ -456,7 +456,9 @@ app.post('/webhook', async (req, res) => {
     res.json({ status: 'ok', processed: results.length });
   } catch (error) {
     console.error('❌ Webhook error:', error);
-    res.status(500).json({ error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' });
+    // IMPORTANT: Return 200 to prevent LINE webhook retry loop
+    // Errors are already logged, no need for LINE to retry
+    res.json({ status: 'error', error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' });
   }
 });
 
@@ -532,10 +534,32 @@ async function handleTextMessage(event: any) {
         try {
           await lineClient.replyMessage(replyToken, flexMessage);
           console.log('✅ Flex Message sent:', flexMessageType);
-        } catch (sendError) {
-          console.error('❌ Failed to send Flex Message:', sendError);
+          return result;
+        } catch (sendError: any) {
+          // Log detailed error from LINE API
+          console.error('❌ Failed to send Flex Message:', {
+            error: sendError.message,
+            statusCode: sendError.statusCode,
+            statusMessage: sendError.statusMessage,
+            responseData: sendError.originalError?.response?.data
+          });
+
+          // Fallback: Send text message instead
+          const responseText = result.data?.combined?.response;
+          if (responseText) {
+            try {
+              const fallbackMessage: TextMessage = {
+                type: 'text',
+                text: responseText
+              };
+              await lineClient.replyMessage(replyToken, fallbackMessage);
+              console.log('✅ Sent fallback text message after Flex Message failure');
+            } catch (fallbackError) {
+              console.error('❌ Fallback text message also failed:', fallbackError);
+            }
+          }
+          return result;
         }
-        return result;
       }
     }
 
