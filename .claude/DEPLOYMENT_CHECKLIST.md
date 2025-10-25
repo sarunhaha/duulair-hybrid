@@ -110,16 +110,39 @@ if (process.env.NODE_ENV !== 'production') {
 
 ---
 
-### Issue 3: Webhook Retry Loop
+### Issue 3: Webhook Retry Loop & Invalid Reply Token
 
 **Problem:**
 - Webhook logs show repeated delivery with `"isRedelivery":true`
+- Error: `Invalid reply token` on retry events
+- 400 Bad Request shown to users
 
-**Root Cause:**
-- Error thrown in webhook handler prevents 200 OK response
-- LINE retries failed webhooks indefinitely
+**Root Causes:**
+1. Error thrown in webhook handler prevents 200 OK response → LINE retries
+2. `replyToken` expires after first use or over time
+3. Retry events (`isRedelivery: true`) have expired replyTokens
+4. Cannot use same replyToken multiple times (e.g., Flex Message fail → Fallback text)
 
-**Solution:**
+**Solutions:**
+
+**Solution 1: Skip Redelivery Events**
+```typescript
+async function handleTextMessage(event: any) {
+  const isRedelivery = event.deliveryContext?.isRedelivery || false;
+
+  console.log(`📨 Message: ${message.text}${isRedelivery ? ' [REDELIVERY]' : ''}`);
+
+  // Skip redelivery events - replyToken is likely expired
+  if (isRedelivery) {
+    console.log('⏭️ Skipping redelivery event - replyToken may be invalid');
+    return { success: true, skipped: true, reason: 'redelivery' };
+  }
+
+  // ... process message normally
+}
+```
+
+**Solution 2: Always Return 200 OK**
 ```typescript
 // Wrap all lineClient calls with try-catch
 try {
@@ -132,6 +155,11 @@ try {
 // Always return success from handler
 return { success: false, error: error.message };
 ```
+
+**Why This Works:**
+- Skip retry events → no expired replyToken errors
+- Return 200 OK always → LINE stops retrying
+- First delivery attempt gets processed, retries get skipped
 
 ---
 
@@ -280,6 +308,24 @@ try {
   // DON'T throw!
 }
 return result; // Always return, never throw
+```
+
+**Skip Redelivery Events:**
+```typescript
+async function handleTextMessage(event: any) {
+  const isRedelivery = event.deliveryContext?.isRedelivery || false;
+
+  // Log redelivery status
+  console.log(`📨 Message: ${text}${isRedelivery ? ' [REDELIVERY]' : ''}`);
+
+  // Skip retry events - replyToken is expired
+  if (isRedelivery) {
+    console.log('⏭️ Skipping redelivery event');
+    return { success: true, skipped: true };
+  }
+
+  // Process normally...
+}
 ```
 
 **LINE API Error Logging (with response.data):**

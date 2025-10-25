@@ -468,8 +468,15 @@ async function handleTextMessage(event: any) {
     const replyToken = event.replyToken;
     const message = event.message;
     const userId = event.source?.userId || '';
+    const isRedelivery = event.deliveryContext?.isRedelivery || false;
 
-    console.log(`📨 Message from ${userId}: ${message.text}`);
+    console.log(`📨 Message from ${userId}: ${message.text}${isRedelivery ? ' [REDELIVERY]' : ''}`);
+
+    // Skip redelivery events - replyToken is likely expired
+    if (isRedelivery) {
+      console.log('⏭️ Skipping redelivery event - replyToken may be invalid');
+      return { success: true, skipped: true, reason: 'redelivery' };
+    }
 
     // Process with orchestrator
     const result = await orchestrator.process({
