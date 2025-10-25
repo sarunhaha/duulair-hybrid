@@ -1,9 +1,10 @@
 // src/index.ts
 import express from 'express';
 import dotenv from 'dotenv';
-import { middleware, Client, WebhookEvent, TextMessage } from '@line/bot-sdk';
+import { Client, WebhookEvent, TextMessage, validateSignature } from '@line/bot-sdk';
 import { OrchestratorAgent } from './agents';
 import registrationRoutes from './routes/registration.routes';
+import crypto from 'crypto';
 
 dotenv.config();
 
@@ -33,15 +34,38 @@ async function initializeIfNeeded() {
   return initialized;
 }
 
-app.use(express.json());
+// Use express.json() with verify to capture raw body
+app.use(express.json({
+  verify: (req: any, res, buf) => {
+    req.rawBody = buf.toString();
+  }
+}));
 
 // Registration API routes
 app.use('/api/registration', registrationRoutes);
 
-// LINE Webhook - with signature verification
-app.post('/webhook', middleware(lineConfig), async (req, res) => {
+// LINE Webhook - with manual signature verification
+app.post('/webhook', async (req, res) => {
   try {
     console.log('📨 Webhook received:', JSON.stringify(req.body));
+
+    // Verify LINE signature
+    const signature = req.headers['x-line-signature'] as string;
+    if (signature && lineConfig.channelSecret) {
+      const rawBody = (req as any).rawBody || JSON.stringify(req.body);
+
+      // Create HMAC signature
+      const hash = crypto
+        .createHmac('sha256', lineConfig.channelSecret)
+        .update(rawBody)
+        .digest('base64');
+
+      if (hash !== signature) {
+        console.error('❌ Invalid signature');
+        return res.status(401).json({ error: 'Invalid signature' });
+      }
+      console.log('✅ Signature verified');
+    }
 
     // Handle verification request (LINE sends empty body or no events)
     if (!req.body.events || req.body.events.length === 0) {
