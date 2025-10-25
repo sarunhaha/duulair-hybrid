@@ -201,12 +201,6 @@ function createRegistrationFlexMessage(): FlexMessage {
               label: 'เริ่มลงทะเบียน',
               uri: `https://liff.line.me/${LIFF_ID}`
             }
-          },
-          {
-            type: 'box',
-            layout: 'vertical',
-            contents: [],
-            margin: 'sm'
           }
         ],
         flex: 0
