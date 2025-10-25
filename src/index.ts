@@ -548,7 +548,8 @@ async function handleTextMessage(event: any) {
     return result;
   } catch (error) {
     console.error('Error handling text message:', error);
-    throw error;
+    // DON'T throw - return success to prevent LINE webhook retry loop
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
   }
 }
 
