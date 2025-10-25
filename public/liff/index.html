@@ -56,8 +56,8 @@
 
           // Redirect to success page
           if (result.data.role === 'patient') {
-            // Redirect to success page showing link code
-            window.location.href = `success.html?patient_id=${result.data.profile_id}&returning=true`;
+            // Redirect to success page showing link code (use absolute path)
+            window.location.href = `/liff/success.html?patient_id=${result.data.profile_id}&returning=true`;
           } else {
             // Caregiver - show success message and close
             showSuccess('คุณลงทะเบียนเรียบร้อยแล้ว');
@@ -68,9 +68,9 @@
           }
 
         } else {
-          // Not registered - go to role selection
+          // Not registered - go to role selection (use absolute path)
           console.log('❌ User not registered, redirecting to role selection');
-          window.location.href = 'role-selection.html';
+          window.location.href = '/liff/role-selection.html';
         }
 
       } catch (error) {

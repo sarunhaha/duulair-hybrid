@@ -207,9 +207,9 @@ async function submitForm() {
     // Show success message
     showSuccess('ลงทะเบียนสำเร็จ! รอผู้ป่วยอนุมัติการเชื่อมต่อ');
 
-    // Redirect to success page after 2 seconds
+    // Redirect to success page after 2 seconds (use absolute path from root)
     setTimeout(() => {
-      window.location.href = 'success.html?caregiver_id=' + caregiverId;
+      window.location.href = '/liff/success.html?caregiver_id=' + caregiverId;
     }, 2000);
 
   } catch (error) {

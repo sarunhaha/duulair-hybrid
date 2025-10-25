@@ -77,11 +77,11 @@
       // Save role to sessionStorage
       sessionStorage.setItem('selectedRole', role);
 
-      // Navigate to appropriate registration form
+      // Navigate to appropriate registration form (use absolute paths)
       if (role === 'patient') {
-        window.location.href = 'patient-registration.html';
+        window.location.href = '/liff/patient-registration.html';
       } else {
-        window.location.href = 'caregiver-registration.html';
+        window.location.href = '/liff/caregiver-registration.html';
       }
     }
 

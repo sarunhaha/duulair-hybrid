@@ -462,8 +462,8 @@ async function submitForm() {
 
     hideLoading();
 
-    // Redirect to success page
-    window.location.href = `success.html?patient_id=${result.data.id}`;
+    // Redirect to success page (use absolute path from root)
+    window.location.href = `/liff/success.html?patient_id=${result.data.id}`;
 
   } catch (error) {
     console.error('❌ Registration error:', error);
