@@ -136,7 +136,6 @@ function createRegistrationFlexMessage(): FlexMessage {
                 text: 'ยินดีต้อนรับสู่ Duulair',
                 size: 'md',
                 color: '#555555',
-                flex: 0,
                 wrap: true
               },
               {
@@ -202,8 +201,7 @@ function createRegistrationFlexMessage(): FlexMessage {
               uri: `https://liff.line.me/${LIFF_ID}`
             }
           }
-        ],
-        flex: 0
+        ]
       }
     }
   };
