@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#4CAF50">
+  <title>Duulair - ลงทะเบียน</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>🏥 Duulair</h1>
+    <p class="text-center">ระบบดูแลสุขภาพผู้สูงอายุ</p>
+
+    <!-- Loading will be injected by JavaScript -->
+  </div>
+
+  <!-- LIFF SDK -->
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+  <!-- App JavaScript -->
+  <script src="js/utils.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/liff-init.js"></script>
+
+  <script>
+    // ========================================
+    // Main Entry Point
+    // ========================================
+
+    async function init() {
+      try {
+        // Initialize LIFF
+        const profile = await initLiff();
+        if (!profile) return;
+
+        // Check if user is already registered
+        showLoading('กำลังตรวจสอบข้อมูล...');
+
+        const result = await api.checkRegistration(profile.userId);
+
+        hideLoading();
+
+        if (result.data.registered) {
+          // Already registered
+          console.log('✅ User is registered:', result.data);
+
+          const userData = {
+            role: result.data.role,
+            profile_id: result.data.profile_id,
+            line_user_id: profile.userId
+          };
+
+          // Save to localStorage
+          saveUserData(userData);
+
+          // Redirect to success page
+          if (result.data.role === 'patient') {
+            // Redirect to success page showing link code
+            window.location.href = `success.html?patient_id=${result.data.profile_id}&returning=true`;
+          } else {
+            // Caregiver - show success message and close
+            showSuccess('คุณลงทะเบียนเรียบร้อยแล้ว');
+
+            setTimeout(() => {
+              closeLiff();
+            }, 2000);
+          }
+
+        } else {
+          // Not registered - go to role selection
+          console.log('❌ User not registered, redirecting to role selection');
+          window.location.href = 'role-selection.html';
+        }
+
+      } catch (error) {
+        console.error('❌ Initialization error:', error);
+        hideLoading();
+        showError('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง');
+
+        // Retry button
+        setTimeout(() => {
+          const container = document.querySelector('.container');
+          const retryBtn = document.createElement('button');
+          retryBtn.className = 'btn btn-block';
+          retryBtn.textContent = 'ลองอีกครั้ง';
+          retryBtn.onclick = () => location.reload();
+          container.appendChild(retryBtn);
+        }, 1000);
+      }
+    }
+
+    // Start when DOM is ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+  </script>
+</body>
+</html>

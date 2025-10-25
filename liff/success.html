@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#4CAF50">
+  <title>ลงทะเบียนสำเร็จ - Duulair</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Success Icon -->
+    <div class="success-container">
+      <div class="success-icon">✅</div>
+      <h1 id="successTitle">ลงทะเบียนสำเร็จ!</h1>
+      <p id="successMessage" class="text-large">ขอบคุณที่ใช้บริการ Duulair</p>
+    </div>
+
+    <!-- Patient Success: Link Code & QR Code -->
+    <div id="patientSuccess" class="hidden">
+      <div class="card">
+        <div class="card-header">🔗 รหัสเชื่อมต่อของคุณ</div>
+
+        <p class="text-center mb-2">
+          แชร์รหัสนี้กับผู้ดูแลเพื่อให้เขาเชื่อมต่อกับบัญชีของคุณ
+        </p>
+
+        <!-- Link Code -->
+        <div class="link-code" id="linkCodeDisplay">
+          ------
+        </div>
+
+        <!-- QR Code -->
+        <div class="qr-code">
+          <img id="qrCodeImage" src="" alt="QR Code">
+        </div>
+
+        <div class="alert alert-info">
+          💡 ผู้ดูแลสามารถสแกน QR Code หรือกรอกรหัส 6 หลักเพื่อเชื่อมต่อกับคุณ
+        </div>
+      </div>
+
+      <!-- Share Button -->
+      <button type="button" class="btn btn-block" onclick="shareCode()">
+        📤 แชร์รหัส
+      </button>
+
+      <!-- Copy Button -->
+      <button type="button" class="btn btn-secondary btn-block" onclick="copyCode()">
+        📋 คัดลอกรหัส
+      </button>
+    </div>
+
+    <!-- Caregiver Success -->
+    <div id="caregiverSuccess" class="hidden">
+      <div class="card">
+        <div class="card-header">⏳ รอการอนุมัติ</div>
+
+        <p class="text-center">
+          คุณได้ส่งคำขอเชื่อมต่อกับผู้ป่วยเรียบร้อยแล้ว<br>
+          กรุณารอผู้ป่วยอนุมัติการเชื่อมต่อ
+        </p>
+
+        <div class="alert alert-info mt-2">
+          💡 เมื่อผู้ป่วยอนุมัติแล้ว คุณจะสามารถดูข้อมูลสุขภาพและรับแจ้งเตือนได้ทันที
+        </div>
+      </div>
+    </div>
+
+    <!-- Already Registered -->
+    <div id="alreadyRegistered" class="hidden">
+      <div class="card">
+        <p class="text-center">
+          คุณได้ลงทะเบียนไว้แล้ว
+        </p>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="mt-2">
+      <button type="button" class="btn btn-block" onclick="closeLiff()">
+        ปิด
+      </button>
+    </div>
+
+    <p class="text-center text-small mt-2" style="color: #666;">
+      คุณสามารถเริ่มใช้งานระบบได้ทันที<br>
+      พิมพ์ "สวัสดี" ใน LINE Chat เพื่อทดสอบ
+    </p>
+  </div>
+
+  <!-- LIFF SDK -->
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+  <!-- App JavaScript -->
+  <script src="js/utils.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/liff-init.js"></script>
+
+  <script>
+    // ========================================
+    // Success Page Logic
+    // ========================================
+
+    let liffProfile = null;
+    let linkCode = null;
+    let patientId = null;
+    let caregiverId = null;
+
+    async function init() {
+      try {
+        // Initialize LIFF
+        liffProfile = await initLiff();
+        if (!liffProfile) return;
+
+        // Get URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        patientId = urlParams.get('patient_id');
+        caregiverId = urlParams.get('caregiver_id');
+        const returning = urlParams.get('returning') === 'true';
+
+        if (patientId) {
+          // Patient success
+          await showPatientSuccess(patientId, returning);
+        } else if (caregiverId) {
+          // Caregiver success
+          showCaregiverSuccess();
+        } else {
+          // No parameters - already registered
+          showAlreadyRegistered();
+        }
+
+      } catch (error) {
+        console.error('❌ Initialization error:', error);
+        showError('เกิดข้อผิดพลาด');
+      }
+    }
+
+    /**
+     * Show patient success with link code
+     */
+    async function showPatientSuccess(patientId, isReturning) {
+      try {
+        showLoading('กำลังสร้างรหัสเชื่อมต่อ...');
+
+        // Generate or get existing link code
+        const result = await api.generateLinkCode(patientId);
+        linkCode = result.data.link_code;
+
+        console.log('✅ Link code generated:', linkCode);
+
+        hideLoading();
+
+        // Update UI
+        if (isReturning) {
+          document.getElementById('successTitle').textContent = 'ยินดีต้อนรับกลับ!';
+          document.getElementById('successMessage').textContent = 'คุณลงทะเบียนไว้แล้ว';
+        }
+
+        // Display link code
+        document.getElementById('linkCodeDisplay').textContent = linkCode;
+
+        // Generate QR code
+        const qrCodeUrl = generateQRCode(`DUULAIR:${linkCode}`, 250);
+        document.getElementById('qrCodeImage').src = qrCodeUrl;
+
+        // Show patient success section
+        document.getElementById('patientSuccess').classList.remove('hidden');
+
+      } catch (error) {
+        console.error('❌ Error generating link code:', error);
+        hideLoading();
+        showError('ไม่สามารถสร้างรหัสเชื่อมต่อได้');
+      }
+    }
+
+    /**
+     * Show caregiver success
+     */
+    function showCaregiverSuccess() {
+      document.getElementById('successTitle').textContent = 'ส่งคำขอเรียบร้อย!';
+      document.getElementById('successMessage').textContent = 'รอผู้ป่วยอนุมัติ';
+      document.getElementById('caregiverSuccess').classList.remove('hidden');
+    }
+
+    /**
+     * Show already registered
+     */
+    function showAlreadyRegistered() {
+      document.getElementById('successTitle').textContent = 'คุณลงทะเบียนแล้ว';
+      document.getElementById('successMessage').textContent = 'ขอบคุณที่ใช้บริการ';
+      document.getElementById('alreadyRegistered').classList.remove('hidden');
+    }
+
+    /**
+     * Share link code via LINE
+     */
+    async function shareCode() {
+      if (!linkCode) {
+        showError('ไม่พบรหัสเชื่อมต่อ');
+        return;
+      }
+
+      const message = {
+        type: 'text',
+        text: `🔗 รหัสเชื่อมต่อ Duulair\n\nรหัส: ${linkCode}\n\nใช้รหัสนี้เพื่อเชื่อมต่อกับบัญชีผู้ป่วยของฉัน\n\n📱 เปิด LINE → Duulair → ลงทะเบียนผู้ดูแล → กรอกรหัสนี้`
+      };
+
+      const success = await shareWithTargetPicker(message);
+
+      if (success) {
+        showSuccess('แชร์รหัสเรียบร้อย');
+      } else {
+        // Fallback: copy to clipboard
+        copyCode();
+      }
+    }
+
+    /**
+     * Copy link code to clipboard
+     */
+    function copyCode() {
+      if (!linkCode) {
+        showError('ไม่พบรหัสเชื่อมต่อ');
+        return;
+      }
+
+      // Create temporary input
+      const input = document.createElement('input');
+      input.value = linkCode;
+      document.body.appendChild(input);
+      input.select();
+
+      try {
+        document.execCommand('copy');
+        showSuccess('คัดลอกรหัสเรียบร้อย');
+      } catch (error) {
+        showError('ไม่สามารถคัดลอกได้');
+      }
+
+      document.body.removeChild(input);
+    }
+
+    // ========================================
+    // Start
+    // ========================================
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+  </script>
+</body>
+</html>

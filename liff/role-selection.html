@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#4CAF50">
+  <title>เลือกบทบาท - Duulair</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>ยินดีต้อนรับ 👋</h1>
+    <p class="text-center mb-2">กรุณาเลือกบทบาทของคุณ</p>
+
+    <div class="role-cards">
+      <!-- Patient Card -->
+      <div class="role-card" onclick="selectRole('patient')">
+        <div class="icon">👴</div>
+        <h2>ผู้ป่วย</h2>
+        <p>ฉันต้องการบันทึกข้อมูลสุขภาพของตัวเอง</p>
+      </div>
+
+      <!-- Caregiver Card -->
+      <div class="role-card" onclick="selectRole('caregiver')">
+        <div class="icon">👨‍👩‍👧</div>
+        <h2>ผู้ดูแล</h2>
+        <p>ฉันต้องการดูแลและติดตามสุขภาพของคนในครอบครัว</p>
+      </div>
+    </div>
+
+    <div class="card mt-2">
+      <h3>💡 คำแนะนำ</h3>
+      <p style="margin-bottom: 8px;"><strong>ผู้ป่วย:</strong> ลงทะเบียนเพื่อบันทึกข้อมูลสุขภาพและได้รหัสเชื่อมต่อสำหรับญาติ</p>
+      <p><strong>ผู้ดูแล:</strong> ลงทะเบียนเพื่อเชื่อมต่อกับบัญชีผู้ป่วยและรับแจ้งเตือนสุขภาพ</p>
+    </div>
+  </div>
+
+  <!-- LIFF SDK -->
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+  <!-- App JavaScript -->
+  <script src="js/utils.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/liff-init.js"></script>
+
+  <script>
+    // ========================================
+    // Role Selection
+    // ========================================
+
+    let liffProfile = null;
+
+    async function init() {
+      try {
+        // Initialize LIFF
+        liffProfile = await initLiff();
+        if (!liffProfile) return;
+
+        console.log('✅ LIFF Profile loaded:', liffProfile);
+
+      } catch (error) {
+        console.error('❌ Initialization error:', error);
+        showError('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง');
+      }
+    }
+
+    /**
+     * Select role and navigate to registration form
+     * @param {string} role - 'patient' or 'caregiver'
+     */
+    function selectRole(role) {
+      if (!liffProfile) {
+        showError('กรุณารอสักครู่...');
+        return;
+      }
+
+      // Save role to sessionStorage
+      sessionStorage.setItem('selectedRole', role);
+
+      // Navigate to appropriate registration form
+      if (role === 'patient') {
+        window.location.href = 'patient-registration.html';
+      } else {
+        window.location.href = 'caregiver-registration.html';
+      }
+    }
+
+    // Start when DOM is ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+  </script>
+</body>
+</html>

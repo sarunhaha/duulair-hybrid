@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#4CAF50">
+  <title>ลงทะเบียนผู้ดูแล - Duulair</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>👨‍👩‍👧 ลงทะเบียนผู้ดูแล</h1>
+
+    <div class="card">
+      <p class="text-center mb-2">
+        กรุณากรอกข้อมูลและใส่รหัสเชื่อมต่อที่ได้รับจากผู้ป่วย
+      </p>
+    </div>
+
+    <!-- Personal Information -->
+    <div class="card">
+      <div class="card-header">📝 ข้อมูลส่วนตัว</div>
+
+      <div class="form-group">
+        <label for="firstName">ชื่อ <span class="required">*</span></label>
+        <input type="text" id="firstName" placeholder="กรอกชื่อ">
+      </div>
+
+      <div class="form-group">
+        <label for="lastName">นามสกุล <span class="required">*</span></label>
+        <input type="text" id="lastName" placeholder="กรอกนามสกุล">
+      </div>
+
+      <div class="form-group">
+        <label for="phoneNumber">เบอร์โทรศัพท์</label>
+        <input type="tel" id="phoneNumber" placeholder="0XX-XXX-XXXX (ไม่บังคับ)">
+      </div>
+    </div>
+
+    <!-- Link Code -->
+    <div class="card">
+      <div class="card-header">🔗 รหัสเชื่อมต่อ</div>
+
+      <div class="form-group">
+        <label for="linkCode">รหัสเชื่อมต่อ 6 หลัก <span class="required">*</span></label>
+        <input
+          type="text"
+          id="linkCode"
+          placeholder="123456"
+          maxlength="6"
+          inputmode="numeric"
+          style="font-size: 32px; text-align: center; letter-spacing: 8px; font-weight: bold;">
+      </div>
+
+      <button type="button" class="btn btn-secondary btn-block" onclick="scanQRCode()">
+        📷 สแกน QR Code
+      </button>
+
+      <div class="alert alert-info mt-1">
+        💡 รหัสเชื่อมต่อคือตัวเลข 6 หลักที่ผู้ป่วยได้รับหลังจากลงทะเบียน
+      </div>
+    </div>
+
+    <!-- Relationship -->
+    <div class="card">
+      <div class="card-header">👥 ความสัมพันธ์</div>
+
+      <div class="form-group">
+        <label for="relationship">ความสัมพันธ์กับผู้ป่วย <span class="required">*</span></label>
+        <select id="relationship">
+          <option value="">-- เลือกความสัมพันธ์ --</option>
+          <option value="child">ลูก</option>
+          <option value="grandchild">หลาน</option>
+          <option value="sibling">พี่/น้อง</option>
+          <option value="spouse">คู่สมรส</option>
+          <option value="friend">เพื่อน</option>
+          <option value="caregiver">ผู้ดูแลอาชีพ</option>
+          <option value="other">อื่นๆ</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Submit Button -->
+    <button type="button" class="btn btn-block" onclick="submitForm()">
+      ✅ ลงทะเบียนและเชื่อมต่อ
+    </button>
+
+    <div class="card mt-2">
+      <h3>💡 หมายเหตุ</h3>
+      <p style="margin-bottom: 8px; font-size: 16px;">
+        • หลังจากลงทะเบียน คุณจะต้องรอผู้ป่วยอนุมัติการเชื่อมต่อ
+      </p>
+      <p style="font-size: 16px;">
+        • เมื่อได้รับการอนุมัติ คุณจะสามารถติดตามและรับแจ้งเตือนสุขภาพของผู้ป่วยได้
+      </p>
+    </div>
+
+    <p class="text-center text-small mt-2" style="color: #999;">
+      ข้อมูลของท่านจะถูกเก็บเป็นความลับและปลอดภัย
+    </p>
+  </div>
+
+  <!-- LIFF SDK -->
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+  <!-- App JavaScript -->
+  <script src="js/utils.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/liff-init.js"></script>
+  <script src="js/caregiver-form.js"></script>
+</body>
+</html>
