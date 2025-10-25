@@ -2,14 +2,19 @@
   "version": 2,
   "builds": [
     {
+      "src": "public/**",
+      "use": "@vercel/static"
+    },
+    {
       "src": "src/index.ts",
-      "use": "@vercel/node",
-      "config": {
-        "includeFiles": ["public/**"]
-      }
+      "use": "@vercel/node"
     }
   ],
   "routes": [
+    {
+      "src": "/liff/(.*)",
+      "dest": "/public/liff/$1"
+    },
     {
       "src": "/(.*)",
       "dest": "src/index.ts"

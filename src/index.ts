@@ -1,6 +1,7 @@
 // src/index.ts
 import express from 'express';
 import dotenv from 'dotenv';
+import path from 'path';
 import { Client, WebhookEvent, TextMessage, FlexMessage, validateSignature } from '@line/bot-sdk';
 import { OrchestratorAgent } from './agents';
 import registrationRoutes from './routes/registration.routes';
@@ -25,41 +26,41 @@ function createHealthMenuQuickReply() {
   return {
     items: [
       {
-        type: 'action',
+        type: 'action' as const,
         action: {
-          type: 'message',
+          type: 'message' as const,
           label: '💊 ยา',
           text: 'บันทึกยา'
         }
       },
       {
-        type: 'action',
+        type: 'action' as const,
         action: {
-          type: 'message',
+          type: 'message' as const,
           label: '🩺 ความดัน',
           text: 'วัดความดัน'
         }
       },
       {
-        type: 'action',
+        type: 'action' as const,
         action: {
-          type: 'message',
+          type: 'message' as const,
           label: '💧 น้ำ',
           text: 'ดื่มน้ำ'
         }
       },
       {
-        type: 'action',
+        type: 'action' as const,
         action: {
-          type: 'message',
+          type: 'message' as const,
           label: '🚶 ออกกำลังกาย',
           text: 'ออกกำลังกาย'
         }
       },
       {
-        type: 'action',
+        type: 'action' as const,
         action: {
-          type: 'message',
+          type: 'message' as const,
           label: '🍚 อาหาร',
           text: 'บันทึกอาหาร'
         }
@@ -73,25 +74,25 @@ function createViewReportQuickReply() {
   return {
     items: [
       {
-        type: 'action',
+        type: 'action' as const,
         action: {
-          type: 'message',
+          type: 'message' as const,
           label: '📅 รายงานวันนี้',
           text: 'รายงานวันนี้'
         }
       },
       {
-        type: 'action',
+        type: 'action' as const,
         action: {
-          type: 'message',
+          type: 'message' as const,
           label: '📊 รายงานสัปดาห์',
           text: 'รายงานสัปดาห์นี้'
         }
       },
       {
-        type: 'action',
+        type: 'action' as const,
         action: {
-          type: 'message',
+          type: 'message' as const,
           label: '📈 รายงานเดือน',
           text: 'รายงานเดือนนี้'
         }
@@ -193,7 +194,6 @@ function createRegistrationFlexMessage(): FlexMessage {
           {
             type: 'button',
             style: 'primary',
-            height: 'sm',
             color: '#4CAF50',
             action: {
               type: 'uri',
@@ -385,8 +385,10 @@ async function initializeIfNeeded() {
   return initialized;
 }
 
-// Serve static files from public directory (for LIFF)
-app.use(express.static('public'));
+// Serve static files (development only - Vercel uses @vercel/static)
+if (process.env.NODE_ENV !== 'production') {
+  app.use(express.static(path.join(__dirname, '..', 'public')));
+}
 
 // Use express.json() with verify to capture raw body
 app.use(express.json({
@@ -504,8 +506,12 @@ async function handleTextMessage(event: any) {
           quickReply
         };
 
-        await lineClient.replyMessage(replyToken, replyMessage);
-        console.log('✅ Quick Reply sent:', quickReplyType);
+        try {
+          await lineClient.replyMessage(replyToken, replyMessage);
+          console.log('✅ Quick Reply sent:', quickReplyType);
+        } catch (sendError) {
+          console.error('❌ Failed to send Quick Reply:', sendError);
+        }
         return result;
       }
     }
@@ -523,8 +529,12 @@ async function handleTextMessage(event: any) {
       }
 
       if (flexMessage) {
-        await lineClient.replyMessage(replyToken, flexMessage);
-        console.log('✅ Flex Message sent:', flexMessageType);
+        try {
+          await lineClient.replyMessage(replyToken, flexMessage);
+          console.log('✅ Flex Message sent:', flexMessageType);
+        } catch (sendError) {
+          console.error('❌ Failed to send Flex Message:', sendError);
+        }
         return result;
       }
     }
@@ -537,8 +547,12 @@ async function handleTextMessage(event: any) {
         text: responseText
       };
 
-      await lineClient.replyMessage(replyToken, replyMessage);
-      console.log('✅ Reply sent to LINE:', responseText);
+      try {
+        await lineClient.replyMessage(replyToken, replyMessage);
+        console.log('✅ Reply sent to LINE:', responseText);
+      } catch (sendError) {
+        console.error('❌ Failed to send text reply:', sendError);
+      }
     } else {
       console.log('⚠️ No response to send:', { success: result.success, hasResponse: !!responseText });
     }
