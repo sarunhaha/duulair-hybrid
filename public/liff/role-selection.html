@@ -18,33 +18,28 @@
       <p>กำลังโหลด...</p>
     </div>
 
-    <!-- Simple Form with Radio Buttons -->
-    <form id="roleForm" style="margin-top: 20px;">
+    <!-- Direct Links - Simplest approach -->
+    <div style="margin-top: 20px;">
       <div class="card" style="padding: 20px;">
-        <!-- Patient Option -->
-        <label style="display: flex; align-items: flex-start; margin-bottom: 15px; cursor: pointer; padding: 15px; border: 2px solid #ddd; border-radius: 10px;">
-          <input type="radio" name="role" value="patient" required style="margin-right: 12px; margin-top: 3px; width: 20px; height: 20px; flex-shrink: 0;">
-          <div>
-            <strong style="font-size: 18px; display: block; margin-bottom: 5px;">👴 ผู้ป่วย</strong>
-            <span style="color: #666; font-size: 14px; display: block; line-height: 1.4;">ฉันต้องการบันทึกข้อมูลสุขภาพของตัวเอง</span>
-          </div>
-        </label>
+        <p class="text-center mb-2" style="color: #666;">เลือกบทบาทของคุณ:</p>
 
-        <!-- Caregiver Option -->
-        <label style="display: flex; align-items: flex-start; margin-bottom: 0; cursor: pointer; padding: 15px; border: 2px solid #ddd; border-radius: 10px;">
-          <input type="radio" name="role" value="caregiver" required style="margin-right: 12px; margin-top: 3px; width: 20px; height: 20px; flex-shrink: 0;">
-          <div>
-            <strong style="font-size: 18px; display: block; margin-bottom: 5px;">👨‍👩‍👧 ผู้ดูแล</strong>
-            <span style="color: #666; font-size: 14px; display: block; line-height: 1.4;">ฉันต้องการดูแลและติดตามสุขภาพของคนในครอบครัว</span>
-          </div>
-        </label>
+        <!-- Patient Link -->
+        <a href="/liff/patient-registration.html"
+           onclick="try { sessionStorage.setItem('selectedRole', 'patient'); if (typeof liffProfile !== 'undefined' && liffProfile) sessionStorage.setItem('liffProfile', JSON.stringify(liffProfile)); } catch(e) { console.error(e); } return true;"
+           class="btn btn-primary btn-block"
+           style="margin-bottom: 15px; text-decoration: none;">
+          👴 ลงทะเบียนเป็นผู้ป่วย
+        </a>
+
+        <!-- Caregiver Link -->
+        <a href="/liff/caregiver-registration.html"
+           onclick="try { sessionStorage.setItem('selectedRole', 'caregiver'); if (typeof liffProfile !== 'undefined' && liffProfile) sessionStorage.setItem('liffProfile', JSON.stringify(liffProfile)); } catch(e) { console.error(e); } return true;"
+           class="btn btn-secondary btn-block"
+           style="text-decoration: none;">
+          👨‍👩‍👧 ลงทะเบียนเป็นผู้ดูแล
+        </a>
       </div>
-
-      <!-- Submit Button -->
-      <button type="submit" class="btn btn-primary btn-block" style="margin-top: 20px;">
-        ไปหน้าลงทะเบียน →
-      </button>
-    </form>
+    </div>
 
     <div class="card mt-2">
       <h3>💡 คำแนะนำ</h3>
@@ -90,99 +85,11 @@
         console.log('✅ LIFF Profile loaded:', liffProfile);
         console.log('✅ Ready to select role');
 
-        // Setup form handler
-        setupFormHandler();
-
       } catch (error) {
         console.error('❌ Initialization error:', error);
         hideLoading();
         showError('เกิดข้อผิดพลาด: ' + error.message);
       }
-    }
-
-    /**
-     * Setup form submit handler
-     */
-    function setupFormHandler() {
-      console.log('🎨 Setting up form handler...');
-
-      const form = document.getElementById('roleForm');
-      if (!form) {
-        console.error('❌ Form not found');
-        return;
-      }
-
-      console.log('✅ Form found:', form);
-
-      // Use both submit event and click event on button for better compatibility
-      form.addEventListener('submit', handleFormSubmit, { passive: false });
-
-      // Also add click listener to button as fallback
-      const submitButton = form.querySelector('button[type="submit"]');
-      if (submitButton) {
-        submitButton.addEventListener('click', function(e) {
-          console.log('🖱️ Button clicked');
-          // Let the form submit event handle it
-          if (form.checkValidity && !form.checkValidity()) {
-            e.preventDefault();
-            form.reportValidity();
-          }
-        }, { passive: false });
-      }
-
-      console.log('✅ Form handler attached');
-    }
-
-    function handleFormSubmit(e) {
-      e.preventDefault();
-      e.stopPropagation();
-
-      console.log('📝 Form submitted');
-      alert('📝 Form submit event triggered!');
-
-      // Get selected role
-      const selectedRole = document.querySelector('input[name="role"]:checked');
-
-      if (!selectedRole) {
-        console.error('❌ No role selected');
-        alert('❌ No role selected');
-        showError('กรุณาเลือกบทบาท');
-        return;
-      }
-
-      const role = selectedRole.value;
-      console.log('✅ Selected role:', role);
-      alert('✅ Selected role: ' + role);
-
-      // Show loading
-      showLoading(`กำลังเตรียมแบบฟอร์ม${role === 'patient' ? 'ผู้ป่วย' : 'ผู้ดูแล'}...`);
-
-      // Save to sessionStorage
-      try {
-        sessionStorage.setItem('selectedRole', role);
-        if (liffProfile) {
-          sessionStorage.setItem('liffProfile', JSON.stringify(liffProfile));
-        }
-        console.log('✅ Saved to sessionStorage');
-      } catch (err) {
-        console.error('❌ sessionStorage error:', err);
-      }
-
-      // Navigate
-      const targetPath = role === 'patient'
-        ? '/liff/patient-registration.html'
-        : '/liff/caregiver-registration.html';
-
-      console.log('🚀 Navigating to:', targetPath);
-      alert('🚀 About to navigate to: ' + targetPath);
-
-      // Simple navigation
-      setTimeout(function() {
-        console.log('🔄 Executing navigation now...');
-        window.location.href = targetPath;
-      }, 100);
-
-      return false;
     }
 
     // Start when DOM is ready
