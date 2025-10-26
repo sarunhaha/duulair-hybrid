@@ -34,13 +34,13 @@
       </div>
     </div>
 
-    <!-- Action Buttons (shown after cards are enabled) -->
-    <div id="actionButtons" style="display: none; margin-top: 20px;">
-      <button class="btn btn-primary btn-block" onclick="selectRole('patient')" id="patientBtn">
-        ลงทะเบียนเป็นผู้ป่วย
+    <!-- Action Buttons (always visible) -->
+    <div id="actionButtons" style="margin-top: 20px;">
+      <button class="btn btn-primary btn-block" onclick="selectRole('patient')" id="patientBtn" disabled>
+        <span id="patientBtnText">กำลังโหลด...</span>
       </button>
-      <button class="btn btn-secondary btn-block" onclick="selectRole('caregiver')" id="caregiverBtn" style="margin-top: 10px;">
-        ลงทะเบียนเป็นผู้ดูแล
+      <button class="btn btn-secondary btn-block" onclick="selectRole('caregiver')" id="caregiverBtn" style="margin-top: 10px;" disabled>
+        <span id="caregiverBtnText">กำลังโหลด...</span>
       </button>
     </div>
 
@@ -109,7 +109,7 @@
     function enableRoleSelection() {
       console.log('🎨 Enabling role selection...');
 
-      // Enable cards
+      // Enable cards (visual feedback)
       const patientCard = document.getElementById('patientCard');
       const caregiverCard = document.getElementById('caregiverCard');
 
@@ -118,35 +118,37 @@
 
       if (patientCard) {
         patientCard.style.opacity = '1';
-        patientCard.onclick = () => {
-          console.log('🖱️ Patient card clicked');
-          selectRole('patient');
-        };
-        console.log('✅ Patient card enabled');
-      } else {
-        console.error('❌ Patient card not found');
+        console.log('✅ Patient card visual enabled');
       }
 
       if (caregiverCard) {
         caregiverCard.style.opacity = '1';
-        caregiverCard.onclick = () => {
-          console.log('🖱️ Caregiver card clicked');
-          selectRole('caregiver');
-        };
-        console.log('✅ Caregiver card enabled');
-      } else {
-        console.error('❌ Caregiver card not found');
+        console.log('✅ Caregiver card visual enabled');
       }
 
-      // Show action buttons
-      const actionButtons = document.getElementById('actionButtons');
-      console.log('🔘 Action buttons element:', actionButtons);
+      // Enable action buttons
+      const patientBtn = document.getElementById('patientBtn');
+      const caregiverBtn = document.getElementById('caregiverBtn');
+      const patientBtnText = document.getElementById('patientBtnText');
+      const caregiverBtnText = document.getElementById('caregiverBtnText');
 
-      if (actionButtons) {
-        actionButtons.style.display = 'block';
-        console.log('✅ Action buttons displayed');
+      console.log('🔘 Patient button:', patientBtn);
+      console.log('🔘 Caregiver button:', caregiverBtn);
+
+      if (patientBtn) {
+        patientBtn.disabled = false;
+        if (patientBtnText) patientBtnText.textContent = 'ลงทะเบียนเป็นผู้ป่วย';
+        console.log('✅ Patient button enabled');
       } else {
-        console.error('❌ Action buttons not found');
+        console.error('❌ Patient button not found');
+      }
+
+      if (caregiverBtn) {
+        caregiverBtn.disabled = false;
+        if (caregiverBtnText) caregiverBtnText.textContent = 'ลงทะเบียนเป็นผู้ดูแล';
+        console.log('✅ Caregiver button enabled');
+      } else {
+        console.error('❌ Caregiver button not found');
       }
 
       console.log('✅ Role selection enabled complete');
