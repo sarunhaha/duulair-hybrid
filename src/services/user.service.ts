@@ -29,15 +29,35 @@ export class UserService {
    * ตรวจสอบว่า user ลงทะเบียนแล้วหรือยัง
    */
   async checkUserExists(lineUserId: string): Promise<RegistrationCheckResponse> {
+    console.log(`🔍 UserService.checkUserExists() - lineUserId: ${lineUserId}`);
+    console.log('🔗 Supabase URL:', process.env.SUPABASE_URL ? 'Set ✅' : 'Missing ❌');
+    console.log('🔑 Supabase Key:', process.env.SUPABASE_SERVICE_KEY ? 'Set ✅' : 'Missing ❌');
+
     const { data: user, error } = await supabase
       .from('users')
       .select('*, patient_profiles(*), caregiver_profiles(*)')
       .eq('line_user_id', lineUserId)
       .single();
 
+    if (error) {
+      console.log('⚠️ Supabase query error (user not found or DB error):', {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint
+      });
+    }
+
     if (error || !user) {
+      console.log('📭 User not found - returning exists: false');
       return { exists: false };
     }
+
+    console.log('📬 User found:', {
+      id: user.id,
+      role: user.role,
+      line_user_id: user.line_user_id
+    });
 
     const profile = user.role === 'patient'
       ? user.patient_profiles[0]

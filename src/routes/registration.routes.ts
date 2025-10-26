@@ -18,23 +18,35 @@ const router = Router();
  */
 router.post('/check', async (req: Request, res: Response) => {
   try {
+    console.log('📨 POST /api/registration/check - Request body:', JSON.stringify(req.body));
+
     const { line_user_id } = req.body;
 
     if (!line_user_id) {
+      console.error('❌ Missing line_user_id in request');
       return res.status(400).json({
         success: false,
         error: 'line_user_id is required'
       });
     }
 
+    console.log(`🔍 Checking user exists: ${line_user_id}`);
+
     const result = await userService.checkUserExists(line_user_id);
+
+    console.log('✅ Check user result:', JSON.stringify(result));
 
     res.json(result);
   } catch (error: any) {
-    console.error('Check user error:', error);
+    console.error('❌ Check user error:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
     res.status(500).json({
       success: false,
-      error: error.message || 'ตรวจสอบผู้ใช้ไม่สำเร็จ'
+      error: error.message || 'ตรวจสอบผู้ใช้ไม่สำเร็จ',
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 });
