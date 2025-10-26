@@ -18,16 +18,16 @@ const router = Router();
  */
 router.post('/check', async (req: Request, res: Response) => {
   try {
-    const { lineUserId } = req.body;
+    const { line_user_id } = req.body;
 
-    if (!lineUserId) {
+    if (!line_user_id) {
       return res.status(400).json({
         success: false,
-        error: 'lineUserId is required'
+        error: 'line_user_id is required'
       });
     }
 
-    const result = await userService.checkUserExists(lineUserId);
+    const result = await userService.checkUserExists(line_user_id);
 
     res.json(result);
   } catch (error: any) {
@@ -45,13 +45,13 @@ router.post('/check', async (req: Request, res: Response) => {
  */
 router.post('/patient', async (req: Request, res: Response) => {
   try {
-    const { lineUserId, displayName, pictureUrl, ...form } = req.body;
+    const { line_user_id, display_name, picture_url, ...form } = req.body;
 
     // Validate required fields
-    if (!lineUserId) {
+    if (!line_user_id) {
       return res.status(400).json({
         success: false,
-        error: 'lineUserId is required'
+        error: 'line_user_id is required'
       });
     }
 
@@ -70,9 +70,9 @@ router.post('/patient', async (req: Request, res: Response) => {
     }
 
     const result = await userService.registerPatient(
-      lineUserId,
-      displayName,
-      pictureUrl,
+      line_user_id,
+      display_name,
+      picture_url,
       form as PatientRegistrationForm
     );
 
@@ -92,28 +92,36 @@ router.post('/patient', async (req: Request, res: Response) => {
  */
 router.post('/caregiver', async (req: Request, res: Response) => {
   try {
-    const { lineUserId, displayName, pictureUrl, ...form } = req.body;
+    const { line_user_id, display_name, picture_url, first_name, last_name, phone_number, ...form } = req.body;
 
     // Validate required fields
-    if (!lineUserId) {
+    if (!line_user_id) {
       return res.status(400).json({
         success: false,
-        error: 'lineUserId is required'
+        error: 'line_user_id is required'
       });
     }
 
-    if (!form.firstName || !form.lastName) {
+    if (!first_name || !last_name) {
       return res.status(400).json({
         success: false,
         error: 'ข้อมูลพื้นฐานไม่ครบถ้วน (ชื่อ, นามสกุล)'
       });
     }
 
+    // Prepare caregiver form with camelCase for service
+    const caregiverForm: CaregiverRegistrationForm = {
+      firstName: first_name,
+      lastName: last_name,
+      phoneNumber: phone_number,
+      ...form
+    };
+
     const result = await userService.registerCaregiver(
-      lineUserId,
-      displayName,
-      pictureUrl,
-      form as CaregiverRegistrationForm
+      line_user_id,
+      display_name,
+      picture_url,
+      caregiverForm
     );
 
     res.json(result);
@@ -132,16 +140,16 @@ router.post('/caregiver', async (req: Request, res: Response) => {
  */
 router.post('/generate-link-code', async (req: Request, res: Response) => {
   try {
-    const { patientId } = req.body;
+    const { patient_id } = req.body;
 
-    if (!patientId) {
+    if (!patient_id) {
       return res.status(400).json({
         success: false,
-        error: 'patientId is required'
+        error: 'patient_id is required'
       });
     }
 
-    const result = await userService.generateLinkCode(patientId);
+    const result = await userService.generateLinkCode(patient_id);
 
     res.json(result);
   } catch (error: any) {
@@ -159,12 +167,12 @@ router.post('/generate-link-code', async (req: Request, res: Response) => {
  */
 router.post('/link-patient', async (req: Request, res: Response) => {
   try {
-    const { caregiverId, linkCode, relationship } = req.body;
+    const { caregiver_id, link_code, relationship } = req.body;
 
-    if (!caregiverId || !linkCode) {
+    if (!caregiver_id || !link_code) {
       return res.status(400).json({
         success: false,
-        error: 'caregiverId และ linkCode จำเป็น'
+        error: 'caregiver_id และ link_code จำเป็น'
       });
     }
 
@@ -176,8 +184,8 @@ router.post('/link-patient', async (req: Request, res: Response) => {
     }
 
     const result = await userService.linkPatientToCaregiver(
-      caregiverId,
-      linkCode,
+      caregiver_id,
+      link_code,
       relationship
     );
 
