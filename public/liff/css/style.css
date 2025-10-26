@@ -167,7 +167,9 @@ textarea.error {
 
 /* ========== Buttons ========== */
 .btn {
-  display: inline-block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 100%;
   height: var(--button-height);
   padding: 0 calc(var(--spacing) * 2);
@@ -181,7 +183,9 @@ textarea.error {
   border-radius: var(--border-radius);
   cursor: pointer;
   transition: all 0.3s ease;
-  line-height: var(--button-height);
+  line-height: 1.2;
+  -webkit-tap-highlight-color: rgba(76, 175, 80, 0.3);
+  touch-action: manipulation;
 }
 
 .btn:hover {
