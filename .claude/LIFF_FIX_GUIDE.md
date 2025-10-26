@@ -1,5 +1,19 @@
 # 🔧 LIFF "External Page" Warning Fix Guide
 
+## 🚨 IMPORTANT UPDATE (2025)
+
+**LINE Policy Change:**
+> "You can no longer add LIFF apps to a Messaging API channel. Use a LINE Login channel instead."
+
+**What You Need:**
+1. ✅ **LINE Login channel** (separate from Messaging API)
+2. ✅ **LIFF app** created in LINE Login channel
+3. ✅ **Link** LIFF to your Messaging API bot (optional)
+
+**Complete Setup Guide:** See `.claude/LINE_LOGIN_SETUP.md`
+
+---
+
 ## ❌ Problem
 
 After registering, users see:
@@ -38,19 +52,26 @@ LIFF Endpoint URL: https://your-app.vercel.app/liff/ ✅
 
 ## ✅ Solution - Fix LIFF Endpoint URL
 
-### Step 1: Go to LINE Developers Console
+### Step 1: Create LINE Login Channel (if not exists)
+
+**⚠️ IMPORTANT:** LIFF apps must be created in LINE Login channel, NOT Messaging API channel.
 
 1. Open: https://developers.line.biz/console/
 2. Login with your LINE account
-3. Select your **Messaging API Channel**
+3. Select your **Provider**
+4. Click **Create a new channel** → Select **LINE Login**
+5. Fill in details and create channel
 
-### Step 2: Go to LIFF Tab
+**See complete guide:** `.claude/LINE_LOGIN_SETUP.md`
 
-1. Click **LIFF** tab in left sidebar
-2. Find your LIFF app (should show LIFF ID: `2008278683-5k69jxNq`)
-3. Click **Edit**
+### Step 2: Create LIFF App in LINE Login Channel
 
-### Step 3: Update Endpoint URL
+1. Open your **LINE Login channel** (NOT Messaging API channel)
+2. Click **LIFF** tab in left sidebar
+3. Click **Add** button
+4. Fill in LIFF app details
+
+### Step 3: Set Endpoint URL Correctly
 
 **Current (WRONG):**
 ```
