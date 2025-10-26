@@ -34,13 +34,13 @@
       </div>
     </div>
 
-    <!-- Action Buttons (always visible) -->
+    <!-- Action Buttons (always visible and enabled) -->
     <div id="actionButtons" style="margin-top: 20px;">
-      <button class="btn btn-primary btn-block" onclick="selectRole('patient')" id="patientBtn" disabled>
-        <span id="patientBtnText">กำลังโหลด...</span>
+      <button class="btn btn-primary btn-block" onclick="selectRole('patient')" id="patientBtn">
+        ลงทะเบียนเป็นผู้ป่วย
       </button>
-      <button class="btn btn-secondary btn-block" onclick="selectRole('caregiver')" id="caregiverBtn" style="margin-top: 10px;" disabled>
-        <span id="caregiverBtnText">กำลังโหลด...</span>
+      <button class="btn btn-secondary btn-block" onclick="selectRole('caregiver')" id="caregiverBtn" style="margin-top: 10px;">
+        ลงทะเบียนเป็นผู้ดูแล
       </button>
     </div>
 
@@ -126,31 +126,8 @@
         console.log('✅ Caregiver card visual enabled');
       }
 
-      // Enable action buttons
-      const patientBtn = document.getElementById('patientBtn');
-      const caregiverBtn = document.getElementById('caregiverBtn');
-      const patientBtnText = document.getElementById('patientBtnText');
-      const caregiverBtnText = document.getElementById('caregiverBtnText');
-
-      console.log('🔘 Patient button:', patientBtn);
-      console.log('🔘 Caregiver button:', caregiverBtn);
-
-      if (patientBtn) {
-        patientBtn.disabled = false;
-        if (patientBtnText) patientBtnText.textContent = 'ลงทะเบียนเป็นผู้ป่วย';
-        console.log('✅ Patient button enabled');
-      } else {
-        console.error('❌ Patient button not found');
-      }
-
-      if (caregiverBtn) {
-        caregiverBtn.disabled = false;
-        if (caregiverBtnText) caregiverBtnText.textContent = 'ลงทะเบียนเป็นผู้ดูแล';
-        console.log('✅ Caregiver button enabled');
-      } else {
-        console.error('❌ Caregiver button not found');
-      }
-
+      // Buttons are already enabled by default, just log
+      console.log('✅ Buttons are ready (enabled by default)');
       console.log('✅ Role selection enabled complete');
     }
 
@@ -162,18 +139,16 @@
       console.log('🎯 selectRole function called with:', role);
       console.log('👤 Current LIFF Profile:', liffProfile);
 
-      // Check if LIFF profile exists
-      if (!liffProfile) {
-        console.warn('⚠️ LIFF Profile not loaded - proceeding anyway for testing');
-        const confirmProceed = confirm('LIFF ยังไม่พร้อม คุณต้องการดำเนินการต่อหรือไม่? (สำหรับทดสอบ)');
-        if (!confirmProceed) {
-          return;
-        }
+      // Alert to confirm function is called
+      alert('ปุ่มถูกกด! Role: ' + role);
+
+      // Show loading immediately
+      console.log('🔄 Showing loading...');
+      if (typeof showLoading === 'function') {
+        showLoading(`กำลังเตรียมแบบฟอร์มลงทะเบียน${role === 'patient' ? 'ผู้ป่วย' : 'ผู้ดูแล'}...`);
       }
 
-      console.log('💾 Saving to sessionStorage...');
-
-      // Save role and profile to sessionStorage
+      // Save role to sessionStorage
       try {
         sessionStorage.setItem('selectedRole', role);
         if (liffProfile) {
@@ -184,16 +159,6 @@
         console.error('❌ Failed to save to sessionStorage:', e);
       }
 
-      // Show loading immediately
-      console.log('🔄 Showing loading...');
-      showLoading(`กำลังเตรียมแบบฟอร์มลงทะเบียน${role === 'patient' ? 'ผู้ป่วย' : 'ผู้ดูแล'}...`);
-
-      // Disable buttons to prevent double click
-      const patientBtn = document.getElementById('patientBtn');
-      const caregiverBtn = document.getElementById('caregiverBtn');
-      if (patientBtn) patientBtn.disabled = true;
-      if (caregiverBtn) caregiverBtn.disabled = true;
-
       // Navigate to appropriate registration form (use absolute paths)
       const targetUrl = role === 'patient'
         ? '/liff/patient-registration.html'
@@ -203,16 +168,9 @@
       console.log(`📍 Target URL: ${targetUrl}`);
       console.log(`🌐 Current URL: ${window.location.href}`);
 
-      // Small delay to show loading
-      setTimeout(() => {
-        console.log('🚀 Executing redirect now...');
-        try {
-          window.location.href = targetUrl;
-        } catch (e) {
-          console.error('❌ Navigation failed:', e);
-          alert('ไม่สามารถเปิดหน้าถัดไปได้: ' + e.message);
-        }
-      }, 300);
+      // Navigate immediately
+      console.log('🚀 Executing redirect now...');
+      window.location.href = targetUrl;
     }
 
     // Start when DOM is ready
