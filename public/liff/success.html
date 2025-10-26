@@ -145,9 +145,9 @@
 
         // Generate or get existing link code
         const result = await api.generateLinkCode(patientId);
-        linkCode = result.data.link_code;
+        linkCode = result.code;
 
-        console.log('✅ Link code generated:', linkCode);
+        console.log('✅ Link code generated:', linkCode, result);
 
         hideLoading();
 
