@@ -228,8 +228,11 @@ CREATE INDEX idx_patient_caregivers_patient ON patient_caregivers(patient_id);
 CREATE INDEX idx_patient_caregivers_caregiver ON patient_caregivers(caregiver_id);
 CREATE INDEX idx_patient_caregivers_status ON patient_caregivers(status);
 
-CREATE INDEX idx_link_codes_code ON link_codes(code) WHERE NOT used AND expires_at > NOW();
+-- Fixed: Removed NOW() from index predicate (not IMMUTABLE)
+-- Index on unused codes only, time check done in queries
+CREATE INDEX idx_link_codes_code ON link_codes(code) WHERE NOT used;
 CREATE INDEX idx_link_codes_patient ON link_codes(patient_id);
+CREATE INDEX idx_link_codes_expires ON link_codes(expires_at) WHERE NOT used;
 
 CREATE INDEX idx_medications_patient ON patient_medications(patient_id);
 CREATE INDEX idx_medications_active ON patient_medications(patient_id, is_active);
