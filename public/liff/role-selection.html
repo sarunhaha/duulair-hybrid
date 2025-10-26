@@ -22,21 +22,21 @@
     <form id="roleForm" style="margin-top: 20px;">
       <div class="card" style="padding: 20px;">
         <!-- Patient Option -->
-        <label style="display: block; margin-bottom: 20px; cursor: pointer; padding: 15px; border: 2px solid #ddd; border-radius: 10px;">
-          <input type="radio" name="role" value="patient" required style="margin-right: 10px; width: 20px; height: 20px; vertical-align: middle;">
-          <span style="display: inline-block; vertical-align: middle;">
-            <strong style="font-size: 18px;">👴 ผู้ป่วย</strong><br>
-            <span style="color: #666; font-size: 14px;">ฉันต้องการบันทึกข้อมูลสุขภาพของตัวเอง</span>
-          </span>
+        <label style="display: flex; align-items: flex-start; margin-bottom: 15px; cursor: pointer; padding: 15px; border: 2px solid #ddd; border-radius: 10px;">
+          <input type="radio" name="role" value="patient" required style="margin-right: 12px; margin-top: 3px; width: 20px; height: 20px; flex-shrink: 0;">
+          <div>
+            <strong style="font-size: 18px; display: block; margin-bottom: 5px;">👴 ผู้ป่วย</strong>
+            <span style="color: #666; font-size: 14px; display: block; line-height: 1.4;">ฉันต้องการบันทึกข้อมูลสุขภาพของตัวเอง</span>
+          </div>
         </label>
 
         <!-- Caregiver Option -->
-        <label style="display: block; margin-bottom: 20px; cursor: pointer; padding: 15px; border: 2px solid #ddd; border-radius: 10px;">
-          <input type="radio" name="role" value="caregiver" required style="margin-right: 10px; width: 20px; height: 20px; vertical-align: middle;">
-          <span style="display: inline-block; vertical-align: middle;">
-            <strong style="font-size: 18px;">👨‍👩‍👧 ผู้ดูแล</strong><br>
-            <span style="color: #666; font-size: 14px;">ฉันต้องการดูแลและติดตามสุขภาพของคนในครอบครัว</span>
-          </span>
+        <label style="display: flex; align-items: flex-start; margin-bottom: 0; cursor: pointer; padding: 15px; border: 2px solid #ddd; border-radius: 10px;">
+          <input type="radio" name="role" value="caregiver" required style="margin-right: 12px; margin-top: 3px; width: 20px; height: 20px; flex-shrink: 0;">
+          <div>
+            <strong style="font-size: 18px; display: block; margin-bottom: 5px;">👨‍👩‍👧 ผู้ดูแล</strong>
+            <span style="color: #666; font-size: 14px; display: block; line-height: 1.4;">ฉันต้องการดูแลและติดตามสุขภาพของคนในครอบครัว</span>
+          </div>
         </label>
       </div>
 
