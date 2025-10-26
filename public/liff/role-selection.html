@@ -193,9 +193,9 @@
     function selectRole(role) {
       console.log('🎯 selectRole function called with:', role);
       console.log('👤 Current LIFF Profile:', liffProfile);
-
-      // Alert to confirm function is called
-      alert('ปุ่มถูกกด! Role: ' + role);
+      console.log('🌐 Current URL:', window.location.href);
+      console.log('🔍 LIFF available:', typeof liff !== 'undefined');
+      console.log('🔍 LIFF initialized:', typeof liff !== 'undefined' && liff.isInClient !== undefined);
 
       // Show loading immediately
       console.log('🔄 Showing loading...');
@@ -209,23 +209,59 @@
         if (liffProfile) {
           sessionStorage.setItem('liffProfile', JSON.stringify(liffProfile));
         }
-        console.log('✅ Saved to sessionStorage');
+        console.log('✅ Saved to sessionStorage:', {
+          role: sessionStorage.getItem('selectedRole'),
+          hasProfile: !!sessionStorage.getItem('liffProfile')
+        });
       } catch (e) {
         console.error('❌ Failed to save to sessionStorage:', e);
       }
 
-      // Navigate to appropriate registration form (use absolute paths)
-      const targetUrl = role === 'patient'
+      // Build full URL for navigation
+      const baseUrl = window.location.origin;
+      const targetPath = role === 'patient'
         ? '/liff/patient-registration.html'
         : '/liff/caregiver-registration.html';
+      const targetUrl = baseUrl + targetPath;
 
-      console.log(`✅ Navigating to ${role} registration...`);
-      console.log(`📍 Target URL: ${targetUrl}`);
-      console.log(`🌐 Current URL: ${window.location.href}`);
+      console.log('📍 Target URL:', targetUrl);
+      console.log('🚀 Attempting navigation...');
 
-      // Navigate immediately
-      console.log('🚀 Executing redirect now...');
-      window.location.href = targetUrl;
+      // Try multiple navigation methods
+      try {
+        // Method 1: Use liff.openWindow for LIFF-aware navigation
+        if (typeof liff !== 'undefined' && liff.openWindow) {
+          console.log('🔄 Using liff.openWindow()');
+          liff.openWindow({
+            url: targetUrl,
+            external: false
+          });
+          console.log('✅ liff.openWindow() called');
+          return;
+        }
+      } catch (e) {
+        console.error('❌ liff.openWindow() failed:', e);
+      }
+
+      try {
+        // Method 2: Use window.location.replace
+        console.log('🔄 Using window.location.replace()');
+        window.location.replace(targetUrl);
+        console.log('✅ window.location.replace() called');
+      } catch (e) {
+        console.error('❌ window.location.replace() failed:', e);
+
+        // Method 3: Fallback to window.location.href
+        try {
+          console.log('🔄 Using window.location.href (fallback)');
+          window.location.href = targetUrl;
+          console.log('✅ window.location.href set');
+        } catch (e2) {
+          console.error('❌ All navigation methods failed:', e2);
+          hideLoading();
+          showError('ไม่สามารถเปิดหน้าลงทะเบียนได้ กรุณาลองใหม่อีกครั้ง');
+        }
+      }
     }
 
     // Start when DOM is ready
