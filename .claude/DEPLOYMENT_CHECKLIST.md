@@ -76,6 +76,69 @@
 
 ---
 
+### Issue 0.5: API Parameter Name Mismatch (2025-10-26) 🔴 CRITICAL
+
+**Problem:**
+- LIFF page loads successfully
+- Error toast shows: "เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง"
+- API call to `/api/registration/check` fails with 400 Bad Request
+- Registration flow cannot proceed
+
+**Root Cause:**
+- **Frontend sends snake_case parameters**
+- **Backend expects camelCase parameters**
+
+**Examples:**
+```javascript
+// Frontend (public/liff/js/api.js)
+api.checkRegistration(lineUserId) {
+  return this.post('/api/registration/check', {
+    line_user_id: lineUserId  // ← snake_case
+  });
+}
+
+// Backend (src/routes/registration.routes.ts) - BEFORE FIX
+router.post('/check', async (req, res) => {
+  const { lineUserId } = req.body;  // ← camelCase (MISMATCH!)
+  // ...
+});
+```
+
+**Solution:**
+
+Changed **all registration endpoints** to accept snake_case parameters:
+
+1. **POST /api/registration/check**
+   - `lineUserId` → `line_user_id` ✅
+
+2. **POST /api/registration/patient**
+   - `lineUserId` → `line_user_id` ✅
+   - `displayName` → `display_name` ✅
+   - `pictureUrl` → `picture_url` ✅
+
+3. **POST /api/registration/caregiver**
+   - `lineUserId` → `line_user_id` ✅
+   - `displayName` → `display_name` ✅
+   - `pictureUrl` → `picture_url` ✅
+   - Added explicit extraction for `first_name`, `last_name`, `phone_number` ✅
+
+4. **POST /api/registration/generate-link-code**
+   - `patientId` → `patient_id` ✅
+
+5. **POST /api/registration/link-patient**
+   - `caregiverId` → `caregiver_id` ✅
+   - `linkCode` → `link_code` ✅
+
+**Lessons Learned:**
+- Always ensure parameter naming consistency between frontend and backend
+- Frontend uses snake_case (JavaScript convention for API parameters)
+- Backend must accept snake_case in routes, can convert to camelCase internally
+- Test API endpoints with actual request payloads from frontend
+
+**Fixed in commit:** `2b4f763` (2025-10-26)
+
+---
+
 ### Issue 1: LIFF 404 Error (2025-10-25) - UPDATED
 
 **Problem:**
