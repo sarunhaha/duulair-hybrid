@@ -12,7 +12,13 @@
     <h1>ยินดีต้อนรับ 👋</h1>
     <p class="text-center mb-2">กรุณาเลือกบทบาทของคุณ</p>
 
-    <div class="role-cards">
+    <!-- Loading indicator -->
+    <div id="loadingIndicator" class="loading" style="display: none;">
+      <div class="spinner"></div>
+      <p>กำลังโหลด...</p>
+    </div>
+
+    <div class="role-cards" id="roleCards">
       <!-- Patient Card -->
       <div class="role-card" onclick="selectRole('patient')">
         <div class="icon">👴</div>
@@ -52,14 +58,25 @@
 
     async function init() {
       try {
+        // Show loading
+        showLoading('กำลังโหลด...');
+
         // Initialize LIFF
         liffProfile = await initLiff();
-        if (!liffProfile) return;
+
+        hideLoading();
+
+        if (!liffProfile) {
+          showError('ไม่สามารถเชื่อมต่อกับ LINE ได้');
+          return;
+        }
 
         console.log('✅ LIFF Profile loaded:', liffProfile);
+        console.log('✅ Ready to select role');
 
       } catch (error) {
         console.error('❌ Initialization error:', error);
+        hideLoading();
         showError('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง');
       }
     }
@@ -69,13 +86,20 @@
      * @param {string} role - 'patient' or 'caregiver'
      */
     function selectRole(role) {
+      console.log('🎯 Role selected:', role);
+      console.log('👤 LIFF Profile:', liffProfile);
+
       if (!liffProfile) {
-        showError('กรุณารอสักครู่...');
+        console.error('❌ LIFF Profile not loaded yet');
+        showError('กรุณารอสักครู่แล้วลองใหม่');
         return;
       }
 
-      // Save role to sessionStorage
+      // Save role and profile to sessionStorage
       sessionStorage.setItem('selectedRole', role);
+      sessionStorage.setItem('liffProfile', JSON.stringify(liffProfile));
+
+      console.log(`✅ Navigating to ${role} registration...`);
 
       // Navigate to appropriate registration form (use absolute paths)
       if (role === 'patient') {
