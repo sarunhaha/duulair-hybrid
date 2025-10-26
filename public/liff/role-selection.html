@@ -36,10 +36,10 @@
 
     <!-- Action Buttons (always visible and enabled) -->
     <div id="actionButtons" style="margin-top: 20px;">
-      <button class="btn btn-primary btn-block" onclick="selectRole('patient')" id="patientBtn">
+      <button class="btn btn-primary btn-block" id="patientBtn">
         ลงทะเบียนเป็นผู้ป่วย
       </button>
-      <button class="btn btn-secondary btn-block" onclick="selectRole('caregiver')" id="caregiverBtn" style="margin-top: 10px;">
+      <button class="btn btn-secondary btn-block" id="caregiverBtn" style="margin-top: 10px;">
         ลงทะเบียนเป็นผู้ดูแล
       </button>
     </div>
@@ -126,8 +126,63 @@
         console.log('✅ Caregiver card visual enabled');
       }
 
-      // Buttons are already enabled by default, just log
-      console.log('✅ Buttons are ready (enabled by default)');
+      // Attach event listeners to buttons
+      const patientBtn = document.getElementById('patientBtn');
+      const caregiverBtn = document.getElementById('caregiverBtn');
+
+      console.log('🔘 Patient button:', patientBtn);
+      console.log('🔘 Caregiver button:', caregiverBtn);
+
+      if (patientBtn) {
+        // Remove any existing listeners by cloning
+        const newPatientBtn = patientBtn.cloneNode(true);
+        patientBtn.parentNode.replaceChild(newPatientBtn, patientBtn);
+
+        // Handler function to prevent double-triggering
+        let patientHandled = false;
+        const handlePatientClick = function(e) {
+          e.preventDefault();
+          if (patientHandled) {
+            console.log('⚠️ Patient button already handled, ignoring');
+            return;
+          }
+          patientHandled = true;
+          console.log('👆 Patient button triggered');
+          selectRole('patient');
+        };
+
+        // Add both click and touch listeners
+        newPatientBtn.addEventListener('click', handlePatientClick, { passive: false });
+        newPatientBtn.addEventListener('touchend', handlePatientClick, { passive: false });
+
+        console.log('✅ Patient button listeners attached');
+      }
+
+      if (caregiverBtn) {
+        // Remove any existing listeners by cloning
+        const newCaregiverBtn = caregiverBtn.cloneNode(true);
+        caregiverBtn.parentNode.replaceChild(newCaregiverBtn, caregiverBtn);
+
+        // Handler function to prevent double-triggering
+        let caregiverHandled = false;
+        const handleCaregiverClick = function(e) {
+          e.preventDefault();
+          if (caregiverHandled) {
+            console.log('⚠️ Caregiver button already handled, ignoring');
+            return;
+          }
+          caregiverHandled = true;
+          console.log('👆 Caregiver button triggered');
+          selectRole('caregiver');
+        };
+
+        // Add both click and touch listeners
+        newCaregiverBtn.addEventListener('click', handleCaregiverClick, { passive: false });
+        newCaregiverBtn.addEventListener('touchend', handleCaregiverClick, { passive: false });
+
+        console.log('✅ Caregiver button listeners attached');
+      }
+
       console.log('✅ Role selection enabled complete');
     }
 
