@@ -32,7 +32,7 @@
 
         <!-- QR Code -->
         <div class="qr-code">
-          <img id="qrCodeImage" src="" alt="QR Code">
+          <div id="qrCodeContainer" style="display: flex; justify-content: center; align-items: center;"></div>
         </div>
 
         <div class="alert alert-info">
@@ -91,6 +91,9 @@
 
   <!-- LIFF SDK -->
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+  <!-- QR Code Library -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs2@0.0.2/qrcode.min.js"></script>
 
   <!-- App JavaScript -->
   <script src="js/utils.js"></script>
@@ -160,9 +163,24 @@
         // Display link code
         document.getElementById('linkCodeDisplay').textContent = linkCode;
 
-        // Generate QR code
-        const qrCodeUrl = generateQRCode(`DUULAIR:${linkCode}`, 250);
-        document.getElementById('qrCodeImage').src = qrCodeUrl;
+        // Generate QR code using qrcodejs2
+        const qrContainer = document.getElementById('qrCodeContainer');
+        qrContainer.innerHTML = ''; // Clear previous QR code if any
+
+        if (typeof QRCode !== 'undefined') {
+          new QRCode(qrContainer, {
+            text: `DUULAIR:${linkCode}`,
+            width: 200,
+            height: 200,
+            colorDark: '#000000',
+            colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.H
+          });
+          console.log('✅ QR Code generated');
+        } else {
+          console.error('❌ QRCode library not loaded');
+          qrContainer.innerHTML = '<p style="color: #999;">QR Code ไม่สามารถแสดงได้</p>';
+        }
 
         // Show patient success section
         document.getElementById('patientSuccess').classList.remove('hidden');
