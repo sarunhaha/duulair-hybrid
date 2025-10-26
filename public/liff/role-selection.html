@@ -117,18 +117,21 @@
       form.addEventListener('submit', function(e) {
         e.preventDefault();
         console.log('📝 Form submitted');
+        alert('📝 Form submit event triggered!');
 
         // Get selected role
         const selectedRole = document.querySelector('input[name="role"]:checked');
 
         if (!selectedRole) {
           console.error('❌ No role selected');
+          alert('❌ No role selected');
           showError('กรุณาเลือกบทบาท');
           return;
         }
 
         const role = selectedRole.value;
         console.log('✅ Selected role:', role);
+        alert('✅ Selected role: ' + role);
 
         // Show loading
         showLoading(`กำลังเตรียมแบบฟอร์ม${role === 'patient' ? 'ผู้ป่วย' : 'ผู้ดูแล'}...`);
@@ -150,9 +153,13 @@
           : '/liff/caregiver-registration.html';
 
         console.log('🚀 Navigating to:', targetPath);
+        alert('🚀 About to navigate to: ' + targetPath);
 
         // Simple navigation
-        window.location.href = targetPath;
+        setTimeout(function() {
+          console.log('🔄 Executing navigation now...');
+          window.location.href = targetPath;
+        }, 100);
       });
 
       console.log('✅ Form handler attached');
