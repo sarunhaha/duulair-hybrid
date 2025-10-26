@@ -2,7 +2,7 @@
 // Caregiver Registration Form Logic
 // ========================================
 
-let liffProfile = null;
+// liffProfile is declared in liff-init.js - don't redeclare it here
 
 // Form data
 const formData = {

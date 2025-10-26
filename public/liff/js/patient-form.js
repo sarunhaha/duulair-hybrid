@@ -2,7 +2,7 @@
 // Patient Registration Form Logic
 // ========================================
 
-let liffProfile = null;
+// liffProfile is declared in liff-init.js - don't redeclare it here
 let currentStep = 1;
 const totalSteps = 4;
 
