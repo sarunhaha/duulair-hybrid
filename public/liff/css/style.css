@@ -289,6 +289,7 @@ textarea.error {
   color: var(--primary);
   margin-bottom: var(--spacing);
   padding-bottom: var(--spacing);
+  text-align: center;
   border-bottom: 2px solid var(--border);
 }
 
@@ -407,7 +408,7 @@ textarea.error {
 }
 
 .link-code {
-  display: inline-block;
+  display: block;
   font-size: 48px;
   font-weight: 700;
   color: var(--primary);
@@ -416,6 +417,7 @@ textarea.error {
   padding: var(--spacing);
   background-color: var(--primary-light);
   border-radius: var(--border-radius);
+  text-align: center;
 }
 
 .qr-code {
