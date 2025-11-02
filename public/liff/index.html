@@ -47,9 +47,16 @@
           // Already registered
           console.log('✅ User is registered:', result);
 
+          // ✅ Validate profile exists
+          if (!result.profile || !result.profile.id) {
+            console.error('❌ Profile data missing:', result);
+            showError('ข้อมูลผู้ใช้ไม่ครบถ้วน กรุณาติดต่อผู้ดูแลระบบ');
+            return;
+          }
+
           const userData = {
             role: result.role,
-            profile_id: result.profile?.id,
+            profile_id: result.profile.id,
             line_user_id: profile.userId
           };
 
@@ -59,7 +66,8 @@
           // Redirect to success page
           if (result.role === 'patient') {
             // Redirect to success page showing link code (use absolute path)
-            window.location.href = `/liff/success.html?patient_id=${result.profile?.id}&returning=true`;
+            console.log('🔗 Redirecting to success page with patient_id:', result.profile.id);
+            window.location.href = `/liff/success.html?patient_id=${result.profile.id}&returning=true`;
           } else {
             // Caregiver - show success message and close
             showSuccess('คุณลงทะเบียนเรียบร้อยแล้ว');

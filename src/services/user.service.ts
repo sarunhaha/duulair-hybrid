@@ -56,12 +56,31 @@ export class UserService {
     console.log('📬 User found:', {
       id: user.id,
       role: user.role,
-      line_user_id: user.line_user_id
+      line_user_id: user.line_user_id,
+      patient_profiles_count: user.patient_profiles?.length || 0,
+      caregiver_profiles_count: user.caregiver_profiles?.length || 0
     });
 
     const profile = user.role === 'patient'
-      ? user.patient_profiles[0]
-      : user.caregiver_profiles[0];
+      ? user.patient_profiles?.[0]
+      : user.caregiver_profiles?.[0];
+
+    // ✅ Validate that profile exists
+    if (!profile) {
+      console.error('❌ Profile not found for user:', {
+        user_id: user.id,
+        role: user.role,
+        patient_profiles: user.patient_profiles,
+        caregiver_profiles: user.caregiver_profiles
+      });
+      throw new Error(`Profile not found for ${user.role} with user_id: ${user.id}`);
+    }
+
+    console.log('✅ Profile found:', {
+      profile_id: profile.id,
+      first_name: profile.first_name,
+      last_name: profile.last_name
+    });
 
     return {
       exists: true,
