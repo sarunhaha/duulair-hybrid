@@ -241,6 +241,45 @@ export class UserService {
    * สร้างรหัสเชื่อมต่อ 6 หลัก
    */
   async generateLinkCode(patientId: string): Promise<LinkCodeResponse> {
+    console.log('🔗 generateLinkCode() called for patient:', patientId);
+
+    // ✅ 1. Check if there's an existing valid link code
+    const { data: existingCode, error: checkError } = await supabase
+      .from('link_codes')
+      .select('*')
+      .eq('patient_id', patientId)
+      .eq('used', false)
+      .gt('expires_at', new Date().toISOString())  // Not expired yet
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();  // Use maybeSingle() to avoid error when no rows found
+
+    // ✅ 2. If valid link code exists, return it
+    if (existingCode && !checkError) {
+      console.log('✅ Found existing valid link code:', {
+        code: existingCode.code,
+        expires_at: existingCode.expires_at,
+        created_at: existingCode.created_at
+      });
+
+      // Generate QR code for existing code
+      const qrCodeDataUrl = await QRCode.toDataURL(`DUULAIR:${existingCode.code}`, {
+        errorCorrectionLevel: 'H',
+        type: 'image/png',
+        width: 300,
+        margin: 2
+      });
+
+      return {
+        code: existingCode.code,
+        qrCode: qrCodeDataUrl,
+        expiresAt: new Date(existingCode.expires_at)
+      };
+    }
+
+    // ✅ 3. No valid code found or expired, generate new one
+    console.log('📝 No valid link code found, generating new one...');
+
     // Generate random 6-digit code
     const code = Math.floor(100000 + Math.random() * 900000).toString();
 
@@ -260,11 +299,17 @@ export class UserService {
       .single();
 
     if (error || !data) {
+      console.error('❌ Error inserting new link code:', error);
       throw new Error('สร้างรหัสเชื่อมต่อไม่สำเร็จ: ' + error?.message);
     }
 
+    console.log('✅ New link code created:', {
+      code: data.code,
+      expires_at: data.expires_at
+    });
+
     // Generate QR code
-    const qrCodeDataUrl = await QRCode.toDataURL(code, {
+    const qrCodeDataUrl = await QRCode.toDataURL(`DUULAIR:${code}`, {
       errorCorrectionLevel: 'H',
       type: 'image/png',
       width: 300,
