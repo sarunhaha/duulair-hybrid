@@ -562,3 +562,139 @@ textarea.error {
 .btn-add-medication:hover {
   background-color: var(--primary-light);
 }
+
+/* ========== Dashboard Styles ========== */
+
+/* Status Badge */
+.status-badge {
+  display: inline-block;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: var(--font-size-small);
+  margin-bottom: var(--spacing);
+  text-align: center;
+}
+
+.status-badge.success {
+  background-color: var(--primary-light);
+  color: var(--primary-dark);
+}
+
+.status-badge.pending {
+  background-color: #FFF3E0;
+  color: #E65100;
+}
+
+/* Profile Info */
+.profile-info {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.info-row:last-child {
+  border-bottom: none;
+}
+
+.info-label {
+  font-weight: 500;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+  width: 40%;
+}
+
+.info-value {
+  font-weight: 600;
+  color: var(--text);
+  text-align: right;
+  flex-grow: 1;
+}
+
+/* Button Group */
+.button-group {
+  display: flex;
+  gap: 8px;
+  margin-top: var(--spacing);
+}
+
+.button-group .btn {
+  flex: 1;
+}
+
+.btn-sm {
+  height: 44px;
+  font-size: var(--font-size-small);
+  padding: 8px 16px;
+}
+
+/* Empty State */
+.empty-state {
+  padding: calc(var(--spacing) * 2);
+  text-align: center;
+}
+
+.empty-state p {
+  margin-bottom: 8px;
+}
+
+.text-muted {
+  color: var(--text-secondary);
+}
+
+/* Caregiver/Patient Card */
+.person-card {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: var(--spacing);
+  margin-bottom: 12px;
+  background-color: var(--white);
+}
+
+.person-card:last-child {
+  margin-bottom: 0;
+}
+
+.person-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.person-name {
+  font-weight: 600;
+  font-size: var(--font-size-large);
+  color: var(--text);
+}
+
+.person-status {
+  font-size: var(--font-size-small);
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-weight: 500;
+}
+
+.person-status.approved {
+  background-color: var(--primary-light);
+  color: var(--primary-dark);
+}
+
+.person-status.pending {
+  background-color: #FFF3E0;
+  color: #E65100;
+}
+
+.person-details {
+  color: var(--text-secondary);
+  font-size: var(--font-size-small);
+  margin-bottom: 8px;
+}

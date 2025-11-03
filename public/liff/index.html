@@ -63,19 +63,9 @@
           // Save to localStorage
           saveUserData(userData);
 
-          // Redirect to success page
-          if (result.role === 'patient') {
-            // Redirect to success page showing link code (use absolute path)
-            console.log('🔗 Redirecting to success page with patient_id:', result.profile.id);
-            window.location.href = `/liff/success.html?patient_id=${result.profile.id}&returning=true`;
-          } else {
-            // Caregiver - show success message and close
-            showSuccess('คุณลงทะเบียนเรียบร้อยแล้ว');
-
-            setTimeout(() => {
-              closeLiff();
-            }, 2000);
-          }
+          // Redirect to dashboard page for returning users
+          console.log('👤 Redirecting to dashboard for returning user');
+          window.location.href = '/liff/dashboard.html';
 
         } else {
           // Not registered - go to role selection (use absolute path)
