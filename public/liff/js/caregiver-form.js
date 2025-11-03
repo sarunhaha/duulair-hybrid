@@ -23,12 +23,51 @@ async function init() {
     liffProfile = await initLiff();
     if (!liffProfile) return;
 
-    // Load draft if exists
-    const draft = loadDraft('caregiver');
-    if (draft) {
-      Object.assign(formData, draft);
+    // Check if user already registered
+    const checkResult = await api.checkRegistration(liffProfile.userId);
+    console.log('🔍 Registration check:', checkResult);
+
+    if (checkResult.exists && checkResult.role === 'caregiver') {
+      // User already registered as caregiver - hide personal info fields
+      console.log('✅ User already registered - showing "Add Patient" mode');
+
+      // Update UI for "Add Patient" mode
+      document.getElementById('pageTitle').textContent = '➕ เพิ่มผู้ป่วย';
+      document.getElementById('instructionText').textContent =
+        'กรอกรหัสเชื่อมต่อที่ได้รับจากผู้ป่วยเพื่อเชื่อมต่อกับบัญชีของเขา';
+
+      // Hide personal info card
+      document.getElementById('personalInfoCard').style.display = 'none';
+
+      // Pre-fill with existing data (in case validation needs it)
+      formData.firstName = checkResult.profile.first_name || 'Existing';
+      formData.lastName = checkResult.profile.last_name || 'User';
+      formData.phoneNumber = checkResult.profile.phone_number || '';
+
+      // Populate DOM elements for validation
       populateFormFromDraft();
-      showSuccess('โหลดข้อมูลที่กรอกไว้แล้ว');
+
+      showSuccess('กรอกรหัสเชื่อมต่อเพื่อเพิ่มผู้ป่วย');
+
+    } else if (checkResult.exists && checkResult.role === 'patient') {
+      // User registered as patient - show error
+      showError('คุณลงทะเบียนเป็นผู้ป่วยแล้ว ไม่สามารถเป็นผู้ดูแลได้');
+      setTimeout(() => {
+        window.location.href = '/liff/dashboard.html';
+      }, 2000);
+      return;
+
+    } else {
+      // New user - show full registration form
+      console.log('📝 New user - showing full registration form');
+
+      // Load draft if exists
+      const draft = loadDraft('caregiver');
+      if (draft) {
+        Object.assign(formData, draft);
+        populateFormFromDraft();
+        showSuccess('โหลดข้อมูลที่กรอกไว้แล้ว');
+      }
     }
 
     // Setup event listeners
