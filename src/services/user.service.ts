@@ -458,14 +458,15 @@ export class UserService {
       }
     }
 
-    // 3. สร้างความสัมพันธ์ (status: pending - รอการอนุมัติ)
+    // 3. สร้างความสัมพันธ์ (auto-approve - รหัสถูกต้องก็เชื่อมต่อทันที)
     const { data: relationshipData, error: relationshipError } = await supabase
       .from('patient_caregivers')
       .insert({
         patient_id: linkCodeData.patient_id,
         caregiver_id: caregiverId,
         relationship,
-        status: 'pending'
+        status: 'active',
+        approved_at: new Date().toISOString()
       })
       .select()
       .single();

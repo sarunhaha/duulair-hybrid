@@ -260,9 +260,9 @@ async function submitForm() {
 
     // Show success message based on whether user was already registered
     if (checkResult.exists) {
-      showSuccess('เพิ่มผู้ป่วยสำเร็จ! รอผู้ป่วยอนุมัติการเชื่อมต่อ');
+      showSuccess('เพิ่มผู้ป่วยสำเร็จ! คุณสามารถดูข้อมูลและติดตามสุขภาพของผู้ป่วยได้แล้ว');
     } else {
-      showSuccess('ลงทะเบียนสำเร็จ! รอผู้ป่วยอนุมัติการเชื่อมต่อ');
+      showSuccess('ลงทะเบียนสำเร็จ! คุณสามารถดูข้อมูลและติดตามสุขภาพของผู้ป่วยได้แล้ว');
     }
 
     // Redirect to dashboard after 2 seconds
