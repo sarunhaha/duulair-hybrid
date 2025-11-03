@@ -33,22 +33,14 @@ export class UserService {
     console.log('🔗 Supabase URL:', process.env.SUPABASE_URL ? 'Set ✅' : 'Missing ❌');
     console.log('🔑 Supabase Key:', process.env.SUPABASE_SERVICE_KEY ? 'Set ✅' : 'Missing ❌');
 
-    const { data: user, error } = await supabase
+    // ✅ Step 1: Get user first
+    const { data: user, error: userError } = await supabase
       .from('users')
-      .select('*, patient_profiles(*), caregiver_profiles(*)')
+      .select('*')
       .eq('line_user_id', lineUserId)
       .single();
 
-    if (error) {
-      console.log('⚠️ Supabase query error (user not found or DB error):', {
-        code: error.code,
-        message: error.message,
-        details: error.details,
-        hint: error.hint
-      });
-    }
-
-    if (error || !user) {
+    if (userError || !user) {
       console.log('📭 User not found - returning exists: false');
       return { exists: false };
     }
@@ -56,22 +48,53 @@ export class UserService {
     console.log('📬 User found:', {
       id: user.id,
       role: user.role,
-      line_user_id: user.line_user_id,
-      patient_profiles_count: user.patient_profiles?.length || 0,
-      caregiver_profiles_count: user.caregiver_profiles?.length || 0
+      line_user_id: user.line_user_id
     });
 
-    const profile = user.role === 'patient'
-      ? user.patient_profiles?.[0]
-      : user.caregiver_profiles?.[0];
+    // ✅ Step 2: Get profile separately based on role
+    let profile = null;
 
-    // ✅ Validate that profile exists
+    if (user.role === 'patient') {
+      const { data: patientProfile, error: profileError } = await supabase
+        .from('patient_profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      if (profileError) {
+        console.error('❌ Error fetching patient profile:', profileError);
+      }
+
+      profile = patientProfile;
+      console.log('📋 Patient profile query result:', {
+        found: !!profile,
+        profile_id: profile?.id,
+        first_name: profile?.first_name
+      });
+
+    } else if (user.role === 'caregiver') {
+      const { data: caregiverProfile, error: profileError } = await supabase
+        .from('caregiver_profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      if (profileError) {
+        console.error('❌ Error fetching caregiver profile:', profileError);
+      }
+
+      profile = caregiverProfile;
+      console.log('📋 Caregiver profile query result:', {
+        found: !!profile,
+        profile_id: profile?.id
+      });
+    }
+
+    // ✅ Step 3: Validate that profile exists
     if (!profile) {
       console.error('❌ Profile not found for user:', {
         user_id: user.id,
-        role: user.role,
-        patient_profiles: user.patient_profiles,
-        caregiver_profiles: user.caregiver_profiles
+        role: user.role
       });
       throw new Error(`Profile not found for ${user.role} with user_id: ${user.id}`);
     }
