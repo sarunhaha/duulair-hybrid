@@ -601,8 +601,15 @@ async function handleFollow(event: any) {
   try {
     const replyToken = event.replyToken;
     const userId = event.source?.userId || '';
+    const isRedelivery = event.deliveryContext?.isRedelivery || false;
 
-    console.log(`👋 New follower: ${userId}`);
+    console.log(`👋 New follower: ${userId} (redelivery: ${isRedelivery})`);
+
+    // ✅ Check if this is a redelivery event
+    if (isRedelivery) {
+      console.log('⚠️ Skipping redelivery event - replyToken already used');
+      return { success: true, skipped: true };
+    }
 
     const welcomeMessage: TextMessage = {
       type: 'text',
