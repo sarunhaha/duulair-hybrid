@@ -434,7 +434,31 @@ export class UserService {
       throw new Error('รหัสเชื่อมต่อไม่ถูกต้องหรือหมดอายุ');
     }
 
-    // 2. สร้างความสัมพันธ์ (status: pending - รอการอนุมัติ)
+    // 2. ตรวจสอบว่าเชื่อมต่อกันอยู่แล้วหรือไม่
+    const { data: existingRelationship, error: checkError } = await supabase
+      .from('patient_caregivers')
+      .select('*, patient_profiles(*)')
+      .eq('patient_id', linkCodeData.patient_id)
+      .eq('caregiver_id', caregiverId)
+      .maybeSingle();
+
+    if (checkError) {
+      console.error('❌ Error checking existing relationship:', checkError);
+    }
+
+    if (existingRelationship) {
+      console.log('⚠️ Relationship already exists:', existingRelationship);
+
+      if (existingRelationship.status === 'active') {
+        throw new Error('คุณได้เชื่อมต่อกับผู้ป่วยท่านนี้แล้ว');
+      } else if (existingRelationship.status === 'pending') {
+        throw new Error('คุณได้ส่งคำขอเชื่อมต่อกับผู้ป่วยท่านนี้แล้ว กำลังรอการอนุมัติ');
+      } else if (existingRelationship.status === 'rejected') {
+        throw new Error('คำขอเชื่อมต่อของคุณถูกปฏิเสธแล้ว กรุณาติดต่อผู้ป่วย');
+      }
+    }
+
+    // 3. สร้างความสัมพันธ์ (status: pending - รอการอนุมัติ)
     const { data: relationshipData, error: relationshipError } = await supabase
       .from('patient_caregivers')
       .insert({
@@ -450,7 +474,7 @@ export class UserService {
       throw new Error('เชื่อมต่อไม่สำเร็จ: ' + relationshipError?.message);
     }
 
-    // 3. Mark link code as used
+    // 4. Mark link code as used
     await supabase
       .from('link_codes')
       .update({ used: true })

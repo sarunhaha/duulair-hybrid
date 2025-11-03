@@ -275,10 +275,11 @@ async function submitForm() {
     hideLoading();
 
     // Check for specific error messages
-    if (error.message.includes('Link code not found') || error.message.includes('invalid')) {
-      showError('รหัสเชื่อมต่อไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง');
-    } else if (error.message.includes('already linked')) {
-      showError('คุณได้เชื่อมต่อกับผู้ป่วยท่านนี้แล้ว');
+    if (error.message.includes('Link code not found') || error.message.includes('invalid') || error.message.includes('ไม่ถูกต้อง') || error.message.includes('หมดอายุ')) {
+      showError('รหัสเชื่อมต่อไม่ถูกต้องหรือหมดอายุ กรุณาตรวจสอบอีกครั้ง');
+    } else if (error.message.includes('already linked') || error.message.includes('เชื่อมต่อ') || error.message.includes('คำขอ')) {
+      // Show backend error message directly (already in Thai)
+      showError(error.message);
     } else {
       showError(error.message || 'เกิดข้อผิดพลาดในการลงทะเบียน กรุณาลองใหม่อีกครั้ง');
     }
