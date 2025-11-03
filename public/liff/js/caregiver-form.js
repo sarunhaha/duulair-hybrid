@@ -184,11 +184,26 @@ async function submitForm() {
 
     console.log('📤 Submitting caregiver data:', requestData);
 
-    // Step 1: Register caregiver
-    const registerResult = await api.registerCaregiver(requestData);
-    console.log('✅ Caregiver registration successful:', registerResult);
+    // ✅ Check if user already registered
+    const checkResult = await api.checkRegistration(liffProfile.userId);
+    console.log('🔍 Registration check:', checkResult);
 
-    const caregiverId = registerResult.data.id;
+    let caregiverId;
+
+    if (checkResult.exists && checkResult.role === 'caregiver') {
+      // User already registered as caregiver
+      console.log('✅ User already registered, using existing profile');
+      caregiverId = checkResult.profile.id;
+    } else if (checkResult.exists && checkResult.role !== 'caregiver') {
+      // User registered as different role
+      throw new Error('คุณลงทะเบียนเป็น' + (checkResult.role === 'patient' ? 'ผู้ป่วย' : 'บทบาทอื่น') + 'แล้ว ไม่สามารถเป็นผู้ดูแลได้');
+    } else {
+      // New user - register caregiver
+      console.log('📝 New user - registering caregiver');
+      const registerResult = await api.registerCaregiver(requestData);
+      console.log('✅ Caregiver registration successful:', registerResult);
+      caregiverId = registerResult.data.id;
+    }
 
     // Step 2: Link to patient
     const linkResult = await api.linkPatient(
@@ -204,12 +219,16 @@ async function submitForm() {
 
     hideLoading();
 
-    // Show success message
-    showSuccess('ลงทะเบียนสำเร็จ! รอผู้ป่วยอนุมัติการเชื่อมต่อ');
+    // Show success message based on whether user was already registered
+    if (checkResult.exists) {
+      showSuccess('เพิ่มผู้ป่วยสำเร็จ! รอผู้ป่วยอนุมัติการเชื่อมต่อ');
+    } else {
+      showSuccess('ลงทะเบียนสำเร็จ! รอผู้ป่วยอนุมัติการเชื่อมต่อ');
+    }
 
-    // Redirect to success page after 2 seconds (use absolute path from root)
+    // Redirect to dashboard after 2 seconds
     setTimeout(() => {
-      window.location.href = '/liff/success.html?caregiver_id=' + caregiverId;
+      window.location.href = '/liff/dashboard.html';
     }, 2000);
 
   } catch (error) {
