@@ -348,12 +348,35 @@
      */
     async function loadCaregivers(patientId) {
       try {
-        // TODO: Create API endpoint to fetch caregivers
-        // For now, show empty state
         console.log('📝 Load caregivers for patient:', patientId);
 
-        // This will be implemented when we have the API endpoint
-        // const caregivers = await api.getCaregivers(patientId);
+        const result = await api.getPatientCaregivers(patientId);
+
+        if (!result.success || !result.caregivers || result.caregivers.length === 0) {
+          console.log('ℹ️ No caregivers found');
+          return; // Show empty state (already in HTML)
+        }
+
+        const caregivers = result.caregivers;
+        console.log('✅ Caregivers loaded:', caregivers);
+
+        // Create HTML for caregivers list
+        const caregiversListHTML = caregivers.map(caregiver => `
+          <div class="person-card">
+            <div class="person-card-header">
+              <span class="person-name">${caregiver.first_name} ${caregiver.last_name}</span>
+              <span class="person-status ${caregiver.status === 'approved' ? 'approved' : 'pending'}">
+                ${caregiver.status === 'approved' ? 'อนุมัติแล้ว' : 'รออนุมัติ'}
+              </span>
+            </div>
+            <div class="person-details">
+              ${caregiver.relationship || 'ผู้ดูแล'} • ${caregiver.phone_number || 'ไม่ระบุ'}
+            </div>
+          </div>
+        `).join('');
+
+        // Update UI
+        document.getElementById('caregiversList').innerHTML = caregiversListHTML;
 
       } catch (error) {
         console.error('❌ Error loading caregivers:', error);
@@ -365,12 +388,41 @@
      */
     async function loadPatients(caregiverId) {
       try {
-        // TODO: Create API endpoint to fetch patients
-        // For now, show empty state
         console.log('📝 Load patients for caregiver:', caregiverId);
 
-        // This will be implemented when we have the API endpoint
-        // const patients = await api.getPatients(caregiverId);
+        const result = await api.getCaregiverPatients(caregiverId);
+
+        if (!result.success || !result.patients || result.patients.length === 0) {
+          console.log('ℹ️ No patients found');
+          return; // Show empty state (already in HTML)
+        }
+
+        const patients = result.patients;
+        console.log('✅ Patients loaded:', patients);
+
+        // Create HTML for patients list
+        const patientsListHTML = patients.map(patient => {
+          const age = calculateAge(new Date(patient.birth_date));
+          return `
+            <div class="person-card">
+              <div class="person-card-header">
+                <span class="person-name">${patient.first_name} ${patient.last_name}</span>
+                <span class="person-status approved">เชื่อมต่อแล้ว</span>
+              </div>
+              <div class="person-details">
+                อายุ ${age} ปี • ${patient.gender === 'male' ? 'ชาย' : patient.gender === 'female' ? 'หญิง' : 'อื่นๆ'}
+              </div>
+              ${patient.chronic_diseases && patient.chronic_diseases.length > 0 ? `
+                <div class="person-details">
+                  โรคประจำตัว: ${patient.chronic_diseases.join(', ')}
+                </div>
+              ` : ''}
+            </div>
+          `;
+        }).join('');
+
+        // Update UI
+        document.getElementById('patientsList').innerHTML = patientsListHTML;
 
       } catch (error) {
         console.error('❌ Error loading patients:', error);

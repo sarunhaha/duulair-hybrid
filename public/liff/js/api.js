@@ -175,5 +175,23 @@ const api = {
    */
   async getCaregiverProfile(caregiverId) {
     return this.get(`/api/registration/caregiver/${caregiverId}`);
+  },
+
+  /**
+   * Get list of patients for a caregiver
+   * @param {string} caregiverId
+   * @returns {Promise<Object>}
+   */
+  async getCaregiverPatients(caregiverId) {
+    return this.get(`/api/registration/caregiver/${caregiverId}/patients`);
+  },
+
+  /**
+   * Get list of caregivers for a patient
+   * @param {string} patientId
+   * @returns {Promise<Object>}
+   */
+  async getPatientCaregivers(patientId) {
+    return this.get(`/api/registration/patient/${patientId}/caregivers`);
   }
 };
