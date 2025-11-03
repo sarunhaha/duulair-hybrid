@@ -121,7 +121,31 @@ export class UserService {
     pictureUrl: string | undefined,
     form: PatientRegistrationForm
   ): Promise<PatientRegistrationResponse> {
-    // 1. สร้าง user
+    // ✅ 1. Check if user already exists
+    const { data: existingUser, error: checkError } = await supabase
+      .from('users')
+      .select('id, role, display_name')
+      .eq('line_user_id', lineUserId)
+      .maybeSingle();
+
+    if (checkError) {
+      console.error('❌ Error checking existing user:', checkError);
+      throw new Error('เกิดข้อผิดพลาดในการตรวจสอบข้อมูล');
+    }
+
+    if (existingUser) {
+      console.log('⚠️ User already exists:', existingUser);
+
+      if (existingUser.role === 'patient') {
+        throw new Error('คุณลงทะเบียนเป็นผู้ป่วยแล้ว กรุณาเข้าสู่ระบบ');
+      } else if (existingUser.role === 'caregiver') {
+        throw new Error('คุณลงทะเบียนเป็นผู้ดูแลแล้ว ไม่สามารถลงทะเบียนเป็นผู้ป่วยได้');
+      } else {
+        throw new Error(`คุณลงทะเบียนแล้วในบทบาท: ${existingUser.role}`);
+      }
+    }
+
+    // 2. สร้าง user
     const { data: user, error: userError } = await supabase
       .from('users')
       .insert({
@@ -138,7 +162,7 @@ export class UserService {
       throw new Error('ลงทะเบียน user ไม่สำเร็จ: ' + userError?.message);
     }
 
-    // 2. สร้าง patient profile
+    // 3. สร้าง patient profile
     const { data: profile, error: profileError } = await supabase
       .from('patient_profiles')
       .insert({
@@ -167,7 +191,7 @@ export class UserService {
       throw new Error('สร้าง profile ไม่สำเร็จ: ' + profileError?.message);
     }
 
-    // 3. สร้าง medications
+    // 4. สร้าง medications
     if (form.medications && form.medications.length > 0) {
       const medications = form.medications.map(med => ({
         patient_id: profile.id,
@@ -180,18 +204,18 @@ export class UserService {
       await supabase.from('patient_medications').insert(medications);
     }
 
-    // 4. สร้าง health goals (ใช้ default หรือจากฟอร์ม)
+    // 5. สร้าง health goals (ใช้ default หรือจากฟอร์ม)
     await supabase.from('health_goals').insert({
       patient_id: profile.id,
       ...form.healthGoals // ถ้ามีจากฟอร์ม จะ override defaults
     });
 
-    // 5. สร้าง notification settings (default)
+    // 6. สร้าง notification settings (default)
     await supabase.from('notification_settings').insert({
       patient_id: profile.id
     });
 
-    // 6. สร้าง link code
+    // 7. สร้าง link code
     const linkCodeData = await this.generateLinkCode(profile.id);
 
     // Calculate age and BMI
@@ -222,7 +246,31 @@ export class UserService {
     pictureUrl: string | undefined,
     form: CaregiverRegistrationForm
   ): Promise<CaregiverRegistrationResponse> {
-    // 1. สร้าง user
+    // ✅ 1. Check if user already exists
+    const { data: existingUser, error: checkError } = await supabase
+      .from('users')
+      .select('id, role, display_name')
+      .eq('line_user_id', lineUserId)
+      .maybeSingle();
+
+    if (checkError) {
+      console.error('❌ Error checking existing user:', checkError);
+      throw new Error('เกิดข้อผิดพลาดในการตรวจสอบข้อมูล');
+    }
+
+    if (existingUser) {
+      console.log('⚠️ User already exists:', existingUser);
+
+      if (existingUser.role === 'caregiver') {
+        throw new Error('คุณลงทะเบียนเป็นผู้ดูแลแล้ว กรุณาเข้าสู่ระบบ');
+      } else if (existingUser.role === 'patient') {
+        throw new Error('คุณลงทะเบียนเป็นผู้ป่วยแล้ว ไม่สามารถลงทะเบียนเป็นผู้ดูแลได้');
+      } else {
+        throw new Error(`คุณลงทะเบียนแล้วในบทบาท: ${existingUser.role}`);
+      }
+    }
+
+    // 2. สร้าง user
     const { data: user, error: userError } = await supabase
       .from('users')
       .insert({
@@ -239,7 +287,7 @@ export class UserService {
       throw new Error('ลงทะเบียน user ไม่สำเร็จ: ' + userError?.message);
     }
 
-    // 2. สร้าง caregiver profile
+    // 3. สร้าง caregiver profile
     const { data: profile, error: profileError } = await supabase
       .from('caregiver_profiles')
       .insert({
@@ -255,7 +303,7 @@ export class UserService {
       throw new Error('สร้าง profile ไม่สำเร็จ: ' + profileError?.message);
     }
 
-    // 3. ถ้ามี link code ให้เชื่อมต่อกับ patient
+    // 4. ถ้ามี link code ให้เชื่อมต่อกับ patient
     let linkedPatients: PatientProfile[] = [];
     if (form.linkCode) {
       try {
