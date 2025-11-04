@@ -452,7 +452,35 @@ export class UserService {
       if (existingRelationship.status === 'active') {
         throw new Error('คุณได้เชื่อมต่อกับผู้ป่วยท่านนี้แล้ว');
       } else if (existingRelationship.status === 'pending') {
-        throw new Error('คุณได้ส่งคำขอเชื่อมต่อกับผู้ป่วยท่านนี้แล้ว กำลังรอการอนุมัติ');
+        // Auto-approve old pending relationships (from before we removed approval requirement)
+        console.log('🔄 Updating old pending relationship to active...');
+        const { data: updatedRelationship, error: updateError } = await supabase
+          .from('patient_caregivers')
+          .update({
+            status: 'active',
+            approved_at: new Date().toISOString()
+          })
+          .eq('id', existingRelationship.id)
+          .select('*, patient_profiles(*)')
+          .single();
+
+        if (updateError || !updatedRelationship) {
+          throw new Error('อัพเดตการเชื่อมต่อไม่สำเร็จ: ' + updateError?.message);
+        }
+
+        console.log('✅ Updated pending → active:', updatedRelationship);
+
+        // Mark link code as used
+        await supabase
+          .from('link_codes')
+          .update({ used: true })
+          .eq('code', linkCode);
+
+        return {
+          success: true,
+          relationship: updatedRelationship as PatientCaregiver,
+          patient: updatedRelationship.patient_profiles as PatientProfile
+        };
       } else if (existingRelationship.status === 'rejected') {
         throw new Error('คำขอเชื่อมต่อของคุณถูกปฏิเสธแล้ว กรุณาติดต่อผู้ป่วย');
       }
