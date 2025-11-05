@@ -95,19 +95,19 @@
           // Save to localStorage
           saveUserData(userData);
 
-          // Redirect to dashboard page for returning users
-          console.log('👤 Redirecting to dashboard for returning user');
+          // Redirect to group dashboard for returning users (TASK-002)
+          console.log('👤 Redirecting to group dashboard for returning user');
           setTimeout(() => {
-            window.location.href = '/liff/dashboard.html';
+            window.location.href = '/liff/group-dashboard.html';
           }, 500);
 
         } else {
-          // Not registered - go to role selection (use absolute path)
-          console.log('❌ User not registered, redirecting to role selection');
+          // Not registered - go to group registration (TASK-002)
+          console.log('❌ User not registered, redirecting to group registration');
           updateDebugInfo('ยังไม่ได้ลงทะเบียน กำลังเปลี่ยนหน้า...');
 
           setTimeout(() => {
-            window.location.href = '/liff/role-selection.html';
+            window.location.href = '/liff/group-registration.html';
           }, 500);
         }
 

@@ -779,7 +779,7 @@
     const SUPABASE_URL = 'https://xibtslxxjxossybxisdr.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhpYnRzbHh4anhvc3N5Ynhpc2RyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAzMTczNjgsImV4cCI6MjA3NTg5MzM2OH0.P_W3mfi5JfumRppBckAYNR70Y-GiOpelqYYpwD6Jhdc';
     const LIFF_ID = '2008278683-5k69jxNq';
-    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     let liffId = null;
     let groupId = null;
@@ -814,7 +814,7 @@
     async function loadGroupData() {
       try {
         // Get group data
-        const { data: group, error: groupError } = await supabase
+        const { data: group, error: groupError } = await supabaseClient
           .from('caregiver_groups')
           .select('*, group_members(*)')
           .eq('line_group_id', groupId)
@@ -896,7 +896,7 @@
     // Update settings
     async function updateSettings() {
       try {
-        const { error } = await supabase
+        const { error } = await supabaseClient
           .from('caregiver_groups')
           .update({ settings })
           .eq('id', groupData.id);
@@ -930,7 +930,7 @@
       e.preventDefault();
 
       try {
-        const { error } = await supabase
+        const { error } = await supabaseClient
           .from('caregiver_groups')
           .update({
             group_name: document.getElementById('groupName').value

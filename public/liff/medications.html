@@ -481,7 +481,7 @@
     const SUPABASE_URL = 'https://xibtslxxjxossybxisdr.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhpYnRzbHh4anhvc3N5Ynhpc2RyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAzMTczNjgsImV4cCI6MjA3NTg5MzM2OH0.P_W3mfi5JfumRppBckAYNR70Y-GiOpelqYYpwD6Jhdc';
     const LIFF_ID = '2008278683-5k69jxNq';
-    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     let liffId = null;
     let groupId = null;
@@ -524,7 +524,7 @@
     async function loadGroupData() {
       try {
         // Get group data
-        const { data: group, error: groupError } = await supabase
+        const { data: group, error: groupError } = await supabaseClient
           .from('caregiver_groups')
           .select('patient_id')
           .eq('line_group_id', groupId)
@@ -550,7 +550,7 @@
     // Load medications
     async function loadMedications() {
       try {
-        const { data, error } = await supabase
+        const { data, error } = await supabaseClient
           .from('medications')
           .select('*')
           .eq('patient_id', patientId)
@@ -684,7 +684,7 @@
 
       try {
         if (editingMedicationId) {
-          const { error } = await supabase
+          const { error } = await supabaseClient
             .from('medications')
             .update(medicationData)
             .eq('id', editingMedicationId);
@@ -692,7 +692,7 @@
           if (error) throw error;
           showSuccess('แก้ไขรายการยาเรียบร้อยแล้ว');
         } else {
-          const { error } = await supabase
+          const { error } = await supabaseClient
             .from('medications')
             .insert(medicationData);
 
@@ -718,7 +718,7 @@
       if (!confirm('ต้องการลบรายการยานี้หรือไม่?')) return;
 
       try {
-        const { error } = await supabase
+        const { error } = await supabaseClient
           .from('medications')
           .delete()
           .eq('id', id);
