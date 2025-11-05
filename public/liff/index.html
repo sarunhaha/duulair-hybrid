@@ -62,12 +62,34 @@
           return;
         }
 
-        updateDebugInfo('กำลังตรวจสอบการลงทะเบียน...');
+        updateDebugInfo('กำลังตรวจสอบ context...');
 
-        // Check if user is already registered
+        // Detect context: Group vs 1:1 (Hybrid Model - TASK-002 Option C)
+        const context = liff.getContext();
+        const isGroupContext = context && context.type === 'group';
+        const groupId = isGroupContext ? context.groupId : null;
+
+        console.log('🔍 Context detected:', {
+          type: context?.type,
+          isGroup: isGroupContext,
+          groupId: groupId
+        });
+
+        updateDebugInfo(isGroupContext ? 'Context: กลุ่ม LINE' : 'Context: 1:1 Chat');
+
+        // Check registration based on context
         showLoading('กำลังตรวจสอบข้อมูล...');
 
-        const result = await api.checkRegistration(profile.userId);
+        let result;
+        if (isGroupContext) {
+          // Group context - check group registration
+          updateDebugInfo('ตรวจสอบการลงทะเบียนกลุ่ม...');
+          result = await api.post('/api/groups/check', { line_group_id: groupId });
+        } else {
+          // 1:1 context - check user registration
+          updateDebugInfo('ตรวจสอบการลงทะเบียนผู้ใช้...');
+          result = await api.checkRegistration(profile.userId);
+        }
 
         hideLoading();
 
@@ -75,40 +97,58 @@
 
         if (result.exists) {
           // Already registered
-          console.log('✅ User is registered:', result);
-          updateDebugInfo('พบข้อมูลผู้ใช้ กำลังเปลี่ยนหน้า...');
+          console.log('✅ User/Group is registered:', result);
+          updateDebugInfo('พบข้อมูล กำลังเปลี่ยนหน้า...');
 
-          // ✅ Validate profile exists
-          if (!result.profile || !result.profile.id) {
-            console.error('❌ Profile data missing:', result);
-            updateDebugInfo('ข้อมูลผู้ใช้ไม่ครบถ้วน');
-            showError('ข้อมูลผู้ใช้ไม่ครบถ้วน กรุณาติดต่อผู้ดูแลระบบ');
-            return;
+          if (isGroupContext) {
+            // Group registered - go to group dashboard
+            console.log('👥 Redirecting to group dashboard');
+            setTimeout(() => {
+              window.location.href = '/liff/group-dashboard.html';
+            }, 500);
+          } else {
+            // User registered - go to user dashboard
+            // ✅ Validate profile exists
+            if (!result.profile || !result.profile.id) {
+              console.error('❌ Profile data missing:', result);
+              updateDebugInfo('ข้อมูลผู้ใช้ไม่ครบถ้วน');
+              showError('ข้อมูลผู้ใช้ไม่ครบถ้วน กรุณาติดต่อผู้ดูแลระบบ');
+              return;
+            }
+
+            const userData = {
+              role: result.role,
+              profile_id: result.profile.id,
+              line_user_id: profile.userId
+            };
+
+            // Save to localStorage
+            saveUserData(userData);
+
+            console.log('👤 Redirecting to user dashboard');
+            setTimeout(() => {
+              window.location.href = '/liff/dashboard.html';
+            }, 500);
           }
 
-          const userData = {
-            role: result.role,
-            profile_id: result.profile.id,
-            line_user_id: profile.userId
-          };
-
-          // Save to localStorage
-          saveUserData(userData);
-
-          // Redirect to group dashboard for returning users (TASK-002)
-          console.log('👤 Redirecting to group dashboard for returning user');
-          setTimeout(() => {
-            window.location.href = '/liff/group-dashboard.html';
-          }, 500);
-
         } else {
-          // Not registered - go to group registration (TASK-002)
-          console.log('❌ User not registered, redirecting to group registration');
+          // Not registered
+          console.log('❌ Not registered, redirecting to registration');
           updateDebugInfo('ยังไม่ได้ลงทะเบียน กำลังเปลี่ยนหน้า...');
 
-          setTimeout(() => {
-            window.location.href = '/liff/group-registration.html';
-          }, 500);
+          if (isGroupContext) {
+            // Group not registered - go to group registration
+            console.log('👥 Redirecting to group registration');
+            setTimeout(() => {
+              window.location.href = '/liff/group-registration.html';
+            }, 500);
+          } else {
+            // User not registered - go to role selection (1:1 flow)
+            console.log('👤 Redirecting to role selection');
+            setTimeout(() => {
+              window.location.href = '/liff/role-selection.html';
+            }, 500);
+          }
         }
 
       } catch (error) {

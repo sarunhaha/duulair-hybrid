@@ -67,7 +67,8 @@
       consoleEl.appendChild(line);
       consoleEl.scrollTop = consoleEl.scrollHeight;
 
-      console.log(`[${type.toUpperCase()}]`, message);
+      // Use the original console.log to avoid recursion with our overrides
+      originalLog(`[${type.toUpperCase()}]`, message);
     }
 
     function logObject(obj, label = 'Object') {
