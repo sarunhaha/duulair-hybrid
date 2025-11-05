@@ -1,5 +1,6 @@
 // src/services/supabase.service.ts
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { ActivityLog } from '../types/user.types';
 
 export class SupabaseService {
   private client: SupabaseClient;
@@ -47,10 +48,17 @@ export class SupabaseService {
   }
 
   // Activity Logging
-  async saveActivityLog(log: any) {
+  async saveActivityLog(log: Partial<ActivityLog>) {
+    // Ensure timestamp is set
+    const logWithDefaults = {
+      ...log,
+      timestamp: log.timestamp || new Date(),
+      source: log.source || '1:1' // Default to 1:1 if not specified
+    };
+
     const { error } = await this.client
       .from('activity_logs')
-      .insert(log);
+      .insert(logWithDefaults);
 
     if (error) throw error;
   }
@@ -60,6 +68,33 @@ export class SupabaseService {
       .from('activity_logs')
       .select('*')
       .eq('patient_id', patientId)
+      .gte('timestamp', startDate.toISOString())
+      .lte('timestamp', endDate.toISOString())
+      .order('timestamp', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  }
+
+  // Group Activity Logging (TASK-002)
+  async getGroupActivityLogs(groupId: string, startDate: Date, endDate: Date) {
+    const { data, error } = await this.client
+      .from('activity_logs')
+      .select('*')
+      .eq('group_id', groupId)
+      .gte('timestamp', startDate.toISOString())
+      .lte('timestamp', endDate.toISOString())
+      .order('timestamp', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  }
+
+  async getActivityLogsByActor(actorLineUserId: string, startDate: Date, endDate: Date) {
+    const { data, error } = await this.client
+      .from('activity_logs')
+      .select('*')
+      .eq('actor_line_user_id', actorLineUserId)
       .gte('timestamp', startDate.toISOString())
       .lte('timestamp', endDate.toISOString())
       .order('timestamp', { ascending: false });

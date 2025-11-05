@@ -23,7 +23,11 @@ const MessageSchema = z.object({
     patientId: z.string().optional(),
     sessionId: z.string().optional(),
     timestamp: z.date().default(() => new Date()),
-    source: z.enum(['line', 'api', 'n8n', 'system'])
+    source: z.enum(['line', 'api', 'n8n', 'system', 'group']),
+    // Group-specific fields (TASK-002)
+    groupId: z.string().optional(),
+    actorLineUserId: z.string().optional(),
+    actorDisplayName: z.string().optional()
   }),
   metadata: z.record(z.any()).optional()
 });

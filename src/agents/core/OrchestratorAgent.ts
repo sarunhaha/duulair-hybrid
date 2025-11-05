@@ -300,13 +300,25 @@ export class OrchestratorAgent extends BaseAgent {
 
   private async saveProcessingLog(message: Message, response: any) {
     try {
-      await this.supabase.saveActivityLog({
+      const logData: any = {
         patient_id: message.context.patientId,
         message_id: message.id,
         intent: response.combined?.intent,
         processing_result: response,
         timestamp: new Date()
-      });
+      };
+
+      // Add group context and actor info (TASK-002)
+      if (message.context.source === 'group') {
+        logData.group_id = message.context.groupId || null;
+        logData.actor_line_user_id = message.context.actorLineUserId || null;
+        logData.actor_display_name = message.context.actorDisplayName || null;
+        logData.source = 'group';
+      } else {
+        logData.source = '1:1';
+      }
+
+      await this.supabase.saveActivityLog(logData);
     } catch (error) {
       // Log to console if database is not available
       this.log('debug', 'Could not save to database, logging to console', {

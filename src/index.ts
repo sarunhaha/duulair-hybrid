@@ -5,6 +5,9 @@ import path from 'path';
 import { Client, WebhookEvent, TextMessage, FlexMessage, validateSignature } from '@line/bot-sdk';
 import { OrchestratorAgent } from './agents';
 import registrationRoutes from './routes/registration.routes';
+import groupRoutes from './routes/group.routes';
+import { groupWebhookService } from './services/group-webhook.service';
+import { commandHandlerService } from './services/command-handler.service';
 import crypto from 'crypto';
 
 dotenv.config();
@@ -400,6 +403,9 @@ app.use(express.json({
 // Registration API routes
 app.use('/api/registration', registrationRoutes);
 
+// Group API routes (TASK-002)
+app.use('/api/groups', groupRoutes);
+
 // LINE Webhook - with manual signature verification
 app.post('/webhook', async (req, res) => {
   try {
@@ -447,6 +453,17 @@ app.post('/webhook', async (req, res) => {
             return handleFollow(event);
           case 'unfollow':
             return handleUnfollow(event);
+
+          // Group events (TASK-002)
+          case 'join':
+            return handleGroupJoin(event);
+          case 'leave':
+            return handleGroupLeave(event);
+          case 'memberJoined':
+            return handleMemberJoin(event);
+          case 'memberLeft':
+            return handleMemberLeave(event);
+
           default:
             console.log('Unhandled event type:', event.type);
         }
@@ -468,9 +485,11 @@ async function handleTextMessage(event: any) {
     const replyToken = event.replyToken;
     const message = event.message;
     const userId = event.source?.userId || '';
+    const groupId = event.source?.groupId;
+    const sourceType = event.source?.type; // 'user' or 'group'
     const isRedelivery = event.deliveryContext?.isRedelivery || false;
 
-    console.log(`📨 Message from ${userId}: ${message.text}${isRedelivery ? ' [REDELIVERY]' : ''}`);
+    console.log(`📨 Message from ${userId} (source: ${sourceType}): ${message.text}${isRedelivery ? ' [REDELIVERY]' : ''}`);
 
     // Skip redelivery events - replyToken is likely expired
     if (isRedelivery) {
@@ -478,15 +497,72 @@ async function handleTextMessage(event: any) {
       return { success: true, skipped: true, reason: 'redelivery' };
     }
 
+    // Detect group vs 1:1 context
+    const isGroup = sourceType === 'group' && groupId;
+
+    let context: any = {
+      userId,
+      source: 'line',
+      timestamp: new Date()
+    };
+
+    // Handle group messages (TASK-002)
+    if (isGroup) {
+      console.log(`👥 Group message detected in group: ${groupId}`);
+
+      // Get group context
+      const groupContext = await groupWebhookService.getGroupContext(groupId);
+
+      if (!groupContext) {
+        console.log('⏭️ Group not registered, ignoring message');
+        return { success: true, skipped: true, reason: 'group_not_registered' };
+      }
+
+      // Get actor info
+      const groupMessageResult = await groupWebhookService.handleGroupMessage(event, null);
+
+      if (!groupMessageResult.success) {
+        console.log('⏭️ Failed to get group message context');
+        return { success: false, error: 'Failed to get group context' };
+      }
+
+      // Update context with group info and actor
+      context = {
+        userId,
+        patientId: groupContext.patientId,
+        groupId: groupContext.groupId,
+        source: 'group',
+        timestamp: new Date(),
+        // Actor info for activity logging
+        actorLineUserId: groupMessageResult.actorInfo?.userId,
+        actorDisplayName: groupMessageResult.actorInfo?.displayName
+      };
+
+      console.log('👥 Group context:', context);
+    }
+
+    // Check if message is a command (TASK-002 Phase 4)
+    if (commandHandlerService.isCommand(message.text)) {
+      console.log('🎯 Command detected:', message.text);
+
+      const commandResponse = await commandHandlerService.handleCommand(message.text, context);
+
+      if (commandResponse) {
+        try {
+          await lineClient.replyMessage(replyToken, commandResponse);
+          console.log('✅ Command response sent');
+          return { success: true, commandHandled: true };
+        } catch (sendError) {
+          console.error('❌ Failed to send command response:', sendError);
+        }
+      }
+    }
+
     // Process with orchestrator
     const result = await orchestrator.process({
       id: message.id,
       content: message.text,
-      context: {
-        userId,
-        source: 'line',
-        timestamp: new Date()
-      }
+      context
     });
 
     console.log('🤖 Agent result:', result);
@@ -631,6 +707,81 @@ async function handleUnfollow(event: any) {
   const userId = event.source?.userId || '';
   console.log(`👋 User unfollowed: ${userId}`);
   return { success: true };
+}
+
+// ========================================
+// Group Event Handlers (TASK-002)
+// ========================================
+
+async function handleGroupJoin(event: any) {
+  try {
+    console.log('🎉 Bot joined group event');
+    const result = await groupWebhookService.handleGroupJoin(event);
+
+    // Send welcome message with registration link
+    const replyToken = event.replyToken;
+    const welcomeMessage: TextMessage = {
+      type: 'text',
+      text: `สวัสดีค่ะ! 👋
+
+ขอบคุณที่เพิ่มบอท Duulair เข้ามาในกลุ่มนะคะ
+
+🎯 ขั้นตอนต่อไป:
+1. ลงทะเบียนกลุ่มและข้อมูลผู้ป่วย
+2. เริ่มบันทึกกิจกรรมดูแลสุขภาพ
+3. ดูรายงานสุขภาพรายวัน/รายสัปดาห์
+
+กรุณากดลงทะเบียนเพื่อเริ่มใช้งาน 👇
+https://liff.line.me/${LIFF_ID}/group-registration.html`
+    };
+
+    try {
+      await lineClient.replyMessage(replyToken, welcomeMessage);
+      console.log('✅ Welcome message sent');
+    } catch (sendError) {
+      console.error('❌ Failed to send welcome message:', sendError);
+    }
+
+    return result;
+  } catch (error) {
+    console.error('❌ Error in handleGroupJoin:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+}
+
+async function handleGroupLeave(event: any) {
+  try {
+    console.log('👋 Bot left group event');
+    return await groupWebhookService.handleGroupLeave(event);
+  } catch (error) {
+    console.error('❌ Error in handleGroupLeave:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+}
+
+async function handleMemberJoin(event: any) {
+  try {
+    console.log('👥 Member joined group event');
+    const result = await groupWebhookService.handleMemberJoin(event);
+
+    // Optionally send welcome message to new members
+    // (Not implemented in MVP to avoid spam)
+
+    return result;
+  } catch (error) {
+    console.error('❌ Error in handleMemberJoin:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+}
+
+async function handleMemberLeave(event: any) {
+  try {
+    console.log('👋 Member left group event');
+    return await groupWebhookService.handleMemberLeave(event);
+  } catch (error) {
+    console.error('❌ Error in handleMemberLeave:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
 }
 
 // Test endpoint

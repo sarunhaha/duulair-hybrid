@@ -31,11 +31,11 @@ export class HealthAgent extends BaseAgent {
 
   async process(message: Message): Promise<Response> {
     const startTime = Date.now();
-    
+
     try {
       const intent = message.metadata?.intent || 'unknown';
       const patientId = message.context.patientId;
-      
+
       if (!patientId) {
         throw new Error('Patient ID required for health logging');
       }
@@ -45,6 +45,16 @@ export class HealthAgent extends BaseAgent {
         task_type: intent,
         timestamp: new Date()
       };
+
+      // Add group context and actor info (TASK-002)
+      if (message.context.source === 'group') {
+        logData.group_id = message.context.groupId || null;
+        logData.actor_line_user_id = message.context.actorLineUserId || null;
+        logData.actor_display_name = message.context.actorDisplayName || null;
+        logData.source = 'group';
+      } else {
+        logData.source = '1:1';
+      }
 
       // Process based on intent type
       switch(intent) {

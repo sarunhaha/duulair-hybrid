@@ -295,6 +295,147 @@ export type CaregiverRelationship =
   | 'other';      // อื่นๆ
 
 // ========================================
+// Group-Based Care (TASK-002)
+// ========================================
+
+export interface Group {
+  id: string;
+  lineGroupId: string; // LINE Group ID
+  groupName?: string;
+  patientId: string;
+  primaryCaregiverId: string;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+
+  // Populated fields (optional, for API responses)
+  patient?: PatientProfile;
+  primaryCaregiver?: CaregiverProfile;
+  members?: GroupMember[];
+}
+
+export interface GroupMember {
+  id: string;
+  groupId: string;
+  lineUserId: string;
+  displayName: string;
+  pictureUrl?: string;
+  role: 'caregiver' | 'patient' | 'family';
+  isActive: boolean;
+  joinedAt: Date;
+  leftAt?: Date;
+}
+
+export interface GroupRegistrationForm {
+  lineGroupId: string;
+  groupName?: string;
+
+  // Caregiver info
+  caregiver: {
+    lineUserId: string;
+    displayName: string;
+    pictureUrl?: string;
+    firstName: string;
+    lastName: string;
+    phoneNumber?: string;
+  };
+
+  // Patient info
+  patient: {
+    firstName: string;
+    lastName: string;
+    nickname?: string;
+    birthDate: string; // ISO date
+    gender: 'male' | 'female' | 'other';
+    weightKg?: number;
+    heightCm?: number;
+    bloodType?: string;
+    chronicDiseases: string[];
+    drugAllergies?: string[];
+    foodAllergies?: string[];
+    address?: string;
+    phoneNumber?: string;
+    emergencyContactName?: string;
+    emergencyContactPhone?: string;
+    emergencyContactRelation?: string;
+
+    // Optional: if patient has LINE
+    lineUserId?: string;
+    displayName?: string;
+    pictureUrl?: string;
+  };
+}
+
+export interface GroupRegistrationResponse {
+  success: boolean;
+  group: Group;
+  message: string;
+}
+
+export interface GroupInfoResponse {
+  success: boolean;
+  group: Group;
+  patient: PatientProfile;
+  primaryCaregiver: CaregiverProfile;
+  members: GroupMember[];
+}
+
+export interface GroupCheckResponse {
+  exists: boolean;
+  group?: Group;
+  patient?: PatientProfile;
+  primaryCaregiver?: CaregiverProfile;
+}
+
+export interface AddGroupMemberRequest {
+  lineUserId: string;
+  displayName: string;
+  pictureUrl?: string;
+  role: 'caregiver' | 'patient' | 'family';
+}
+
+export interface AddGroupMemberResponse {
+  success: boolean;
+  member: GroupMember;
+}
+
+// ========================================
+// Activity Logs (TASK-002)
+// ========================================
+
+export interface ActivityLog {
+  id?: string;
+  patient_id: string;
+  task_type: string;
+  value?: any;
+  timestamp: Date;
+
+  // Group-based fields (TASK-002)
+  group_id?: string | null;
+  actor_line_user_id?: string | null;
+  actor_display_name?: string | null;
+  source?: '1:1' | 'group';
+
+  // Additional metadata
+  message_id?: string;
+  intent?: string;
+  processing_result?: any;
+}
+
+export interface CreateActivityLogRequest {
+  patient_id: string;
+  task_type: string;
+  value?: any;
+  timestamp?: Date;
+
+  // Group context (optional)
+  group_id?: string;
+  actor_line_user_id?: string;
+  actor_display_name?: string;
+  source?: '1:1' | 'group';
+}
+
+// ========================================
 // Helper Functions Types
 // ========================================
 

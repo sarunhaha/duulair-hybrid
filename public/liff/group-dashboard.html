@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#4CAF50">
+  <title>แดชบอร์ดกลุ่ม - Duulair</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>👨‍👩‍👧‍👦 แดชบอร์ดกลุ่ม</h1>
+
+    <!-- Loading State -->
+    <div id="loadingState">
+      <div class="card">
+        <div class="text-center">
+          <div class="loading-spinner"></div>
+          <p>กำลังโหลดข้อมูล...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Group Info -->
+    <div id="groupInfo" class="hidden">
+      <div class="card">
+        <div class="card-header">📋 ข้อมูลกลุ่ม</div>
+        <div class="info-row">
+          <span class="info-label">ชื่อกลุ่ม:</span>
+          <span id="groupName">-</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">ผู้ป่วย:</span>
+          <span id="patientName">-</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">ผู้ดูแลหลัก:</span>
+          <span id="caregiverName">-</span>
+        </div>
+      </div>
+
+      <!-- Group Members -->
+      <div class="card">
+        <div class="card-header">👥 สมาชิกในกลุ่ม</div>
+        <div id="membersList">
+          <!-- Will be populated by JS -->
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="card">
+        <div class="card-header">⚡ เมนูด่วน</div>
+        <div class="quick-actions">
+          <button class="btn btn-block" onclick="logActivity()">
+            📝 บันทึกกิจกรรม
+          </button>
+          <button class="btn btn-secondary btn-block" onclick="viewReports()">
+            📊 ดูรายงาน
+          </button>
+          <button class="btn btn-secondary btn-block" onclick="viewSettings()">
+            ⚙️ ตั้งค่า
+          </button>
+        </div>
+      </div>
+
+      <!-- Info Box -->
+      <div class="alert alert-info">
+        <strong>💡 วิธีใช้งาน:</strong><br>
+        ส่งข้อความในกลุ่มเพื่อบันทึกกิจกรรมต่างๆ เช่น:<br>
+        • "กินยาแล้ว"<br>
+        • "วัดความดัน 120/80"<br>
+        • "ดื่มน้ำ 500 มล."
+      </div>
+    </div>
+  </div>
+
+  <!-- LIFF SDK -->
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+  <!-- App JavaScript -->
+  <script src="js/utils.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/liff-init.js"></script>
+  <script src="js/group-dashboard.js"></script>
+</body>
+</html>

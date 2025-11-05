@@ -107,37 +107,85 @@ export class AlertAgent extends BaseAgent {
 
   private async sendAlert(message: Message, level: number) {
     const patient = await this.supabase.getPatient(message.context.patientId!);
-    const caregivers = patient.caregivers || [];
-    
-    const alertMessage = this.formatAlertMessage(message, level, patient);
-    
-    // Send based on level
+
+    // Get caregiver group (Group-Based Care Model)
+    const group = await this.supabase.getGroupByPatientId(message.context.patientId!);
+    if (!group) {
+      this.log('warn', 'No caregiver group found for patient');
+      return;
+    }
+
+    const caregivers = group.members || [];
+    const alertMessage = this.formatAlertMessage(message, level, patient, group);
+
+    // Send based on level and group settings
     if (level >= this.alertLevels.CRITICAL) {
-      // Send to all caregivers immediately
+      // CRITICAL: Send to ALL caregivers in group immediately
+      this.log('info', `Sending CRITICAL alert to ${caregivers.length} caregivers`);
+
       for (const caregiver of caregivers) {
         await this.lineService.sendMessage(caregiver.line_user_id, alertMessage);
       }
-    } else if (level >= this.alertLevels.WARNING) {
-      // Send to primary caregiver
+
+      // Also send to LINE group if exists
+      if (group.line_group_id) {
+        await this.lineService.sendMessage(group.line_group_id, alertMessage);
+      }
+
+    } else if (level >= this.alertLevels.URGENT) {
+      // URGENT: Send to primary caregiver + group
       const primary = caregivers.find((c: any) => c.role === 'primary');
+
       if (primary) {
         await this.lineService.sendMessage(primary.line_user_id, alertMessage);
+      }
+
+      if (group.line_group_id) {
+        await this.lineService.sendMessage(group.line_group_id, alertMessage);
+      }
+
+    } else if (level >= this.alertLevels.WARNING) {
+      // WARNING: Send to group only (if group notifications enabled)
+      const settings = group.settings || {};
+
+      if (settings.emergency_notifications !== false && group.line_group_id) {
+        await this.lineService.sendMessage(group.line_group_id, alertMessage);
       }
     }
   }
 
-  private formatAlertMessage(message: Message, level: number, patient: any): string {
+  private formatAlertMessage(message: Message, level: number, patient: any, group?: any): string {
     const icons = ['ℹ️', '⚠️', '🚨', '🆘'];
     const icon = icons[level - 1] || 'ℹ️';
-    
-    return `${icon} แจ้งเตือน ${patient.display_name}
 
-${message.content}
+    const patientName = patient.display_name || patient.full_name || 'ผู้ป่วย';
+    const groupName = group?.group_name || 'กลุ่มดูแล';
 
-เวลา: ${new Date().toLocaleTimeString('th-TH')}
-ระดับ: ${this.getLevelName(level)}
+    // Format for caregiver audience
+    let alertText = `${icon} แจ้งเตือนผู้ดูแล ${groupName}
 
-กรุณาตรวจสอบด่วน`;
+📍 ผู้ป่วย: ${patientName}
+🕐 เวลา: ${new Date().toLocaleTimeString('th-TH', {
+      hour: '2-digit',
+      minute: '2-digit'
+    })} น.
+⚠️ ระดับ: ${this.getLevelName(level)}
+
+📝 รายละเอียด:
+${message.content}`;
+
+    // Add action recommendations based on level
+    if (level >= this.alertLevels.CRITICAL) {
+      alertText += `\n\n🚨 โปรดตรวจสอบทันที หรือติดต่อแพทย์/โรงพยาบาล`;
+    } else if (level >= this.alertLevels.URGENT) {
+      alertText += `\n\n⚡ โปรดตรวจสอบโดยเร็วที่สุด`;
+    } else if (level >= this.alertLevels.WARNING) {
+      alertText += `\n\n💡 โปรดติดตามอาการต่อไป`;
+    }
+
+    alertText += `\n\n📊 ดูรายละเอียดเพิ่มเติมได้ที่เมนู "👤 ข้อมูลผู้ป่วย"`;
+
+    return alertText;
   }
 
   private getLevelName(level: number): string {

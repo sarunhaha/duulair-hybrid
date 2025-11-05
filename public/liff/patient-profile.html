@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ข้อมูลผู้ป่วย - Duulair</title>
+  <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Sarabun', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      overflow: hidden;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px 20px;
+      text-align: center;
+    }
+
+    .header h1 {
+      font-size: 28px;
+      margin-bottom: 5px;
+    }
+
+    .header p {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+
+    .content {
+      padding: 30px 20px;
+    }
+
+    .tabs {
+      display: flex;
+      border-bottom: 2px solid #e0e0e0;
+      margin-bottom: 30px;
+    }
+
+    .tab {
+      flex: 1;
+      padding: 15px;
+      text-align: center;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      transition: all 0.3s;
+      font-weight: 500;
+      color: #666;
+    }
+
+    .tab.active {
+      color: #667eea;
+      border-bottom-color: #667eea;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+      animation: fadeIn 0.3s;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      color: #333;
+      font-weight: 500;
+      font-size: 14px;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      padding: 12px 15px;
+      border: 2px solid #e0e0e0;
+      border-radius: 10px;
+      font-size: 16px;
+      font-family: inherit;
+      transition: border-color 0.3s;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    .form-group textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    .info-card {
+      background: #f5f5f5;
+      padding: 15px;
+      border-radius: 10px;
+      margin-bottom: 15px;
+    }
+
+    .info-card h3 {
+      font-size: 16px;
+      color: #667eea;
+      margin-bottom: 10px;
+    }
+
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid #e0e0e0;
+    }
+
+    .info-row:last-child {
+      border-bottom: none;
+    }
+
+    .info-label {
+      color: #666;
+      font-size: 14px;
+    }
+
+    .info-value {
+      color: #333;
+      font-weight: 500;
+      font-size: 14px;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 15px;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      margin-top: 10px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-secondary {
+      background: white;
+      color: #667eea;
+      border: 2px solid #667eea;
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #666;
+    }
+
+    .spinner {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #667eea;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 20px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .alert {
+      padding: 15px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      font-size: 14px;
+    }
+
+    .alert-success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+
+    .alert-error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+
+    .medical-conditions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .condition-tag {
+      background: #e8eaf6;
+      color: #667eea;
+      padding: 8px 15px;
+      border-radius: 20px;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .condition-tag .remove {
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .add-condition {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .add-condition input {
+      flex: 1;
+    }
+
+    .add-condition button {
+      padding: 12px 20px;
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 500;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>👤 ข้อมูลผู้ป่วย</h1>
+      <p>ดูและแก้ไขข้อมูลผู้ป่วยในกลุ่ม</p>
+    </div>
+
+    <div class="content">
+      <div id="loading" class="loading">
+        <div class="spinner"></div>
+        <p>กำลังโหลดข้อมูล...</p>
+      </div>
+
+      <div id="error" class="alert alert-error" style="display: none;"></div>
+      <div id="success" class="alert alert-success" style="display: none;"></div>
+
+      <div id="main-content" style="display: none;">
+        <div class="tabs">
+          <div class="tab active" data-tab="profile">ข้อมูลทั่วไป</div>
+          <div class="tab" data-tab="medical">ข้อมูลทางการแพทย์</div>
+          <div class="tab" data-tab="emergency">ติดต่อฉุกเฉิน</div>
+        </div>
+
+        <!-- Profile Tab -->
+        <div id="profile-tab" class="tab-content active">
+          <form id="profile-form">
+            <div class="form-group">
+              <label>ชื่อ *</label>
+              <input type="text" id="firstName" required>
+            </div>
+
+            <div class="form-group">
+              <label>นามสกุล *</label>
+              <input type="text" id="lastName" required>
+            </div>
+
+            <div class="form-group">
+              <label>ชื่อเล่น</label>
+              <input type="text" id="nickname">
+            </div>
+
+            <div class="form-group">
+              <label>วันเกิด *</label>
+              <input type="date" id="birthDate" required>
+            </div>
+
+            <div class="form-group">
+              <label>เพศ *</label>
+              <select id="gender" required>
+                <option value="">เลือกเพศ</option>
+                <option value="male">ชาย</option>
+                <option value="female">หญิง</option>
+                <option value="other">อื่นๆ</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>เบอร์โทรศัพท์</label>
+              <input type="tel" id="phoneNumber">
+            </div>
+
+            <div class="form-group">
+              <label>ที่อยู่</label>
+              <textarea id="address" rows="3"></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-primary">
+              💾 บันทึกข้อมูลทั่วไป
+            </button>
+          </form>
+        </div>
+
+        <!-- Medical Tab -->
+        <div id="medical-tab" class="tab-content">
+          <form id="medical-form">
+            <div class="form-group">
+              <label>กลุ่มเลือด</label>
+              <select id="bloodType">
+                <option value="">เลือกกลุ่มเลือด</option>
+                <option value="A">A</option>
+                <option value="B">B</option>
+                <option value="AB">AB</option>
+                <option value="O">O</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>น้ำหนัก (กก.)</label>
+              <input type="number" id="weight" step="0.1">
+            </div>
+
+            <div class="form-group">
+              <label>ส่วนสูง (ซม.)</label>
+              <input type="number" id="height" step="0.1">
+            </div>
+
+            <div class="form-group">
+              <label>โรคประจำตัว</label>
+              <div id="medical-conditions" class="medical-conditions"></div>
+              <div class="add-condition">
+                <input type="text" id="newCondition" placeholder="เพิ่มโรคประจำตัว">
+                <button type="button" onclick="addCondition()">เพิ่ม</button>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>แพ้ยา</label>
+              <textarea id="allergies" rows="3" placeholder="ระบุยาที่แพ้ (ถ้ามี)"></textarea>
+            </div>
+
+            <div class="form-group">
+              <label>หมายเหตุเพิ่มเติม</label>
+              <textarea id="medicalNotes" rows="3"></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-primary">
+              💾 บันทึกข้อมูลทางการแพทย์
+            </button>
+          </form>
+        </div>
+
+        <!-- Emergency Tab -->
+        <div id="emergency-tab" class="tab-content">
+          <div class="info-card">
+            <h3>📞 หมายเลขฉุกเฉิน</h3>
+            <div class="info-row">
+              <span class="info-label">ฉุกเฉิน:</span>
+              <span class="info-value">1669</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">สายด่วนสุขภาพ:</span>
+              <span class="info-value">1646</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">ตำรวจ:</span>
+              <span class="info-value">191</span>
+            </div>
+          </div>
+
+          <form id="emergency-form">
+            <div class="form-group">
+              <label>ชื่อผู้ติดต่อฉุกเฉิน</label>
+              <input type="text" id="emergencyContactName">
+            </div>
+
+            <div class="form-group">
+              <label>ความสัมพันธ์</label>
+              <input type="text" id="emergencyContactRelation" placeholder="เช่น ลูก, หลาน">
+            </div>
+
+            <div class="form-group">
+              <label>เบอร์โทรศัพท์ฉุกเฉิน</label>
+              <input type="tel" id="emergencyContactPhone">
+            </div>
+
+            <div class="form-group">
+              <label>โรงพยาบาลประจำ</label>
+              <input type="text" id="hospitalName">
+            </div>
+
+            <div class="form-group">
+              <label>เบอร์โรงพยาบาล</label>
+              <input type="tel" id="hospitalPhone">
+            </div>
+
+            <button type="submit" class="btn btn-primary">
+              💾 บันทึกข้อมูลฉุกเฉิน
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Configuration
+    const SUPABASE_URL = 'https://xibtslxxjxossybxisdr.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhpYnRzbHh4anhvc3N5Ynhpc2RyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAzMTczNjgsImV4cCI6MjA3NTg5MzM2OH0.P_W3mfi5JfumRppBckAYNR70Y-GiOpelqYYpwD6Jhdc';
+    const LIFF_ID = '2008278683-5k69jxNq';
+    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let liffId = null;
+    let groupId = null;
+    let patientId = null;
+    let medicalConditions = [];
+
+    // Initialize LIFF
+    async function initializeLiff() {
+      try {
+        await liff.init({ liffId: LIFF_ID });
+
+        if (!liff.isLoggedIn()) {
+          liff.login();
+          return;
+        }
+
+        const context = liff.getContext();
+        if (context.type !== 'group') {
+          showError('กรุณาเปิดจากกลุ่ม LINE');
+          return;
+        }
+
+        groupId = context.groupId;
+        await loadGroupData();
+      } catch (error) {
+        console.error('LIFF initialization failed:', error);
+        showError('ไม่สามารถเชื่อมต่อ LINE ได้');
+      }
+    }
+
+    // Load group and patient data
+    async function loadGroupData() {
+      try {
+        // Get group data
+        const { data: group, error: groupError } = await supabase
+          .from('caregiver_groups')
+          .select('*, patient_profiles(*)')
+          .eq('line_group_id', groupId)
+          .single();
+
+        if (groupError) throw groupError;
+        if (!group || !group.patient_profiles) {
+          showError('ไม่พบข้อมูลผู้ป่วย กรุณาลงทะเบียนก่อน');
+          return;
+        }
+
+        patientId = group.patient_profiles.id;
+        populateForm(group.patient_profiles);
+
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('main-content').style.display = 'block';
+      } catch (error) {
+        console.error('Error loading data:', error);
+        showError('ไม่สามารถโหลดข้อมูลได้');
+      }
+    }
+
+    // Populate form with patient data
+    function populateForm(patient) {
+      // Profile tab
+      document.getElementById('firstName').value = patient.first_name || '';
+      document.getElementById('lastName').value = patient.last_name || '';
+      document.getElementById('nickname').value = patient.nickname || '';
+      document.getElementById('birthDate').value = patient.birth_date || '';
+      document.getElementById('gender').value = patient.gender || '';
+      document.getElementById('phoneNumber').value = patient.phone_number || '';
+      document.getElementById('address').value = patient.address || '';
+
+      // Medical tab
+      document.getElementById('bloodType').value = patient.blood_type || '';
+      document.getElementById('weight').value = patient.weight || '';
+      document.getElementById('height').value = patient.height || '';
+      document.getElementById('allergies').value = patient.allergies || '';
+      document.getElementById('medicalNotes').value = patient.medical_notes || '';
+
+      // Medical conditions
+      if (patient.medical_conditions) {
+        medicalConditions = Array.isArray(patient.medical_conditions)
+          ? patient.medical_conditions
+          : [];
+        renderMedicalConditions();
+      }
+
+      // Emergency tab
+      document.getElementById('emergencyContactName').value = patient.emergency_contact_name || '';
+      document.getElementById('emergencyContactRelation').value = patient.emergency_contact_relation || '';
+      document.getElementById('emergencyContactPhone').value = patient.emergency_contact_phone || '';
+      document.getElementById('hospitalName').value = patient.hospital_name || '';
+      document.getElementById('hospitalPhone').value = patient.hospital_phone || '';
+    }
+
+    // Tab switching
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        const tabName = tab.dataset.tab;
+
+        // Update tabs
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+
+        // Update content
+        document.querySelectorAll('.tab-content').forEach(content => {
+          content.classList.remove('active');
+        });
+        document.getElementById(`${tabName}-tab`).classList.add('active');
+      });
+    });
+
+    // Medical conditions management
+    function renderMedicalConditions() {
+      const container = document.getElementById('medical-conditions');
+      container.innerHTML = medicalConditions.map((condition, index) => `
+        <div class="condition-tag">
+          ${condition}
+          <span class="remove" onclick="removeCondition(${index})">×</span>
+        </div>
+      `).join('');
+    }
+
+    function addCondition() {
+      const input = document.getElementById('newCondition');
+      const condition = input.value.trim();
+
+      if (condition && !medicalConditions.includes(condition)) {
+        medicalConditions.push(condition);
+        renderMedicalConditions();
+        input.value = '';
+      }
+    }
+
+    function removeCondition(index) {
+      medicalConditions.splice(index, 1);
+      renderMedicalConditions();
+    }
+
+    // Form submissions
+    document.getElementById('profile-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      await updatePatient({
+        first_name: document.getElementById('firstName').value,
+        last_name: document.getElementById('lastName').value,
+        nickname: document.getElementById('nickname').value,
+        birth_date: document.getElementById('birthDate').value,
+        gender: document.getElementById('gender').value,
+        phone_number: document.getElementById('phoneNumber').value,
+        address: document.getElementById('address').value
+      });
+    });
+
+    document.getElementById('medical-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      await updatePatient({
+        blood_type: document.getElementById('bloodType').value,
+        weight: parseFloat(document.getElementById('weight').value) || null,
+        height: parseFloat(document.getElementById('height').value) || null,
+        medical_conditions: medicalConditions,
+        allergies: document.getElementById('allergies').value,
+        medical_notes: document.getElementById('medicalNotes').value
+      });
+    });
+
+    document.getElementById('emergency-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      await updatePatient({
+        emergency_contact_name: document.getElementById('emergencyContactName').value,
+        emergency_contact_relation: document.getElementById('emergencyContactRelation').value,
+        emergency_contact_phone: document.getElementById('emergencyContactPhone').value,
+        hospital_name: document.getElementById('hospitalName').value,
+        hospital_phone: document.getElementById('hospitalPhone').value
+      });
+    });
+
+    // Update patient data
+    async function updatePatient(data) {
+      try {
+        const { error } = await supabase
+          .from('patient_profiles')
+          .update(data)
+          .eq('id', patientId);
+
+        if (error) throw error;
+
+        showSuccess('บันทึกข้อมูลเรียบร้อยแล้ว');
+      } catch (error) {
+        console.error('Error updating patient:', error);
+        showError('ไม่สามารถบันทึกข้อมูลได้');
+      }
+    }
+
+    // Alert helpers
+    function showSuccess(message) {
+      const alert = document.getElementById('success');
+      alert.textContent = message;
+      alert.style.display = 'block';
+      setTimeout(() => { alert.style.display = 'none'; }, 3000);
+    }
+
+    function showError(message) {
+      const alert = document.getElementById('error');
+      alert.textContent = message;
+      alert.style.display = 'block';
+      document.getElementById('loading').style.display = 'none';
+    }
+
+    // Initialize on load
+    window.addEventListener('load', initializeLiff);
+  </script>
+</body>
+</html>
