@@ -784,7 +784,9 @@
     let liffId = null;
     let groupId = null;
     let groupData = null;
+    let userData = null;
     let settings = {};
+    let isGroupContext = false;
 
     // Initialize LIFF
     async function initializeLiff() {
@@ -797,20 +799,23 @@
         }
 
         const context = liff.getContext();
-        if (context.type !== 'group') {
-          showError('กรุณาเปิดจากกลุ่ม LINE');
-          return;
-        }
+        isGroupContext = context && context.type === 'group';
 
-        groupId = context.groupId;
-        await loadGroupData();
+        if (isGroupContext) {
+          // Group context - load group settings
+          groupId = context.groupId;
+          await loadGroupData();
+        } else {
+          // 1:1 context - load user settings
+          await loadUserData();
+        }
       } catch (error) {
         console.error('LIFF initialization failed:', error);
         showError('ไม่สามารถเชื่อมต่อ LINE ได้');
       }
     }
 
-    // Load group data
+    // Load group data (Group context)
     async function loadGroupData() {
       try {
         // Get group data
@@ -843,6 +848,53 @@
         document.getElementById('main-content').style.display = 'block';
       } catch (error) {
         console.error('Error loading data:', error);
+        showError('ไม่สามารถโหลดข้อมูลได้');
+      }
+    }
+
+    // Load user data (1:1 context)
+    async function loadUserData() {
+      try {
+        // Get user data from localStorage
+        const storedUserData = JSON.parse(localStorage.getItem('duulair_user') || '{}');
+
+        if (!storedUserData.profile_id) {
+          showError('ไม่พบข้อมูลผู้ใช้ กรุณาลงทะเบียนก่อน');
+          setTimeout(() => {
+            window.location.href = '/liff/index.html';
+          }, 2000);
+          return;
+        }
+
+        userData = storedUserData;
+
+        // Get patient profile with settings
+        const { data: profile, error } = await supabaseClient
+          .from('patient_profiles')
+          .select('*')
+          .eq('id', userData.profile_id)
+          .single();
+
+        if (error) throw error;
+
+        settings = profile.settings || {};
+
+        // Hide group-specific sections
+        const linkCodeSection = document.querySelector('.link-code-display');
+        const groupTab = document.querySelector('[data-tab="group"]');
+        const membersTab = document.querySelector('[data-tab="members"]');
+
+        if (linkCodeSection) linkCodeSection.style.display = 'none';
+        if (groupTab) groupTab.style.display = 'none';
+        if (membersTab) membersTab.style.display = 'none';
+
+        // Set toggle switches
+        initializeToggles();
+
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('main-content').style.display = 'block';
+      } catch (error) {
+        console.error('Error loading user data:', error);
         showError('ไม่สามารถโหลดข้อมูลได้');
       }
     }

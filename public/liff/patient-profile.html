@@ -460,6 +460,7 @@
     let groupId = null;
     let patientId = null;
     let medicalConditions = [];
+    let isGroupContext = false;
 
     // Initialize LIFF
     async function initializeLiff() {
@@ -472,20 +473,23 @@
         }
 
         const context = liff.getContext();
-        if (context.type !== 'group') {
-          showError('กรุณาเปิดจากกลุ่ม LINE');
-          return;
-        }
+        isGroupContext = context && context.type === 'group';
 
-        groupId = context.groupId;
-        await loadGroupData();
+        if (isGroupContext) {
+          // Group context - load patient from group
+          groupId = context.groupId;
+          await loadGroupData();
+        } else {
+          // 1:1 context - load patient from localStorage
+          await loadUserData();
+        }
       } catch (error) {
         console.error('LIFF initialization failed:', error);
         showError('ไม่สามารถเชื่อมต่อ LINE ได้');
       }
     }
 
-    // Load group and patient data
+    // Load group and patient data (Group context)
     async function loadGroupData() {
       try {
         // Get group data
@@ -508,6 +512,45 @@
         document.getElementById('main-content').style.display = 'block';
       } catch (error) {
         console.error('Error loading data:', error);
+        showError('ไม่สามารถโหลดข้อมูลได้');
+      }
+    }
+
+    // Load user data (1:1 context)
+    async function loadUserData() {
+      try {
+        // Get user data from localStorage
+        const userData = JSON.parse(localStorage.getItem('duulair_user') || '{}');
+
+        if (!userData.profile_id) {
+          showError('ไม่พบข้อมูลผู้ใช้ กรุณาลงทะเบียนก่อน');
+          setTimeout(() => {
+            window.location.href = '/liff/index.html';
+          }, 2000);
+          return;
+        }
+
+        patientId = userData.profile_id;
+
+        // Get patient data
+        const { data: patient, error } = await supabaseClient
+          .from('patient_profiles')
+          .select('*')
+          .eq('id', patientId)
+          .single();
+
+        if (error) throw error;
+        if (!patient) {
+          showError('ไม่พบข้อมูลผู้ป่วย');
+          return;
+        }
+
+        populateForm(patient);
+
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('main-content').style.display = 'block';
+      } catch (error) {
+        console.error('Error loading user data:', error);
         showError('ไม่สามารถโหลดข้อมูลได้');
       }
     }
