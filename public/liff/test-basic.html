@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Basic Test - No LIFF</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .box {
+      background: white;
+      padding: 20px;
+      margin: 10px 0;
+      border-radius: 8px;
+      border: 2px solid #ddd;
+    }
+    .success { border-color: #4CAF50; background: #E8F5E9; }
+    .error { border-color: #f44336; background: #FFEBEE; }
+    button {
+      padding: 12px 24px;
+      font-size: 16px;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      margin: 5px;
+    }
+    #log {
+      background: #333;
+      color: #0f0;
+      padding: 10px;
+      font-family: monospace;
+      font-size: 12px;
+      border-radius: 8px;
+      margin-top: 10px;
+      min-height: 200px;
+      overflow-y: auto;
+    }
+  </style>
+</head>
+<body>
+  <h1>🧪 Basic JavaScript Test</h1>
+  <p>หน้านี้ไม่ใช้ LIFF - ทดสอบว่า JavaScript ทำงานหรือเปล่า</p>
+
+  <div id="test1" class="box">
+    ❓ Test 1: Initial HTML (This should be visible immediately)
+  </div>
+
+  <div id="test2" class="box">
+    ⏳ Test 2: Waiting for JavaScript...
+  </div>
+
+  <div id="test3" class="box">
+    ⏳ Test 3: Waiting for DOMContentLoaded...
+  </div>
+
+  <div id="test4" class="box">
+    ⏳ Test 4: Waiting for button click...
+  </div>
+
+  <button onclick="testClick()">🖱️ คลิกทดสอบ</button>
+  <button onclick="testAPI()">🌐 ทดสอบ API</button>
+
+  <div id="log"></div>
+
+  <script>
+    // ===================================
+    // Test 2: JavaScript Execution
+    // ===================================
+    console.log('✅ JavaScript is running!');
+    document.getElementById('test2').textContent = '✅ Test 2: JavaScript executed successfully!';
+    document.getElementById('test2').className = 'box success';
+
+    // Logging function
+    function log(msg) {
+      console.log(msg);
+      const logDiv = document.getElementById('log');
+      logDiv.innerHTML += `[${new Date().toLocaleTimeString()}] ${msg}<br>`;
+      logDiv.scrollTop = logDiv.scrollHeight;
+    }
+
+    log('=== Test Started ===');
+    log('Current URL: ' + window.location.href);
+    log('User Agent: ' + navigator.userAgent);
+
+    // ===================================
+    // Test 3: DOMContentLoaded
+    // ===================================
+    document.addEventListener('DOMContentLoaded', function() {
+      log('✅ DOMContentLoaded fired');
+      document.getElementById('test3').textContent = '✅ Test 3: DOMContentLoaded event fired!';
+      document.getElementById('test3').className = 'box success';
+    });
+
+    // ===================================
+    // Test 4: Button Click
+    // ===================================
+    function testClick() {
+      log('✅ Button clicked!');
+      document.getElementById('test4').textContent = '✅ Test 4: Button click works!';
+      document.getElementById('test4').className = 'box success';
+      alert('✅ ปุ่มทำงาน JavaScript ก็ทำงาน!');
+    }
+
+    // ===================================
+    // Test 5: API Call
+    // ===================================
+    async function testAPI() {
+      try {
+        log('Testing API...');
+        const API_BASE = window.location.hostname === 'localhost'
+          ? 'http://localhost:3000'
+          : 'https://duulair.vercel.app';
+
+        log('API URL: ' + API_BASE + '/api/registration/check');
+
+        const response = await fetch(API_BASE + '/api/registration/check', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ line_user_id: 'test-user-12345' })
+        });
+
+        if (!response.ok) {
+          throw new Error('HTTP ' + response.status);
+        }
+
+        const data = await response.json();
+        log('✅ API Response: ' + JSON.stringify(data));
+        alert('✅ API ทำงาน!\n\n' + JSON.stringify(data, null, 2));
+      } catch (error) {
+        log('❌ API Error: ' + error.message);
+        alert('❌ API Error: ' + error.message);
+      }
+    }
+
+    // ===================================
+    // Test External Resources
+    // ===================================
+    log('Testing CSS load...');
+    const styles = window.getComputedStyle(document.body);
+    log('Body background: ' + styles.backgroundColor);
+
+    log('Testing external JS load...');
+    log('Window.liff exists: ' + (typeof window.liff !== 'undefined'));
+
+    log('=== All inline tests completed ===');
+  </script>
+
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script>
+    // Test if LIFF SDK loaded
+    setTimeout(() => {
+      if (typeof liff !== 'undefined') {
+        log('✅ LIFF SDK loaded from CDN');
+      } else {
+        log('❌ LIFF SDK NOT loaded');
+      }
+    }, 2000);
+  </script>
+</body>
+</html>
