@@ -12,7 +12,12 @@
     <h1>🏥 Duulair</h1>
     <p class="text-center">ระบบดูแลสุขภาพผู้สูงอายุ</p>
 
-    <!-- Loading will be injected by JavaScript -->
+    <!-- Initial loading state -->
+    <div id="initial-loading" style="text-align: center; padding: 20px;">
+      <div style="font-size: 48px; margin-bottom: 10px;">⏳</div>
+      <p>กำลังเริ่มต้นระบบ...</p>
+      <p id="debug-info" style="font-size: 12px; color: #999; margin-top: 20px;"></p>
+    </div>
   </div>
 
   <!-- LIFF SDK -->
@@ -25,14 +30,39 @@
 
   <script>
     // ========================================
+    // Debug Helper
+    // ========================================
+    function updateDebugInfo(message) {
+      const debugEl = document.getElementById('debug-info');
+      if (debugEl) {
+        debugEl.textContent = message;
+      }
+      console.log('🐛 DEBUG:', message);
+    }
+
+    // ========================================
     // Main Entry Point
     // ========================================
 
     async function init() {
       try {
+        updateDebugInfo('กำลังตรวจสอบ LIFF SDK...');
+
+        // Check if LIFF is loaded
+        if (typeof liff === 'undefined') {
+          throw new Error('LIFF SDK not loaded');
+        }
+
+        updateDebugInfo('กำลัง initialize LIFF...');
+
         // Initialize LIFF
         const profile = await initLiff();
-        if (!profile) return;
+        if (!profile) {
+          updateDebugInfo('ไม่สามารถ login ได้');
+          return;
+        }
+
+        updateDebugInfo('กำลังตรวจสอบการลงทะเบียน...');
 
         // Check if user is already registered
         showLoading('กำลังตรวจสอบข้อมูล...');
@@ -46,10 +76,12 @@
         if (result.exists) {
           // Already registered
           console.log('✅ User is registered:', result);
+          updateDebugInfo('พบข้อมูลผู้ใช้ กำลังเปลี่ยนหน้า...');
 
           // ✅ Validate profile exists
           if (!result.profile || !result.profile.id) {
             console.error('❌ Profile data missing:', result);
+            updateDebugInfo('ข้อมูลผู้ใช้ไม่ครบถ้วน');
             showError('ข้อมูลผู้ใช้ไม่ครบถ้วน กรุณาติดต่อผู้ดูแลระบบ');
             return;
           }
@@ -65,30 +97,48 @@
 
           // Redirect to dashboard page for returning users
           console.log('👤 Redirecting to dashboard for returning user');
-          window.location.href = '/liff/dashboard.html';
+          setTimeout(() => {
+            window.location.href = '/liff/dashboard.html';
+          }, 500);
 
         } else {
           // Not registered - go to role selection (use absolute path)
           console.log('❌ User not registered, redirecting to role selection');
-          window.location.href = '/liff/role-selection.html';
+          updateDebugInfo('ยังไม่ได้ลงทะเบียน กำลังเปลี่ยนหน้า...');
+
+          setTimeout(() => {
+            window.location.href = '/liff/role-selection.html';
+          }, 500);
         }
 
       } catch (error) {
         console.error('❌ Initialization error:', error);
+        updateDebugInfo('Error: ' + error.message);
         hideLoading();
-        showError('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง');
+
+        // Show error in container
+        const container = document.querySelector('.container');
+        const errorDiv = document.createElement('div');
+        errorDiv.style.cssText = 'background: #ffebee; border: 1px solid #f44336; padding: 15px; border-radius: 8px; margin: 20px 0; color: #c62828;';
+        errorDiv.innerHTML = `
+          <strong>⚠️ เกิดข้อผิดพลาด</strong><br>
+          <small>${error.message}</small>
+        `;
+        container.appendChild(errorDiv);
 
         // Retry button
         setTimeout(() => {
-          const container = document.querySelector('.container');
           const retryBtn = document.createElement('button');
-          retryBtn.className = 'btn btn-block';
-          retryBtn.textContent = 'ลองอีกครั้ง';
+          retryBtn.style.cssText = 'width: 100%; padding: 12px; background: #4CAF50; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; margin-top: 10px;';
+          retryBtn.textContent = '🔄 ลองอีกครั้ง';
           retryBtn.onclick = () => location.reload();
           container.appendChild(retryBtn);
         }, 1000);
       }
     }
+
+    // Initial check
+    updateDebugInfo('หน้าเว็บโหลดเสร็จ กำลังเริ่มต้น...');
 
     // Start when DOM is ready
     if (document.readyState === 'loading') {
