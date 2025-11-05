@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#4CAF50">
+  <title>LIFF Test Page</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h1 { color: #4CAF50; margin-bottom: 10px; }
+    .status {
+      padding: 12px;
+      margin: 10px 0;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+    .status.info { background: #E3F2FD; color: #1976D2; }
+    .status.success { background: #E8F5E9; color: #2E7D32; }
+    .status.error { background: #FFEBEE; color: #C62828; }
+    #log {
+      background: #f9f9f9;
+      padding: 10px;
+      margin-top: 20px;
+      border-radius: 8px;
+      font-family: monospace;
+      font-size: 12px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    .log-entry { margin: 5px 0; }
+    button {
+      width: 100%;
+      padding: 12px;
+      margin: 5px 0;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      background: #4CAF50;
+      color: white;
+    }
+    button:hover { background: #45a049; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧪 LIFF Test Page</h1>
+    <p style="color: #666; margin-bottom: 20px;">ทดสอบการทำงานของ LIFF</p>
+
+    <div id="status" class="status info">กำลังโหลด...</div>
+
+    <div id="info" style="margin-top: 20px;"></div>
+
+    <div id="actions" style="margin-top: 20px; display: none;">
+      <button onclick="testAPI()">ทดสอบ API</button>
+      <button onclick="window.location.href='/liff/role-selection.html'">ไปหน้า Role Selection</button>
+    </div>
+
+    <div id="log"></div>
+  </div>
+
+  <!-- LIFF SDK -->
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+  <script>
+    const LIFF_ID = '2008278683-5k69jxNq';
+    const API_BASE = window.location.hostname === 'localhost'
+      ? 'http://localhost:3000'
+      : 'https://duulair.vercel.app';
+
+    // Logging
+    function log(message, type = 'info') {
+      console.log(`[${type.toUpperCase()}]`, message);
+      const logDiv = document.getElementById('log');
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+      entry.style.color = type === 'error' ? '#c62828' : type === 'success' ? '#2e7d32' : '#666';
+      entry.textContent = `[${new Date().toLocaleTimeString('th-TH')}] ${message}`;
+      logDiv.appendChild(entry);
+      logDiv.scrollTop = logDiv.scrollHeight;
+    }
+
+    function setStatus(message, type = 'info') {
+      const statusDiv = document.getElementById('status');
+      statusDiv.textContent = message;
+      statusDiv.className = `status ${type}`;
+    }
+
+    function showInfo(data) {
+      const infoDiv = document.getElementById('info');
+      infoDiv.innerHTML = `
+        <div style="background: #f5f5f5; padding: 12px; border-radius: 8px; font-size: 14px;">
+          <strong>LIFF Info:</strong><br>
+          • LINE Version: ${liff.getLineVersion() || 'N/A'}<br>
+          • Context: ${liff.getContext()?.type || 'N/A'}<br>
+          • In Client: ${liff.isInClient() ? 'Yes' : 'No'}<br>
+          • Logged In: ${liff.isLoggedIn() ? 'Yes' : 'No'}<br>
+          ${data ? `<br><strong>User:</strong><br>• ID: ${data.userId}<br>• Name: ${data.displayName}` : ''}
+        </div>
+      `;
+    }
+
+    async function testAPI() {
+      try {
+        log('กำลังทดสอบ API...');
+        const profile = await liff.getProfile();
+
+        const response = await fetch(`${API_BASE}/api/registration/check`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ line_user_id: profile.userId })
+        });
+
+        const data = await response.json();
+        log(`API Response: ${JSON.stringify(data)}`, 'success');
+        alert(`API ทำงานได้!\n\nExists: ${data.exists}\nRole: ${data.role || 'N/A'}`);
+      } catch (error) {
+        log(`API Error: ${error.message}`, 'error');
+        alert(`API Error: ${error.message}`);
+      }
+    }
+
+    // Main Init
+    async function init() {
+      try {
+        log('=== LIFF Test Started ===');
+        log(`Current URL: ${window.location.href}`);
+        log(`API Base: ${API_BASE}`);
+
+        // Check if LIFF SDK loaded
+        if (typeof liff === 'undefined') {
+          throw new Error('LIFF SDK not loaded');
+        }
+        log('✓ LIFF SDK loaded', 'success');
+
+        // Initialize LIFF
+        setStatus('กำลัง initialize LIFF...');
+        log(`Initializing LIFF with ID: ${LIFF_ID}`);
+
+        await liff.init({ liffId: LIFF_ID });
+        log('✓ LIFF initialized', 'success');
+
+        // Check login
+        if (!liff.isLoggedIn()) {
+          log('Not logged in, redirecting to login...');
+          liff.login();
+          return;
+        }
+        log('✓ Logged in', 'success');
+
+        // Get profile
+        setStatus('กำลังดึงข้อมูลผู้ใช้...');
+        const profile = await liff.getProfile();
+        log(`✓ Profile: ${profile.displayName} (${profile.userId})`, 'success');
+
+        // Show success
+        setStatus('✅ LIFF ทำงานปกติ!', 'success');
+        showInfo(profile);
+        document.getElementById('actions').style.display = 'block';
+        log('=== All checks passed ===', 'success');
+
+      } catch (error) {
+        log(`❌ Error: ${error.message}`, 'error');
+        setStatus(`❌ เกิดข้อผิดพลาด: ${error.message}`, 'error');
+
+        // Show detailed error
+        const infoDiv = document.getElementById('info');
+        infoDiv.innerHTML = `
+          <div style="background: #ffebee; padding: 12px; border-radius: 8px; color: #c62828; font-size: 14px;">
+            <strong>Error Details:</strong><br>
+            ${error.message}<br><br>
+            ${error.stack ? `<pre style="font-size: 11px; overflow-x: auto;">${error.stack}</pre>` : ''}
+          </div>
+        `;
+      }
+    }
+
+    // Start when DOM ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+  </script>
+</body>
+</html>
