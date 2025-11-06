@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ข้อมูลผู้ป่วย - Duulair [DEMO]</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Sarabun', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      overflow: hidden;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px 20px;
+      text-align: center;
+    }
+
+    .header h1 {
+      font-size: 28px;
+      margin-bottom: 5px;
+    }
+
+    .header p {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+
+    .content {
+      padding: 30px 20px;
+    }
+
+    .tabs {
+      display: flex;
+      border-bottom: 2px solid #e0e0e0;
+      margin-bottom: 30px;
+    }
+
+    .tab {
+      flex: 1;
+      padding: 15px;
+      text-align: center;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      transition: all 0.3s;
+      font-weight: 500;
+      color: #666;
+    }
+
+    .tab.active {
+      color: #667eea;
+      border-bottom-color: #667eea;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+      animation: fadeIn 0.3s;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      color: #333;
+      font-weight: 500;
+      font-size: 14px;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      padding: 12px 15px;
+      border: 2px solid #e0e0e0;
+      border-radius: 10px;
+      font-size: 16px;
+      font-family: inherit;
+      transition: border-color 0.3s;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    .form-group textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    .medical-conditions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .condition-tag {
+      background: #e8eaf6;
+      color: #667eea;
+      padding: 8px 15px;
+      border-radius: 20px;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .info-card {
+      background: #f5f5f5;
+      padding: 15px;
+      border-radius: 10px;
+      margin-bottom: 15px;
+    }
+
+    .info-card h3 {
+      font-size: 16px;
+      color: #667eea;
+      margin-bottom: 10px;
+    }
+
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid #e0e0e0;
+    }
+
+    .info-row:last-child {
+      border-bottom: none;
+    }
+
+    .info-label {
+      color: #666;
+      font-size: 14px;
+    }
+
+    .info-value {
+      color: #333;
+      font-weight: 500;
+      font-size: 14px;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 15px;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      margin-top: 10px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>👤 ข้อมูลผู้ป่วย</h1>
+      <p>ดูและแก้ไขข้อมูลผู้ป่วย</p>
+    </div>
+
+    <div class="content">
+      <div class="tabs">
+        <div class="tab active" onclick="switchTab('profile')">ข้อมูลทั่วไป</div>
+        <div class="tab" onclick="switchTab('medical')">ข้อมูลทางการแพทย์</div>
+        <div class="tab" onclick="switchTab('emergency')">ติดต่อฉุกเฉิน</div>
+      </div>
+
+      <!-- Profile Tab -->
+      <div id="profile-tab" class="tab-content active">
+        <form>
+          <div class="form-group">
+            <label>ชื่อ *</label>
+            <input type="text" value="สมชาย" readonly>
+          </div>
+
+          <div class="form-group">
+            <label>นามสกุล *</label>
+            <input type="text" value="ใจดี" readonly>
+          </div>
+
+          <div class="form-group">
+            <label>ชื่อเล่น</label>
+            <input type="text" value="ชาย" readonly>
+          </div>
+
+          <div class="form-group">
+            <label>วันเกิด *</label>
+            <input type="date" value="1950-01-15" readonly>
+          </div>
+
+          <div class="form-group">
+            <label>เพศ *</label>
+            <select disabled>
+              <option value="male" selected>ชาย</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>เบอร์โทรศัพท์</label>
+            <input type="tel" value="0812345678" readonly>
+          </div>
+
+          <div class="form-group">
+            <label>ที่อยู่</label>
+            <textarea readonly>123 ถนนสุขุมวิท แขวงคลองเตย เขตคลองเตย กรุงเทพฯ 10110</textarea>
+          </div>
+
+          <button type="button" class="btn btn-primary">
+            💾 บันทึกข้อมูลทั่วไป
+          </button>
+        </form>
+      </div>
+
+      <!-- Medical Tab -->
+      <div id="medical-tab" class="tab-content">
+        <form>
+          <div class="form-group">
+            <label>กลุ่มเลือด</label>
+            <select disabled>
+              <option value="O" selected>O</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>น้ำหนัก (กก.)</label>
+            <input type="number" value="65" readonly>
+          </div>
+
+          <div class="form-group">
+            <label>ส่วนสูง (ซม.)</label>
+            <input type="number" value="170" readonly>
+          </div>
+
+          <div class="form-group">
+            <label>โรคประจำตัว</label>
+            <div class="medical-conditions">
+              <div class="condition-tag">เบาหวาน <span class="remove">×</span></div>
+              <div class="condition-tag">ความดันสูง <span class="remove">×</span></div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>แพ้ยา</label>
+            <textarea readonly>แพ้ยาเพนนิซิลลิน</textarea>
+          </div>
+
+          <div class="form-group">
+            <label>หมายเหตุเพิ่มเติม</label>
+            <textarea readonly>ควบคุมน้ำตาลในเลือดอย่างใกล้ชิด</textarea>
+          </div>
+
+          <button type="button" class="btn btn-primary">
+            💾 บันทึกข้อมูลทางการแพทย์
+          </button>
+        </form>
+      </div>
+
+      <!-- Emergency Tab -->
+      <div id="emergency-tab" class="tab-content">
+        <div class="info-card">
+          <h3>📞 หมายเลขฉุกเฉิน</h3>
+          <div class="info-row">
+            <span class="info-label">ฉุกเฉิน:</span>
+            <span class="info-value">1669</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">สายด่วนสุขภาพ:</span>
+            <span class="info-value">1646</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">ตำรวจ:</span>
+            <span class="info-value">191</span>
+          </div>
+        </div>
+
+        <form>
+          <div class="form-group">
+            <label>ชื่อผู้ติดต่อฉุกเฉิน</label>
+            <input type="text" value="สมหญิง ใจดี" readonly>
+          </div>
+
+          <div class="form-group">
+            <label>ความสัมพันธ์</label>
+            <input type="text" value="ลูกสาว" readonly>
+          </div>
+
+          <div class="form-group">
+            <label>เบอร์โทรศัพท์ฉุกเฉิน</label>
+            <input type="tel" value="0898765432" readonly>
+          </div>
+
+          <div class="form-group">
+            <label>โรงพยาบาลประจำ</label>
+            <input type="text" value="โรงพยาบาลจุฬาลงกรณ์" readonly>
+          </div>
+
+          <div class="form-group">
+            <label>เบอร์โรงพยาบาล</label>
+            <input type="tel" value="022564000" readonly>
+          </div>
+
+          <button type="button" class="btn btn-primary">
+            💾 บันทึกข้อมูลฉุกเฉิน
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function switchTab(tabName) {
+      // Update tabs
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      event.target.classList.add('active');
+
+      // Update content
+      document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.remove('active');
+      });
+      document.getElementById(`${tabName}-tab`).classList.add('active');
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Duulair - LIFF Demo Menu</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Sarabun', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .header {
+      text-align: center;
+      color: white;
+      margin-bottom: 30px;
+    }
+
+    .header h1 {
+      font-size: 48px;
+      margin-bottom: 10px;
+    }
+
+    .header h2 {
+      font-size: 32px;
+      margin-bottom: 10px;
+    }
+
+    .header p {
+      font-size: 16px;
+      opacity: 0.9;
+    }
+
+    .section {
+      background: white;
+      border-radius: 20px;
+      padding: 25px;
+      margin-bottom: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+
+    .section-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .section-description {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 20px;
+      line-height: 1.6;
+    }
+
+    .menu-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 15px;
+    }
+
+    .menu-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 25px 15px;
+      border: 2px solid #e0e0e0;
+      border-radius: 15px;
+      text-decoration: none;
+      color: #333;
+      transition: all 0.3s;
+      cursor: pointer;
+      background: white;
+    }
+
+    .menu-btn:hover {
+      border-color: #667eea;
+      background: #f5f7ff;
+      transform: translateY(-3px);
+      box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+    }
+
+    .menu-btn .icon {
+      font-size: 48px;
+      margin-bottom: 10px;
+    }
+
+    .menu-btn .label {
+      font-size: 15px;
+      font-weight: 600;
+      text-align: center;
+    }
+
+    .menu-btn.demo {
+      border-color: #4caf50;
+    }
+
+    .menu-btn.demo:hover {
+      border-color: #4caf50;
+      background: #f1f8f4;
+    }
+
+    .menu-btn.liff {
+      border-color: #ff6b6b;
+    }
+
+    .menu-btn.liff:hover {
+      border-color: #ff6b6b;
+      background: #fff5f5;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-left: 10px;
+    }
+
+    .badge-demo {
+      background: #4caf50;
+      color: white;
+    }
+
+    .badge-liff {
+      background: #ff6b6b;
+      color: white;
+    }
+
+    .info-box {
+      background: #e3f2fd;
+      border-left: 4px solid #2196f3;
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 20px;
+    }
+
+    .info-box .title {
+      font-weight: 600;
+      color: #1976d2;
+      margin-bottom: 8px;
+      font-size: 15px;
+    }
+
+    .info-box .content {
+      font-size: 14px;
+      color: #424242;
+      line-height: 1.6;
+    }
+
+    @media (max-width: 480px) {
+      .menu-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>💚</h1>
+      <h2>Duulair</h2>
+      <p>ระบบดูแลสุขภาพผู้สูงอายุ - LIFF Demo Menu</p>
+    </div>
+
+    <!-- Demo Pages Section -->
+    <div class="section">
+      <div class="section-title">
+        🎨 Demo Pages
+        <span class="badge badge-demo">ทดสอบได้ทันที</span>
+      </div>
+      <div class="section-description">
+        หน้าทดสอบ UI พร้อม mock data ไม่ต้อง login ผ่าน LINE<br>
+        <strong>เหมาะสำหรับ:</strong> ดู UI/UX, ตรวจสอบ layout, ถ่ายภาพหน้าจอ
+      </div>
+
+      <div class="menu-grid">
+        <a href="demo-patient-profile.html" class="menu-btn demo">
+          <div class="icon">👤</div>
+          <div class="label">ข้อมูลผู้ป่วย</div>
+        </a>
+
+        <a href="demo-reminders.html" class="menu-btn demo">
+          <div class="icon">🔔</div>
+          <div class="label">ตั้งเวลาเตือน</div>
+        </a>
+
+        <a href="demo-medications.html" class="menu-btn demo">
+          <div class="icon">💊</div>
+          <div class="label">ยา</div>
+        </a>
+
+        <a href="demo-settings.html" class="menu-btn demo">
+          <div class="icon">⚙️</div>
+          <div class="label">ตั้งค่า</div>
+        </a>
+      </div>
+    </div>
+
+    <!-- LIFF Pages Section -->
+    <div class="section">
+      <div class="section-title">
+        🚀 LIFF Pages (จริง)
+        <span class="badge badge-liff">ต้อง login LINE</span>
+      </div>
+      <div class="section-description">
+        หน้า LIFF จริงที่เชื่อมต่อกับ LINE และ Supabase<br>
+        <strong>เหมาะสำหรับ:</strong> ทดสอบ functionality, integration, real data
+      </div>
+
+      <div class="menu-grid">
+        <a href="index.html" class="menu-btn liff">
+          <div class="icon">🏠</div>
+          <div class="label">หน้าแรก<br>(Entry Point)</div>
+        </a>
+
+        <a href="patient-profile.html" class="menu-btn liff">
+          <div class="icon">👤</div>
+          <div class="label">ข้อมูลผู้ป่วย</div>
+        </a>
+
+        <a href="reminders.html" class="menu-btn liff">
+          <div class="icon">🔔</div>
+          <div class="label">ตั้งเวลาเตือน</div>
+        </a>
+
+        <a href="medications.html" class="menu-btn liff">
+          <div class="icon">💊</div>
+          <div class="label">ยา</div>
+        </a>
+
+        <a href="settings.html" class="menu-btn liff">
+          <div class="icon">⚙️</div>
+          <div class="label">ตั้งค่า</div>
+        </a>
+
+        <a href="dashboard.html" class="menu-btn liff">
+          <div class="icon">📊</div>
+          <div class="label">Dashboard</div>
+        </a>
+      </div>
+
+      <div class="info-box">
+        <div class="title">⚠️ สำหรับทดสอบ LIFF จริง</div>
+        <div class="content">
+          <strong>บน localhost:</strong> ต้องใช้ ngrok หรือ tunneling service เพื่อให้เป็น HTTPS<br>
+          <strong>แนะนำ:</strong> Deploy ไป Vercel แล้วทดสอบผ่าน LINE app จริงจะดีกว่า
+        </div>
+      </div>
+    </div>
+
+    <!-- Other Pages Section -->
+    <div class="section">
+      <div class="section-title">
+        🔧 Other Pages
+      </div>
+
+      <div class="menu-grid">
+        <a href="debug2.html" class="menu-btn">
+          <div class="icon">🐛</div>
+          <div class="label">Debug Console</div>
+        </a>
+
+        <a href="role-selection.html" class="menu-btn">
+          <div class="icon">🎭</div>
+          <div class="label">Role Selection</div>
+        </a>
+
+        <a href="group-registration.html" class="menu-btn">
+          <div class="icon">👥</div>
+          <div class="label">Group<br>Registration</div>
+        </a>
+
+        <a href="group-dashboard.html" class="menu-btn">
+          <div class="icon">📈</div>
+          <div class="label">Group<br>Dashboard</div>
+        </a>
+      </div>
+    </div>
+
+    <div class="info-box" style="background: #f3e5f5; border-left-color: #9c27b0;">
+      <div class="title" style="color: #7b1fa2;">💡 Hybrid Model (Option C)</div>
+      <div class="content">
+        ระบบรองรับทั้ง <strong>1:1 chat</strong> (LINE OA) และ <strong>Group chat</strong><br>
+        • 1:1: Caregiver ดูแล patient โดยตรง<br>
+        • Group: ครอบครัวดูแล patient ร่วมกันในกลุ่ม LINE
+      </div>
+    </div>
+  </div>
+</body>
+</html>

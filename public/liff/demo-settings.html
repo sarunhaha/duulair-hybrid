@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ตั้งค่า - Duulair [DEMO]</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Sarabun', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      overflow: hidden;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px 20px;
+      text-align: center;
+    }
+
+    .header h1 {
+      font-size: 28px;
+      margin-bottom: 5px;
+    }
+
+    .header p {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+
+    .content {
+      padding: 30px 20px;
+    }
+
+    .tabs {
+      display: flex;
+      border-bottom: 2px solid #e0e0e0;
+      margin-bottom: 20px;
+    }
+
+    .tab {
+      flex: 1;
+      padding: 12px;
+      text-align: center;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      transition: all 0.3s;
+      font-weight: 500;
+      color: #666;
+      font-size: 14px;
+    }
+
+    .tab.active {
+      color: #667eea;
+      border-bottom-color: #667eea;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .section {
+      margin-bottom: 30px;
+    }
+
+    .section-header {
+      font-size: 16px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 15px;
+    }
+
+    .setting-card {
+      background: #f9f9f9;
+      border-radius: 15px;
+      padding: 15px;
+    }
+
+    .setting-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px 0;
+      border-bottom: 1px solid #e0e0e0;
+    }
+
+    .setting-row:last-child {
+      border-bottom: none;
+    }
+
+    .setting-label {
+      font-weight: 500;
+      color: #333;
+      font-size: 15px;
+    }
+
+    .setting-description {
+      font-size: 13px;
+      color: #666;
+      margin-top: 5px;
+    }
+
+    .toggle-switch {
+      position: relative;
+      width: 60px;
+      height: 30px;
+      background: #4caf50;
+      border-radius: 30px;
+      cursor: pointer;
+    }
+
+    .toggle-switch::after {
+      content: '';
+      position: absolute;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: white;
+      top: 2px;
+      left: 32px;
+    }
+
+    .toggle-switch.inactive {
+      background: #ccc;
+    }
+
+    .toggle-switch.inactive::after {
+      left: 2px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>⚙️ ตั้งค่า</h1>
+      <p>จัดการการตั้งค่าต่าง ๆ</p>
+    </div>
+
+    <div class="content">
+      <div class="tabs">
+        <div class="tab active" onclick="switchTab('notifications')">🔔 การแจ้งเตือน</div>
+        <div class="tab" onclick="switchTab('reports')">📊 รายงาน</div>
+        <div class="tab" onclick="switchTab('packages')">💎 แพ็คเกจ</div>
+      </div>
+
+      <!-- Notifications Tab -->
+      <div id="notifications-tab" class="tab-content active">
+        <div class="section">
+          <div class="section-header">🔔 การแจ้งเตือนอัตโนมัติ</div>
+
+          <div class="setting-card">
+            <div class="setting-row">
+              <div>
+                <div class="setting-label">เตือนกินยา</div>
+                <div class="setting-description">แจ้งเตือนเมื่อถึงเวลากินยา</div>
+              </div>
+              <div class="toggle-switch"></div>
+            </div>
+
+            <div class="setting-row">
+              <div>
+                <div class="setting-label">เตือนวัดความดัน</div>
+                <div class="setting-description">แจ้งเตือนวัดสัญญาณชีพ</div>
+              </div>
+              <div class="toggle-switch"></div>
+            </div>
+
+            <div class="setting-row">
+              <div>
+                <div class="setting-label">เตือนดื่มน้ำ</div>
+                <div class="setting-description">แจ้งเตือนทุก 2 ชั่วโมง</div>
+              </div>
+              <div class="toggle-switch"></div>
+            </div>
+
+            <div class="setting-row">
+              <div>
+                <div class="setting-label">เตือนออกกำลังกาย</div>
+                <div class="setting-description">แจ้งเตือนประจำวัน</div>
+              </div>
+              <div class="toggle-switch"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Reports Tab -->
+      <div id="reports-tab" class="tab-content">
+        <div class="section">
+          <div class="section-header">📊 รายงานอัตโนมัติ</div>
+
+          <div class="setting-card">
+            <div class="setting-row">
+              <div>
+                <div class="setting-label">รายงานประจำวัน</div>
+                <div class="setting-description">ส่งรายงานอัตโนมัติเวลา 20:00</div>
+              </div>
+              <div class="toggle-switch"></div>
+            </div>
+
+            <div class="setting-row">
+              <div>
+                <div class="setting-label">รายงานสัปดาห์</div>
+                <div class="setting-description">ส่งทุกวันอาทิตย์ เวลา 20:00</div>
+              </div>
+              <div class="toggle-switch"></div>
+            </div>
+
+            <div class="setting-row">
+              <div>
+                <div class="setting-label">รายงานเดือน</div>
+                <div class="setting-description">ส่งวันที่ 1 ของทุกเดือน</div>
+              </div>
+              <div class="toggle-switch inactive"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-header">📤 ช่องทางส่งรายงาน</div>
+
+          <div class="setting-card">
+            <div class="setting-row">
+              <div>
+                <div class="setting-label">ส่งทาง LINE</div>
+                <div class="setting-description">ส่งข้อความผ่าน LINE 1:1</div>
+              </div>
+              <div class="toggle-switch"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Packages Tab -->
+      <div id="packages-tab" class="tab-content">
+        <div class="section">
+          <div class="section-header">💎 แพ็คเกจ Duulair</div>
+
+          <!-- Free Plan -->
+          <div class="setting-card" style="border: 2px solid #e0e0e0; margin-bottom: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+              <div>
+                <h3 style="font-size: 20px; color: #333; margin-bottom: 5px;">ฟรี</h3>
+                <div style="font-size: 24px; font-weight: 700; color: #667eea;">฿0<span style="font-size: 14px; font-weight: normal; color: #666;">/เดือน</span></div>
+              </div>
+              <div style="background: #4caf50; color: white; padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: 600;">ใช้งานอยู่</div>
+            </div>
+
+            <div style="color: #666; font-size: 14px; margin-bottom: 15px;">เหมาะสำหรับครอบครัวเล็ก</div>
+
+            <div style="border-top: 1px solid #e0e0e0; padding-top: 15px;">
+              <div style="margin-bottom: 10px; display: flex; align-items: center; gap: 10px;">
+                <span style="color: #4caf50;">✓</span>
+                <span style="font-size: 14px; color: #333;">บันทึกกิจกรรมไม่จำกัด</span>
+              </div>
+              <div style="margin-bottom: 10px; display: flex; align-items: center; gap: 10px;">
+                <span style="color: #4caf50;">✓</span>
+                <span style="font-size: 14px; color: #333;">รายงานวัน/สัปดาห์</span>
+              </div>
+              <div style="margin-bottom: 10px; display: flex; align-items: center; gap: 10px;">
+                <span style="color: #4caf50;">✓</span>
+                <span style="font-size: 14px; color: #333;">การเตือนพื้นฐาน</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pro Plan -->
+          <div class="setting-card" style="border: 2px solid #667eea; position: relative;">
+            <div style="position: absolute; top: -12px; right: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 5px 15px; border-radius: 15px; font-size: 12px; font-weight: 600;">แนะนำ</div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+              <div>
+                <h3 style="font-size: 20px; color: #667eea; margin-bottom: 5px;">Pro</h3>
+                <div style="font-size: 24px; font-weight: 700; color: #667eea;">฿299<span style="font-size: 14px; font-weight: normal; color: #666;">/เดือน</span></div>
+              </div>
+            </div>
+
+            <div style="color: #666; font-size: 14px; margin-bottom: 15px;">เหมาะสำหรับครอบครัวที่ต้องการฟีเจอร์เต็มรูปแบบ</div>
+
+            <div style="border-top: 1px solid #e0e0e0; padding-top: 15px;">
+              <div style="margin-bottom: 10px; display: flex; align-items: center; gap: 10px;">
+                <span style="color: #667eea;">✓</span>
+                <span style="font-size: 14px; color: #333;">ฟีเจอร์แบบ Free ทั้งหมด</span>
+              </div>
+              <div style="margin-bottom: 10px; display: flex; align-items: center; gap: 10px;">
+                <span style="color: #667eea;">✓</span>
+                <span style="font-size: 14px; color: #333;">รายงานเดือน + แนวโน้ม</span>
+              </div>
+              <div style="margin-bottom: 10px; display: flex; align-items: center; gap: 10px;">
+                <span style="color: #667eea;">✓</span>
+                <span style="font-size: 14px; color: #333;">Export ข้อมูล PDF/CSV</span>
+              </div>
+              <div style="margin-bottom: 10px; display: flex; align-items: center; gap: 10px;">
+                <span style="color: #667eea;">✓</span>
+                <span style="font-size: 14px; color: #333;">AI Insights & คำแนะนำ</span>
+              </div>
+            </div>
+
+            <button style="width: 100%; padding: 15px; background: #e0e0e0; color: #999; border: none; border-radius: 10px; font-size: 16px; font-weight: 600; margin-top: 15px;" disabled>
+              เร็ว ๆ นี้
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function switchTab(tabName) {
+      // Update tabs
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      event.target.classList.add('active');
+
+      // Update content
+      document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.remove('active');
+      });
+      document.getElementById(`${tabName}-tab`).classList.add('active');
+    }
+  </script>
+</body>
+</html>

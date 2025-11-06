@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ตั้งเวลาเตือน - Duulair [DEMO]</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Sarabun', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      overflow: hidden;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+      color: white;
+      padding: 30px 20px;
+      text-align: center;
+    }
+
+    .header h1 {
+      font-size: 28px;
+      margin-bottom: 5px;
+    }
+
+    .header p {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+
+    .content {
+      padding: 30px 20px;
+    }
+
+    .add-reminder-btn {
+      width: 100%;
+      padding: 15px;
+      background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-bottom: 20px;
+    }
+
+    .reminder-list {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .reminder-card {
+      background: #f9f9f9;
+      border-radius: 15px;
+      padding: 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    .reminder-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .reminder-type {
+      font-size: 24px;
+    }
+
+    .reminder-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .reminder-time {
+      font-size: 24px;
+      font-weight: 700;
+      color: #ff6b6b;
+      margin: 10px 0;
+    }
+
+    .reminder-days {
+      display: flex;
+      gap: 5px;
+      margin-top: 10px;
+    }
+
+    .day-badge {
+      width: 35px;
+      height: 35px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 600;
+      background: #e0e0e0;
+      color: #666;
+    }
+
+    .day-badge.active {
+      background: #ff6b6b;
+      color: white;
+    }
+
+    .reminder-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    .toggle-switch {
+      position: relative;
+      width: 60px;
+      height: 30px;
+      background: #4caf50;
+      border-radius: 30px;
+      cursor: pointer;
+    }
+
+    .toggle-switch::after {
+      content: '';
+      position: absolute;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: white;
+      top: 2px;
+      left: 32px;
+    }
+
+    .btn-icon {
+      padding: 8px 15px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .btn-edit {
+      background: #2196f3;
+      color: white;
+    }
+
+    .btn-delete {
+      background: #f44336;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🔔 ตั้งเวลาเตือน</h1>
+      <p>จัดการการแจ้งเตือนกิจกรรมต่าง ๆ</p>
+    </div>
+
+    <div class="content">
+      <button class="add-reminder-btn">
+        ➕ เพิ่มการเตือน
+      </button>
+
+      <div class="reminder-list">
+        <!-- Reminder 1 -->
+        <div class="reminder-card">
+          <div class="reminder-header">
+            <div>
+              <span class="reminder-type">💊</span>
+              <span class="reminder-title">กินยาความดัน</span>
+            </div>
+            <div class="toggle-switch"></div>
+          </div>
+
+          <div class="reminder-time">08:00</div>
+          <div style="color: #666; font-size: 14px; margin-top: 5px;">หลังอาหารเช้า</div>
+
+          <div class="reminder-days">
+            <div class="day-badge active">จ</div>
+            <div class="day-badge active">อ</div>
+            <div class="day-badge active">พ</div>
+            <div class="day-badge active">พฤ</div>
+            <div class="day-badge active">ศ</div>
+            <div class="day-badge active">ส</div>
+            <div class="day-badge active">อา</div>
+          </div>
+
+          <div class="reminder-actions">
+            <button class="btn-icon btn-edit">✏️ แก้ไข</button>
+            <button class="btn-icon btn-delete">🗑️ ลบ</button>
+          </div>
+        </div>
+
+        <!-- Reminder 2 -->
+        <div class="reminder-card">
+          <div class="reminder-header">
+            <div>
+              <span class="reminder-type">🩺</span>
+              <span class="reminder-title">วัดความดัน</span>
+            </div>
+            <div class="toggle-switch"></div>
+          </div>
+
+          <div class="reminder-time">09:00</div>
+
+          <div class="reminder-days">
+            <div class="day-badge active">จ</div>
+            <div class="day-badge">อ</div>
+            <div class="day-badge active">พ</div>
+            <div class="day-badge">พฤ</div>
+            <div class="day-badge active">ศ</div>
+            <div class="day-badge">ส</div>
+            <div class="day-badge">อา</div>
+          </div>
+
+          <div class="reminder-actions">
+            <button class="btn-icon btn-edit">✏️ แก้ไข</button>
+            <button class="btn-icon btn-delete">🗑️ ลบ</button>
+          </div>
+        </div>
+
+        <!-- Reminder 3 -->
+        <div class="reminder-card">
+          <div class="reminder-header">
+            <div>
+              <span class="reminder-type">💧</span>
+              <span class="reminder-title">ดื่มน้ำ</span>
+            </div>
+            <div class="toggle-switch"></div>
+          </div>
+
+          <div class="reminder-time">14:00</div>
+          <div style="color: #666; font-size: 14px; margin-top: 5px;">ดื่มน้ำอย่างน้อย 1 แก้ว</div>
+
+          <div class="reminder-days">
+            <div class="day-badge active">จ</div>
+            <div class="day-badge active">อ</div>
+            <div class="day-badge active">พ</div>
+            <div class="day-badge active">พฤ</div>
+            <div class="day-badge active">ศ</div>
+            <div class="day-badge active">ส</div>
+            <div class="day-badge active">อา</div>
+          </div>
+
+          <div class="reminder-actions">
+            <button class="btn-icon btn-edit">✏️ แก้ไข</button>
+            <button class="btn-icon btn-delete">🗑️ ลบ</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
