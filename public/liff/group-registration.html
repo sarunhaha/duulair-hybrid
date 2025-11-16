@@ -4,7 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#FAF9F6">
-  <title>ลงทะเบียน - Duulair</title>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>ลงทะเบียน - Duulair (v2.1)</title>
   <link rel="stylesheet" href="css/minimal-theme.css">
 </head>
 <body>
@@ -204,14 +207,20 @@
           localStorage.setItem('duulair_context', JSON.stringify(contextData));
 
           // ✅ Save to duulair_user - use patientId so patient-profile.html can load patient data
-          localStorage.setItem('duulair_user', JSON.stringify({
+          const userData = {
             role: 'caregiver',
             profile_id: result.patientId, // ✅ Patient ID, not caregiver ID
             caregiver_id: result.caregiverId, // Keep caregiver ID for reference
             line_user_id: profile.userId
-          }));
+          };
+          localStorage.setItem('duulair_user', JSON.stringify(userData));
 
-          alert('✅ ลงทะเบียนสำเร็จ! \n\nคุณสามารถเริ่มใช้งานได้เลย');
+          console.log('✅ Saved to localStorage!');
+          console.log('Context:', localStorage.getItem('duulair_context'));
+          console.log('User:', localStorage.getItem('duulair_user'));
+
+          // Show detailed success message with data
+          alert('✅ ลงทะเบียนสำเร็จ! \n\nCaregiver ID: ' + result.caregiverId.substring(0, 8) + '...\nPatient ID: ' + result.patientId.substring(0, 8) + '...\n\nคุณสามารถเริ่มใช้งานได้เลย');
 
           // Close LIFF window or redirect
           if (liff.isInClient()) {
