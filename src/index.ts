@@ -9,6 +9,7 @@ import groupRoutes from './routes/group.routes';
 import reportRoutes from './routes/report.routes';
 import { groupWebhookService } from './services/group-webhook.service';
 import { commandHandlerService } from './services/command-handler.service';
+import { userService } from './services/user.service';
 import crypto from 'crypto';
 
 dotenv.config();
@@ -403,6 +404,152 @@ app.use(express.json({
 
 // Registration API routes
 app.use('/api/registration', registrationRoutes);
+
+// Quick API endpoints for simplified onboarding
+/**
+ * GET /api/check-user
+ * Check if user is registered (for first-time user detection)
+ */
+app.get('/api/check-user', async (req, res) => {
+  try {
+    const { lineUserId } = req.query;
+
+    if (!lineUserId || typeof lineUserId !== 'string') {
+      return res.status(400).json({
+        success: false,
+        error: 'lineUserId is required'
+      });
+    }
+
+    console.log(`🔍 Checking user registration: ${lineUserId}`);
+
+    const result = await userService.checkUserExists(lineUserId);
+
+    res.json({
+      isRegistered: result.exists,
+      userId: result.user?.id || null,
+      role: result.user?.role || null
+    });
+  } catch (error: any) {
+    console.error('❌ Check user error:', error);
+    res.status(500).json({
+      success: false,
+      isRegistered: false,
+      error: error.message || 'Failed to check user'
+    });
+  }
+});
+
+/**
+ * POST /api/quick-register
+ * Quick registration for caregiver + patient (simplified onboarding)
+ */
+app.post('/api/quick-register', async (req, res) => {
+  try {
+    const {
+      lineUserId,
+      displayName,
+      pictureUrl,
+      statusMessage,
+      contextType,
+      groupId,
+      caregiver,
+      patient
+    } = req.body;
+
+    // Validate required fields
+    if (!lineUserId) {
+      return res.status(400).json({
+        success: false,
+        error: 'lineUserId is required'
+      });
+    }
+
+    if (!caregiver || !caregiver.firstName || !caregiver.lastName) {
+      return res.status(400).json({
+        success: false,
+        error: 'Caregiver first name and last name are required'
+      });
+    }
+
+    if (!caregiver.relationship) {
+      return res.status(400).json({
+        success: false,
+        error: 'Relationship is required'
+      });
+    }
+
+    if (!patient || !patient.firstName || !patient.lastName || !patient.birthDate) {
+      return res.status(400).json({
+        success: false,
+        error: 'Patient first name, last name, and birth date are required'
+      });
+    }
+
+    console.log(`📝 Quick registration for ${lineUserId}: ${caregiver.firstName} ${caregiver.lastName}`);
+
+    // Check if user already exists
+    const existingUser = await userService.checkUserExists(lineUserId);
+    if (existingUser.exists) {
+      return res.status(400).json({
+        success: false,
+        error: 'User already registered'
+      });
+    }
+
+    // Register caregiver
+    const caregiverResult = await userService.registerCaregiver(
+      lineUserId,
+      displayName,
+      pictureUrl,
+      {
+        firstName: caregiver.firstName,
+        lastName: caregiver.lastName,
+        phoneNumber: caregiver.phoneNumber || null
+      }
+    );
+
+    if (!caregiverResult.success) {
+      throw new Error(caregiverResult.error || 'Failed to register caregiver');
+    }
+
+    console.log(`✅ Caregiver registered: ${caregiverResult.caregiver_id}`);
+
+    // Create patient profile (without LINE account)
+    // We'll need to create a new service method for this
+    const patientResult = await userService.createPatientProfile({
+      firstName: patient.firstName,
+      lastName: patient.lastName,
+      birthDate: patient.birthDate,
+      conditions: patient.conditions || null,
+      groupId: contextType === 'group' ? groupId : null
+    });
+
+    console.log(`✅ Patient profile created: ${patientResult.patientId}`);
+
+    // Link caregiver to patient with relationship
+    const linkResult = await userService.linkCaregiverToPatient(
+      caregiverResult.caregiver_id!,
+      patientResult.patientId,
+      caregiver.relationship
+    );
+
+    console.log(`✅ Linked caregiver to patient with relationship: ${caregiver.relationship}`);
+
+    res.json({
+      success: true,
+      caregiverId: caregiverResult.caregiver_id,
+      patientId: patientResult.patientId,
+      message: 'Registration successful'
+    });
+  } catch (error: any) {
+    console.error('❌ Quick registration error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Registration failed'
+    });
+  }
+});
 
 // Group API routes (TASK-002)
 app.use('/api/groups', groupRoutes);

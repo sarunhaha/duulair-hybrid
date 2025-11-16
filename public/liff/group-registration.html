@@ -3,53 +3,34 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#4CAF50">
-  <title>ลงทะเบียนกลุ่ม - Duulair</title>
-  <link rel="stylesheet" href="css/style.css">
+  <meta name="theme-color" content="#FAF9F6">
+  <title>ลงทะเบียน - Duulair</title>
+  <link rel="stylesheet" href="css/minimal-theme.css">
 </head>
 <body>
   <div class="container">
-    <h1>👨‍👩‍👧‍👦 ลงทะเบียนกลุ่มดูแลผู้ป่วย</h1>
-    <p class="text-center text-small mb-3" style="color: #666;">
-      ลงทะเบียนครั้งเดียว ดูแลผู้ป่วยร่วมกันทั้งครอบครัว
-    </p>
-
-    <!-- Steps Progress -->
-    <div class="steps-progress">
-      <div class="step active" id="progress-step-1">
-        <div class="step-number">1</div>
-        <div class="step-label">ผู้ดูแลหลัก</div>
-      </div>
-      <div class="step" id="progress-step-2">
-        <div class="step-number">2</div>
-        <div class="step-label">ข้อมูลผู้ป่วย</div>
-      </div>
-      <div class="step" id="progress-step-3">
-        <div class="step-number">3</div>
-        <div class="step-label">สุขภาพผู้ป่วย</div>
-      </div>
-      <div class="step" id="progress-step-4">
-        <div class="step-number">4</div>
-        <div class="step-label">ติดต่อฉุกเฉิน</div>
-      </div>
+    <!-- Header -->
+    <div class="header text-center">
+      <h1>👋 ยินดีต้อนรับสู่ Duulair</h1>
+      <p>กรุณากรอกข้อมูลเพื่อเริ่มใช้งาน</p>
     </div>
 
-    <!-- Step 1: ข้อมูลผู้ดูแลหลัก -->
-    <div id="step1">
+    <form id="registrationForm">
+      <!-- ส่วนที่ 1: ข้อมูลผู้ดูแล -->
       <div class="card">
-        <div class="card-header">👤 ข้อมูลผู้ดูแลหลัก (คุณ)</div>
-        <p class="text-small mb-2" style="color: #666;">
-          ผู้ดูแลหลักคือคนที่เชิญบอทเข้ากลุ่ม LINE และเป็นคนจัดการหลัก
+        <div class="card-header">👤 ข้อมูลของคุณ (ผู้ดูแล)</div>
+        <p class="text-small text-muted mb-3">
+          ข้อมูลจะถูกเชื่อมโยงกับบัญชี LINE ของคุณโดยอัตโนมัติ
         </p>
 
         <div class="form-group">
           <label for="caregiverFirstName">ชื่อ <span class="required">*</span></label>
-          <input type="text" id="caregiverFirstName" placeholder="กรอกชื่อของคุณ">
+          <input type="text" id="caregiverFirstName" required placeholder="กรอกชื่อของคุณ">
         </div>
 
         <div class="form-group">
           <label for="caregiverLastName">นามสกุล <span class="required">*</span></label>
-          <input type="text" id="caregiverLastName" placeholder="กรอกนามสกุลของคุณ">
+          <input type="text" id="caregiverLastName" required placeholder="กรอกนามสกุลของคุณ">
         </div>
 
         <div class="form-group">
@@ -57,215 +38,180 @@
           <input type="tel" id="caregiverPhoneNumber" placeholder="0XX-XXX-XXXX">
         </div>
 
-        <div class="alert alert-info">
-          <strong>💡 หมายเหตุ:</strong> ข้อมูลของคุณจะถูกเชื่อมโยงกับบัญชี LINE ของคุณโดยอัตโนมัติ
+        <div class="form-group">
+          <label for="relationshipToPatient">ความสัมพันธ์กับผู้ป่วย <span class="required">*</span></label>
+          <select id="relationshipToPatient" required>
+            <option value="">-- เลือกความสัมพันธ์ --</option>
+            <option value="child">ลูก</option>
+            <option value="grandchild">หลาน</option>
+            <option value="sibling">พี่/น้อง</option>
+            <option value="spouse">คู่สมรส</option>
+            <option value="nurse">พยาบาล/ผู้ดูแลมืออาชีพ</option>
+            <option value="other">อื่นๆ</option>
+          </select>
         </div>
       </div>
-    </div>
 
-    <!-- Step 2: ข้อมูลพื้นฐานผู้ป่วย -->
-    <div id="step2" class="hidden">
+      <!-- ส่วนที่ 2: ข้อมูลผู้ป่วย -->
       <div class="card">
-        <div class="card-header">👴 ข้อมูลพื้นฐานผู้ป่วย</div>
-        <p class="text-small mb-2" style="color: #666;">
-          กรอกข้อมูลของผู้ป่วยที่คุณดูแล (ผู้ป่วยไม่จำเป็นต้องมี LINE)
+        <div class="card-header">👴 ข้อมูลผู้ป่วยที่ดูแล</div>
+        <p class="text-small text-muted mb-3">
+          ผู้ป่วยไม่จำเป็นต้องมีบัญชี LINE
         </p>
 
         <div class="form-group">
           <label for="patientFirstName">ชื่อผู้ป่วย <span class="required">*</span></label>
-          <input type="text" id="patientFirstName" placeholder="กรอกชื่อผู้ป่วย">
+          <input type="text" id="patientFirstName" required placeholder="กรอกชื่อผู้ป่วย">
         </div>
 
         <div class="form-group">
           <label for="patientLastName">นามสกุลผู้ป่วย <span class="required">*</span></label>
-          <input type="text" id="patientLastName" placeholder="กรอกนามสกุลผู้ป่วย">
-        </div>
-
-        <div class="form-group">
-          <label for="patientNickname">ชื่อเล่น</label>
-          <input type="text" id="patientNickname" placeholder="เช่น คุณยาย, คุณปู่">
+          <input type="text" id="patientLastName" required placeholder="กรอกนามสกุลผู้ป่วย">
         </div>
 
         <div class="form-group">
           <label for="patientBirthDate">วันเกิดผู้ป่วย <span class="required">*</span></label>
-          <input type="date" id="patientBirthDate">
+          <input type="date" id="patientBirthDate" required>
           <small style="color: #666; font-size: 12px; margin-top: 4px; display: block;">
             กรุณากรอกเป็น ค.ศ. (เช่น เกิดปี พ.ศ. 2496 = ค.ศ. 1953)
           </small>
         </div>
 
         <div class="form-group">
-          <label>เพศ <span class="required">*</span></label>
-          <div class="radio-group">
-            <div class="radio-option">
-              <input type="radio" id="patientGenderMale" name="patientGender" value="male">
-              <label for="patientGenderMale">ชาย</label>
-            </div>
-            <div class="radio-option">
-              <input type="radio" id="patientGenderFemale" name="patientGender" value="female">
-              <label for="patientGenderFemale">หญิง</label>
-            </div>
-            <div class="radio-option">
-              <input type="radio" id="patientGenderOther" name="patientGender" value="other">
-              <label for="patientGenderOther">อื่นๆ</label>
-            </div>
-          </div>
+          <label for="patientConditions">โรคประจำตัว (ถ้ามี)</label>
+          <textarea id="patientConditions" placeholder="เช่น ความดันสูง, เบาหวาน" rows="3"></textarea>
+          <small style="color: #666; font-size: 12px;">
+            กรอกโรคประจำตัวสำคัญ สามารถเพิ่มรายละเอียดเพิ่มเติมได้ภายหลัง
+          </small>
+        </div>
+
+        <div class="alert alert-info">
+          <strong>💡 คำแนะนำ:</strong> คุณสามารถเพิ่มรายละเอียดอื่นๆ เช่น ข้อมูลสุขภาพ ยาที่ทาน และอื่นๆ ได้ภายหลังที่เมนูข้อมูลผู้ป่วย
         </div>
       </div>
-    </div>
 
-    <!-- Step 3: ข้อมูลสุขภาพผู้ป่วย -->
-    <div id="step3" class="hidden">
-      <div class="card">
-        <div class="card-header">🏥 ข้อมูลสุขภาพผู้ป่วย</div>
-
-        <div class="form-group">
-          <label for="patientWeightKg">น้ำหนัก (กก.)</label>
-          <input type="number" id="patientWeightKg" placeholder="เช่น 65" min="20" max="300">
-        </div>
-
-        <div class="form-group">
-          <label for="patientHeightCm">ส่วนสูง (ซม.)</label>
-          <input type="number" id="patientHeightCm" placeholder="เช่น 165" min="50" max="250">
-        </div>
-
-        <div class="form-group">
-          <label for="patientBloodType">กลุ่มเลือด</label>
-          <select id="patientBloodType">
-            <option value="">-- เลือกกลุ่มเลือด --</option>
-            <option value="A+">A+</option>
-            <option value="A-">A-</option>
-            <option value="B+">B+</option>
-            <option value="B-">B-</option>
-            <option value="AB+">AB+</option>
-            <option value="AB-">AB-</option>
-            <option value="O+">O+</option>
-            <option value="O-">O-</option>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label>โรคประจำตัว</label>
-          <div class="checkbox-group">
-            <div class="checkbox-option">
-              <input type="checkbox" id="disease-hypertension" value="hypertension">
-              <label for="disease-hypertension">ความดันโลหิตสูง</label>
-            </div>
-            <div class="checkbox-option">
-              <input type="checkbox" id="disease-diabetes" value="diabetes">
-              <label for="disease-diabetes">เบาหวาน</label>
-            </div>
-            <div class="checkbox-option">
-              <input type="checkbox" id="disease-heart" value="heart_disease">
-              <label for="disease-heart">โรคหัวใจ</label>
-            </div>
-            <div class="checkbox-option">
-              <input type="checkbox" id="disease-cholesterol" value="high_cholesterol">
-              <label for="disease-cholesterol">ไขมันในเลือดสูง</label>
-            </div>
-            <div class="checkbox-option">
-              <input type="checkbox" id="disease-kidney" value="kidney_disease">
-              <label for="disease-kidney">โรคไต</label>
-            </div>
-            <div class="checkbox-option">
-              <input type="checkbox" id="disease-other" value="other">
-              <label for="disease-other">อื่นๆ</label>
-            </div>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label for="patientDrugAllergies">แพ้ยา (ถ้ามี)</label>
-          <input type="text" id="patientDrugAllergies" placeholder="เช่น penicillin, aspirin (คั่นด้วยจุลภาค)">
-          <small style="color: #666; font-size: 12px;">กรอกชื่อยาที่แพ้ คั่นด้วยจุลภาค (,)</small>
-        </div>
-
-        <div class="form-group">
-          <label for="patientFoodAllergies">แพ้อาหาร (ถ้ามี)</label>
-          <input type="text" id="patientFoodAllergies" placeholder="เช่น กุ้ง, นม (คั่นด้วยจุลภาค)">
-          <small style="color: #666; font-size: 12px;">กรอกอาหารที่แพ้ คั่นด้วยจุลภาค (,)</small>
-        </div>
+      <!-- ปุ่มบันทึก -->
+      <div class="mt-4">
+        <button type="submit" id="submitBtn" class="btn btn-primary btn-block">
+          ✅ บันทึกและเริ่มใช้งาน
+        </button>
       </div>
-    </div>
 
-    <!-- Step 4: ข้อมูลติดต่อฉุกเฉิน -->
-    <div id="step4" class="hidden">
-      <div class="card">
-        <div class="card-header">🆘 ข้อมูลติดต่อฉุกเฉิน</div>
-
-        <div class="form-group">
-          <label for="patientAddress">ที่อยู่ผู้ป่วย</label>
-          <textarea id="patientAddress" placeholder="กรอกที่อยู่ของผู้ป่วย (ถ้าต้องการ)" rows="3"></textarea>
-        </div>
-
-        <div class="form-group">
-          <label for="patientPhoneNumber">เบอร์โทรศัพท์ผู้ป่วย</label>
-          <input type="tel" id="patientPhoneNumber" placeholder="0XX-XXX-XXXX">
-        </div>
-
-        <div style="border-top: 2px solid #E0E0E0; padding-top: 16px; margin-top: 24px;">
-          <h3>ผู้ติดต่อฉุกเฉิน</h3>
-          <p class="text-small mb-2" style="color: #666;">
-            กรุณากรอกข้อมูลบุคคลที่สามารถติดต่อได้ในกรณีฉุกเฉิน
-          </p>
-
-          <div class="form-group">
-            <label for="emergencyContactName">ชื่อผู้ติดต่อ <span class="required">*</span></label>
-            <input type="text" id="emergencyContactName" placeholder="กรอกชื่อผู้ติดต่อฉุกเฉิน">
-          </div>
-
-          <div class="form-group">
-            <label for="emergencyContactPhone">เบอร์โทรผู้ติดต่อ <span class="required">*</span></label>
-            <input type="tel" id="emergencyContactPhone" placeholder="0XX-XXX-XXXX">
-          </div>
-
-          <div class="form-group">
-            <label for="emergencyContactRelation">ความสัมพันธ์ <span class="required">*</span></label>
-            <select id="emergencyContactRelation">
-              <option value="">-- เลือกความสัมพันธ์ --</option>
-              <option value="child">ลูก</option>
-              <option value="grandchild">หลาน</option>
-              <option value="sibling">พี่น้อง</option>
-              <option value="spouse">คู่สมรส</option>
-              <option value="friend">เพื่อน</option>
-              <option value="caregiver">ผู้ดูแล</option>
-              <option value="other">อื่นๆ</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="alert alert-success mt-3">
-          <strong>✅ เกือบเสร็จแล้ว!</strong><br>
-          กดปุ่มลงทะเบียนด้านล่างเพื่อเริ่มใช้งาน
-        </div>
-      </div>
-    </div>
-
-    <!-- Navigation Buttons -->
-    <div style="margin-top: 24px;">
-      <button type="button" id="prevBtn" class="btn btn-secondary btn-block hidden" onclick="prevStep()">
-        ← ย้อนกลับ
-      </button>
-      <button type="button" id="nextBtn" class="btn btn-block" onclick="nextStep()">
-        ถัดไป →
-      </button>
-      <button type="button" id="submitBtn" class="btn btn-block hidden" onclick="submitForm()">
-        ✅ ลงทะเบียนกลุ่ม
-      </button>
-    </div>
-
-    <p class="text-center text-small mt-2" style="color: #999;">
-      ข้อมูลของท่านจะถูกเก็บเป็นความลับและปลอดภัย 🔒
-    </p>
+      <p class="text-center text-small text-muted mt-2">
+        ข้อมูลของท่านจะถูกเก็บเป็นความลับและปลอดภัย 🔒
+      </p>
+    </form>
   </div>
 
   <!-- LIFF SDK -->
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
-  <!-- App JavaScript -->
-  <script src="js/utils.js"></script>
-  <script src="js/api.js"></script>
-  <script src="js/liff-init.js"></script>
-  <script src="js/group-form.js"></script>
+  <script>
+    // LIFF Configuration
+    const LIFF_ID = '2008278683-5k69jxNq';
+    const API_BASE_URL = 'https://duulair.vercel.app/api';
+
+    // Initialize LIFF
+    async function initLiff() {
+      try {
+        await liff.init({ liffId: LIFF_ID });
+
+        if (!liff.isLoggedIn()) {
+          liff.login();
+          return;
+        }
+
+        // Auto-fill caregiver name from LINE profile
+        const profile = await liff.getProfile();
+        const displayName = profile.displayName || '';
+        const nameParts = displayName.split(' ');
+
+        if (nameParts.length >= 2) {
+          document.getElementById('caregiverFirstName').value = nameParts[0];
+          document.getElementById('caregiverLastName').value = nameParts.slice(1).join(' ');
+        } else {
+          document.getElementById('caregiverFirstName').value = displayName;
+        }
+
+      } catch (error) {
+        console.error('LIFF initialization failed:', error);
+        alert('เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่อีกครั้ง');
+      }
+    }
+
+    // Handle form submission
+    document.getElementById('registrationForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const submitBtn = document.getElementById('submitBtn');
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'กำลังบันทึก...';
+
+      try {
+        const profile = await liff.getProfile();
+        const contextType = liff.getContext()?.type || 'utou';
+        const groupId = contextType === 'group' ? liff.getContext().groupId : null;
+
+        // Prepare data
+        const formData = {
+          lineUserId: profile.userId,
+          displayName: profile.displayName,
+          pictureUrl: profile.pictureUrl,
+          statusMessage: profile.statusMessage,
+          contextType: contextType,
+          groupId: groupId,
+          caregiver: {
+            firstName: document.getElementById('caregiverFirstName').value.trim(),
+            lastName: document.getElementById('caregiverLastName').value.trim(),
+            phoneNumber: document.getElementById('caregiverPhoneNumber').value.trim() || null,
+            relationship: document.getElementById('relationshipToPatient').value
+          },
+          patient: {
+            firstName: document.getElementById('patientFirstName').value.trim(),
+            lastName: document.getElementById('patientLastName').value.trim(),
+            birthDate: document.getElementById('patientBirthDate').value,
+            conditions: document.getElementById('patientConditions').value.trim() || null
+          }
+        };
+
+        // Send to API
+        const response = await fetch(`${API_BASE_URL}/quick-register`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(formData)
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+
+        if (result.success) {
+          alert('✅ ลงทะเบียนสำเร็จ! \n\nคุณสามารถเริ่มใช้งานได้เลย');
+
+          // Close LIFF window or redirect
+          if (liff.isInClient()) {
+            liff.closeWindow();
+          } else {
+            window.location.href = '/liff/dashboard.html';
+          }
+        } else {
+          throw new Error(result.error || 'การลงทะเบียนล้มเหลว');
+        }
+
+      } catch (error) {
+        console.error('Registration failed:', error);
+        alert('❌ เกิดข้อผิดพลาด: ' + error.message + '\n\nกรุณาลองใหม่อีกครั้ง');
+        submitBtn.disabled = false;
+        submitBtn.textContent = '✅ บันทึกและเริ่มใช้งาน';
+      }
+    });
+
+    // Initialize on load
+    initLiff();
+  </script>
 </body>
 </html>

@@ -3,298 +3,276 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#FAF9F6">
   <title>💧 ดื่มน้ำ - Duulair</title>
   <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/utils.js"></script>
+  <link rel="stylesheet" href="css/minimal-theme.css">
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
+    /* Water-specific styles */
+    .progress-section {
+      margin-bottom: var(--spacing-xl);
     }
 
-    body {
-      font-family: 'Sarabun', -apple-system, BlinkMacSystemFont, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      min-height: 100vh;
-      padding: 20px;
-    }
-
-    .container {
-      max-width: 600px;
-      margin: 0 auto;
-      background: white;
-      border-radius: 20px;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-      overflow: hidden;
-    }
-
-    .header {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      padding: 30px 20px;
-      text-align: center;
-    }
-
-    .header h1 {
-      font-size: 28px;
-      margin-bottom: 10px;
-    }
-
-    .progress-container {
-      background: white;
-      padding: 20px;
-      border-radius: 15px;
-      margin: 20px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    .progress-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: var(--spacing-sm);
     }
 
     .progress-label {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 10px;
       font-size: 14px;
-      color: #666;
+      color: var(--text-secondary);
     }
 
-    .progress-bar-bg {
-      width: 100%;
-      height: 30px;
-      background: #e0e0e0;
-      border-radius: 15px;
+    .progress-bar-container {
+      position: relative;
+      height: 12px;
+      background: var(--bg-secondary);
+      border-radius: var(--radius-full);
       overflow: hidden;
+      margin-bottom: var(--spacing-md);
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #B4D4E8 0%, #A8D5BA 100%);
+      border-radius: var(--radius-full);
+      transition: width 0.3s ease;
       position: relative;
     }
 
-    .progress-bar-fill {
-      height: 100%;
-      background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-      transition: width 0.5s ease;
-      border-radius: 15px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-weight: 600;
-      font-size: 12px;
-    }
-
     .water-summary {
-      background: #f8f9fa;
-      padding: 20px;
-      margin: 20px;
-      border-radius: 15px;
       text-align: center;
+      padding: var(--spacing-lg);
+      background: var(--bg-card);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
+      margin-bottom: var(--spacing-lg);
     }
 
-    .water-summary h3 {
-      font-size: 48px;
-      color: #667eea;
-      margin-bottom: 5px;
+    .water-amount {
+      font-size: 42px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: var(--spacing-xs);
     }
 
-    .water-summary p {
-      color: #666;
-      font-size: 14px;
+    .water-unit {
+      font-size: 16px;
+      color: var(--text-secondary);
+      margin-bottom: var(--spacing-md);
+    }
+
+    .water-remaining {
+      font-size: 15px;
+      color: #5A8BA8;
+      font-weight: 500;
     }
 
     .quick-add {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 10px;
-      margin: 20px;
+      gap: var(--spacing-sm);
+      margin-bottom: var(--spacing-lg);
     }
 
     .quick-btn {
-      padding: 15px;
-      background: white;
-      border: 2px solid #667eea;
-      border-radius: 10px;
-      color: #667eea;
-      font-weight: 600;
+      background: var(--bg-card);
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      border-radius: var(--radius-md);
+      padding: var(--spacing-md);
+      text-align: center;
       cursor: pointer;
-      transition: all 0.3s;
+      transition: all 0.2s ease;
+      box-shadow: var(--shadow-sm);
     }
 
     .quick-btn:active {
-      background: #667eea;
-      color: white;
+      transform: scale(0.95);
+      box-shadow: var(--shadow-md);
     }
 
-    .custom-amount {
-      margin: 20px;
+    .quick-btn .amount {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-primary);
+      display: block;
+      margin-bottom: 4px;
     }
 
-    .custom-amount input {
-      width: 100%;
-      padding: 15px;
-      border: 2px solid #ddd;
-      border-radius: 10px;
-      font-size: 16px;
-      margin-bottom: 10px;
+    .quick-btn .label {
+      font-size: 12px;
+      color: var(--text-muted);
     }
 
-    .add-btn {
-      width: 100%;
-      padding: 15px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    .custom-input-group {
+      display: flex;
+      gap: var(--spacing-sm);
+      margin-bottom: var(--spacing-lg);
+    }
+
+    .custom-input-group input {
+      flex: 1;
+      padding: 12px 16px;
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      border-radius: var(--radius-sm);
+      font-size: 15px;
+    }
+
+    .custom-input-group button {
+      padding: 12px 24px;
+      background: var(--accent-primary);
       color: white;
       border: none;
-      border-radius: 10px;
-      font-size: 16px;
-      font-weight: 600;
+      border-radius: var(--radius-sm);
+      font-weight: 500;
       cursor: pointer;
+      transition: all 0.2s ease;
     }
 
-    .log-list {
-      margin: 20px;
+    .custom-input-group button:active {
+      transform: scale(0.97);
     }
 
     .log-item {
-      background: #f9f9f9;
-      padding: 15px;
-      border-radius: 10px;
-      margin-bottom: 10px;
+      background: var(--bg-card);
+      border-radius: var(--radius-sm);
+      padding: var(--spacing-md);
+      margin-bottom: var(--spacing-sm);
       display: flex;
       justify-content: space-between;
       align-items: center;
+      box-shadow: var(--shadow-sm);
     }
 
-    .log-time {
-      font-size: 14px;
-      color: #999;
+    .log-item .time {
+      font-size: 13px;
+      color: var(--text-muted);
     }
 
-    .log-amount {
+    .log-item .amount {
+      font-size: 16px;
       font-weight: 600;
-      color: #667eea;
+      color: #5A8BA8;
     }
 
-    .settings-section {
-      margin: 20px;
-      padding: 20px;
-      background: #f8f9fa;
-      border-radius: 15px;
+    .empty-state {
+      text-align: center;
+      padding: var(--spacing-xl);
+      color: var(--text-muted);
     }
 
-    .settings-section h3 {
-      margin-bottom: 15px;
-      color: #333;
-    }
+    @media (max-width: 480px) {
+      .water-amount {
+        font-size: 36px;
+      }
 
-    .setting-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 10px 0;
-      border-bottom: 1px solid #ddd;
-    }
+      .quick-add {
+        gap: var(--spacing-xs);
+      }
 
-    .setting-item:last-child {
-      border-bottom: none;
-    }
+      .quick-btn {
+        padding: var(--spacing-sm);
+      }
 
-    .toggle {
-      width: 50px;
-      height: 26px;
-      background: #ccc;
-      border-radius: 13px;
-      position: relative;
-      cursor: pointer;
-      transition: background 0.3s;
-    }
-
-    .toggle.active {
-      background: #667eea;
-    }
-
-    .toggle::after {
-      content: '';
-      width: 20px;
-      height: 20px;
-      background: white;
-      border-radius: 50%;
-      position: absolute;
-      top: 3px;
-      left: 3px;
-      transition: left 0.3s;
-    }
-
-    .toggle.active::after {
-      left: 27px;
+      .quick-btn .amount {
+        font-size: 16px;
+      }
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="header">
-      <h1>💧 ดื่มน้ำ</h1>
-      <p>ติดตามปริมาณน้ำทั้งวัน</p>
+    <!-- Loading State -->
+    <div id="loadingState" class="loading">
+      <div class="loading-spinner"></div>
+      <p>กำลังโหลด...</p>
     </div>
 
-    <!-- Progress -->
-    <div class="progress-container">
-      <div class="progress-label">
-        <span>วันนี้</span>
-        <span id="goalText">เป้าหมาย: 2000 ml</span>
+    <!-- Main Content -->
+    <div id="mainContent" class="hidden">
+      <!-- Header -->
+      <div class="header">
+        <h1>💧 ดื่มน้ำ</h1>
+        <p>ติดตามปริมาณน้ำทั้งวัน</p>
       </div>
-      <div class="progress-bar-bg">
-        <div class="progress-bar-fill" id="progressBar" style="width: 0%">
-          <span id="progressText">0%</span>
+
+      <!-- Progress Section -->
+      <div class="progress-section">
+        <div class="progress-header">
+          <span class="progress-label">วันนี้</span>
+          <span class="progress-label" id="goalText">เป้าหมาย: 2000 ml</span>
+        </div>
+        <div class="progress-bar-container">
+          <div class="progress-bar" id="progressBar" style="width: 0%"></div>
         </div>
       </div>
-    </div>
 
-    <!-- Summary -->
-    <div class="water-summary">
-      <h3 id="totalAmount">0</h3>
-      <p>มิลลิลิตร (<span id="glassCount">0</span> แก้ว)</p>
-      <p style="margin-top: 10px; color: #667eea; font-weight: 600;">
-        <span id="remaining">2000 ml</span> เพื่อบรรลุเป้าหมาย
-      </p>
-    </div>
-
-    <!-- Quick Add -->
-    <div class="quick-add">
-      <button class="quick-btn" onclick="addWater(250)">250 ml<br>(1 แก้ว)</button>
-      <button class="quick-btn" onclick="addWater(500)">500 ml<br>(2 แก้ว)</button>
-      <button class="quick-btn" onclick="addWater(750)">750 ml<br>(3 แก้ว)</button>
-    </div>
-
-    <!-- Custom Amount -->
-    <div class="custom-amount">
-      <input type="number" id="customAmount" placeholder="ระบุปริมาณ (ml)" min="1" max="5000">
-      <button class="add-btn" onclick="addCustomWater()">+ เพิ่ม</button>
-    </div>
-
-    <!-- Today's Log -->
-    <div class="log-list">
-      <h3 style="margin-bottom: 15px;">📝 บันทึกวันนี้</h3>
-      <div id="logContainer">
-        <!-- Logs will be loaded here -->
+      <!-- Water Summary -->
+      <div class="water-summary">
+        <div class="water-amount" id="totalAmount">0</div>
+        <div class="water-unit">มิลลิลิตร (<span id="glassCount">0</span> แก้ว)</div>
+        <div class="water-remaining">
+          <span id="remaining">2000 ml</span> เพื่อบรรลุเป้าหมาย
+        </div>
       </div>
-    </div>
 
-    <!-- Settings -->
-    <div class="settings-section">
-      <h3>⚙️ ตั้งค่า</h3>
-      <div class="setting-item">
-        <span>เป้าหมายรายวัน</span>
-        <input type="number" id="dailyGoal" value="2000" style="width: 100px; padding: 5px; border-radius: 5px; border: 1px solid #ddd;" onchange="updateGoal()"> ml
+      <!-- Quick Add -->
+      <div class="card">
+        <div class="card-header">⚡ เพิ่มเร็ว</div>
+        <div class="quick-add">
+          <button class="quick-btn" onclick="addWater(250)">
+            <span class="amount">250 ml</span>
+            <span class="label">1 แก้ว</span>
+          </button>
+          <button class="quick-btn" onclick="addWater(500)">
+            <span class="amount">500 ml</span>
+            <span class="label">2 แก้ว</span>
+          </button>
+          <button class="quick-btn" onclick="addWater(750)">
+            <span class="amount">750 ml</span>
+            <span class="label">3 แก้ว</span>
+          </button>
+        </div>
+
+        <div class="custom-input-group">
+          <input type="number" id="customAmount" placeholder="ระบุปริมาณ (ml)" min="1" max="5000">
+          <button onclick="addCustomWater()">เพิ่ม</button>
+        </div>
       </div>
-      <div class="setting-item">
-        <span>เตือนดื่มน้ำ</span>
-        <div class="toggle" id="reminderToggle" onclick="toggleReminder()"></div>
+
+      <!-- Today's Log -->
+      <div class="card">
+        <div class="card-header">📝 บันทึกวันนี้</div>
+        <div id="logContainer">
+          <div class="empty-state">
+            <p>ยังไม่มีการบันทึก</p>
+          </div>
+        </div>
       </div>
+
+      <!-- Settings -->
+      <div class="card">
+        <div class="card-header">⚙️ ตั้งค่า</div>
+        <div class="form-group">
+          <label for="dailyGoal">เป้าหมายรายวัน (ml)</label>
+          <input type="number" id="dailyGoal" value="2000" min="500" max="5000" onchange="updateGoal()">
+        </div>
+      </div>
+
+      <button class="btn btn-secondary btn-block mt-3" onclick="closeLiff()">ปิด</button>
     </div>
   </div>
 
   <script>
-    const LIFF_ID = 'YOUR_LIFF_ID'; // Replace with actual LIFF ID
+    const LIFF_ID = '2008278683-5k69jxNq';
     const SUPABASE_URL = 'YOUR_SUPABASE_URL';
     const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
 
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const supabase = window.supabase?.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     let patientId = null;
     let groupId = null;
     let dailyGoal = 2000;
@@ -310,208 +288,127 @@
           return;
         }
 
+        // Get user profile
+        const profile = await liff.getProfile();
+
+        // Check if user is registered (first-time detection)
+        const isRegistered = await checkUserRegistration(profile.userId);
+
+        // If not registered, checkUserRegistration will redirect automatically
+        if (!isRegistered) {
+          return;
+        }
+
         // Get user context (from localStorage or API)
         const context = JSON.parse(localStorage.getItem('duulair_context') || '{}');
         patientId = context.patientId;
         groupId = context.groupId;
 
         if (!patientId) {
-          alert('ไม่พบข้อมูลผู้ป่วย');
-          liff.closeWindow();
-          return;
+          console.warn('No patient ID found in context');
         }
 
-        await loadData();
+        // Load data
+        await loadTodayData();
+
+        // Show content
+        document.getElementById('loadingState').classList.add('hidden');
+        document.getElementById('mainContent').classList.remove('hidden');
+
       } catch (error) {
-        console.error('LIFF init error:', error);
-        alert('เกิดข้อผิดพลาด: ' + error.message);
+        console.error('LIFF initialization failed:', error);
+        alert('เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่อีกครั้ง');
       }
     }
 
-    async function loadData() {
-      await loadGoal();
-      await loadTodayLogs();
-      updateUI();
-    }
-
-    async function loadGoal() {
-      const { data, error } = await supabase
-        .from('water_intake_goals')
-        .select('*')
-        .eq('patient_id', patientId)
-        .single();
-
-      if (data) {
-        dailyGoal = data.daily_goal_ml;
-        document.getElementById('dailyGoal').value = dailyGoal;
-
-        if (data.reminder_enabled) {
-          document.getElementById('reminderToggle').classList.add('active');
-        }
-      }
-    }
-
-    async function loadTodayLogs() {
+    async function loadTodayData() {
+      // TODO: Load from Supabase when configured
+      // For now, use localStorage
       const today = new Date().toISOString().split('T')[0];
+      const savedData = JSON.parse(localStorage.getItem(`water_${today}`) || '{"total": 0, "logs": [], "goal": 2000}');
 
-      const { data, error } = await supabase
-        .from('water_intake_logs')
-        .select('*')
-        .eq('patient_id', patientId)
-        .gte('logged_at', `${today}T00:00:00`)
-        .lt('logged_at', `${today}T23:59:59`)
-        .order('logged_at', { ascending: false });
+      totalToday = savedData.total || 0;
+      todayLogs = savedData.logs || [];
+      dailyGoal = savedData.goal || 2000;
 
-      if (data) {
-        todayLogs = data;
-        totalToday = data.reduce((sum, log) => sum + log.amount_ml, 0);
-        renderLogs();
-      }
-    }
-
-    function updateUI() {
-      const progress = Math.min(100, Math.round((totalToday / dailyGoal) * 100));
-      const remaining = Math.max(0, dailyGoal - totalToday);
-      const glasses = Math.round(totalToday / 250);
-
-      document.getElementById('totalAmount').textContent = totalToday;
-      document.getElementById('glassCount').textContent = glasses;
-      document.getElementById('goalText').textContent = `เป้าหมาย: ${dailyGoal} ml`;
-      document.getElementById('remaining').textContent = `${remaining} ml`;
-      document.getElementById('progressBar').style.width = progress + '%';
-      document.getElementById('progressText').textContent = progress + '%';
-    }
-
-    function renderLogs() {
-      const container = document.getElementById('logContainer');
-
-      if (todayLogs.length === 0) {
-        container.innerHTML = '<p style="text-align: center; color: #999;">ยังไม่มีบันทึก</p>';
-        return;
-      }
-
-      container.innerHTML = todayLogs.map(log => {
-        const time = new Date(log.logged_at).toLocaleTimeString('th-TH', {
-          hour: '2-digit',
-          minute: '2-digit'
-        });
-        const glasses = Math.round(log.amount_ml / 250);
-
-        return `
-          <div class="log-item">
-            <div>
-              <div class="log-amount">${log.amount_ml} ml (${glasses} แก้ว)</div>
-              <div class="log-time">${time}</div>
-            </div>
-            <button onclick="deleteLog('${log.id}')" style="background: #ff4444; color: white; border: none; border-radius: 5px; padding: 5px 10px; cursor: pointer;">ลบ</button>
-          </div>
-        `;
-      }).join('');
-    }
-
-    async function addWater(amount) {
-      const profile = await liff.getProfile();
-
-      const { error } = await supabase
-        .from('water_intake_logs')
-        .insert([{
-          patient_id: patientId,
-          group_id: groupId,
-          amount_ml: amount,
-          logged_by_line_user_id: profile.userId,
-          logged_by_display_name: profile.displayName
-        }]);
-
-      if (error) {
-        alert('เกิดข้อผิดพลาด: ' + error.message);
-        return;
-      }
-
-      // Also log to activity_logs
-      await supabase
-        .from('activity_logs')
-        .insert([{
-          patient_id: patientId,
-          group_id: groupId,
-          task_type: 'water',
-          value: amount.toString(),
-          metadata: JSON.stringify({ amount_ml: amount, unit: 'ml' }),
-          actor_line_user_id: profile.userId,
-          actor_display_name: profile.displayName,
-          source: groupId ? 'group' : '1:1'
-        }]);
-
-      await loadTodayLogs();
+      document.getElementById('dailyGoal').value = dailyGoal;
       updateUI();
-
-      // Show success animation
-      alert(`✅ บันทึกเรียบร้อย: ${amount} ml`);
     }
 
-    async function addCustomWater() {
-      const amount = parseInt(document.getElementById('customAmount').value);
+    function addWater(amount) {
+      totalToday += amount;
 
-      if (!amount || amount <= 0 || amount > 5000) {
+      const now = new Date();
+      todayLogs.unshift({
+        time: now.toTimeString().slice(0, 5),
+        amount: amount
+      });
+
+      saveData();
+      updateUI();
+    }
+
+    function addCustomWater() {
+      const input = document.getElementById('customAmount');
+      const amount = parseInt(input.value);
+
+      if (!amount || amount < 1 || amount > 5000) {
         alert('กรุณาระบุปริมาณระหว่าง 1-5000 ml');
         return;
       }
 
-      await addWater(amount);
-      document.getElementById('customAmount').value = '';
+      addWater(amount);
+      input.value = '';
     }
 
-    async function updateGoal() {
-      const newGoal = parseInt(document.getElementById('dailyGoal').value);
+    function updateGoal() {
+      const input = document.getElementById('dailyGoal');
+      dailyGoal = parseInt(input.value);
+      saveData();
+      updateUI();
+    }
 
-      if (newGoal < 500 || newGoal > 10000) {
-        alert('เป้าหมายควรอยู่ระหว่าง 500-10000 ml');
-        return;
-      }
+    function saveData() {
+      const today = new Date().toISOString().split('T')[0];
+      localStorage.setItem(`water_${today}`, JSON.stringify({
+        total: totalToday,
+        logs: todayLogs,
+        goal: dailyGoal
+      }));
 
-      dailyGoal = newGoal;
+      // TODO: Save to Supabase when configured
+    }
 
-      const { error } = await supabase
-        .from('water_intake_goals')
-        .upsert([{
-          patient_id: patientId,
-          daily_goal_ml: newGoal
-        }], { onConflict: 'patient_id' });
+    function updateUI() {
+      // Update amounts
+      document.getElementById('totalAmount').textContent = totalToday;
+      document.getElementById('glassCount').textContent = Math.floor(totalToday / 250);
+      document.getElementById('goalText').textContent = `เป้าหมาย: ${dailyGoal} ml`;
 
-      if (!error) {
-        updateUI();
-        alert('บันทึกเป้าหมายเรียบร้อย');
+      // Update remaining
+      const remaining = Math.max(0, dailyGoal - totalToday);
+      document.getElementById('remaining').textContent = `${remaining} ml`;
+
+      // Update progress bar
+      const progress = Math.min(100, (totalToday / dailyGoal) * 100);
+      document.getElementById('progressBar').style.width = `${progress}%`;
+
+      // Update logs
+      const container = document.getElementById('logContainer');
+      if (todayLogs.length === 0) {
+        container.innerHTML = '<div class="empty-state"><p>ยังไม่มีการบันทึก</p></div>';
+      } else {
+        container.innerHTML = todayLogs.map(log => `
+          <div class="log-item">
+            <span class="time">${log.time}</span>
+            <span class="amount">+${log.amount} ml</span>
+          </div>
+        `).join('');
       }
     }
 
-    async function toggleReminder() {
-      const toggle = document.getElementById('reminderToggle');
-      const isActive = toggle.classList.toggle('active');
-
-      const { error } = await supabase
-        .from('water_intake_goals')
-        .upsert([{
-          patient_id: patientId,
-          reminder_enabled: isActive
-        }], { onConflict: 'patient_id' });
-
-      if (error) {
-        alert('เกิดข้อผิดพลาด');
-        toggle.classList.toggle('active');
-      }
-    }
-
-    async function deleteLog(logId) {
-      if (!confirm('ต้องการลบบันทึกนี้?')) return;
-
-      const { error } = await supabase
-        .from('water_intake_logs')
-        .delete()
-        .eq('id', logId);
-
-      if (!error) {
-        await loadTodayLogs();
-        updateUI();
-      }
+    function closeLiff() {
+      liff.closeWindow();
     }
 
     // Initialize

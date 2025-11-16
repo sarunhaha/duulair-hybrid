@@ -3,243 +3,109 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#667eea">
+  <meta name="theme-color" content="#FAF9F6">
   <title>บันทึกสุขภาพ - Duulair</title>
+  <link rel="stylesheet" href="css/minimal-theme.css">
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
+    /* Dashboard-specific styles */
+    .welcome-section {
+      margin-bottom: var(--spacing-xl);
     }
 
-    body {
-      font-family: 'Sarabun', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      min-height: 100vh;
-      padding: 20px;
-    }
-
-    .container {
-      max-width: 500px;
-      margin: 0 auto;
-    }
-
-    .header {
-      text-align: center;
-      color: white;
-      margin-bottom: 30px;
-    }
-
-    .header h1 {
-      font-size: 32px;
-      margin-bottom: 10px;
+    .welcome-message {
+      font-size: 20px;
       font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: var(--spacing-xs);
     }
 
-    .header p {
-      font-size: 16px;
-      opacity: 0.95;
-    }
-
-    .welcome-card {
-      background: white;
-      border-radius: 20px;
-      padding: 20px;
-      margin-bottom: 20px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-      text-align: center;
-    }
-
-    .welcome-icon {
-      font-size: 48px;
-      margin-bottom: 10px;
-    }
-
-    .welcome-text {
-      font-size: 18px;
-      color: #333;
-      font-weight: 600;
-      margin-bottom: 5px;
-    }
-
-    .welcome-subtext {
-      font-size: 14px;
-      color: #666;
-    }
-
-    .section-title {
-      color: white;
-      font-size: 18px;
-      font-weight: 600;
-      margin-bottom: 15px;
-      padding-left: 5px;
+    .welcome-subtitle {
+      font-size: 15px;
+      color: var(--text-secondary);
     }
 
     .actions-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 15px;
-      margin-bottom: 20px;
+      gap: var(--spacing-md);
+      margin-bottom: var(--spacing-xl);
     }
 
     .action-card {
-      background: white;
-      border-radius: 15px;
-      padding: 25px 15px;
+      background: var(--bg-card);
+      border-radius: var(--radius-md);
+      padding: var(--spacing-lg);
       text-align: center;
       text-decoration: none;
-      color: #333;
-      transition: all 0.3s ease;
-      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+      color: var(--text-primary);
+      transition: all 0.2s ease;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid rgba(0, 0, 0, 0.05);
       cursor: pointer;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      min-height: 140px;
+      min-height: 120px;
     }
 
     .action-card:active {
-      transform: scale(0.95);
+      transform: scale(0.97);
+      box-shadow: var(--shadow-md);
     }
 
     .action-card .icon {
-      font-size: 48px;
-      margin-bottom: 12px;
+      font-size: 42px;
+      margin-bottom: var(--spacing-sm);
+      filter: grayscale(0.2);
     }
 
     .action-card .label {
-      font-size: 16px;
-      font-weight: 600;
-      color: #333;
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--text-primary);
       line-height: 1.3;
     }
 
     .action-card .sublabel {
       font-size: 12px;
-      color: #666;
-      margin-top: 5px;
+      color: var(--text-muted);
+      margin-top: 4px;
     }
 
-    /* Specific colors for each action */
-    .action-water {
-      border-bottom: 4px solid #4facfe;
+    .info-section {
+      background: var(--bg-secondary);
+      border-radius: var(--radius-md);
+      padding: var(--spacing-md);
+      margin-bottom: var(--spacing-lg);
     }
 
-    .action-water:active {
-      background: #f0f9ff;
-    }
-
-    .action-medication {
-      border-bottom: 4px solid #fa709a;
-    }
-
-    .action-medication:active {
-      background: #fff5f8;
-    }
-
-    .action-vitals {
-      border-bottom: 4px solid #f093fb;
-    }
-
-    .action-vitals:active {
-      background: #fdf5ff;
-    }
-
-    .action-food {
-      border-bottom: 4px solid #4caf50;
-    }
-
-    .action-food:active {
-      background: #f1f8f4;
-    }
-
-    .action-exercise {
-      border-bottom: 4px solid #ffa726;
-    }
-
-    .action-exercise:active {
-      background: #fff8f0;
-    }
-
-    .action-sleep {
-      border-bottom: 4px solid #9c27b0;
-    }
-
-    .action-sleep:active {
-      background: #f9f5ff;
-    }
-
-    .info-box {
-      background: rgba(255, 255, 255, 0.2);
-      backdrop-filter: blur(10px);
-      border-radius: 15px;
-      padding: 15px;
-      color: white;
-      font-size: 14px;
-      line-height: 1.6;
-      margin-top: 20px;
-    }
-
-    .info-box strong {
+    .info-section strong {
       display: block;
-      margin-bottom: 8px;
-      font-size: 15px;
+      color: var(--text-primary);
+      margin-bottom: var(--spacing-xs);
+      font-size: 14px;
     }
 
-    .close-btn {
-      background: rgba(255, 255, 255, 0.2);
-      color: white;
-      border: 2px solid rgba(255, 255, 255, 0.3);
-      border-radius: 12px;
-      padding: 12px 24px;
-      font-size: 16px;
-      font-weight: 600;
-      width: 100%;
-      margin-top: 20px;
-      cursor: pointer;
-      transition: all 0.3s;
+    .info-section ul {
+      margin-left: var(--spacing-md);
+      color: var(--text-secondary);
+      font-size: 14px;
+      line-height: 1.8;
     }
 
-    .close-btn:active {
-      background: rgba(255, 255, 255, 0.3);
-      transform: scale(0.98);
-    }
+    @media (max-width: 480px) {
+      .actions-grid {
+        gap: var(--spacing-sm);
+      }
 
-    /* Loading state */
-    .loading {
-      text-align: center;
-      color: white;
-      padding: 40px 20px;
-    }
-
-    .loading-spinner {
-      border: 4px solid rgba(255, 255, 255, 0.3);
-      border-top: 4px solid white;
-      border-radius: 50%;
-      width: 50px;
-      height: 50px;
-      animation: spin 1s linear infinite;
-      margin: 0 auto 20px;
-    }
-
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-
-    .hidden {
-      display: none;
-    }
-
-    @media (max-width: 360px) {
       .action-card {
-        padding: 20px 10px;
-        min-height: 120px;
+        padding: var(--spacing-md);
+        min-height: 100px;
       }
 
       .action-card .icon {
-        font-size: 40px;
+        font-size: 36px;
       }
 
       .action-card .label {
@@ -258,84 +124,86 @@
 
     <!-- Main Content -->
     <div id="mainContent" class="hidden">
+      <!-- Header -->
       <div class="header">
         <h1>📝 บันทึกสุขภาพ</h1>
         <p>เลือกกิจกรรมที่ต้องการบันทึก</p>
       </div>
 
-      <!-- Welcome Card -->
-      <div class="welcome-card">
-        <div class="welcome-icon">👋</div>
-        <div class="welcome-text" id="welcomeName">สวัสดี</div>
-        <div class="welcome-subtext">เลือกเมนูด้านล่างเพื่อบันทึกข้อมูลสุขภาพ</div>
+      <!-- Welcome Section -->
+      <div class="welcome-section">
+        <div class="welcome-message" id="welcomeName">สวัสดี</div>
+        <div class="welcome-subtitle">เลือกเมนูด้านล่างเพื่อบันทึกข้อมูลสุขภาพ</div>
       </div>
 
       <!-- Quick Actions -->
-      <div class="section-title">⚡ เมนูด่วน</div>
       <div class="actions-grid">
         <!-- Water Tracking -->
-        <a href="water-tracking.html" class="action-card action-water">
+        <a href="water-tracking.html" class="action-card">
           <div class="icon">💧</div>
           <div class="label">บันทึกน้ำ</div>
           <div class="sublabel">Water</div>
         </a>
 
         <!-- Medications -->
-        <a href="medications.html" class="action-card action-medication">
+        <a href="medications.html" class="action-card">
           <div class="icon">💊</div>
           <div class="label">ยา</div>
           <div class="sublabel">Medications</div>
         </a>
 
         <!-- Vitals -->
-        <div class="action-card action-vitals" onclick="logVitals()">
+        <div class="action-card" onclick="logVitals()">
           <div class="icon">🩺</div>
           <div class="label">วัดความดัน</div>
           <div class="sublabel">Vitals</div>
         </div>
 
         <!-- Food -->
-        <div class="action-card action-food" onclick="logFood()">
+        <div class="action-card" onclick="logFood()">
           <div class="icon">🍚</div>
           <div class="label">บันทึกอาหาร</div>
           <div class="sublabel">Food</div>
         </div>
 
-        <!-- Exercise (Optional) -->
-        <div class="action-card action-exercise" onclick="logExercise()">
+        <!-- Exercise -->
+        <div class="action-card" onclick="logExercise()">
           <div class="icon">🚶</div>
           <div class="label">ออกกำลังกาย</div>
           <div class="sublabel">Exercise</div>
         </div>
 
-        <!-- Sleep (Optional) -->
-        <div class="action-card action-sleep" onclick="logSleep()">
+        <!-- Sleep -->
+        <div class="action-card" onclick="logSleep()">
           <div class="icon">😴</div>
           <div class="label">บันทึกการนอน</div>
           <div class="sublabel">Sleep</div>
         </div>
       </div>
 
-      <!-- Info Box -->
-      <div class="info-box">
+      <!-- Info Section -->
+      <div class="info-section">
         <strong>💡 คำแนะนำ</strong>
-        • คลิกที่กิจกรรมเพื่อบันทึกข้อมูล<br>
-        • ข้อมูลจะถูกบันทึกอัตโนมัติ<br>
-        • สามารถดูประวัติได้จากเมนูรายงาน
+        <ul>
+          <li>คลิกที่กิจกรรมเพื่อบันทึกข้อมูล</li>
+          <li>ข้อมูลจะถูกบันทึกอัตโนมัติ</li>
+          <li>สามารถดูประวัติได้จากเมนูรายงาน</li>
+        </ul>
       </div>
 
-      <button class="close-btn" onclick="closeLiff()">ปิด</button>
+      <button class="btn btn-secondary btn-block" onclick="closeLiff()">ปิด</button>
     </div>
   </div>
 
   <!-- LIFF SDK -->
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script src="js/utils.js"></script>
 
   <script>
-    // LIFF ID - Replace with your actual LIFF ID
+    // LIFF ID
     const LIFF_ID = '2008278683-5k69jxNq';
 
-    // Initialize
+    // Initialize with first-time user detection
     async function init() {
       try {
         await liff.init({ liffId: LIFF_ID });
@@ -347,11 +215,19 @@
 
         // Get user profile
         const profile = await liff.getProfile();
-        document.getElementById('welcomeName').textContent = `สวัสดี ${profile.displayName}`;
 
-        // Show content
-        document.getElementById('loadingState').classList.add('hidden');
-        document.getElementById('mainContent').classList.remove('hidden');
+        // Check if user is registered (first-time detection)
+        const isRegistered = await checkUserRegistration(profile.userId);
+
+        // If not registered, checkUserRegistration will redirect automatically
+        // If registered, continue loading the page
+        if (isRegistered) {
+          document.getElementById('welcomeName').textContent = `สวัสดี ${profile.displayName}`;
+
+          // Show content
+          document.getElementById('loadingState').classList.add('hidden');
+          document.getElementById('mainContent').classList.remove('hidden');
+        }
 
       } catch (error) {
         console.error('LIFF initialization failed:', error);

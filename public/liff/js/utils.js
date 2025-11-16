@@ -408,3 +408,90 @@ function toggleArrayItem(array, item) {
 function getUniqueId() {
   return `id_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 }
+
+// ========================================
+// First-Time User Detection
+// ========================================
+
+/**
+ * Check if user is registered and redirect to registration if not
+ * Call this function after LIFF init in pages that require registration
+ * @param {string} lineUserId - LINE user ID from LIFF profile
+ * @param {string} apiBaseUrl - API base URL (default: https://duulair.vercel.app/api)
+ * @returns {Promise<boolean>} - Returns true if user is registered, false otherwise
+ */
+async function checkUserRegistration(lineUserId, apiBaseUrl = 'https://duulair.vercel.app/api') {
+  try {
+    const response = await fetch(`${apiBaseUrl}/check-user?lineUserId=${encodeURIComponent(lineUserId)}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      console.error('Failed to check user registration:', response.status);
+      return false;
+    }
+
+    const result = await response.json();
+
+    // If user is not registered, redirect to registration page
+    if (!result.isRegistered) {
+      console.log('User not registered, redirecting to registration page...');
+
+      // Use LIFF URL if in LINE client, otherwise use relative path
+      if (typeof liff !== 'undefined' && liff.isInClient()) {
+        window.location.href = 'https://liff.line.me/2008278683-5k69jxNq/group-registration.html';
+      } else {
+        window.location.href = '/liff/group-registration.html';
+      }
+
+      return false;
+    }
+
+    return true;
+
+  } catch (error) {
+    console.error('Error checking user registration:', error);
+    // In case of error, allow user to continue (fail open)
+    // This prevents blocking users if API is down
+    return true;
+  }
+}
+
+/**
+ * Initialize LIFF with first-time user detection
+ * This is a wrapper function that combines LIFF init and user registration check
+ * @param {string} liffId - LIFF ID
+ * @param {Function} onSuccess - Callback function to run after successful init and registration check
+ * @param {string} apiBaseUrl - API base URL (optional)
+ * @returns {Promise<void>}
+ */
+async function initLiffWithRegistrationCheck(liffId, onSuccess, apiBaseUrl = 'https://duulair.vercel.app/api') {
+  try {
+    // Initialize LIFF
+    await liff.init({ liffId: liffId });
+
+    // Check if logged in
+    if (!liff.isLoggedIn()) {
+      liff.login();
+      return;
+    }
+
+    // Get user profile
+    const profile = await liff.getProfile();
+
+    // Check if user is registered
+    const isRegistered = await checkUserRegistration(profile.userId, apiBaseUrl);
+
+    // If registered, run success callback
+    if (isRegistered && onSuccess) {
+      onSuccess(profile);
+    }
+
+  } catch (error) {
+    console.error('LIFF initialization failed:', error);
+    throw error;
+  }
+}

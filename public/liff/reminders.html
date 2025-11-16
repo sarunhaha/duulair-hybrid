@@ -3,157 +3,123 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ตั้งเวลาเตือน - Duulair</title>
+  <meta name="theme-color" content="#FAF9F6">
+  <title>🔔 ตั้งเวลาเตือน - Duulair</title>
   <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/utils.js"></script>
+  <link rel="stylesheet" href="css/minimal-theme.css">
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    body {
-      font-family: 'Sarabun', -apple-system, BlinkMacSystemFont, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      min-height: 100vh;
-      padding: 20px;
-    }
-
-    .container {
-      max-width: 600px;
-      margin: 0 auto;
-      background: white;
-      border-radius: 20px;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-      overflow: hidden;
-    }
-
-    .header {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      padding: 30px 20px;
-      text-align: center;
-    }
-
-    .header h1 {
-      font-size: 28px;
-      margin-bottom: 5px;
-    }
-
-    .header p {
-      font-size: 14px;
-      opacity: 0.9;
-    }
-
-    .content {
-      padding: 20px;
-    }
-
+    /* Reminders-specific styles */
     .reminder-section {
-      margin-bottom: 30px;
-      background: #f9f9f9;
-      border-radius: 15px;
-      padding: 20px;
+      margin-bottom: var(--spacing-lg);
+      background: var(--bg-card);
+      border-radius: var(--radius-md);
+      padding: var(--spacing-lg);
+      box-shadow: var(--shadow-sm);
+      border: 1px solid rgba(0, 0, 0, 0.05);
     }
 
     .section-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 15px;
+      margin-bottom: var(--spacing-md);
+      gap: var(--spacing-sm);
     }
 
     .section-title {
       display: flex;
       align-items: center;
-      gap: 10px;
-      font-size: 20px;
+      gap: var(--spacing-sm);
+      font-size: 18px;
       font-weight: 600;
-      color: #333;
+      color: var(--text-primary);
     }
 
     .section-icon {
-      font-size: 28px;
+      font-size: 24px;
     }
 
     .add-reminder-btn {
       padding: 8px 16px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: var(--accent-primary);
       color: white;
       border: none;
-      border-radius: 8px;
+      border-radius: var(--radius-sm);
       font-size: 14px;
-      font-weight: 600;
+      font-weight: 500;
       cursor: pointer;
-      transition: transform 0.2s;
+      transition: all 0.2s ease;
       white-space: nowrap;
+      box-shadow: var(--shadow-sm);
     }
 
-    .add-reminder-btn:hover {
-      transform: translateY(-2px);
+    .add-reminder-btn:active {
+      transform: scale(0.97);
     }
 
     .reminder-list {
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: var(--spacing-sm);
     }
 
     .reminder-card {
-      background: white;
-      border-radius: 12px;
-      padding: 15px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      background: var(--bg-secondary);
+      border-radius: var(--radius-sm);
+      padding: var(--spacing-md);
       position: relative;
-      transition: all 0.3s;
-      border-left: 4px solid #667eea;
+      transition: all 0.2s ease;
+      border-left: 4px solid var(--accent-primary);
     }
 
     .reminder-card.disabled {
       opacity: 0.5;
-      border-left-color: #ccc;
+      border-left-color: var(--text-muted);
     }
 
-    .reminder-card:hover {
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    .reminder-card:active {
+      box-shadow: var(--shadow-sm);
     }
 
     .reminder-main {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 10px;
+      gap: var(--spacing-md);
+      margin-bottom: var(--spacing-sm);
     }
 
     .reminder-info {
       flex: 1;
+      min-width: 0;
     }
 
     .reminder-title {
       font-size: 16px;
       font-weight: 600;
-      color: #333;
-      margin-bottom: 5px;
+      color: var(--text-primary);
+      margin-bottom: 4px;
     }
 
     .reminder-time {
       font-size: 20px;
       font-weight: 700;
-      color: #667eea;
+      color: var(--accent-primary);
     }
 
     .reminder-frequency {
       font-size: 13px;
-      color: #666;
-      margin-top: 5px;
+      color: var(--text-secondary);
+      margin-top: 4px;
     }
 
     .toggle-switch {
       position: relative;
       width: 50px;
       height: 26px;
-      background: #ccc;
+      background: var(--text-muted);
       border-radius: 26px;
       cursor: pointer;
       transition: background 0.3s;
@@ -161,7 +127,7 @@
     }
 
     .toggle-switch.active {
-      background: #4caf50;
+      background: var(--success);
     }
 
     .toggle-switch::after {
@@ -182,61 +148,65 @@
 
     .reminder-days {
       display: flex;
-      gap: 5px;
-      margin: 10px 0;
+      gap: 6px;
+      margin: var(--spacing-sm) 0;
+      flex-wrap: wrap;
     }
 
     .day-badge {
       width: 32px;
       height: 32px;
-      border-radius: 50%;
+      border-radius: var(--radius-full);
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 11px;
       font-weight: 600;
-      background: #e0e0e0;
-      color: #666;
+      background: rgba(0, 0, 0, 0.08);
+      color: var(--text-muted);
     }
 
     .day-badge.active {
-      background: #667eea;
+      background: var(--accent-primary);
       color: white;
     }
 
     .reminder-actions {
       display: flex;
-      gap: 8px;
-      margin-top: 10px;
+      gap: var(--spacing-xs);
+      margin-top: var(--spacing-sm);
     }
 
     .btn-icon {
-      padding: 6px 12px;
+      padding: 8px 14px;
       border: none;
-      border-radius: 6px;
+      border-radius: var(--radius-sm);
       cursor: pointer;
       font-size: 13px;
       font-weight: 500;
-      transition: all 0.3s;
+      transition: all 0.2s ease;
       flex: 1;
     }
 
     .btn-edit {
-      background: #2196f3;
+      background: var(--info);
       color: white;
+    }
+
+    .btn-edit:active {
+      transform: scale(0.97);
     }
 
     .btn-delete {
-      background: #f44336;
+      background: var(--error);
       color: white;
     }
 
-    .btn-edit:hover,
-    .btn-delete:hover {
-      opacity: 0.9;
-      transform: translateY(-1px);
+    .btn-delete:active {
+      transform: scale(0.97);
     }
 
+    /* Modal */
     .modal {
       display: none;
       position: fixed;
@@ -248,7 +218,7 @@
       z-index: 1000;
       align-items: center;
       justify-content: center;
-      padding: 20px;
+      padding: var(--spacing-md);
     }
 
     .modal.active {
@@ -256,9 +226,9 @@
     }
 
     .modal-content {
-      background: white;
-      padding: 30px;
-      border-radius: 20px;
+      background: var(--bg-card);
+      padding: var(--spacing-xl);
+      border-radius: var(--radius-lg);
       max-width: 500px;
       width: 100%;
       max-height: 90vh;
@@ -268,198 +238,75 @@
     .modal-header {
       font-size: 22px;
       font-weight: 600;
-      margin-bottom: 20px;
-      color: #333;
+      margin-bottom: var(--spacing-lg);
+      color: var(--text-primary);
       display: flex;
       align-items: center;
-      gap: 10px;
-    }
-
-    .form-group {
-      margin-bottom: 20px;
-    }
-
-    .form-group label {
-      display: block;
-      margin-bottom: 8px;
-      color: #333;
-      font-weight: 500;
-      font-size: 14px;
-    }
-
-    .form-group input,
-    .form-group select,
-    .form-group textarea {
-      width: 100%;
-      padding: 12px 15px;
-      border: 2px solid #e0e0e0;
-      border-radius: 10px;
-      font-size: 16px;
-      font-family: inherit;
-      transition: border-color 0.3s;
-    }
-
-    .form-group input:focus,
-    .form-group select:focus,
-    .form-group textarea:focus {
-      outline: none;
-      border-color: #667eea;
-    }
-
-    .form-group textarea {
-      resize: vertical;
-      min-height: 80px;
+      gap: var(--spacing-sm);
     }
 
     .frequency-options {
       display: flex;
-      gap: 10px;
-      margin-top: 10px;
+      gap: var(--spacing-sm);
+      margin-top: var(--spacing-sm);
     }
 
     .frequency-option {
       flex: 1;
       padding: 12px;
-      border: 2px solid #e0e0e0;
-      border-radius: 10px;
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      border-radius: var(--radius-sm);
       text-align: center;
       cursor: pointer;
-      transition: all 0.3s;
+      transition: all 0.2s ease;
       font-weight: 500;
+      color: var(--text-primary);
     }
 
     .frequency-option.selected {
-      background: #667eea;
+      background: var(--accent-primary);
       color: white;
-      border-color: #667eea;
+      border-color: var(--accent-primary);
     }
 
     .days-selector {
       display: flex;
-      gap: 8px;
+      gap: var(--spacing-xs);
       flex-wrap: wrap;
-      margin-top: 10px;
+      margin-top: var(--spacing-sm);
     }
 
     .day-checkbox {
       width: 45px;
       height: 45px;
-      border: 2px solid #e0e0e0;
-      border-radius: 50%;
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      border-radius: var(--radius-full);
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
       font-weight: 600;
-      transition: all 0.3s;
+      transition: all 0.2s ease;
       font-size: 14px;
+      color: var(--text-primary);
     }
 
     .day-checkbox.selected {
-      background: #667eea;
+      background: var(--accent-primary);
       color: white;
-      border-color: #667eea;
+      border-color: var(--accent-primary);
     }
 
     .modal-actions {
       display: flex;
-      gap: 10px;
-      margin-top: 25px;
+      gap: var(--spacing-sm);
+      margin-top: var(--spacing-lg);
     }
 
-    .btn {
-      flex: 1;
-      padding: 15px;
-      border: none;
-      border-radius: 10px;
-      font-size: 16px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.3s;
-    }
-
-    .btn-primary {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-    }
-
-    .btn-secondary {
-      background: white;
-      color: #666;
-      border: 2px solid #e0e0e0;
-    }
-
-    .btn:hover {
-      transform: translateY(-2px);
-      opacity: 0.95;
-    }
-
-    .loading {
-      text-align: center;
-      padding: 40px;
-      color: #666;
-    }
-
-    .spinner {
-      border: 3px solid #f3f3f3;
-      border-top: 3px solid #667eea;
-      border-radius: 50%;
-      width: 40px;
-      height: 40px;
-      animation: spin 1s linear infinite;
-      margin: 0 auto 20px;
-    }
-
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-
-    .alert {
-      padding: 15px;
-      border-radius: 10px;
-      margin-bottom: 20px;
-      font-size: 14px;
-    }
-
-    .alert-success {
-      background: #d4edda;
-      color: #155724;
-      border: 1px solid #c3e6cb;
-    }
-
-    .alert-error {
-      background: #f8d7da;
-      color: #721c24;
-      border: 1px solid #f5c6cb;
-    }
-
-    .empty-state {
-      text-align: center;
-      padding: 40px 20px;
-      color: #999;
-    }
-
-    .empty-state .icon {
-      font-size: 48px;
-      margin-bottom: 10px;
-      opacity: 0.5;
-    }
-
-    .empty-state p {
-      font-size: 14px;
-    }
-
-    .hidden {
-      display: none !important;
-    }
-
-    /* Responsive */
     @media (max-width: 480px) {
       .section-header {
         flex-direction: column;
         align-items: flex-start;
-        gap: 10px;
       }
 
       .add-reminder-btn {
@@ -471,100 +318,100 @@
         height: 40px;
         font-size: 12px;
       }
-
-      .modal-content {
-        padding: 20px;
-      }
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="header">
-      <h1>🔔 ตั้งเวลาเตือน</h1>
-      <p>จัดการการแจ้งเตือนแยกตามประเภท</p>
+    <!-- Loading State -->
+    <div id="loading" class="loading">
+      <div class="loading-spinner"></div>
+      <p>กำลังโหลดข้อมูล...</p>
     </div>
 
-    <div class="content">
-      <div id="loading" class="loading">
-        <div class="spinner"></div>
-        <p>กำลังโหลดข้อมูล...</p>
+    <!-- Error & Success Messages -->
+    <div id="error" class="alert alert-error" style="display: none;"></div>
+    <div id="success" class="alert alert-success" style="display: none;"></div>
+
+    <!-- Main Content -->
+    <div id="main-content" class="hidden">
+      <!-- Header -->
+      <div class="header">
+        <h1>🔔 ตั้งเวลาเตือน</h1>
+        <p>จัดการการแจ้งเตือนแยกตามประเภท</p>
       </div>
 
-      <div id="error" class="alert alert-error" style="display: none;"></div>
-      <div id="success" class="alert alert-success" style="display: none;"></div>
-
-      <div id="main-content" style="display: none;">
-        <!-- Medication Reminders -->
-        <div class="reminder-section">
-          <div class="section-header">
-            <div class="section-title">
-              <span class="section-icon">💊</span>
-              <span>กินยา</span>
-            </div>
-            <button class="add-reminder-btn" onclick="openModal('medication')">
-              + เพิ่มเตือน
-            </button>
+      <!-- Medication Reminders -->
+      <div class="reminder-section">
+        <div class="section-header">
+          <div class="section-title">
+            <span class="section-icon">💊</span>
+            <span>กินยา</span>
           </div>
-          <div id="medication-list" class="reminder-list"></div>
+          <button class="add-reminder-btn" onclick="openModal('medication')">
+            + เพิ่มเตือน
+          </button>
         </div>
-
-        <!-- Water Reminders -->
-        <div class="reminder-section">
-          <div class="section-header">
-            <div class="section-title">
-              <span class="section-icon">💧</span>
-              <span>ดื่มน้ำ</span>
-            </div>
-            <button class="add-reminder-btn" onclick="openModal('water')">
-              + เพิ่มเตือน
-            </button>
-          </div>
-          <div id="water-list" class="reminder-list"></div>
-        </div>
-
-        <!-- Vitals Reminders -->
-        <div class="reminder-section">
-          <div class="section-header">
-            <div class="section-title">
-              <span class="section-icon">🩺</span>
-              <span>วัดความดัน</span>
-            </div>
-            <button class="add-reminder-btn" onclick="openModal('vitals')">
-              + เพิ่มเตือน
-            </button>
-          </div>
-          <div id="vitals-list" class="reminder-list"></div>
-        </div>
-
-        <!-- Food Reminders -->
-        <div class="reminder-section">
-          <div class="section-header">
-            <div class="section-title">
-              <span class="section-icon">🍚</span>
-              <span>ทานอาหาร</span>
-            </div>
-            <button class="add-reminder-btn" onclick="openModal('food')">
-              + เพิ่มเตือน
-            </button>
-          </div>
-          <div id="food-list" class="reminder-list"></div>
-        </div>
-
-        <!-- Exercise Reminders -->
-        <div class="reminder-section">
-          <div class="section-header">
-            <div class="section-title">
-              <span class="section-icon">🚶</span>
-              <span>ออกกำลังกาย</span>
-            </div>
-            <button class="add-reminder-btn" onclick="openModal('exercise')">
-              + เพิ่มเตือน
-            </button>
-          </div>
-          <div id="exercise-list" class="reminder-list"></div>
-        </div>
+        <div id="medication-list" class="reminder-list"></div>
       </div>
+
+      <!-- Water Reminders -->
+      <div class="reminder-section">
+        <div class="section-header">
+          <div class="section-title">
+            <span class="section-icon">💧</span>
+            <span>ดื่มน้ำ</span>
+          </div>
+          <button class="add-reminder-btn" onclick="openModal('water')">
+            + เพิ่มเตือน
+          </button>
+        </div>
+        <div id="water-list" class="reminder-list"></div>
+      </div>
+
+      <!-- Vitals Reminders -->
+      <div class="reminder-section">
+        <div class="section-header">
+          <div class="section-title">
+            <span class="section-icon">🩺</span>
+            <span>วัดความดัน</span>
+          </div>
+          <button class="add-reminder-btn" onclick="openModal('vitals')">
+            + เพิ่มเตือน
+          </button>
+        </div>
+        <div id="vitals-list" class="reminder-list"></div>
+      </div>
+
+      <!-- Food Reminders -->
+      <div class="reminder-section">
+        <div class="section-header">
+          <div class="section-title">
+            <span class="section-icon">🍚</span>
+            <span>ทานอาหาร</span>
+          </div>
+          <button class="add-reminder-btn" onclick="openModal('food')">
+            + เพิ่มเตือน
+          </button>
+        </div>
+        <div id="food-list" class="reminder-list"></div>
+      </div>
+
+      <!-- Exercise Reminders -->
+      <div class="reminder-section">
+        <div class="section-header">
+          <div class="section-title">
+            <span class="section-icon">🚶</span>
+            <span>ออกกำลังกาย</span>
+          </div>
+          <button class="add-reminder-btn" onclick="openModal('exercise')">
+            + เพิ่มเตือน
+          </button>
+        </div>
+        <div id="exercise-list" class="reminder-list"></div>
+      </div>
+
+      <button class="btn btn-secondary btn-block mt-3" onclick="liff.closeWindow()">ปิด</button>
     </div>
   </div>
 
@@ -578,12 +425,12 @@
 
       <form id="reminder-form">
         <div class="form-group">
-          <label>ชื่อเตือน *</label>
+          <label>ชื่อเตือน <span class="required">*</span></label>
           <input type="text" id="reminderTitle" required placeholder="เช่น กินยาความดัน">
         </div>
 
         <div class="form-group">
-          <label>เวลาเตือน (HH:MM) *</label>
+          <label>เวลาเตือน (HH:MM) <span class="required">*</span></label>
           <input type="time" id="reminderTime" required>
         </div>
 
@@ -670,6 +517,17 @@
           return;
         }
 
+        // Get user profile
+        const profile = await liff.getProfile();
+
+        // Check if user is registered (first-time detection)
+        const isRegistered = await checkUserRegistration(profile.userId);
+
+        // If not registered, checkUserRegistration will redirect automatically
+        if (!isRegistered) {
+          return;
+        }
+
         const context = liff.getContext();
         isGroupContext = context && context.type === 'group';
 
@@ -703,8 +561,8 @@
         patientId = group.patient_id;
         await loadReminders();
 
-        document.getElementById('loading').style.display = 'none';
-        document.getElementById('main-content').style.display = 'block';
+        document.getElementById('loading').classList.add('hidden');
+        document.getElementById('main-content').classList.remove('hidden');
       } catch (error) {
         console.error('Error loading data:', error);
         showError('ไม่สามารถโหลดข้อมูลได้');
@@ -719,7 +577,7 @@
         if (!userData.profile_id) {
           showError('ไม่พบข้อมูลผู้ใช้ กรุณาลงทะเบียนก่อน');
           setTimeout(() => {
-            window.location.href = '/liff/index.html';
+            window.location.href = '/liff/group-registration.html';
           }, 2000);
           return;
         }
@@ -727,8 +585,8 @@
         patientId = userData.profile_id;
         await loadReminders();
 
-        document.getElementById('loading').style.display = 'none';
-        document.getElementById('main-content').style.display = 'block';
+        document.getElementById('loading').classList.add('hidden');
+        document.getElementById('main-content').classList.remove('hidden');
       } catch (error) {
         console.error('Error loading user data:', error);
         showError('ไม่สามารถโหลดข้อมูลได้');
@@ -776,8 +634,8 @@
       if (typeReminders.length === 0) {
         container.innerHTML = `
           <div class="empty-state">
-            <div class="icon">${typeConfig[type].icon}</div>
-            <p>ยังไม่มีการเตือน</p>
+            <div style="font-size: 36px; margin-bottom: 8px;">${typeConfig[type].icon}</div>
+            <p class="text-small text-muted">ยังไม่มีการเตือน</p>
           </div>
         `;
         return;
@@ -800,7 +658,7 @@
                 <div class="reminder-title">${reminder.title}</div>
                 <div class="reminder-time">${reminder.custom_time || reminder.time}</div>
                 <div class="reminder-frequency">${frequencyText}</div>
-                ${reminder.description ? `<div style="color: #666; font-size: 13px; margin-top: 5px;">${reminder.description}</div>` : ''}
+                ${reminder.description ? `<div style="color: var(--text-secondary); font-size: 13px; margin-top: 4px;">${reminder.description}</div>` : ''}
               </div>
               <div class="toggle-switch ${isActive ? 'active' : ''}"
                    onclick="toggleReminder('${reminder.id}', ${!isActive})"></div>
@@ -1017,7 +875,7 @@
       const alert = document.getElementById('error');
       alert.textContent = message;
       alert.style.display = 'block';
-      document.getElementById('loading').style.display = 'none';
+      document.getElementById('loading').classList.add('hidden');
     }
 
     // Initialize on load

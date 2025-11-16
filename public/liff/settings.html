@@ -3,81 +3,84 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ตั้งค่า - Duulair</title>
+  <meta name="theme-color" content="#FAF9F6">
+  <title>⚙️ ตั้งค่า - Duulair</title>
   <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/utils.js"></script>
+  <link rel="stylesheet" href="css/minimal-theme.css">
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
+    /* Settings-specific styles */
+    .tabs {
+      display: flex;
+      border-bottom: 2px solid rgba(0, 0, 0, 0.1);
+      margin-bottom: var(--spacing-lg);
+      gap: var(--spacing-xs);
+      overflow-x: auto;
     }
 
-    body {
-      font-family: 'Sarabun', -apple-system, BlinkMacSystemFont, sans-serif;
-      background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
-      min-height: 100vh;
-      padding: 20px;
-    }
-
-    .container {
-      max-width: 600px;
-      margin: 0 auto;
-      background: white;
-      border-radius: 20px;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-      overflow: hidden;
-    }
-
-    .header {
-      background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
-      color: #333;
-      padding: 30px 20px;
+    .tab {
+      flex: 1;
+      padding: 12px 10px;
       text-align: center;
-    }
-
-    .header h1 {
-      font-size: 28px;
-      margin-bottom: 5px;
-    }
-
-    .header p {
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      transition: all 0.2s ease;
+      font-weight: 500;
+      color: var(--text-secondary);
       font-size: 14px;
-      opacity: 0.8;
+      white-space: nowrap;
     }
 
-    .content {
-      padding: 30px 20px;
+    .tab.active {
+      color: var(--accent-primary);
+      border-bottom-color: var(--accent-primary);
+    }
+
+    .tab-content {
+      display: none;
+      animation: fadeIn 0.3s;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
     }
 
     .section {
-      margin-bottom: 30px;
+      margin-bottom: var(--spacing-xl);
     }
 
     .section-header {
       font-size: 18px;
       font-weight: 600;
-      color: #333;
-      margin-bottom: 15px;
+      color: var(--text-primary);
+      margin-bottom: var(--spacing-md);
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: var(--spacing-xs);
     }
 
     .setting-card {
-      background: #f9f9f9;
-      border-radius: 15px;
-      padding: 20px;
-      margin-bottom: 15px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+      background: var(--bg-card);
+      border-radius: var(--radius-md);
+      padding: var(--spacing-lg);
+      margin-bottom: var(--spacing-md);
+      box-shadow: var(--shadow-sm);
+      border: 1px solid rgba(0, 0, 0, 0.05);
     }
 
     .setting-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 12px 0;
-      border-bottom: 1px solid #e0e0e0;
+      padding: var(--spacing-sm) 0;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+      gap: var(--spacing-md);
     }
 
     .setting-row:last-child {
@@ -86,13 +89,13 @@
 
     .setting-label {
       font-size: 15px;
-      color: #333;
+      color: var(--text-primary);
       font-weight: 500;
     }
 
     .setting-description {
       font-size: 13px;
-      color: #666;
+      color: var(--text-secondary);
       margin-top: 3px;
     }
 
@@ -100,14 +103,15 @@
       position: relative;
       width: 60px;
       height: 30px;
-      background: #ccc;
+      background: var(--text-muted);
       border-radius: 30px;
       cursor: pointer;
       transition: background 0.3s;
+      flex-shrink: 0;
     }
 
     .toggle-switch.active {
-      background: #4caf50;
+      background: var(--success);
     }
 
     .toggle-switch::after {
@@ -126,33 +130,75 @@
       left: 32px;
     }
 
+    .link-code-display {
+      background: linear-gradient(135deg, #E8B4A8 0%, #D4A59A 100%);
+      color: white;
+      padding: var(--spacing-lg);
+      border-radius: var(--radius-md);
+      text-align: center;
+      margin-bottom: var(--spacing-lg);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .link-code-display .label {
+      font-size: 14px;
+      opacity: 0.95;
+      margin-bottom: var(--spacing-sm);
+    }
+
+    .link-code-display .code {
+      font-size: 36px;
+      font-weight: 700;
+      letter-spacing: 5px;
+      font-family: 'Courier New', monospace;
+    }
+
+    .info-box {
+      background: rgba(180, 212, 232, 0.15);
+      border-left: 4px solid var(--info);
+      padding: var(--spacing-md);
+      border-radius: var(--radius-sm);
+      margin-bottom: var(--spacing-lg);
+    }
+
+    .info-box .title {
+      font-weight: 600;
+      color: #5A8BA8;
+      margin-bottom: 6px;
+    }
+
+    .info-box .content {
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+
     .member-list {
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: var(--spacing-sm);
     }
 
     .member-card {
-      background: white;
-      padding: 15px;
-      border-radius: 10px;
+      background: var(--bg-secondary);
+      padding: var(--spacing-md);
+      border-radius: var(--radius-sm);
       display: flex;
       justify-content: space-between;
       align-items: center;
-      border: 2px solid #e0e0e0;
+      border: 1px solid rgba(0, 0, 0, 0.05);
     }
 
     .member-info {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: var(--spacing-sm);
     }
 
     .member-avatar {
       width: 40px;
       height: 40px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: var(--radius-full);
+      background: linear-gradient(135deg, #E8B4A8 0%, #D4A59A 100%);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -163,616 +209,398 @@
 
     .member-details .name {
       font-weight: 600;
-      color: #333;
+      color: var(--text-primary);
     }
 
     .member-details .role {
       font-size: 12px;
-      color: #666;
+      color: var(--text-secondary);
       margin-top: 2px;
     }
 
     .role-badge {
       padding: 5px 12px;
-      border-radius: 12px;
+      border-radius: var(--radius-full);
       font-size: 12px;
       font-weight: 500;
     }
 
     .role-badge.primary {
-      background: #ffd700;
-      color: #333;
+      background: rgba(247, 197, 159, 0.3);
+      color: #B88A5F;
     }
 
     .role-badge.member {
-      background: #e0e0e0;
-      color: #666;
+      background: rgba(0, 0, 0, 0.08);
+      color: var(--text-muted);
     }
 
-    .form-group {
-      margin-bottom: 20px;
-    }
+    @media (max-width: 480px) {
+      .link-code-display .code {
+        font-size: 28px;
+        letter-spacing: 3px;
+      }
 
-    .form-group label {
-      display: block;
-      margin-bottom: 8px;
-      color: #333;
-      font-weight: 500;
-      font-size: 14px;
-    }
+      .tabs {
+        gap: 0;
+      }
 
-    .form-group input,
-    .form-group select {
-      width: 100%;
-      padding: 12px 15px;
-      border: 2px solid #e0e0e0;
-      border-radius: 10px;
-      font-size: 16px;
-      font-family: inherit;
-    }
-
-    .form-group input:focus,
-    .form-group select:focus {
-      outline: none;
-      border-color: #667eea;
-    }
-
-    .btn {
-      width: 100%;
-      padding: 15px;
-      border: none;
-      border-radius: 10px;
-      font-size: 16px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.3s;
-      margin-top: 10px;
-    }
-
-    .btn-primary {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-    }
-
-    .btn-primary:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
-    }
-
-    .btn-danger {
-      background: #f44336;
-      color: white;
-    }
-
-    .info-box {
-      background: #e3f2fd;
-      border-left: 4px solid #2196f3;
-      padding: 15px;
-      border-radius: 8px;
-      margin-bottom: 20px;
-    }
-
-    .info-box .title {
-      font-weight: 600;
-      color: #1976d2;
-      margin-bottom: 5px;
-    }
-
-    .info-box .content {
-      color: #555;
-      font-size: 14px;
-    }
-
-    .loading {
-      text-align: center;
-      padding: 40px;
-      color: #666;
-    }
-
-    .spinner {
-      border: 3px solid #f3f3f3;
-      border-top: 3px solid #667eea;
-      border-radius: 50%;
-      width: 40px;
-      height: 40px;
-      animation: spin 1s linear infinite;
-      margin: 0 auto 20px;
-    }
-
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-
-    .alert {
-      padding: 15px;
-      border-radius: 10px;
-      margin-bottom: 20px;
-      font-size: 14px;
-    }
-
-    .alert-success {
-      background: #d4edda;
-      color: #155724;
-      border: 1px solid #c3e6cb;
-    }
-
-    .alert-error {
-      background: #f8d7da;
-      color: #721c24;
-      border: 1px solid #f5c6cb;
-    }
-
-    .link-code-display {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      padding: 20px;
-      border-radius: 15px;
-      text-align: center;
-      margin-bottom: 20px;
-    }
-
-    .link-code-display .label {
-      font-size: 14px;
-      opacity: 0.9;
-      margin-bottom: 10px;
-    }
-
-    .link-code-display .code {
-      font-size: 36px;
-      font-weight: 700;
-      letter-spacing: 5px;
-      font-family: 'Courier New', monospace;
-    }
-
-    .tabs {
-      display: flex;
-      border-bottom: 2px solid #e0e0e0;
-      margin-bottom: 20px;
-    }
-
-    .tab {
-      flex: 1;
-      padding: 12px;
-      text-align: center;
-      cursor: pointer;
-      border-bottom: 3px solid transparent;
-      transition: all 0.3s;
-      font-weight: 500;
-      color: #666;
-      font-size: 14px;
-    }
-
-    .tab.active {
-      color: #667eea;
-      border-bottom-color: #667eea;
-    }
-
-    .tab-content {
-      display: none;
-    }
-
-    .tab-content.active {
-      display: block;
-      animation: fadeIn 0.3s;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
+      .tab {
+        padding: 10px 6px;
+        font-size: 12px;
+      }
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="header">
-      <h1>⚙️ ตั้งค่า</h1>
-      <p>จัดการกลุ่มและการแจ้งเตือน</p>
+    <!-- Loading State -->
+    <div id="loading" class="loading">
+      <div class="loading-spinner"></div>
+      <p>กำลังโหลดข้อมูล...</p>
     </div>
 
-    <div class="content">
-      <div id="loading" class="loading">
-        <div class="spinner"></div>
-        <p>กำลังโหลดข้อมูล...</p>
+    <!-- Error & Success Messages -->
+    <div id="error" class="alert alert-error" style="display: none;"></div>
+    <div id="success" class="alert alert-success" style="display: none;"></div>
+
+    <!-- Main Content -->
+    <div id="main-content" class="hidden">
+      <!-- Header -->
+      <div class="header">
+        <h1>⚙️ ตั้งค่า</h1>
+        <p>จัดการกลุ่มและการแจ้งเตือน</p>
       </div>
 
-      <div id="error" class="alert alert-error" style="display: none;"></div>
-      <div id="success" class="alert alert-success" style="display: none;"></div>
+      <!-- Tabs -->
+      <div class="tabs">
+        <div class="tab active" data-tab="group">กลุ่ม</div>
+        <div class="tab" data-tab="reports">รายงาน</div>
+        <div class="tab" data-tab="packages">แพ็คเกจ</div>
+        <div class="tab" data-tab="help">ช่วยเหลือ</div>
+      </div>
 
-      <div id="main-content" style="display: none;">
-        <div class="tabs">
-          <div class="tab active" data-tab="group">กลุ่ม</div>
-          <div class="tab" data-tab="reports">รายงาน</div>
-          <div class="tab" data-tab="packages">แพ็คเกจ</div>
-          <div class="tab" data-tab="help">ช่วยเหลือ</div>
+      <!-- Group Tab -->
+      <div id="group-tab" class="tab-content active">
+        <div class="link-code-display">
+          <div class="label">รหัสกลุ่ม (Link Code)</div>
+          <div class="code" id="linkCode">------</div>
         </div>
 
-        <!-- Group Tab -->
-        <div id="group-tab" class="tab-content active">
-          <div class="link-code-display">
-            <div class="label">รหัสกลุ่ม (Link Code)</div>
-            <div class="code" id="linkCode">------</div>
-          </div>
-
-          <div class="info-box">
-            <div class="title">ℹ️ วิธีเชิญสมาชิกเข้ากลุ่ม</div>
-            <div class="content">
-              ให้สมาชิกใหม่พิมพ์รหัสกลุ่มด้านบนในแชทกับบอท แล้วบอทจะเชิญเข้ากลุ่มอัตโนมัติ
-            </div>
-          </div>
-
-          <div class="section">
-            <div class="section-header">👥 สมาชิกในกลุ่ม</div>
-            <div id="member-list" class="member-list"></div>
-          </div>
-
-          <div class="section">
-            <div class="section-header">📝 ข้อมูลกลุ่ม</div>
-            <form id="group-form">
-              <div class="form-group">
-                <label>ชื่อกลุ่ม</label>
-                <input type="text" id="groupName" required>
-              </div>
-
-              <button type="submit" class="btn btn-primary">
-                💾 บันทึกข้อมูลกลุ่ม
-              </button>
-            </form>
+        <div class="info-box">
+          <div class="title">ℹ️ วิธีเชิญสมาชิกเข้ากลุ่ม</div>
+          <div class="content">
+            ให้สมาชิกใหม่พิมพ์รหัสกลุ่มด้านบนในแชทกับบอท แล้วบอทจะเชิญเข้ากลุ่มอัตโนมัติ
           </div>
         </div>
 
-
-        <!-- Reports Tab -->
-        <div id="reports-tab" class="tab-content">
-          <div class="section">
-            <div class="section-header">📊 รายงานอัตโนมัติ</div>
-
-            <div class="setting-card">
-              <div class="setting-row">
-                <div>
-                  <div class="setting-label">รายงานประจำวัน</div>
-                  <div class="setting-description">ส่งรายงานอัตโนมัติเวลา 20:00</div>
-                </div>
-                <div class="toggle-switch active" data-setting="daily_report"></div>
-              </div>
-
-              <div class="setting-row">
-                <div>
-                  <div class="setting-label">รายงานสัปดาห์</div>
-                  <div class="setting-description" id="weekly-report-desc">ส่งทุกวันอาทิตย์ เวลา 20:00</div>
-                </div>
-                <div class="toggle-switch active" data-setting="weekly_report"></div>
-              </div>
-
-              <div class="setting-row">
-                <div>
-                  <div class="setting-label">รายงานเดือน</div>
-                  <div class="setting-description" id="monthly-report-desc">ส่งวันที่ 1 ของทุกเดือน</div>
-                </div>
-                <div class="toggle-switch" data-setting="monthly_report"></div>
-              </div>
-            </div>
-          </div>
-
-          <div class="section" id="custom-time-section">
-            <div class="section-header">⏰ ปรับเวลารายงาน (สำหรับแพคเกจ Plus)</div>
-
-            <div class="setting-card" id="custom-time-card">
-              <div class="form-group" style="margin-bottom: 20px;">
-                <label>รายงานสัปดาห์</label>
-                <input type="time" id="weeklyReportTime" value="20:00" disabled style="background: #f5f5f5;">
-                <div id="weekly-lock-message" style="display: none; margin-top: 8px; padding: 12px; background: #fff3cd; border-radius: 8px; font-size: 13px; color: #856404;">
-                  🔒 อัปเกรดเป็น Plus เพื่อปรับเวลารายงานได้
-                </div>
-              </div>
-
-              <div class="form-group">
-                <label>รายงานเดือน</label>
-                <input type="time" id="monthlyReportTime" value="20:00" disabled style="background: #f5f5f5;">
-                <div id="monthly-lock-message" style="display: none; margin-top: 8px; padding: 12px; background: #fff3cd; border-radius: 8px; font-size: 13px; color: #856404;">
-                  🔒 อัปเกรดเป็น Plus เพื่อปรับเวลารายงานได้
-                </div>
-              </div>
-
-              <button id="save-report-time-btn" class="btn btn-primary" style="display: none;">
-                💾 บันทึกเวลารายงาน
-              </button>
-            </div>
-          </div>
-
-          <div class="section">
-            <div class="section-header">📥 ดาวน์โหลดรายงาน</div>
-
-            <div class="setting-card">
-              <div class="form-group">
-                <label>จากวันที่</label>
-                <input type="date" id="reportDateFrom" required>
-              </div>
-
-              <div class="form-group">
-                <label>ถึงวันที่</label>
-                <input type="date" id="reportDateTo" required>
-              </div>
-
-              <div class="form-group">
-                <label>รูปแบบไฟล์</label>
-                <div style="display: flex; gap: 20px; margin-top: 10px;">
-                  <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                    <input type="radio" name="reportFormat" value="pdf" checked>
-                    <span>PDF</span>
-                  </label>
-                  <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                    <input type="radio" name="reportFormat" value="csv">
-                    <span>CSV</span>
-                  </label>
-                </div>
-              </div>
-
-              <button id="download-report-btn" class="btn btn-primary">
-                📥 ดาวน์โหลด
-              </button>
-
-              <div id="download-lock-message" style="display: none; margin-top: 15px; padding: 12px; background: #fff3cd; border-radius: 8px; font-size: 13px; color: #856404; text-align: center;">
-                🔒 ฟีเจอร์นี้สำหรับแพคเกจ Plus เท่านั้น<br>
-                <a href="#" onclick="document.querySelector('[data-tab=packages]').click(); return false;" style="color: #667eea; font-weight: 600; text-decoration: underline;">อัปเกรดเลย</a>
-              </div>
-            </div>
-          </div>
-
-          <div class="section">
-            <div class="section-header">👥 ผู้รับรายงาน</div>
-
-            <div class="setting-card">
-              <div class="setting-row">
-                <div>
-                  <div class="setting-label">ส่งในกลุ่ม</div>
-                  <div class="setting-description">ส่งรายงานในกลุ่ม LINE</div>
-                </div>
-                <div class="toggle-switch active" data-setting="send_to_group"></div>
-              </div>
-
-              <div class="setting-row">
-                <div>
-                  <div class="setting-label">ส่งให้ผู้ดูแลหลัก</div>
-                  <div class="setting-description">ส่งทาง 1:1 chat</div>
-                </div>
-                <div class="toggle-switch active" data-setting="send_to_primary"></div>
-              </div>
-            </div>
-          </div>
+        <div class="section">
+          <div class="section-header">👥 สมาชิกในกลุ่ม</div>
+          <div id="member-list" class="member-list"></div>
         </div>
 
-        <!-- Packages Tab -->
-        <div id="packages-tab" class="tab-content">
-          <div class="section">
-            <div class="section-header">💎 แพ็คเกจ Duulair</div>
-
-            <!-- Free Plan -->
-            <div class="setting-card" style="border: 2px solid #e0e0e0;">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <div>
-                  <h3 style="font-size: 20px; color: #333; margin-bottom: 5px;">ฟรี</h3>
-                  <div style="font-size: 24px; font-weight: 700; color: #667eea;">฿0<span style="font-size: 14px; font-weight: normal; color: #666;">/เดือน</span></div>
-                </div>
-                <div style="background: #4caf50; color: white; padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: 600;">ใช้งานอยู่</div>
-              </div>
-
-              <div style="color: #666; font-size: 14px; margin-bottom: 15px;">เหมาะสำหรับครอบครัวเล็ก</div>
-
-              <div style="border-top: 1px solid #e0e0e0; padding-top: 15px;">
-                <div style="margin-bottom: 10px; display: flex; align-items: center; gap: 10px;">
-                  <span style="color: #4caf50;">✓</span>
-                  <span style="font-size: 14px; color: #333;">1 ผู้ป่วย</span>
-                </div>
-                <div style="margin-bottom: 10px; display: flex; align-items: center; gap: 10px;">
-                  <span style="color: #4caf50;">✓</span>
-                  <span style="font-size: 14px; color: #333;">สมาชิกกลุ่มไม่จำกัด</span>
-                </div>
-                <div style="margin-bottom: 10px; display: flex; align-items: center; gap: 10px;">
-                  <span style="color: #4caf50;">✓</span>
-                  <span style="font-size: 14px; color: #333;">บันทึกกิจกรรมไม่จำกัด</span>
-                </div>
-                <div style="margin-bottom: 10px; display: flex; align-items: center; gap: 10px;">
-                  <span style="color: #4caf50;">✓</span>
-                  <span style="font-size: 14px; color: #333;">รายงานวัน/สัปดาห์</span>
-                </div>
-                <div style="margin-bottom: 10px; display: flex; align-items: center; gap: 10px;">
-                  <span style="color: #4caf50;">✓</span>
-                  <span style="font-size: 14px; color: #333;">การเตือนพื้นฐาน</span>
-                </div>
-              </div>
+        <div class="section">
+          <div class="section-header">📝 ข้อมูลกลุ่ม</div>
+          <form id="group-form">
+            <div class="form-group">
+              <label>ชื่อกลุ่ม</label>
+              <input type="text" id="groupName" required>
             </div>
 
-            <!-- Pro Plan -->
-            <div class="setting-card" style="border: 2px solid #667eea; position: relative;">
-              <div style="position: absolute; top: -12px; right: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 5px 15px; border-radius: 15px; font-size: 12px; font-weight: 600;">แนะนำ</div>
-
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <div>
-                  <h3 style="font-size: 20px; color: #667eea; margin-bottom: 5px;">Pro</h3>
-                  <div style="font-size: 24px; font-weight: 700; color: #667eea;">฿299<span style="font-size: 14px; font-weight: normal; color: #666;">/เดือน</span></div>
-                </div>
-              </div>
-
-              <div style="color: #666; font-size: 14px; margin-bottom: 15px;">เหมาะสำหรับครอบครัวที่ต้องการฟีเจอร์เต็มรูปแบบ</div>
-
-              <div style="border-top: 1px solid #e0e0e0; padding-top: 15px;">
-                <div style="margin-bottom: 10px; display: flex; align-items: center; gap: 10px;">
-                  <span style="color: #667eea;">✓</span>
-                  <span style="font-size: 14px; color: #333;">ฟีเจอร์แบบ Free ทั้งหมด</span>
-                </div>
-                <div style="margin-bottom: 10px; display: flex; align-items: center; gap: 10px;">
-                  <span style="color: #667eea;">✓</span>
-                  <span style="font-size: 14px; color: #333;">รายงานเดือน + แนวโน้ม</span>
-                </div>
-                <div style="margin-bottom: 10px; display: flex; align-items: center; gap: 10px;">
-                  <span style="color: #667eea;">✓</span>
-                  <span style="font-size: 14px; color: #333;">Export ข้อมูล PDF/CSV</span>
-                </div>
-                <div style="margin-bottom: 10px; display: flex; align-items: center; gap: 10px;">
-                  <span style="color: #667eea;">✓</span>
-                  <span style="font-size: 14px; color: #333;">การเตือนขั้นสูง (ปรับแต่งได้)</span>
-                </div>
-                <div style="margin-bottom: 10px; display: flex; align-items: center; gap: 10px;">
-                  <span style="color: #667eea;">✓</span>
-                  <span style="font-size: 14px; color: #333;">AI Insights & คำแนะนำ</span>
-                </div>
-                <div style="margin-bottom: 10px; display: flex; align-items: center; gap: 10px;">
-                  <span style="color: #667eea;">✓</span>
-                  <span style="font-size: 14px; color: #333;">Support ลำดับความสำคัญ</span>
-                </div>
-              </div>
-
-              <button class="btn btn-primary" style="margin-top: 15px;" disabled>
-                เร็ว ๆ นี้
-              </button>
-            </div>
-
-            <!-- Enterprise Plan -->
-            <div class="setting-card" style="border: 2px solid #ffd700;">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <div>
-                  <h3 style="font-size: 20px; color: #f39c12; margin-bottom: 5px;">Enterprise</h3>
-                  <div style="font-size: 18px; font-weight: 600; color: #333;">ติดต่อเรา</div>
-                </div>
-              </div>
-
-              <div style="color: #666; font-size: 14px; margin-bottom: 15px;">สำหรับโรงพยาบาล/สถานดูแลผู้สูงอายุ</div>
-
-              <div style="border-top: 1px solid #e0e0e0; padding-top: 15px;">
-                <div style="margin-bottom: 10px; display: flex; align-items: center; gap: 10px;">
-                  <span style="color: #f39c12;">✓</span>
-                  <span style="font-size: 14px; color: #333;">ผู้ป่วยไม่จำกัด</span>
-                </div>
-                <div style="margin-bottom: 10px; display: flex; align-items: center; gap: 10px;">
-                  <span style="color: #f39c12;">✓</span>
-                  <span style="font-size: 14px; color: #333;">API Access</span>
-                </div>
-                <div style="margin-bottom: 10px; display: flex; align-items: center; gap: 10px;">
-                  <span style="color: #f39c12;">✓</span>
-                  <span style="font-size: 14px; color: #333;">Custom Integration</span>
-                </div>
-                <div style="margin-bottom: 10px; display: flex; align-items: center; gap: 10px;">
-                  <span style="color: #f39c12;">✓</span>
-                  <span style="font-size: 14px; color: #333;">Dedicated Support</span>
-                </div>
-                <div style="margin-bottom: 10px; display: flex; align-items: center; gap: 10px;">
-                  <span style="color: #f39c12;">✓</span>
-                  <span style="font-size: 14px; color: #333;">On-premise Option</span>
-                </div>
-              </div>
-
-              <button class="btn btn-primary" style="margin-top: 15px; background: #f39c12;" disabled>
-                ติดต่อฝ่ายขาย
-              </button>
-            </div>
-          </div>
+            <button type="submit" class="btn btn-primary btn-block">
+              💾 บันทึกข้อมูลกลุ่ม
+            </button>
+          </form>
         </div>
+      </div>
 
-        <!-- Help Tab -->
-        <div id="help-tab" class="tab-content">
-          <div class="section">
-            <div class="section-header">❓ คำถามที่พบบ่อย (FAQ)</div>
+      <!-- Reports Tab -->
+      <div id="reports-tab" class="tab-content">
+        <div class="section">
+          <div class="section-header">📊 รายงานอัตโนมัติ</div>
 
-            <!-- FAQ 1 -->
-            <div class="setting-card">
-              <div style="font-weight: 600; color: #333; margin-bottom: 10px;">🔍 Duulair คืออะไร?</div>
-              <div style="color: #666; font-size: 14px; line-height: 1.6;">
-                Duulair คือระบบดูแลสุขภาพผู้สูงอายุผ่าน LINE ที่ช่วยให้ครอบครัวสามารถติดตามและบันทึกกิจกรรมสุขภาพของผู้สูงอายุได้ร่วมกัน
-              </div>
-            </div>
-
-            <!-- FAQ 2 -->
-            <div class="setting-card">
-              <div style="font-weight: 600; color: #333; margin-bottom: 10px;">👥 ใครบ้างที่สามารถใช้งานได้?</div>
-              <div style="color: #666; font-size: 14px; line-height: 1.6;">
-                ทุกคนในกลุ่ม LINE สามารถบันทึกกิจกรรมและดูรายงานได้ เหมาะสำหรับครอบครัวที่มีสมาชิกหลายคนช่วยกันดูแลผู้สูงอายุ
-              </div>
-            </div>
-
-            <!-- FAQ 3 -->
-            <div class="setting-card">
-              <div style="font-weight: 600; color: #333; margin-bottom: 10px;">📱 ใช้งานยังไง?</div>
-              <div style="color: #666; font-size: 14px; line-height: 1.6;">
-                1. เพิ่มบอท Duulair เข้ากลุ่ม LINE<br>
-                2. ลงทะเบียนข้อมูลผู้ป่วย<br>
-                3. เริ่มบันทึกกิจกรรมผ่าน Rich Menu<br>
-                4. ดูรายงานและรับการแจ้งเตือนอัตโนมัติ
-              </div>
-            </div>
-
-            <!-- FAQ 4 -->
-            <div class="setting-card">
-              <div style="font-weight: 600; color: #333; margin-bottom: 10px;">💰 ค่าใช้จ่ายเท่าไหร่?</div>
-              <div style="color: #666; font-size: 14px; line-height: 1.6;">
-                แพ็คเกจ Free ใช้งานได้ฟรีตลอดชีพ! มีฟีเจอร์ครบสำหรับครอบครัวเล็ก หากต้องการฟีเจอร์เพิ่มเติม สามารถอัพเกรดเป็น Pro ได้
-              </div>
-            </div>
-
-            <!-- FAQ 5 -->
-            <div class="setting-card">
-              <div style="font-weight: 600; color: #333; margin-bottom: 10px;">🔒 ข้อมูลปลอดภัยหรือไม่?</div>
-              <div style="color: #666; font-size: 14px; line-height: 1.6;">
-                ข้อมูลทั้งหมดถูกเข้ารหัสและเก็บบน Supabase ที่มีมาตรฐานความปลอดภัยระดับสากล เราไม่แชร์ข้อมูลของคุณให้บุคคลที่สาม
-              </div>
-            </div>
-
-            <!-- FAQ 6 -->
-            <div class="setting-card">
-              <div style="font-weight: 600; color: #333; margin-bottom: 10px;">🔔 ตั้งค่าการแจ้งเตือนได้ไหม?</div>
-              <div style="color: #666; font-size: 14px; line-height: 1.6;">
-                ได้! ไปที่แท็บ "การแจ้งเตือน" ในหน้านี้ เพื่อเปิด/ปิดการแจ้งเตือนแต่ละประเภท และตั้งค่าเวลาเตือนได้ตามต้องการ
-              </div>
-            </div>
-          </div>
-
-          <div class="section">
-            <div class="section-header">📞 ติดต่อเรา</div>
-
-            <div class="setting-card">
-              <div style="margin-bottom: 15px;">
-                <div style="font-weight: 600; color: #333; margin-bottom: 5px;">📧 อีเมล</div>
-                <a href="mailto:support@duulair.com" style="color: #667eea; text-decoration: none;">support@duulair.com</a>
-              </div>
-
-              <div style="margin-bottom: 15px;">
-                <div style="font-weight: 600; color: #333; margin-bottom: 5px;">💬 LINE Official</div>
-                <a href="https://line.me/R/ti/p/@duulair" style="color: #667eea; text-decoration: none; display: flex; align-items: center; gap: 5px;">
-                  @duulair
-                  <span style="font-size: 12px; color: #999;">(กำลังเตรียมการ)</span>
-                </a>
-              </div>
-
-              <div style="margin-bottom: 15px;">
-                <div style="font-weight: 600; color: #333; margin-bottom: 5px;">🌐 เว็บไซต์</div>
-                <a href="https://duulair.com" style="color: #667eea; text-decoration: none;">www.duulair.com</a>
-              </div>
-
+          <div class="setting-card">
+            <div class="setting-row">
               <div>
-                <div style="font-weight: 600; color: #333; margin-bottom: 5px;">⏰ เวลาทำการ</div>
-                <div style="color: #666; font-size: 14px;">จันทร์ - ศุกร์: 9:00 - 18:00 น.</div>
+                <div class="setting-label">รายงานประจำวัน</div>
+                <div class="setting-description">ส่งรายงานอัตโนมัติเวลา 20:00</div>
               </div>
+              <div class="toggle-switch active" data-setting="daily_report"></div>
+            </div>
+
+            <div class="setting-row">
+              <div>
+                <div class="setting-label">รายงานสัปดาห์</div>
+                <div class="setting-description" id="weekly-report-desc">ส่งทุกวันอาทิตย์ เวลา 20:00</div>
+              </div>
+              <div class="toggle-switch active" data-setting="weekly_report"></div>
+            </div>
+
+            <div class="setting-row">
+              <div>
+                <div class="setting-label">รายงานเดือน</div>
+                <div class="setting-description" id="monthly-report-desc">ส่งวันที่ 1 ของทุกเดือน</div>
+              </div>
+              <div class="toggle-switch" data-setting="monthly_report"></div>
             </div>
           </div>
+        </div>
 
-          <div class="section">
-            <div class="section-header">ℹ️ เกี่ยวกับ Duulair</div>
+        <div class="section">
+          <div class="section-header">👥 ผู้รับรายงาน</div>
 
-            <div class="setting-card">
-              <div style="text-align: center; padding: 20px 0;">
-                <div style="font-size: 48px; margin-bottom: 10px;">💚</div>
-                <div style="font-weight: 600; font-size: 18px; color: #333; margin-bottom: 10px;">Duulair</div>
-                <div style="color: #666; font-size: 14px; line-height: 1.6; margin-bottom: 15px;">
-                  ระบบดูแลสุขภาพผู้สูงอายุแบบครอบครัว<br>
-                  ผ่าน LINE ที่ใช้งานง่าย
-                </div>
-                <div style="color: #999; font-size: 12px;">Version 1.0.0</div>
-                <div style="color: #999; font-size: 12px;">© 2025 Duulair. All rights reserved.</div>
+          <div class="setting-card">
+            <div class="setting-row">
+              <div>
+                <div class="setting-label">ส่งในกลุ่ม</div>
+                <div class="setting-description">ส่งรายงานในกลุ่ม LINE</div>
               </div>
+              <div class="toggle-switch active" data-setting="send_to_group"></div>
+            </div>
+
+            <div class="setting-row">
+              <div>
+                <div class="setting-label">ส่งให้ผู้ดูแลหลัก</div>
+                <div class="setting-description">ส่งทาง 1:1 chat</div>
+              </div>
+              <div class="toggle-switch active" data-setting="send_to_primary"></div>
             </div>
           </div>
         </div>
       </div>
+
+      <!-- Packages Tab -->
+      <div id="packages-tab" class="tab-content">
+        <div class="section">
+          <div class="section-header">💎 แพ็คเกจ Duulair</div>
+
+          <!-- Free Plan -->
+          <div class="setting-card" style="border: 2px solid rgba(0, 0, 0, 0.1);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-md);">
+              <div>
+                <h3 style="font-size: 20px; color: var(--text-primary); margin-bottom: 6px;">ฟรี</h3>
+                <div style="font-size: 24px; font-weight: 700; color: var(--accent-primary);">฿0<span style="font-size: 14px; font-weight: normal; color: var(--text-secondary);">/เดือน</span></div>
+              </div>
+              <div style="background: var(--success); color: white; padding: 8px 16px; border-radius: var(--radius-full); font-size: 14px; font-weight: 600;">ใช้งานอยู่</div>
+            </div>
+
+            <div style="color: var(--text-secondary); font-size: 14px; margin-bottom: var(--spacing-md);">เหมาะสำหรับครอบครัวเล็ก</div>
+
+            <div style="border-top: 1px solid rgba(0, 0, 0, 0.05); padding-top: var(--spacing-md);">
+              <div style="margin-bottom: var(--spacing-sm); display: flex; align-items: center; gap: var(--spacing-sm);">
+                <span style="color: var(--success);">✓</span>
+                <span style="font-size: 14px; color: var(--text-primary);">1 ผู้ป่วย</span>
+              </div>
+              <div style="margin-bottom: var(--spacing-sm); display: flex; align-items: center; gap: var(--spacing-sm);">
+                <span style="color: var(--success);">✓</span>
+                <span style="font-size: 14px; color: var(--text-primary);">สมาชิกกลุ่มไม่จำกัด</span>
+              </div>
+              <div style="margin-bottom: var(--spacing-sm); display: flex; align-items: center; gap: var(--spacing-sm);">
+                <span style="color: var(--success);">✓</span>
+                <span style="font-size: 14px; color: var(--text-primary);">บันทึกกิจกรรมไม่จำกัด</span>
+              </div>
+              <div style="margin-bottom: var(--spacing-sm); display: flex; align-items: center; gap: var(--spacing-sm);">
+                <span style="color: var(--success);">✓</span>
+                <span style="font-size: 14px; color: var(--text-primary);">รายงานวัน/สัปดาห์</span>
+              </div>
+              <div style="margin-bottom: var(--spacing-sm); display: flex; align-items: center; gap: var(--spacing-sm);">
+                <span style="color: var(--success);">✓</span>
+                <span style="font-size: 14px; color: var(--text-primary);">การเตือนพื้นฐาน</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pro Plan -->
+          <div class="setting-card" style="border: 2px solid var(--accent-primary); position: relative;">
+            <div style="position: absolute; top: -12px; right: 20px; background: linear-gradient(135deg, #E8B4A8 0%, #D4A59A 100%); color: white; padding: 5px 15px; border-radius: var(--radius-full); font-size: 12px; font-weight: 600;">แนะนำ</div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-md);">
+              <div>
+                <h3 style="font-size: 20px; color: var(--accent-primary); margin-bottom: 6px;">Pro</h3>
+                <div style="font-size: 24px; font-weight: 700; color: var(--accent-primary);">฿299<span style="font-size: 14px; font-weight: normal; color: var(--text-secondary);">/เดือน</span></div>
+              </div>
+            </div>
+
+            <div style="color: var(--text-secondary); font-size: 14px; margin-bottom: var(--spacing-md);">เหมาะสำหรับครอบครัวที่ต้องการฟีเจอร์เต็มรูปแบบ</div>
+
+            <div style="border-top: 1px solid rgba(0, 0, 0, 0.05); padding-top: var(--spacing-md);">
+              <div style="margin-bottom: var(--spacing-sm); display: flex; align-items: center; gap: var(--spacing-sm);">
+                <span style="color: var(--accent-primary);">✓</span>
+                <span style="font-size: 14px; color: var(--text-primary);">ฟีเจอร์แบบ Free ทั้งหมด</span>
+              </div>
+              <div style="margin-bottom: var(--spacing-sm); display: flex; align-items: center; gap: var(--spacing-sm);">
+                <span style="color: var(--accent-primary);">✓</span>
+                <span style="font-size: 14px; color: var(--text-primary);">รายงานเดือน + แนวโน้ม</span>
+              </div>
+              <div style="margin-bottom: var(--spacing-sm); display: flex; align-items: center; gap: var(--spacing-sm);">
+                <span style="color: var(--accent-primary);">✓</span>
+                <span style="font-size: 14px; color: var(--text-primary);">Export ข้อมูล PDF/CSV</span>
+              </div>
+              <div style="margin-bottom: var(--spacing-sm); display: flex; align-items: center; gap: var(--spacing-sm);">
+                <span style="color: var(--accent-primary);">✓</span>
+                <span style="font-size: 14px; color: var(--text-primary);">การเตือนขั้นสูง (ปรับแต่งได้)</span>
+              </div>
+              <div style="margin-bottom: var(--spacing-sm); display: flex; align-items: center; gap: var(--spacing-sm);">
+                <span style="color: var(--accent-primary);">✓</span>
+                <span style="font-size: 14px; color: var(--text-primary);">AI Insights & คำแนะนำ</span>
+              </div>
+              <div style="margin-bottom: var(--spacing-sm); display: flex; align-items: center; gap: var(--spacing-sm);">
+                <span style="color: var(--accent-primary);">✓</span>
+                <span style="font-size: 14px; color: var(--text-primary);">Support ลำดับความสำคัญ</span>
+              </div>
+            </div>
+
+            <button class="btn btn-primary btn-block" style="margin-top: var(--spacing-md);" disabled>
+              เร็ว ๆ นี้
+            </button>
+          </div>
+
+          <!-- Enterprise Plan -->
+          <div class="setting-card" style="border: 2px solid var(--warning);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-md);">
+              <div>
+                <h3 style="font-size: 20px; color: #B88A5F; margin-bottom: 6px;">Enterprise</h3>
+                <div style="font-size: 18px; font-weight: 600; color: var(--text-primary);">ติดต่อเรา</div>
+              </div>
+            </div>
+
+            <div style="color: var(--text-secondary); font-size: 14px; margin-bottom: var(--spacing-md);">สำหรับโรงพยาบาล/สถานดูแลผู้สูงอายุ</div>
+
+            <div style="border-top: 1px solid rgba(0, 0, 0, 0.05); padding-top: var(--spacing-md);">
+              <div style="margin-bottom: var(--spacing-sm); display: flex; align-items: center; gap: var(--spacing-sm);">
+                <span style="color: var(--warning);">✓</span>
+                <span style="font-size: 14px; color: var(--text-primary);">ผู้ป่วยไม่จำกัด</span>
+              </div>
+              <div style="margin-bottom: var(--spacing-sm); display: flex; align-items: center; gap: var(--spacing-sm);">
+                <span style="color: var(--warning);">✓</span>
+                <span style="font-size: 14px; color: var(--text-primary);">API Access</span>
+              </div>
+              <div style="margin-bottom: var(--spacing-sm); display: flex; align-items: center; gap: var(--spacing-sm);">
+                <span style="color: var(--warning);">✓</span>
+                <span style="font-size: 14px; color: var(--text-primary);">Custom Integration</span>
+              </div>
+              <div style="margin-bottom: var(--spacing-sm); display: flex; align-items: center; gap: var(--spacing-sm);">
+                <span style="color: var(--warning);">✓</span>
+                <span style="font-size: 14px; color: var(--text-primary);">Dedicated Support</span>
+              </div>
+              <div style="margin-bottom: var(--spacing-sm); display: flex; align-items: center; gap: var(--spacing-sm);">
+                <span style="color: var(--warning);">✓</span>
+                <span style="font-size: 14px; color: var(--text-primary);">On-premise Option</span>
+              </div>
+            </div>
+
+            <button class="btn btn-primary btn-block" style="margin-top: var(--spacing-md); background: var(--warning);" disabled>
+              ติดต่อฝ่ายขาย
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Help Tab -->
+      <div id="help-tab" class="tab-content">
+        <div class="section">
+          <div class="section-header">❓ คำถามที่พบบ่อย (FAQ)</div>
+
+          <!-- FAQ 1 -->
+          <div class="setting-card">
+            <div style="font-weight: 600; color: var(--text-primary); margin-bottom: var(--spacing-sm);">🔍 Duulair คืออะไร?</div>
+            <div style="color: var(--text-secondary); font-size: 14px; line-height: 1.6;">
+              Duulair คือระบบดูแลสุขภาพผู้สูงอายุผ่าน LINE ที่ช่วยให้ครอบครัวสามารถติดตามและบันทึกกิจกรรมสุขภาพของผู้สูงอายุได้ร่วมกัน
+            </div>
+          </div>
+
+          <!-- FAQ 2 -->
+          <div class="setting-card">
+            <div style="font-weight: 600; color: var(--text-primary); margin-bottom: var(--spacing-sm);">👥 ใครบ้างที่สามารถใช้งานได้?</div>
+            <div style="color: var(--text-secondary); font-size: 14px; line-height: 1.6;">
+              ทุกคนในกลุ่ม LINE สามารถบันทึกกิจกรรมและดูรายงานได้ เหมาะสำหรับครอบครัวที่มีสมาชิกหลายคนช่วยกันดูแลผู้สูงอายุ
+            </div>
+          </div>
+
+          <!-- FAQ 3 -->
+          <div class="setting-card">
+            <div style="font-weight: 600; color: var(--text-primary); margin-bottom: var(--spacing-sm);">📱 ใช้งานยังไง?</div>
+            <div style="color: var(--text-secondary); font-size: 14px; line-height: 1.6;">
+              1. เพิ่มบอท Duulair เข้ากลุ่ม LINE<br>
+              2. ลงทะเบียนข้อมูลผู้ป่วย<br>
+              3. เริ่มบันทึกกิจกรรมผ่าน Rich Menu<br>
+              4. ดูรายงานและรับการแจ้งเตือนอัตโนมัติ
+            </div>
+          </div>
+
+          <!-- FAQ 4 -->
+          <div class="setting-card">
+            <div style="font-weight: 600; color: var(--text-primary); margin-bottom: var(--spacing-sm);">💰 ค่าใช้จ่ายเท่าไหร่?</div>
+            <div style="color: var(--text-secondary); font-size: 14px; line-height: 1.6;">
+              แพ็คเกจ Free ใช้งานได้ฟรีตลอดชีพ! มีฟีเจอร์ครบสำหรับครอบครัวเล็ก หากต้องการฟีเจอร์เพิ่มเติม สามารถอัพเกรดเป็น Pro ได้
+            </div>
+          </div>
+
+          <!-- FAQ 5 -->
+          <div class="setting-card">
+            <div style="font-weight: 600; color: var(--text-primary); margin-bottom: var(--spacing-sm);">🔒 ข้อมูลปลอดภัยหรือไม่?</div>
+            <div style="color: var(--text-secondary); font-size: 14px; line-height: 1.6;">
+              ข้อมูลทั้งหมดถูกเข้ารหัสและเก็บบน Supabase ที่มีมาตรฐานความปลอดภัยระดับสากล เราไม่แชร์ข้อมูลของคุณให้บุคคลที่สาม
+            </div>
+          </div>
+
+          <!-- FAQ 6 -->
+          <div class="setting-card">
+            <div style="font-weight: 600; color: var(--text-primary); margin-bottom: var(--spacing-sm);">🔔 ตั้งค่าการแจ้งเตือนได้ไหม?</div>
+            <div style="color: var(--text-secondary); font-size: 14px; line-height: 1.6;">
+              ได้! ไปที่แท็บ "การแจ้งเตือน" ในหน้านี้ เพื่อเปิด/ปิดการแจ้งเตือนแต่ละประเภท และตั้งค่าเวลาเตือนได้ตามต้องการ
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-header">📞 ติดต่อเรา</div>
+
+          <div class="setting-card">
+            <div style="margin-bottom: var(--spacing-md);">
+              <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 6px;">📧 อีเมล</div>
+              <a href="mailto:support@duulair.com" style="color: var(--accent-primary); text-decoration: none;">support@duulair.com</a>
+            </div>
+
+            <div style="margin-bottom: var(--spacing-md);">
+              <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 6px;">💬 LINE Official</div>
+              <a href="https://line.me/R/ti/p/@duulair" style="color: var(--accent-primary); text-decoration: none; display: flex; align-items: center; gap: 6px;">
+                @duulair
+                <span style="font-size: 12px; color: var(--text-muted);">(กำลังเตรียมการ)</span>
+              </a>
+            </div>
+
+            <div style="margin-bottom: var(--spacing-md);">
+              <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 6px;">🌐 เว็บไซต์</div>
+              <a href="https://duulair.com" style="color: var(--accent-primary); text-decoration: none;">www.duulair.com</a>
+            </div>
+
+            <div>
+              <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 6px;">⏰ เวลาทำการ</div>
+              <div style="color: var(--text-secondary); font-size: 14px;">จันทร์ - ศุกร์: 9:00 - 18:00 น.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-header">ℹ️ เกี่ยวกับ Duulair</div>
+
+          <div class="setting-card">
+            <div style="text-align: center; padding: var(--spacing-lg) 0;">
+              <div style="font-size: 48px; margin-bottom: var(--spacing-sm);">💚</div>
+              <div style="font-weight: 600; font-size: 18px; color: var(--text-primary); margin-bottom: var(--spacing-sm);">Duulair</div>
+              <div style="color: var(--text-secondary); font-size: 14px; line-height: 1.6; margin-bottom: var(--spacing-md);">
+                ระบบดูแลสุขภาพผู้สูงอายุแบบครอบครัว<br>
+                ผ่าน LINE ที่ใช้งานง่าย
+              </div>
+              <div style="color: var(--text-muted); font-size: 12px;">Version 1.0.0</div>
+              <div style="color: var(--text-muted); font-size: 12px;">© 2025 Duulair. All rights reserved.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn btn-secondary btn-block mt-3" onclick="liff.closeWindow()">ปิด</button>
     </div>
   </div>
 
@@ -799,6 +627,17 @@
 
         if (!liff.isLoggedIn()) {
           liff.login();
+          return;
+        }
+
+        // Get user profile
+        const profile = await liff.getProfile();
+
+        // Check if user is registered (first-time detection)
+        const isRegistered = await checkUserRegistration(profile.userId);
+
+        // If not registered, checkUserRegistration will redirect automatically
+        if (!isRegistered) {
           return;
         }
 
@@ -848,8 +687,8 @@
         // Set toggle switches
         initializeToggles();
 
-        document.getElementById('loading').style.display = 'none';
-        document.getElementById('main-content').style.display = 'block';
+        document.getElementById('loading').classList.add('hidden');
+        document.getElementById('main-content').classList.remove('hidden');
       } catch (error) {
         console.error('Error loading data:', error);
         showError('ไม่สามารถโหลดข้อมูลได้');
@@ -865,7 +704,7 @@
         if (!storedUserData.profile_id) {
           showError('ไม่พบข้อมูลผู้ใช้ กรุณาลงทะเบียนก่อน');
           setTimeout(() => {
-            window.location.href = '/liff/index.html';
+            window.location.href = '/liff/group-registration.html';
           }, 2000);
           return;
         }
@@ -895,8 +734,8 @@
         // Set toggle switches
         initializeToggles();
 
-        document.getElementById('loading').style.display = 'none';
-        document.getElementById('main-content').style.display = 'block';
+        document.getElementById('loading').classList.add('hidden');
+        document.getElementById('main-content').classList.remove('hidden');
       } catch (error) {
         console.error('Error loading user data:', error);
         showError('ไม่สามารถโหลดข้อมูลได้');
@@ -1014,7 +853,7 @@
       const alert = document.getElementById('error');
       alert.textContent = message;
       alert.style.display = 'block';
-      document.getElementById('loading').style.display = 'none';
+      document.getElementById('loading').classList.add('hidden');
     }
 
     // Initialize on load

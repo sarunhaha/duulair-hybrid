@@ -3,82 +3,45 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ข้อมูลผู้ป่วย - Duulair</title>
+  <meta name="theme-color" content="#FAF9F6">
+  <title>👤 ข้อมูลผู้ป่วย - Duulair</title>
   <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/utils.js"></script>
+  <link rel="stylesheet" href="css/minimal-theme.css">
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    body {
-      font-family: 'Sarabun', -apple-system, BlinkMacSystemFont, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      min-height: 100vh;
-      padding: 20px;
-    }
-
-    .container {
-      max-width: 600px;
-      margin: 0 auto;
-      background: white;
-      border-radius: 20px;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-      overflow: hidden;
-    }
-
-    .header {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      padding: 30px 20px;
-      text-align: center;
-    }
-
-    .header h1 {
-      font-size: 28px;
-      margin-bottom: 5px;
-    }
-
-    .header p {
-      font-size: 14px;
-      opacity: 0.9;
-    }
-
-    .content {
-      padding: 30px 20px;
-    }
-
+    /* Patient Profile-specific styles */
     .tabs {
       display: flex;
-      border-bottom: 2px solid #e0e0e0;
-      margin-bottom: 30px;
+      border-bottom: 2px solid rgba(0, 0, 0, 0.1);
+      margin-bottom: var(--spacing-lg);
+      gap: var(--spacing-sm);
     }
 
     .tab {
       flex: 1;
-      padding: 15px;
+      padding: 14px 12px;
       text-align: center;
       cursor: pointer;
       border-bottom: 3px solid transparent;
-      transition: all 0.3s;
+      transition: all 0.2s ease;
       font-weight: 500;
-      color: #666;
+      color: var(--text-secondary);
+      font-size: 15px;
     }
 
     .tab.active {
-      color: #667eea;
-      border-bottom-color: #667eea;
+      color: var(--accent-primary);
+      border-bottom-color: var(--accent-primary);
     }
 
     .tab-content {
       display: none;
+      animation: fadeIn 0.3s;
     }
 
     .tab-content.active {
       display: block;
-      animation: fadeIn 0.3s;
     }
 
     @keyframes fadeIn {
@@ -86,60 +49,25 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
-    .form-group {
-      margin-bottom: 20px;
-    }
-
-    .form-group label {
-      display: block;
-      margin-bottom: 8px;
-      color: #333;
-      font-weight: 500;
-      font-size: 14px;
-    }
-
-    .form-group input,
-    .form-group select,
-    .form-group textarea {
-      width: 100%;
-      padding: 12px 15px;
-      border: 2px solid #e0e0e0;
-      border-radius: 10px;
-      font-size: 16px;
-      font-family: inherit;
-      transition: border-color 0.3s;
-    }
-
-    .form-group input:focus,
-    .form-group select:focus,
-    .form-group textarea:focus {
-      outline: none;
-      border-color: #667eea;
-    }
-
-    .form-group textarea {
-      resize: vertical;
-      min-height: 80px;
-    }
-
     .info-card {
-      background: #f5f5f5;
-      padding: 15px;
-      border-radius: 10px;
-      margin-bottom: 15px;
+      background: var(--bg-secondary);
+      padding: var(--spacing-md);
+      border-radius: var(--radius-sm);
+      margin-bottom: var(--spacing-md);
     }
 
     .info-card h3 {
       font-size: 16px;
-      color: #667eea;
-      margin-bottom: 10px;
+      color: var(--accent-primary);
+      margin-bottom: var(--spacing-sm);
+      font-weight: 600;
     }
 
     .info-row {
       display: flex;
       justify-content: space-between;
-      padding: 8px 0;
-      border-bottom: 1px solid #e0e0e0;
+      padding: var(--spacing-xs) 0;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.05);
     }
 
     .info-row:last-child {
@@ -147,117 +75,44 @@
     }
 
     .info-label {
-      color: #666;
+      color: var(--text-secondary);
       font-size: 14px;
     }
 
     .info-value {
-      color: #333;
+      color: var(--text-primary);
       font-weight: 500;
       font-size: 14px;
-    }
-
-    .btn {
-      width: 100%;
-      padding: 15px;
-      border: none;
-      border-radius: 10px;
-      font-size: 16px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.3s;
-      margin-top: 10px;
-    }
-
-    .btn-primary {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-    }
-
-    .btn-primary:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
-    }
-
-    .btn-secondary {
-      background: white;
-      color: #667eea;
-      border: 2px solid #667eea;
-    }
-
-    .btn:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-      transform: none !important;
-    }
-
-    .loading {
-      text-align: center;
-      padding: 40px;
-      color: #666;
-    }
-
-    .spinner {
-      border: 3px solid #f3f3f3;
-      border-top: 3px solid #667eea;
-      border-radius: 50%;
-      width: 40px;
-      height: 40px;
-      animation: spin 1s linear infinite;
-      margin: 0 auto 20px;
-    }
-
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-
-    .alert {
-      padding: 15px;
-      border-radius: 10px;
-      margin-bottom: 20px;
-      font-size: 14px;
-    }
-
-    .alert-success {
-      background: #d4edda;
-      color: #155724;
-      border: 1px solid #c3e6cb;
-    }
-
-    .alert-error {
-      background: #f8d7da;
-      color: #721c24;
-      border: 1px solid #f5c6cb;
     }
 
     .medical-conditions {
       display: flex;
       flex-wrap: wrap;
-      gap: 10px;
-      margin-top: 10px;
+      gap: var(--spacing-xs);
+      margin-top: var(--spacing-sm);
     }
 
     .condition-tag {
-      background: #e8eaf6;
-      color: #667eea;
-      padding: 8px 15px;
-      border-radius: 20px;
+      background: rgba(232, 180, 168, 0.2);
+      color: var(--accent-primary);
+      padding: 6px 12px;
+      border-radius: var(--radius-full);
       font-size: 14px;
       display: flex;
       align-items: center;
-      gap: 5px;
+      gap: 6px;
     }
 
     .condition-tag .remove {
       cursor: pointer;
       font-weight: bold;
+      font-size: 16px;
     }
 
     .add-condition {
       display: flex;
-      gap: 10px;
-      margin-top: 10px;
+      gap: var(--spacing-sm);
+      margin-top: var(--spacing-sm);
     }
 
     .add-condition input {
@@ -266,52 +121,58 @@
 
     .add-condition button {
       padding: 12px 20px;
-      background: #667eea;
+      background: var(--accent-primary);
       color: white;
       border: none;
-      border-radius: 10px;
+      border-radius: var(--radius-sm);
       cursor: pointer;
       font-weight: 500;
+      transition: all 0.2s ease;
+    }
+
+    .add-condition button:active {
+      transform: scale(0.97);
     }
 
     .allergy-tabs {
       display: flex;
-      gap: 10px;
-      margin: 15px 0;
-      border-bottom: 2px solid #e0e0e0;
+      gap: var(--spacing-sm);
+      margin: var(--spacing-md) 0;
+      border-bottom: 2px solid rgba(0, 0, 0, 0.1);
     }
 
     .allergy-tab {
       padding: 10px 20px;
       cursor: pointer;
       border-bottom: 3px solid transparent;
-      transition: all 0.3s;
+      transition: all 0.2s ease;
       font-weight: 500;
-      color: #666;
+      color: var(--text-secondary);
     }
 
     .allergy-tab.active {
-      color: #667eea;
-      border-bottom-color: #667eea;
+      color: var(--accent-primary);
+      border-bottom-color: var(--accent-primary);
     }
 
     .allergy-content {
-      margin-top: 15px;
+      margin-top: var(--spacing-md);
     }
 
     #allergy-list {
       min-height: 50px;
-      margin-bottom: 15px;
+      margin-bottom: var(--spacing-md);
     }
 
     .allergy-item {
-      background: #f5f5f5;
-      padding: 12px 15px;
-      border-radius: 10px;
-      margin-bottom: 10px;
+      background: var(--bg-secondary);
+      padding: var(--spacing-md);
+      border-radius: var(--radius-sm);
+      margin-bottom: var(--spacing-sm);
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
+      gap: var(--spacing-sm);
     }
 
     .allergy-item-content {
@@ -321,311 +182,331 @@
     .allergy-item-header {
       display: flex;
       align-items: center;
-      gap: 10px;
-      margin-bottom: 5px;
+      gap: var(--spacing-sm);
+      margin-bottom: 6px;
     }
 
     .allergy-name {
       font-weight: 600;
-      color: #333;
+      color: var(--text-primary);
       font-size: 15px;
     }
 
     .severity-badge {
       padding: 3px 10px;
-      border-radius: 15px;
+      border-radius: var(--radius-full);
       font-size: 12px;
       font-weight: 500;
     }
 
     .severity-mild {
-      background: #d4edda;
-      color: #155724;
+      background: rgba(168, 213, 186, 0.3);
+      color: #5A9876;
     }
 
     .severity-moderate {
-      background: #fff3cd;
-      color: #856404;
+      background: rgba(247, 197, 159, 0.3);
+      color: #B88A5F;
     }
 
     .severity-severe {
-      background: #f8d7da;
-      color: #721c24;
+      background: rgba(232, 168, 168, 0.3);
+      color: #B87676;
     }
 
     .allergy-symptoms {
-      color: #666;
+      color: var(--text-secondary);
       font-size: 13px;
-      margin-top: 5px;
+      margin-top: 4px;
     }
 
     .allergy-notes {
-      color: #999;
+      color: var(--text-muted);
       font-size: 12px;
       font-style: italic;
       margin-top: 3px;
     }
 
     .delete-allergy {
-      background: #f44336;
+      background: var(--error);
       color: white;
       border: none;
-      border-radius: 5px;
-      padding: 5px 10px;
+      border-radius: var(--radius-sm);
+      padding: 6px 12px;
       cursor: pointer;
       font-size: 12px;
       font-weight: 500;
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+    }
+
+    .delete-allergy:active {
+      transform: scale(0.95);
     }
 
     .btn-add-allergy {
       width: 100%;
       padding: 12px;
-      background: #f5f5f5;
-      color: #667eea;
-      border: 2px dashed #667eea;
-      border-radius: 10px;
+      background: var(--bg-secondary);
+      color: var(--accent-primary);
+      border: 2px dashed var(--accent-primary);
+      border-radius: var(--radius-sm);
       cursor: pointer;
       font-weight: 500;
-      transition: all 0.3s;
+      transition: all 0.2s ease;
     }
 
-    .btn-add-allergy:hover {
-      background: #e8eaf6;
+    .btn-add-allergy:active {
+      background: rgba(232, 180, 168, 0.1);
     }
 
     #allergy-form {
-      background: #f9f9f9;
-      padding: 15px;
-      border-radius: 10px;
-      margin-top: 15px;
-      border: 2px solid #667eea;
+      background: var(--bg-secondary);
+      padding: var(--spacing-md);
+      border-radius: var(--radius-sm);
+      margin-top: var(--spacing-md);
+      border: 2px solid var(--accent-primary);
     }
 
-    .empty-state {
-      text-align: center;
-      padding: 20px;
-      color: #999;
-      font-size: 14px;
+    @media (max-width: 480px) {
+      .tabs {
+        gap: 0;
+      }
+
+      .tab {
+        padding: 12px 8px;
+        font-size: 13px;
+      }
+
+      .allergy-tab {
+        padding: 8px 12px;
+        font-size: 14px;
+      }
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="header">
-      <h1>👤 ข้อมูลผู้ป่วย</h1>
-      <p>ดูและแก้ไขข้อมูลผู้ป่วยในกลุ่ม</p>
+    <!-- Loading State -->
+    <div id="loading" class="loading">
+      <div class="loading-spinner"></div>
+      <p>กำลังโหลดข้อมูล...</p>
     </div>
 
-    <div class="content">
-      <div id="loading" class="loading">
-        <div class="spinner"></div>
-        <p>กำลังโหลดข้อมูล...</p>
+    <!-- Error & Success Messages -->
+    <div id="error" class="alert alert-error" style="display: none;"></div>
+    <div id="success" class="alert alert-success" style="display: none;"></div>
+
+    <!-- Main Content -->
+    <div id="main-content" class="hidden">
+      <!-- Header -->
+      <div class="header">
+        <h1>👤 ข้อมูลผู้ป่วย</h1>
+        <p>ดูและแก้ไขข้อมูลผู้ป่วย</p>
       </div>
 
-      <div id="error" class="alert alert-error" style="display: none;"></div>
-      <div id="success" class="alert alert-success" style="display: none;"></div>
+      <!-- Tabs -->
+      <div class="tabs">
+        <div class="tab active" data-tab="profile">ข้อมูลทั่วไป</div>
+        <div class="tab" data-tab="medical">ข้อมูลทางการแพทย์</div>
+        <div class="tab" data-tab="emergency">ติดต่อฉุกเฉิน</div>
+      </div>
 
-      <div id="main-content" style="display: none;">
-        <div class="tabs">
-          <div class="tab active" data-tab="profile">ข้อมูลทั่วไป</div>
-          <div class="tab" data-tab="medical">ข้อมูลทางการแพทย์</div>
-          <div class="tab" data-tab="emergency">ติดต่อฉุกเฉิน</div>
-        </div>
+      <!-- Profile Tab -->
+      <div id="profile-tab" class="tab-content active">
+        <form id="profile-form">
+          <div class="form-group">
+            <label>ชื่อ <span class="required">*</span></label>
+            <input type="text" id="firstName" required>
+          </div>
 
-        <!-- Profile Tab -->
-        <div id="profile-tab" class="tab-content active">
-          <form id="profile-form">
-            <div class="form-group">
-              <label>ชื่อ *</label>
-              <input type="text" id="firstName" required>
-            </div>
+          <div class="form-group">
+            <label>นามสกุล <span class="required">*</span></label>
+            <input type="text" id="lastName" required>
+          </div>
 
-            <div class="form-group">
-              <label>นามสกุล *</label>
-              <input type="text" id="lastName" required>
-            </div>
+          <div class="form-group">
+            <label>ชื่อเล่น</label>
+            <input type="text" id="nickname">
+          </div>
 
-            <div class="form-group">
-              <label>ชื่อเล่น</label>
-              <input type="text" id="nickname">
-            </div>
+          <div class="form-group">
+            <label>วันเกิด <span class="required">*</span></label>
+            <input type="date" id="birthDate" required>
+          </div>
 
-            <div class="form-group">
-              <label>วันเกิด *</label>
-              <input type="date" id="birthDate" required>
-            </div>
+          <div class="form-group">
+            <label>เพศ <span class="required">*</span></label>
+            <select id="gender" required>
+              <option value="">เลือกเพศ</option>
+              <option value="male">ชาย</option>
+              <option value="female">หญิง</option>
+              <option value="other">อื่นๆ</option>
+            </select>
+          </div>
 
-            <div class="form-group">
-              <label>เพศ *</label>
-              <select id="gender" required>
-                <option value="">เลือกเพศ</option>
-                <option value="male">ชาย</option>
-                <option value="female">หญิง</option>
-                <option value="other">อื่นๆ</option>
-              </select>
-            </div>
+          <div class="form-group">
+            <label>เบอร์โทรศัพท์</label>
+            <input type="tel" id="phoneNumber">
+          </div>
 
-            <div class="form-group">
-              <label>เบอร์โทรศัพท์</label>
-              <input type="tel" id="phoneNumber">
-            </div>
+          <div class="form-group">
+            <label>ที่อยู่</label>
+            <textarea id="address" rows="3"></textarea>
+          </div>
 
-            <div class="form-group">
-              <label>ที่อยู่</label>
-              <textarea id="address" rows="3"></textarea>
-            </div>
+          <button type="submit" class="btn btn-primary btn-block">
+            💾 บันทึกข้อมูลทั่วไป
+          </button>
+        </form>
+      </div>
 
-            <button type="submit" class="btn btn-primary">
-              💾 บันทึกข้อมูลทั่วไป
-            </button>
-          </form>
-        </div>
+      <!-- Medical Tab -->
+      <div id="medical-tab" class="tab-content">
+        <form id="medical-form">
+          <div class="form-group">
+            <label>ลักษณะอาการป่วย / โรคประจำตัว</label>
+            <textarea id="medicalCondition" rows="4" placeholder="อธิบายอาการและประวัติการป่วย"></textarea>
+          </div>
 
-        <!-- Medical Tab -->
-        <div id="medical-tab" class="tab-content">
-          <form id="medical-form">
-            <div class="form-group">
-              <label>ลักษณะอาการป่วย / โรคประจำตัว</label>
-              <textarea id="medicalCondition" rows="4" placeholder="อธิบายอาการและประวัติการป่วย"></textarea>
-            </div>
+          <div class="form-group">
+            <label>โรงพยาบาลที่รับการรักษาและมีประวัติ</label>
+            <input type="text" id="hospitalName" placeholder="โรงพยาบาลจุฬาลงกรณ์">
+          </div>
 
-            <div class="form-group">
-              <label>โรงพยาบาลที่รับการรักษาและมีประวัติ</label>
-              <input type="text" id="hospitalName" placeholder="โรงพยาบาลจุฬาลงกรณ์">
-            </div>
+          <div class="form-group">
+            <label>ชื่อแพทย์ผู้ดูแล</label>
+            <input type="text" id="doctorName" placeholder="นพ. สมชาย ใจดี">
+          </div>
 
-            <div class="form-group">
-              <label>ชื่อแพทย์ผู้ดูแล</label>
-              <input type="text" id="doctorName" placeholder="นพ. สมชาย ใจดี">
-            </div>
+          <div class="form-group">
+            <label>เบอร์โทรศัพท์แพทย์</label>
+            <input type="tel" id="doctorPhone" placeholder="02-xxx-xxxx">
+          </div>
 
-            <div class="form-group">
-              <label>เบอร์โทรศัพท์แพทย์</label>
-              <input type="tel" id="doctorPhone" placeholder="02-xxx-xxxx">
-            </div>
+          <div class="form-group">
+            <label>กลุ่มเลือด</label>
+            <select id="bloodType">
+              <option value="">เลือกกลุ่มเลือด</option>
+              <option value="A">A</option>
+              <option value="B">B</option>
+              <option value="AB">AB</option>
+              <option value="O">O</option>
+            </select>
+          </div>
 
-            <div class="form-group">
-              <label>กลุ่มเลือด</label>
-              <select id="bloodType">
-                <option value="">เลือกกลุ่มเลือด</option>
-                <option value="A">A</option>
-                <option value="B">B</option>
-                <option value="AB">AB</option>
-                <option value="O">O</option>
-              </select>
-            </div>
+          <div class="form-group">
+            <label>น้ำหนัก (กก.)</label>
+            <input type="number" id="weight" step="0.1">
+          </div>
 
-            <div class="form-group">
-              <label>น้ำหนัก (กก.)</label>
-              <input type="number" id="weight" step="0.1">
-            </div>
+          <div class="form-group">
+            <label>ส่วนสูง (ซม.)</label>
+            <input type="number" id="height" step="0.1">
+          </div>
 
-            <div class="form-group">
-              <label>ส่วนสูง (ซม.)</label>
-              <input type="number" id="height" step="0.1">
-            </div>
-
-            <div class="form-group">
-              <label>โรคประจำตัว</label>
-              <div id="medical-conditions" class="medical-conditions"></div>
-              <div class="add-condition">
-                <input type="text" id="newCondition" placeholder="เพิ่มโรคประจำตัว">
-                <button type="button" onclick="addCondition()">เพิ่ม</button>
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label>อาการแพ้</label>
-              <div class="allergy-tabs">
-                <div class="allergy-tab active" data-type="medication">ยา</div>
-                <div class="allergy-tab" data-type="food">อาหาร</div>
-                <div class="allergy-tab" data-type="other">อื่นๆ</div>
-              </div>
-
-              <div class="allergy-content">
-                <div id="allergy-list"></div>
-                <button type="button" class="btn-add-allergy" onclick="showAllergyForm()">+ เพิ่มอาการแพ้</button>
-              </div>
-
-              <div id="allergy-form" style="display: none;">
-                <div class="form-group">
-                  <label>ชื่ออาการแพ้</label>
-                  <input type="text" id="allergenName" placeholder="ระบุชื่อสิ่งที่แพ้">
-                </div>
-                <div class="form-group">
-                  <label>ระดับความรุนแรง</label>
-                  <select id="allergySeverity">
-                    <option value="mild">เล็กน้อย (Mild)</option>
-                    <option value="moderate">ปานกลาง (Moderate)</option>
-                    <option value="severe">รุนแรง (Severe)</option>
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label>อาการที่เกิดขึ้น</label>
-                  <textarea id="reactionSymptoms" rows="2" placeholder="เช่น คัน ผื่นแดง"></textarea>
-                </div>
-                <div class="form-group">
-                  <label>หมายเหตุ</label>
-                  <textarea id="allergyNotes" rows="2"></textarea>
-                </div>
-                <div style="display: flex; gap: 10px;">
-                  <button type="button" class="btn btn-secondary" onclick="cancelAllergyForm()">ยกเลิก</button>
-                  <button type="button" class="btn btn-primary" onclick="saveAllergy()">บันทึกอาการแพ้</button>
-                </div>
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label>หมายเหตุเพิ่มเติม</label>
-              <textarea id="medicalNotes" rows="3"></textarea>
-            </div>
-
-            <button type="submit" class="btn btn-primary">
-              💾 บันทึกข้อมูลทางการแพทย์
-            </button>
-          </form>
-        </div>
-
-        <!-- Emergency Tab -->
-        <div id="emergency-tab" class="tab-content">
-          <div class="info-card">
-            <h3>📞 หมายเลขฉุกเฉิน</h3>
-            <div class="info-row">
-              <span class="info-label">ฉุกเฉิน:</span>
-              <span class="info-value">1669</span>
-            </div>
-            <div class="info-row">
-              <span class="info-label">สายด่วนสุขภาพ:</span>
-              <span class="info-value">1646</span>
-            </div>
-            <div class="info-row">
-              <span class="info-label">ตำรวจ:</span>
-              <span class="info-value">191</span>
+          <div class="form-group">
+            <label>โรคประจำตัว</label>
+            <div id="medical-conditions" class="medical-conditions"></div>
+            <div class="add-condition">
+              <input type="text" id="newCondition" placeholder="เพิ่มโรคประจำตัว">
+              <button type="button" onclick="addCondition()">เพิ่ม</button>
             </div>
           </div>
 
-          <form id="emergency-form">
-            <div class="form-group">
-              <label>ชื่อผู้ติดต่อฉุกเฉิน</label>
-              <input type="text" id="emergencyContactName">
+          <div class="form-group">
+            <label>อาการแพ้</label>
+            <div class="allergy-tabs">
+              <div class="allergy-tab active" data-type="medication">ยา</div>
+              <div class="allergy-tab" data-type="food">อาหาร</div>
+              <div class="allergy-tab" data-type="other">อื่นๆ</div>
             </div>
 
-            <div class="form-group">
-              <label>ความสัมพันธ์</label>
-              <input type="text" id="emergencyContactRelation" placeholder="เช่น ลูก, หลาน">
+            <div class="allergy-content">
+              <div id="allergy-list"></div>
+              <button type="button" class="btn-add-allergy" onclick="showAllergyForm()">+ เพิ่มอาการแพ้</button>
             </div>
 
-            <div class="form-group">
-              <label>เบอร์โทรศัพท์ฉุกเฉิน</label>
-              <input type="tel" id="emergencyContactPhone">
+            <div id="allergy-form" style="display: none;">
+              <div class="form-group">
+                <label>ชื่ออาการแพ้</label>
+                <input type="text" id="allergenName" placeholder="ระบุชื่อสิ่งที่แพ้">
+              </div>
+              <div class="form-group">
+                <label>ระดับความรุนแรง</label>
+                <select id="allergySeverity">
+                  <option value="mild">เล็กน้อย (Mild)</option>
+                  <option value="moderate">ปานกลาง (Moderate)</option>
+                  <option value="severe">รุนแรง (Severe)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>อาการที่เกิดขึ้น</label>
+                <textarea id="reactionSymptoms" rows="2" placeholder="เช่น คัน ผื่นแดง"></textarea>
+              </div>
+              <div class="form-group">
+                <label>หมายเหตุ</label>
+                <textarea id="allergyNotes" rows="2"></textarea>
+              </div>
+              <div style="display: flex; gap: var(--spacing-sm);">
+                <button type="button" class="btn btn-secondary" style="flex: 1;" onclick="cancelAllergyForm()">ยกเลิก</button>
+                <button type="button" class="btn btn-primary" style="flex: 1;" onclick="saveAllergy()">บันทึกอาการแพ้</button>
+              </div>
             </div>
+          </div>
 
-            <button type="submit" class="btn btn-primary">
-              💾 บันทึกข้อมูลฉุกเฉิน
-            </button>
-          </form>
-        </div>
+          <div class="form-group">
+            <label>หมายเหตุเพิ่มเติม</label>
+            <textarea id="medicalNotes" rows="3"></textarea>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block">
+            💾 บันทึกข้อมูลทางการแพทย์
+          </button>
+        </form>
       </div>
+
+      <!-- Emergency Tab -->
+      <div id="emergency-tab" class="tab-content">
+        <div class="info-card">
+          <h3>📞 หมายเลขฉุกเฉิน</h3>
+          <div class="info-row">
+            <span class="info-label">ฉุกเฉิน:</span>
+            <span class="info-value">1669</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">สายด่วนสุขภาพ:</span>
+            <span class="info-value">1646</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">ตำรวจ:</span>
+            <span class="info-value">191</span>
+          </div>
+        </div>
+
+        <form id="emergency-form">
+          <div class="form-group">
+            <label>ชื่อผู้ติดต่อฉุกเฉิน</label>
+            <input type="text" id="emergencyContactName">
+          </div>
+
+          <div class="form-group">
+            <label>ความสัมพันธ์</label>
+            <input type="text" id="emergencyContactRelation" placeholder="เช่น ลูก, หลาน">
+          </div>
+
+          <div class="form-group">
+            <label>เบอร์โทรศัพท์ฉุกเฉิน</label>
+            <input type="tel" id="emergencyContactPhone">
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block">
+            💾 บันทึกข้อมูลฉุกเฉิน
+          </button>
+        </form>
+      </div>
+
+      <button class="btn btn-secondary btn-block mt-3" onclick="liff.closeWindow()">ปิด</button>
     </div>
   </div>
 
@@ -651,6 +532,17 @@
 
         if (!liff.isLoggedIn()) {
           liff.login();
+          return;
+        }
+
+        // Get user profile
+        const profile = await liff.getProfile();
+
+        // Check if user is registered (first-time detection)
+        const isRegistered = await checkUserRegistration(profile.userId);
+
+        // If not registered, checkUserRegistration will redirect automatically
+        if (!isRegistered) {
           return;
         }
 
@@ -690,8 +582,8 @@
         patientId = group.patient_profiles.id;
         populateForm(group.patient_profiles);
 
-        document.getElementById('loading').style.display = 'none';
-        document.getElementById('main-content').style.display = 'block';
+        document.getElementById('loading').classList.add('hidden');
+        document.getElementById('main-content').classList.remove('hidden');
       } catch (error) {
         console.error('Error loading data:', error);
         showError('ไม่สามารถโหลดข้อมูลได้');
@@ -707,7 +599,7 @@
         if (!userData.profile_id) {
           showError('ไม่พบข้อมูลผู้ใช้ กรุณาลงทะเบียนก่อน');
           setTimeout(() => {
-            window.location.href = '/liff/index.html';
+            window.location.href = '/liff/group-registration.html';
           }, 2000);
           return;
         }
@@ -729,8 +621,8 @@
 
         populateForm(patient);
 
-        document.getElementById('loading').style.display = 'none';
-        document.getElementById('main-content').style.display = 'block';
+        document.getElementById('loading').classList.add('hidden');
+        document.getElementById('main-content').classList.remove('hidden');
       } catch (error) {
         console.error('Error loading user data:', error);
         showError('ไม่สามารถโหลดข้อมูลได้');
@@ -888,7 +780,7 @@
       const alert = document.getElementById('error');
       alert.textContent = message;
       alert.style.display = 'block';
-      document.getElementById('loading').style.display = 'none';
+      document.getElementById('loading').classList.add('hidden');
     }
 
     // Allergy Management Functions

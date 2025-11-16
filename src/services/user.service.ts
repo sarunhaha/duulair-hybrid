@@ -54,61 +54,63 @@ export class UserService {
     // ✅ Step 2: Get profile separately based on role
     let profile = null;
 
-    if (user.role === 'patient') {
-      const { data: patientProfile, error: profileError } = await supabase
-        .from('patient_profiles')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
+    // Determine role by checking which profile exists
+    let role = null;
 
-      if (profileError) {
-        console.error('❌ Error fetching patient profile:', profileError);
-      }
+    // Check patient profile first
+    const { data: patientProfile, error: patientError } = await supabase
+      .from('patient_profiles')
+      .select('*')
+      .eq('user_id', user.id)
+      .maybeSingle();
 
+    if (patientProfile && !patientError) {
       profile = patientProfile;
-      console.log('📋 Patient profile query result:', {
-        found: !!profile,
+      role = 'patient';
+      console.log('📋 Patient profile found:', {
         profile_id: profile?.id,
         first_name: profile?.first_name
       });
-
-    } else if (user.role === 'caregiver') {
-      const { data: caregiverProfile, error: profileError } = await supabase
+    } else {
+      // Check caregiver profile
+      const { data: caregiverProfile, error: caregiverError } = await supabase
         .from('caregiver_profiles')
         .select('*')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
-      if (profileError) {
-        console.error('❌ Error fetching caregiver profile:', profileError);
+      if (caregiverProfile && !caregiverError) {
+        profile = caregiverProfile;
+        role = 'caregiver';
+        console.log('📋 Caregiver profile found:', {
+          profile_id: profile?.id
+        });
       }
-
-      profile = caregiverProfile;
-      console.log('📋 Caregiver profile query result:', {
-        found: !!profile,
-        profile_id: profile?.id
-      });
     }
 
     // ✅ Step 3: Validate that profile exists
-    if (!profile) {
+    if (!profile || !role) {
       console.error('❌ Profile not found for user:', {
         user_id: user.id,
-        role: user.role
+        role: role
       });
-      throw new Error(`Profile not found for ${user.role} with user_id: ${user.id}`);
+      return { exists: false };
     }
 
     console.log('✅ Profile found:', {
       profile_id: profile.id,
       first_name: profile.first_name,
-      last_name: profile.last_name
+      last_name: profile.last_name,
+      role: role
     });
 
     return {
       exists: true,
-      role: user.role,
-      profile
+      user: {
+        ...user,
+        role: role,
+        profile: profile
+      }
     };
   }
 
@@ -843,6 +845,99 @@ export class UserService {
   calculateBMI(weightKg: number, heightCm: number): number {
     const heightM = heightCm / 100;
     return Math.round((weightKg / (heightM * heightM)) * 10) / 10;
+  }
+
+  /**
+   * Create patient profile without LINE account
+   * สร้าง patient profile สำหรับผู้ป่วยที่ไม่มีบัญชี LINE
+   */
+  async createPatientProfile(data: {
+    firstName: string;
+    lastName: string;
+    birthDate: string;
+    conditions?: string | null;
+    groupId?: string | null;
+  }): Promise<{ success: boolean; patientId: string; error?: string }> {
+    try {
+      console.log(`📝 Creating patient profile: ${data.firstName} ${data.lastName}`);
+
+      // Insert into patient_profiles table
+      const { data: profile, error: profileError } = await supabase
+        .from('patient_profiles')
+        .insert({
+          first_name: data.firstName,
+          last_name: data.lastName,
+          birth_date: data.birthDate,
+          // Convert conditions string to array for chronic_diseases field
+          chronic_diseases: data.conditions ? [data.conditions] : [],
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+          // Note: user_id is now NULLABLE (Migration 002) to support patients without LINE accounts
+        })
+        .select()
+        .single();
+
+      if (profileError) {
+        console.error('❌ Error creating patient profile:', profileError);
+        throw new Error(profileError.message);
+      }
+
+      console.log(`✅ Patient profile created: ${profile.id}`);
+
+      return {
+        success: true,
+        patientId: profile.id
+      };
+    } catch (error: any) {
+      console.error('❌ Create patient profile error:', error);
+      return {
+        success: false,
+        patientId: '',
+        error: error.message || 'Failed to create patient profile'
+      };
+    }
+  }
+
+  /**
+   * Link caregiver to patient directly (without link code)
+   * เชื่อมต่อ caregiver กับ patient โดยตรง
+   */
+  async linkCaregiverToPatient(
+    caregiverId: string,
+    patientId: string,
+    relationship: string
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      console.log(`🔗 Linking caregiver ${caregiverId} to patient ${patientId} with relationship: ${relationship}`);
+
+      // Insert into patient_caregivers table (schema uses patient_caregivers not patient_caregiver_links)
+      const { error: linkError } = await supabase
+        .from('patient_caregivers')
+        .insert({
+          patient_id: patientId,
+          caregiver_id: caregiverId,
+          relationship: relationship,
+          status: 'active', // Auto-approve for simplified registration (schema uses status not is_approved)
+          approved_at: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+
+      if (linkError) {
+        console.error('❌ Error linking caregiver to patient:', linkError);
+        throw new Error(linkError.message);
+      }
+
+      console.log(`✅ Caregiver linked to patient successfully`);
+
+      return { success: true };
+    } catch (error: any) {
+      console.error('❌ Link caregiver to patient error:', error);
+      return {
+        success: false,
+        error: error.message || 'Failed to link caregiver to patient'
+      };
+    }
   }
 
   /**
