@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#4CAF50">
+  <title>โปรไฟล์ของฉัน - Duulair</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="success-container">
+      <div class="success-icon">👤</div>
+      <h1>โปรไฟล์ของฉัน</h1>
+      <p class="text-large" id="welcomeMessage">ยินดีต้อนรับ</p>
+    </div>
+
+    <!-- Registration Status Card -->
+    <div class="card mb-2">
+      <div class="status-badge success">
+        ✅ ลงทะเบียนเรียบร้อย
+      </div>
+
+      <div class="profile-info">
+        <div class="info-row">
+          <span class="info-label">บทบาท:</span>
+          <span class="info-value" id="userRole">-</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">วันที่สมัคร:</span>
+          <span class="info-value" id="registeredDate">-</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Patient View -->
+    <div id="patientDashboard" class="hidden">
+      <!-- Personal Info Card -->
+      <div class="card mb-2">
+        <div class="card-header">📋 ข้อมูลส่วนตัว</div>
+
+        <div class="profile-info">
+          <div class="info-row">
+            <span class="info-label">ชื่อ-นามสกุล:</span>
+            <span class="info-value" id="patientFullName">-</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">อายุ:</span>
+            <span class="info-value" id="patientAge">-</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">เพศ:</span>
+            <span class="info-value" id="patientGender">-</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">น้ำหนัก / ส่วนสูง:</span>
+            <span class="info-value" id="patientWeightHeight">-</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">โรคประจำตัว:</span>
+            <span class="info-value" id="patientDiseases">ไม่มี</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Link Code Card -->
+      <div class="card mb-2">
+        <div class="card-header">🔗 รหัสเชื่อมต่อของคุณ</div>
+
+        <p class="text-center mb-2">
+          แชร์รหัสนี้กับผู้ดูแลเพื่อให้เขาเชื่อมต่อกับบัญชีของคุณ
+        </p>
+
+        <div class="link-code" id="linkCodeDisplay">
+          ------
+        </div>
+
+        <div class="qr-code">
+          <div id="qrCodeContainer" style="display: flex; justify-content: center; align-items: center;"></div>
+        </div>
+
+        <div class="button-group">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="shareCode()">
+            📤 แชร์
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="copyCode()">
+            📋 คัดลอก
+          </button>
+        </div>
+
+        <div class="alert alert-info">
+          💡 รหัสนี้ใช้ได้ 24 ชั่วโมง หลังจากนั้นจะมีการสร้างรหัสใหม่อัตโนมัติ
+        </div>
+      </div>
+
+      <!-- Caregivers List Card -->
+      <div class="card mb-2">
+        <div class="card-header">👥 ผู้ดูแลของคุณ</div>
+
+        <div id="caregiversList">
+          <div class="empty-state">
+            <p class="text-center text-muted">ยังไม่มีผู้ดูแลเชื่อมต่อ</p>
+            <p class="text-center text-small">แชร์รหัสเชื่อมต่อด้านบนให้ผู้ดูแลของคุณ</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Caregiver View -->
+    <div id="caregiverDashboard" class="hidden">
+      <!-- Personal Info Card -->
+      <div class="card mb-2">
+        <div class="card-header">📋 ข้อมูลส่วนตัว</div>
+
+        <div class="profile-info">
+          <div class="info-row">
+            <span class="info-label">ชื่อ-นามสกุล:</span>
+            <span class="info-value" id="caregiverFullName">-</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">เบอร์โทร:</span>
+            <span class="info-value" id="caregiverPhone">-</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Patients List Card -->
+      <div class="card mb-2">
+        <div class="card-header">👥 ผู้ป่วยที่คุณดูแล</div>
+
+        <div id="patientsList">
+          <div class="empty-state">
+            <p class="text-center text-muted">ยังไม่มีผู้ป่วยที่เชื่อมต่อ</p>
+            <p class="text-center text-small">ขอรหัสเชื่อมต่อจากผู้ป่วยเพื่อเชื่อมต่อกับบัญชีของเขา</p>
+          </div>
+        </div>
+
+        <button type="button" class="btn btn-block mt-2" onclick="addPatient()">
+          ➕ เพิ่มผู้ป่วย
+        </button>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="mt-2">
+      <button type="button" class="btn btn-secondary btn-block" onclick="closeLiff()">
+        ปิด
+      </button>
+    </div>
+
+    <p class="text-center text-small mt-2" style="color: #666;">
+      ต้องการความช่วยเหลือ? พิมพ์ "ช่วยเหลือ" ใน LINE Chat
+    </p>
+  </div>
+
+  <!-- LIFF SDK -->
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+  <!-- QR Code Library -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs2@0.0.2/qrcode.min.js"></script>
+
+  <!-- App JavaScript -->
+  <script src="js/utils.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/liff-init.js"></script>
+
+  <script>
+    // ========================================
+    // Dashboard Page Logic
+    // ========================================
+
+    let linkCode = null;
+    let userData = null;
+
+    async function init() {
+      try {
+        showLoading('กำลังโหลดข้อมูล...');
+
+        // Initialize LIFF
+        liffProfile = await initLiff();
+        if (!liffProfile) return;
+
+        // Fetch user dashboard data
+        const result = await api.checkRegistration(liffProfile.userId);
+
+        if (!result.exists) {
+          // Not registered - redirect to registration
+          window.location.href = '/liff/role-selection.html';
+          return;
+        }
+
+        userData = result;
+        console.log('📊 User data:', userData);
+
+        hideLoading();
+
+        // Show appropriate dashboard
+        if (result.role === 'patient') {
+          await showPatientDashboard();
+        } else if (result.role === 'caregiver') {
+          await showCaregiverDashboard();
+        }
+
+      } catch (error) {
+        console.error('❌ Initialization error:', error);
+        hideLoading();
+        showError('เกิดข้อผิดพลาดในการโหลดข้อมูล');
+      }
+    }
+
+    /**
+     * Show patient dashboard
+     */
+    async function showPatientDashboard() {
+      try {
+        const profile = userData.profile;
+
+        // Update header
+        document.getElementById('welcomeMessage').textContent = `สวัสดี ${profile.first_name}`;
+        document.getElementById('userRole').textContent = 'ผู้ป่วย';
+
+        // Format date
+        const createdDate = new Date(profile.created_at);
+        document.getElementById('registeredDate').textContent = formatThaiDate(createdDate);
+
+        // Personal info
+        document.getElementById('patientFullName').textContent =
+          `${profile.first_name} ${profile.last_name}`;
+
+        // Calculate age
+        const birthDate = new Date(profile.birth_date);
+        const age = calculateAge(birthDate);
+        document.getElementById('patientAge').textContent = `${age} ปี`;
+
+        // Gender
+        const genderText = {
+          'male': 'ชาย',
+          'female': 'หญิง',
+          'other': 'อื่นๆ'
+        };
+        document.getElementById('patientGender').textContent =
+          genderText[profile.gender] || profile.gender;
+
+        // Weight/Height
+        if (profile.weight_kg && profile.height_cm) {
+          const bmi = (profile.weight_kg / ((profile.height_cm / 100) ** 2)).toFixed(1);
+          document.getElementById('patientWeightHeight').textContent =
+            `${profile.weight_kg} kg / ${profile.height_cm} cm (BMI: ${bmi})`;
+        } else {
+          document.getElementById('patientWeightHeight').textContent = 'ไม่ระบุ';
+        }
+
+        // Chronic diseases
+        if (profile.chronic_diseases && profile.chronic_diseases.length > 0) {
+          document.getElementById('patientDiseases').textContent =
+            profile.chronic_diseases.join(', ');
+        }
+
+        // Generate Link Code
+        await loadLinkCode(profile.id);
+
+        // Load caregivers list
+        await loadCaregivers(profile.id);
+
+        // Show patient dashboard
+        document.getElementById('patientDashboard').classList.remove('hidden');
+
+      } catch (error) {
+        console.error('❌ Error loading patient dashboard:', error);
+        showError('ไม่สามารถโหลดข้อมูลได้');
+      }
+    }
+
+    /**
+     * Show caregiver dashboard
+     */
+    async function showCaregiverDashboard() {
+      try {
+        const profile = userData.profile;
+
+        // Update header
+        document.getElementById('welcomeMessage').textContent = `สวัสดี ${profile.first_name}`;
+        document.getElementById('userRole').textContent = 'ผู้ดูแล';
+
+        // Format date
+        const createdDate = new Date(profile.created_at);
+        document.getElementById('registeredDate').textContent = formatThaiDate(createdDate);
+
+        // Personal info
+        document.getElementById('caregiverFullName').textContent =
+          `${profile.first_name} ${profile.last_name}`;
+        document.getElementById('caregiverPhone').textContent =
+          profile.phone_number || 'ไม่ระบุ';
+
+        // Load patients list
+        await loadPatients(profile.id);
+
+        // Show caregiver dashboard
+        document.getElementById('caregiverDashboard').classList.remove('hidden');
+
+      } catch (error) {
+        console.error('❌ Error loading caregiver dashboard:', error);
+        showError('ไม่สามารถโหลดข้อมูลได้');
+      }
+    }
+
+    /**
+     * Load link code for patient
+     */
+    async function loadLinkCode(patientId) {
+      try {
+        const result = await api.generateLinkCode(patientId);
+        linkCode = result.code;
+
+        console.log('✅ Link code:', linkCode);
+
+        // Display link code
+        document.getElementById('linkCodeDisplay').textContent = linkCode;
+
+        // Generate QR code
+        const qrContainer = document.getElementById('qrCodeContainer');
+        qrContainer.innerHTML = '';
+
+        if (typeof QRCode !== 'undefined') {
+          new QRCode(qrContainer, {
+            text: `DUULAIR:${linkCode}`,
+            width: 200,
+            height: 200,
+            colorDark: '#000000',
+            colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.H
+          });
+          console.log('✅ QR Code generated');
+        } else {
+          console.error('❌ QRCode library not loaded');
+          qrContainer.innerHTML = '<p style="color: #999;">QR Code ไม่สามารถแสดงได้</p>';
+        }
+
+      } catch (error) {
+        console.error('❌ Error loading link code:', error);
+        showError('ไม่สามารถโหลดรหัสเชื่อมต่อได้');
+      }
+    }
+
+    /**
+     * Load caregivers list for patient
+     */
+    async function loadCaregivers(patientId) {
+      try {
+        console.log('📝 Load caregivers for patient:', patientId);
+
+        const result = await api.getPatientCaregivers(patientId);
+
+        if (!result.success || !result.caregivers || result.caregivers.length === 0) {
+          console.log('ℹ️ No caregivers found');
+          return; // Show empty state (already in HTML)
+        }
+
+        const caregivers = result.caregivers;
+        console.log('✅ Caregivers loaded:', caregivers);
+
+        // Create HTML for caregivers list
+        const caregiversListHTML = caregivers.map(caregiver => `
+          <div class="person-card">
+            <div class="person-card-header">
+              <span class="person-name">${caregiver.first_name} ${caregiver.last_name}</span>
+              <span class="person-status ${caregiver.status === 'approved' ? 'approved' : 'pending'}">
+                ${caregiver.status === 'approved' ? 'อนุมัติแล้ว' : 'รออนุมัติ'}
+              </span>
+            </div>
+            <div class="person-details">
+              ${caregiver.relationship || 'ผู้ดูแล'} • ${caregiver.phone_number || 'ไม่ระบุ'}
+            </div>
+          </div>
+        `).join('');
+
+        // Update UI
+        document.getElementById('caregiversList').innerHTML = caregiversListHTML;
+
+      } catch (error) {
+        console.error('❌ Error loading caregivers:', error);
+      }
+    }
+
+    /**
+     * Load patients list for caregiver
+     */
+    async function loadPatients(caregiverId) {
+      try {
+        console.log('📝 Load patients for caregiver:', caregiverId);
+
+        const result = await api.getCaregiverPatients(caregiverId);
+
+        if (!result.success || !result.patients || result.patients.length === 0) {
+          console.log('ℹ️ No patients found');
+          return; // Show empty state (already in HTML)
+        }
+
+        const patients = result.patients;
+        console.log('✅ Patients loaded:', patients);
+
+        // Create HTML for patients list
+        const patientsListHTML = patients.map(patient => {
+          const age = calculateAge(new Date(patient.birth_date));
+          return `
+            <div class="person-card">
+              <div class="person-card-header">
+                <span class="person-name">${patient.first_name} ${patient.last_name}</span>
+                <span class="person-status approved">เชื่อมต่อแล้ว</span>
+              </div>
+              <div class="person-details">
+                อายุ ${age} ปี • ${patient.gender === 'male' ? 'ชาย' : patient.gender === 'female' ? 'หญิง' : 'อื่นๆ'}
+              </div>
+              ${patient.chronic_diseases && patient.chronic_diseases.length > 0 ? `
+                <div class="person-details">
+                  โรคประจำตัว: ${patient.chronic_diseases.join(', ')}
+                </div>
+              ` : ''}
+            </div>
+          `;
+        }).join('');
+
+        // Update UI
+        document.getElementById('patientsList').innerHTML = patientsListHTML;
+
+      } catch (error) {
+        console.error('❌ Error loading patients:', error);
+      }
+    }
+
+    /**
+     * Share link code via LINE
+     */
+    async function shareCode() {
+      if (!linkCode) {
+        showError('ไม่พบรหัสเชื่อมต่อ');
+        return;
+      }
+
+      const message = {
+        type: 'text',
+        text: `🔗 รหัสเชื่อมต่อ Duulair\n\nรหัส: ${linkCode}\n\nใช้รหัสนี้เพื่อเชื่อมต่อกับบัญชีผู้ป่วยของฉัน\n\n📱 เปิด LINE → Duulair → ลงทะเบียนผู้ดูแล → กรอกรหัสนี้`
+      };
+
+      const success = await shareWithTargetPicker(message);
+
+      if (success) {
+        showSuccess('แชร์รหัสเรียบร้อย');
+      } else {
+        copyCode();
+      }
+    }
+
+    /**
+     * Copy link code to clipboard
+     */
+    function copyCode() {
+      if (!linkCode) {
+        showError('ไม่พบรหัสเชื่อมต่อ');
+        return;
+      }
+
+      const input = document.createElement('input');
+      input.value = linkCode;
+      document.body.appendChild(input);
+      input.select();
+
+      try {
+        document.execCommand('copy');
+        showSuccess('คัดลอกรหัสเรียบร้อย');
+      } catch (error) {
+        showError('ไม่สามารถคัดลอกได้');
+      }
+
+      document.body.removeChild(input);
+    }
+
+    /**
+     * Add patient for caregiver
+     */
+    function addPatient() {
+      // Redirect to caregiver registration page to add link code
+      window.location.href = '/liff/caregiver-registration.html';
+    }
+
+    /**
+     * Calculate age from birth date
+     */
+    function calculateAge(birthDate) {
+      const today = new Date();
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+
+      return age;
+    }
+
+    /**
+     * Format Thai date
+     */
+    function formatThaiDate(date) {
+      const options = {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      };
+
+      return date.toLocaleDateString('th-TH', options);
+    }
+
+    // ========================================
+    // Start
+    // ========================================
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+  </script>
+</body>
+</html>

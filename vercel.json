@@ -56,6 +56,10 @@
       "dest": "/public/liff/settings.html"
     },
     {
+      "src": "/liff/dashboard/?$",
+      "dest": "/public/liff/dashboard.html"
+    },
+    {
       "src": "/liff/(.*\\.(html|css|js|png|jpg|jpeg|gif|svg|ico))",
       "dest": "/public/liff/$1"
     },

@@ -3,524 +3,437 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#4CAF50">
-  <title>โปรไฟล์ของฉัน - Duulair</title>
-  <link rel="stylesheet" href="css/style.css">
+  <meta name="theme-color" content="#667eea">
+  <title>บันทึกสุขภาพ - Duulair</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Sarabun', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 500px;
+      margin: 0 auto;
+    }
+
+    .header {
+      text-align: center;
+      color: white;
+      margin-bottom: 30px;
+    }
+
+    .header h1 {
+      font-size: 32px;
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+
+    .header p {
+      font-size: 16px;
+      opacity: 0.95;
+    }
+
+    .welcome-card {
+      background: white;
+      border-radius: 20px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      text-align: center;
+    }
+
+    .welcome-icon {
+      font-size: 48px;
+      margin-bottom: 10px;
+    }
+
+    .welcome-text {
+      font-size: 18px;
+      color: #333;
+      font-weight: 600;
+      margin-bottom: 5px;
+    }
+
+    .welcome-subtext {
+      font-size: 14px;
+      color: #666;
+    }
+
+    .section-title {
+      color: white;
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 15px;
+      padding-left: 5px;
+    }
+
+    .actions-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .action-card {
+      background: white;
+      border-radius: 15px;
+      padding: 25px 15px;
+      text-align: center;
+      text-decoration: none;
+      color: #333;
+      transition: all 0.3s ease;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 140px;
+    }
+
+    .action-card:active {
+      transform: scale(0.95);
+    }
+
+    .action-card .icon {
+      font-size: 48px;
+      margin-bottom: 12px;
+    }
+
+    .action-card .label {
+      font-size: 16px;
+      font-weight: 600;
+      color: #333;
+      line-height: 1.3;
+    }
+
+    .action-card .sublabel {
+      font-size: 12px;
+      color: #666;
+      margin-top: 5px;
+    }
+
+    /* Specific colors for each action */
+    .action-water {
+      border-bottom: 4px solid #4facfe;
+    }
+
+    .action-water:active {
+      background: #f0f9ff;
+    }
+
+    .action-medication {
+      border-bottom: 4px solid #fa709a;
+    }
+
+    .action-medication:active {
+      background: #fff5f8;
+    }
+
+    .action-vitals {
+      border-bottom: 4px solid #f093fb;
+    }
+
+    .action-vitals:active {
+      background: #fdf5ff;
+    }
+
+    .action-food {
+      border-bottom: 4px solid #4caf50;
+    }
+
+    .action-food:active {
+      background: #f1f8f4;
+    }
+
+    .action-exercise {
+      border-bottom: 4px solid #ffa726;
+    }
+
+    .action-exercise:active {
+      background: #fff8f0;
+    }
+
+    .action-sleep {
+      border-bottom: 4px solid #9c27b0;
+    }
+
+    .action-sleep:active {
+      background: #f9f5ff;
+    }
+
+    .info-box {
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(10px);
+      border-radius: 15px;
+      padding: 15px;
+      color: white;
+      font-size: 14px;
+      line-height: 1.6;
+      margin-top: 20px;
+    }
+
+    .info-box strong {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 15px;
+    }
+
+    .close-btn {
+      background: rgba(255, 255, 255, 0.2);
+      color: white;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 12px;
+      padding: 12px 24px;
+      font-size: 16px;
+      font-weight: 600;
+      width: 100%;
+      margin-top: 20px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .close-btn:active {
+      background: rgba(255, 255, 255, 0.3);
+      transform: scale(0.98);
+    }
+
+    /* Loading state */
+    .loading {
+      text-align: center;
+      color: white;
+      padding: 40px 20px;
+    }
+
+    .loading-spinner {
+      border: 4px solid rgba(255, 255, 255, 0.3);
+      border-top: 4px solid white;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 20px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    @media (max-width: 360px) {
+      .action-card {
+        padding: 20px 10px;
+        min-height: 120px;
+      }
+
+      .action-card .icon {
+        font-size: 40px;
+      }
+
+      .action-card .label {
+        font-size: 14px;
+      }
+    }
+  </style>
 </head>
 <body>
   <div class="container">
-    <!-- Header -->
-    <div class="success-container">
-      <div class="success-icon">👤</div>
-      <h1>โปรไฟล์ของฉัน</h1>
-      <p class="text-large" id="welcomeMessage">ยินดีต้อนรับ</p>
+    <!-- Loading State -->
+    <div id="loadingState" class="loading">
+      <div class="loading-spinner"></div>
+      <p>กำลังโหลด...</p>
     </div>
 
-    <!-- Registration Status Card -->
-    <div class="card mb-2">
-      <div class="status-badge success">
-        ✅ ลงทะเบียนเรียบร้อย
+    <!-- Main Content -->
+    <div id="mainContent" class="hidden">
+      <div class="header">
+        <h1>📝 บันทึกสุขภาพ</h1>
+        <p>เลือกกิจกรรมที่ต้องการบันทึก</p>
       </div>
 
-      <div class="profile-info">
-        <div class="info-row">
-          <span class="info-label">บทบาท:</span>
-          <span class="info-value" id="userRole">-</span>
+      <!-- Welcome Card -->
+      <div class="welcome-card">
+        <div class="welcome-icon">👋</div>
+        <div class="welcome-text" id="welcomeName">สวัสดี</div>
+        <div class="welcome-subtext">เลือกเมนูด้านล่างเพื่อบันทึกข้อมูลสุขภาพ</div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="section-title">⚡ เมนูด่วน</div>
+      <div class="actions-grid">
+        <!-- Water Tracking -->
+        <a href="water-tracking.html" class="action-card action-water">
+          <div class="icon">💧</div>
+          <div class="label">บันทึกน้ำ</div>
+          <div class="sublabel">Water</div>
+        </a>
+
+        <!-- Medications -->
+        <a href="medications.html" class="action-card action-medication">
+          <div class="icon">💊</div>
+          <div class="label">ยา</div>
+          <div class="sublabel">Medications</div>
+        </a>
+
+        <!-- Vitals -->
+        <div class="action-card action-vitals" onclick="logVitals()">
+          <div class="icon">🩺</div>
+          <div class="label">วัดความดัน</div>
+          <div class="sublabel">Vitals</div>
         </div>
-        <div class="info-row">
-          <span class="info-label">วันที่สมัคร:</span>
-          <span class="info-value" id="registeredDate">-</span>
+
+        <!-- Food -->
+        <div class="action-card action-food" onclick="logFood()">
+          <div class="icon">🍚</div>
+          <div class="label">บันทึกอาหาร</div>
+          <div class="sublabel">Food</div>
+        </div>
+
+        <!-- Exercise (Optional) -->
+        <div class="action-card action-exercise" onclick="logExercise()">
+          <div class="icon">🚶</div>
+          <div class="label">ออกกำลังกาย</div>
+          <div class="sublabel">Exercise</div>
+        </div>
+
+        <!-- Sleep (Optional) -->
+        <div class="action-card action-sleep" onclick="logSleep()">
+          <div class="icon">😴</div>
+          <div class="label">บันทึกการนอน</div>
+          <div class="sublabel">Sleep</div>
         </div>
       </div>
+
+      <!-- Info Box -->
+      <div class="info-box">
+        <strong>💡 คำแนะนำ</strong>
+        • คลิกที่กิจกรรมเพื่อบันทึกข้อมูล<br>
+        • ข้อมูลจะถูกบันทึกอัตโนมัติ<br>
+        • สามารถดูประวัติได้จากเมนูรายงาน
+      </div>
+
+      <button class="close-btn" onclick="closeLiff()">ปิด</button>
     </div>
-
-    <!-- Patient View -->
-    <div id="patientDashboard" class="hidden">
-      <!-- Personal Info Card -->
-      <div class="card mb-2">
-        <div class="card-header">📋 ข้อมูลส่วนตัว</div>
-
-        <div class="profile-info">
-          <div class="info-row">
-            <span class="info-label">ชื่อ-นามสกุล:</span>
-            <span class="info-value" id="patientFullName">-</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">อายุ:</span>
-            <span class="info-value" id="patientAge">-</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">เพศ:</span>
-            <span class="info-value" id="patientGender">-</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">น้ำหนัก / ส่วนสูง:</span>
-            <span class="info-value" id="patientWeightHeight">-</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">โรคประจำตัว:</span>
-            <span class="info-value" id="patientDiseases">ไม่มี</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Link Code Card -->
-      <div class="card mb-2">
-        <div class="card-header">🔗 รหัสเชื่อมต่อของคุณ</div>
-
-        <p class="text-center mb-2">
-          แชร์รหัสนี้กับผู้ดูแลเพื่อให้เขาเชื่อมต่อกับบัญชีของคุณ
-        </p>
-
-        <div class="link-code" id="linkCodeDisplay">
-          ------
-        </div>
-
-        <div class="qr-code">
-          <div id="qrCodeContainer" style="display: flex; justify-content: center; align-items: center;"></div>
-        </div>
-
-        <div class="button-group">
-          <button type="button" class="btn btn-secondary btn-sm" onclick="shareCode()">
-            📤 แชร์
-          </button>
-          <button type="button" class="btn btn-secondary btn-sm" onclick="copyCode()">
-            📋 คัดลอก
-          </button>
-        </div>
-
-        <div class="alert alert-info">
-          💡 รหัสนี้ใช้ได้ 24 ชั่วโมง หลังจากนั้นจะมีการสร้างรหัสใหม่อัตโนมัติ
-        </div>
-      </div>
-
-      <!-- Caregivers List Card -->
-      <div class="card mb-2">
-        <div class="card-header">👥 ผู้ดูแลของคุณ</div>
-
-        <div id="caregiversList">
-          <div class="empty-state">
-            <p class="text-center text-muted">ยังไม่มีผู้ดูแลเชื่อมต่อ</p>
-            <p class="text-center text-small">แชร์รหัสเชื่อมต่อด้านบนให้ผู้ดูแลของคุณ</p>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Caregiver View -->
-    <div id="caregiverDashboard" class="hidden">
-      <!-- Personal Info Card -->
-      <div class="card mb-2">
-        <div class="card-header">📋 ข้อมูลส่วนตัว</div>
-
-        <div class="profile-info">
-          <div class="info-row">
-            <span class="info-label">ชื่อ-นามสกุล:</span>
-            <span class="info-value" id="caregiverFullName">-</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">เบอร์โทร:</span>
-            <span class="info-value" id="caregiverPhone">-</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Patients List Card -->
-      <div class="card mb-2">
-        <div class="card-header">👥 ผู้ป่วยที่คุณดูแล</div>
-
-        <div id="patientsList">
-          <div class="empty-state">
-            <p class="text-center text-muted">ยังไม่มีผู้ป่วยที่เชื่อมต่อ</p>
-            <p class="text-center text-small">ขอรหัสเชื่อมต่อจากผู้ป่วยเพื่อเชื่อมต่อกับบัญชีของเขา</p>
-          </div>
-        </div>
-
-        <button type="button" class="btn btn-block mt-2" onclick="addPatient()">
-          ➕ เพิ่มผู้ป่วย
-        </button>
-      </div>
-    </div>
-
-    <!-- Action Buttons -->
-    <div class="mt-2">
-      <button type="button" class="btn btn-secondary btn-block" onclick="closeLiff()">
-        ปิด
-      </button>
-    </div>
-
-    <p class="text-center text-small mt-2" style="color: #666;">
-      ต้องการความช่วยเหลือ? พิมพ์ "ช่วยเหลือ" ใน LINE Chat
-    </p>
   </div>
 
   <!-- LIFF SDK -->
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
-  <!-- QR Code Library -->
-  <script src="https://cdn.jsdelivr.net/npm/qrcodejs2@0.0.2/qrcode.min.js"></script>
-
-  <!-- App JavaScript -->
-  <script src="js/utils.js"></script>
-  <script src="js/api.js"></script>
-  <script src="js/liff-init.js"></script>
-
   <script>
-    // ========================================
-    // Dashboard Page Logic
-    // ========================================
+    // LIFF ID - Replace with your actual LIFF ID
+    const LIFF_ID = '2008278683-5k69jxNq';
 
-    let linkCode = null;
-    let userData = null;
-
+    // Initialize
     async function init() {
       try {
-        showLoading('กำลังโหลดข้อมูล...');
+        await liff.init({ liffId: LIFF_ID });
 
-        // Initialize LIFF
-        liffProfile = await initLiff();
-        if (!liffProfile) return;
-
-        // Fetch user dashboard data
-        const result = await api.checkRegistration(liffProfile.userId);
-
-        if (!result.exists) {
-          // Not registered - redirect to registration
-          window.location.href = '/liff/role-selection.html';
+        if (!liff.isLoggedIn()) {
+          liff.login();
           return;
         }
 
-        userData = result;
-        console.log('📊 User data:', userData);
+        // Get user profile
+        const profile = await liff.getProfile();
+        document.getElementById('welcomeName').textContent = `สวัสดี ${profile.displayName}`;
 
-        hideLoading();
-
-        // Show appropriate dashboard
-        if (result.role === 'patient') {
-          await showPatientDashboard();
-        } else if (result.role === 'caregiver') {
-          await showCaregiverDashboard();
-        }
+        // Show content
+        document.getElementById('loadingState').classList.add('hidden');
+        document.getElementById('mainContent').classList.remove('hidden');
 
       } catch (error) {
-        console.error('❌ Initialization error:', error);
-        hideLoading();
-        showError('เกิดข้อผิดพลาดในการโหลดข้อมูล');
+        console.error('LIFF initialization failed:', error);
+        alert('เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่อีกครั้ง');
       }
     }
 
-    /**
-     * Show patient dashboard
-     */
-    async function showPatientDashboard() {
-      try {
-        const profile = userData.profile;
-
-        // Update header
-        document.getElementById('welcomeMessage').textContent = `สวัสดี ${profile.first_name}`;
-        document.getElementById('userRole').textContent = 'ผู้ป่วย';
-
-        // Format date
-        const createdDate = new Date(profile.created_at);
-        document.getElementById('registeredDate').textContent = formatThaiDate(createdDate);
-
-        // Personal info
-        document.getElementById('patientFullName').textContent =
-          `${profile.first_name} ${profile.last_name}`;
-
-        // Calculate age
-        const birthDate = new Date(profile.birth_date);
-        const age = calculateAge(birthDate);
-        document.getElementById('patientAge').textContent = `${age} ปี`;
-
-        // Gender
-        const genderText = {
-          'male': 'ชาย',
-          'female': 'หญิง',
-          'other': 'อื่นๆ'
-        };
-        document.getElementById('patientGender').textContent =
-          genderText[profile.gender] || profile.gender;
-
-        // Weight/Height
-        if (profile.weight_kg && profile.height_cm) {
-          const bmi = (profile.weight_kg / ((profile.height_cm / 100) ** 2)).toFixed(1);
-          document.getElementById('patientWeightHeight').textContent =
-            `${profile.weight_kg} kg / ${profile.height_cm} cm (BMI: ${bmi})`;
-        } else {
-          document.getElementById('patientWeightHeight').textContent = 'ไม่ระบุ';
-        }
-
-        // Chronic diseases
-        if (profile.chronic_diseases && profile.chronic_diseases.length > 0) {
-          document.getElementById('patientDiseases').textContent =
-            profile.chronic_diseases.join(', ');
-        }
-
-        // Generate Link Code
-        await loadLinkCode(profile.id);
-
-        // Load caregivers list
-        await loadCaregivers(profile.id);
-
-        // Show patient dashboard
-        document.getElementById('patientDashboard').classList.remove('hidden');
-
-      } catch (error) {
-        console.error('❌ Error loading patient dashboard:', error);
-        showError('ไม่สามารถโหลดข้อมูลได้');
-      }
-    }
-
-    /**
-     * Show caregiver dashboard
-     */
-    async function showCaregiverDashboard() {
-      try {
-        const profile = userData.profile;
-
-        // Update header
-        document.getElementById('welcomeMessage').textContent = `สวัสดี ${profile.first_name}`;
-        document.getElementById('userRole').textContent = 'ผู้ดูแล';
-
-        // Format date
-        const createdDate = new Date(profile.created_at);
-        document.getElementById('registeredDate').textContent = formatThaiDate(createdDate);
-
-        // Personal info
-        document.getElementById('caregiverFullName').textContent =
-          `${profile.first_name} ${profile.last_name}`;
-        document.getElementById('caregiverPhone').textContent =
-          profile.phone_number || 'ไม่ระบุ';
-
-        // Load patients list
-        await loadPatients(profile.id);
-
-        // Show caregiver dashboard
-        document.getElementById('caregiverDashboard').classList.remove('hidden');
-
-      } catch (error) {
-        console.error('❌ Error loading caregiver dashboard:', error);
-        showError('ไม่สามารถโหลดข้อมูลได้');
-      }
-    }
-
-    /**
-     * Load link code for patient
-     */
-    async function loadLinkCode(patientId) {
-      try {
-        const result = await api.generateLinkCode(patientId);
-        linkCode = result.code;
-
-        console.log('✅ Link code:', linkCode);
-
-        // Display link code
-        document.getElementById('linkCodeDisplay').textContent = linkCode;
-
-        // Generate QR code
-        const qrContainer = document.getElementById('qrCodeContainer');
-        qrContainer.innerHTML = '';
-
-        if (typeof QRCode !== 'undefined') {
-          new QRCode(qrContainer, {
-            text: `DUULAIR:${linkCode}`,
-            width: 200,
-            height: 200,
-            colorDark: '#000000',
-            colorLight: '#ffffff',
-            correctLevel: QRCode.CorrectLevel.H
-          });
-          console.log('✅ QR Code generated');
-        } else {
-          console.error('❌ QRCode library not loaded');
-          qrContainer.innerHTML = '<p style="color: #999;">QR Code ไม่สามารถแสดงได้</p>';
-        }
-
-      } catch (error) {
-        console.error('❌ Error loading link code:', error);
-        showError('ไม่สามารถโหลดรหัสเชื่อมต่อได้');
-      }
-    }
-
-    /**
-     * Load caregivers list for patient
-     */
-    async function loadCaregivers(patientId) {
-      try {
-        console.log('📝 Load caregivers for patient:', patientId);
-
-        const result = await api.getPatientCaregivers(patientId);
-
-        if (!result.success || !result.caregivers || result.caregivers.length === 0) {
-          console.log('ℹ️ No caregivers found');
-          return; // Show empty state (already in HTML)
-        }
-
-        const caregivers = result.caregivers;
-        console.log('✅ Caregivers loaded:', caregivers);
-
-        // Create HTML for caregivers list
-        const caregiversListHTML = caregivers.map(caregiver => `
-          <div class="person-card">
-            <div class="person-card-header">
-              <span class="person-name">${caregiver.first_name} ${caregiver.last_name}</span>
-              <span class="person-status ${caregiver.status === 'approved' ? 'approved' : 'pending'}">
-                ${caregiver.status === 'approved' ? 'อนุมัติแล้ว' : 'รออนุมัติ'}
-              </span>
-            </div>
-            <div class="person-details">
-              ${caregiver.relationship || 'ผู้ดูแล'} • ${caregiver.phone_number || 'ไม่ระบุ'}
-            </div>
-          </div>
-        `).join('');
-
-        // Update UI
-        document.getElementById('caregiversList').innerHTML = caregiversListHTML;
-
-      } catch (error) {
-        console.error('❌ Error loading caregivers:', error);
-      }
-    }
-
-    /**
-     * Load patients list for caregiver
-     */
-    async function loadPatients(caregiverId) {
-      try {
-        console.log('📝 Load patients for caregiver:', caregiverId);
-
-        const result = await api.getCaregiverPatients(caregiverId);
-
-        if (!result.success || !result.patients || result.patients.length === 0) {
-          console.log('ℹ️ No patients found');
-          return; // Show empty state (already in HTML)
-        }
-
-        const patients = result.patients;
-        console.log('✅ Patients loaded:', patients);
-
-        // Create HTML for patients list
-        const patientsListHTML = patients.map(patient => {
-          const age = calculateAge(new Date(patient.birth_date));
-          return `
-            <div class="person-card">
-              <div class="person-card-header">
-                <span class="person-name">${patient.first_name} ${patient.last_name}</span>
-                <span class="person-status approved">เชื่อมต่อแล้ว</span>
-              </div>
-              <div class="person-details">
-                อายุ ${age} ปี • ${patient.gender === 'male' ? 'ชาย' : patient.gender === 'female' ? 'หญิง' : 'อื่นๆ'}
-              </div>
-              ${patient.chronic_diseases && patient.chronic_diseases.length > 0 ? `
-                <div class="person-details">
-                  โรคประจำตัว: ${patient.chronic_diseases.join(', ')}
-                </div>
-              ` : ''}
-            </div>
-          `;
-        }).join('');
-
-        // Update UI
-        document.getElementById('patientsList').innerHTML = patientsListHTML;
-
-      } catch (error) {
-        console.error('❌ Error loading patients:', error);
-      }
-    }
-
-    /**
-     * Share link code via LINE
-     */
-    async function shareCode() {
-      if (!linkCode) {
-        showError('ไม่พบรหัสเชื่อมต่อ');
-        return;
-      }
-
-      const message = {
-        type: 'text',
-        text: `🔗 รหัสเชื่อมต่อ Duulair\n\nรหัส: ${linkCode}\n\nใช้รหัสนี้เพื่อเชื่อมต่อกับบัญชีผู้ป่วยของฉัน\n\n📱 เปิด LINE → Duulair → ลงทะเบียนผู้ดูแล → กรอกรหัสนี้`
-      };
-
-      const success = await shareWithTargetPicker(message);
-
-      if (success) {
-        showSuccess('แชร์รหัสเรียบร้อย');
+    // Log Vitals (Send message to bot)
+    function logVitals() {
+      if (liff.isApiAvailable('sendMessages')) {
+        liff.sendMessages([{
+          type: 'text',
+          text: '🩺 วัดความดัน'
+        }]).then(() => {
+          liff.closeWindow();
+        }).catch(err => {
+          console.error('Failed to send message:', err);
+          alert('กรุณาส่งข้อความ "วัดความดัน" ในแชทเพื่อบันทึก');
+        });
       } else {
-        copyCode();
+        alert('กรุณาส่งข้อความ "วัดความดัน [ค่าที่วัดได้]" ในแชทเพื่อบันทึก\nตัวอย่าง: วัดความดัน 120/80');
       }
     }
 
-    /**
-     * Copy link code to clipboard
-     */
-    function copyCode() {
-      if (!linkCode) {
-        showError('ไม่พบรหัสเชื่อมต่อ');
-        return;
+    // Log Food
+    function logFood() {
+      if (liff.isApiAvailable('sendMessages')) {
+        liff.sendMessages([{
+          type: 'text',
+          text: '🍚 บันทึกอาหาร'
+        }]).then(() => {
+          liff.closeWindow();
+        }).catch(err => {
+          console.error('Failed to send message:', err);
+          alert('กรุณาส่งข้อความ "ทานอาหาร" ในแชทเพื่อบันทึก');
+        });
+      } else {
+        alert('กรุณาส่งข้อความ "ทานอาหาร [มื้อ]" ในแชทเพื่อบันทึก\nตัวอย่าง: ทานอาหารเช้า');
       }
+    }
 
-      const input = document.createElement('input');
-      input.value = linkCode;
-      document.body.appendChild(input);
-      input.select();
-
-      try {
-        document.execCommand('copy');
-        showSuccess('คัดลอกรหัสเรียบร้อย');
-      } catch (error) {
-        showError('ไม่สามารถคัดลอกได้');
+    // Log Exercise
+    function logExercise() {
+      if (liff.isApiAvailable('sendMessages')) {
+        liff.sendMessages([{
+          type: 'text',
+          text: '🚶 ออกกำลังกาย'
+        }]).then(() => {
+          liff.closeWindow();
+        }).catch(err => {
+          console.error('Failed to send message:', err);
+          alert('กรุณาส่งข้อความ "ออกกำลังกาย" ในแชทเพื่อบันทึก');
+        });
+      } else {
+        alert('กรุณาส่งข้อความ "ออกกำลังกาย [ระยะเวลา]" ในแชทเพื่อบันทึก\nตัวอย่าง: ออกกำลังกาย 30 นาที');
       }
-
-      document.body.removeChild(input);
     }
 
-    /**
-     * Add patient for caregiver
-     */
-    function addPatient() {
-      // Redirect to caregiver registration page to add link code
-      window.location.href = '/liff/caregiver-registration.html';
-    }
-
-    /**
-     * Calculate age from birth date
-     */
-    function calculateAge(birthDate) {
-      const today = new Date();
-      let age = today.getFullYear() - birthDate.getFullYear();
-      const monthDiff = today.getMonth() - birthDate.getMonth();
-
-      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-        age--;
+    // Log Sleep
+    function logSleep() {
+      if (liff.isApiAvailable('sendMessages')) {
+        liff.sendMessages([{
+          type: 'text',
+          text: '😴 บันทึกการนอน'
+        }]).then(() => {
+          liff.closeWindow();
+        }).catch(err => {
+          console.error('Failed to send message:', err);
+          alert('กรุณาส่งข้อความ "นอน" ในแชทเพื่อบันทึก');
+        });
+      } else {
+        alert('กรุณาส่งข้อความ "นอน [จำนวนชั่วโมง]" ในแชทเพื่อบันทึก\nตัวอย่าง: นอน 8 ชั่วโมง');
       }
-
-      return age;
     }
 
-    /**
-     * Format Thai date
-     */
-    function formatThaiDate(date) {
-      const options = {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      };
-
-      return date.toLocaleDateString('th-TH', options);
+    // Close LIFF
+    function closeLiff() {
+      liff.closeWindow();
     }
 
-    // ========================================
-    // Start
-    // ========================================
-
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', init);
-    } else {
-      init();
-    }
+    // Initialize on load
+    init();
   </script>
 </body>
 </html>
