@@ -441,6 +441,45 @@ app.get('/api/check-user', async (req, res) => {
 });
 
 /**
+ * GET /api/patient/:patientId
+ * Get patient profile by ID (bypasses RLS using service role)
+ */
+app.get('/api/patient/:patientId', async (req, res) => {
+  try {
+    const { patientId } = req.params;
+
+    if (!patientId) {
+      return res.status(400).json({
+        success: false,
+        error: 'patientId is required'
+      });
+    }
+
+    console.log(`📋 Getting patient profile: ${patientId}`);
+
+    const profile = await userService.getPatientProfile(patientId);
+
+    if (!profile) {
+      return res.status(404).json({
+        success: false,
+        error: 'Patient not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      profile
+    });
+  } catch (error: any) {
+    console.error('❌ Get patient error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to get patient'
+    });
+  }
+});
+
+/**
  * POST /api/quick-register
  * Quick registration for caregiver + patient (simplified onboarding)
  */

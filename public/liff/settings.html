@@ -711,14 +711,23 @@
 
         userData = storedUserData;
 
-        // Get patient profile with settings
-        const { data: profile, error } = await supabaseClient
-          .from('patient_profiles')
-          .select('*')
-          .eq('id', userData.profile_id)
-          .single();
+        // ✅ Get patient profile with settings via API (bypasses RLS)
+        console.log('🔍 Loading patient settings for:', userData.profile_id);
 
-        if (error) throw error;
+        const response = await fetch(`https://duulair.vercel.app/api/patient/${userData.profile_id}`);
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+
+        if (!result.success || !result.profile) {
+          throw new Error('ไม่พบข้อมูลผู้ป่วย');
+        }
+
+        const profile = result.profile;
+        console.log('✅ Patient settings loaded:', profile);
 
         settings = profile.settings || {};
 
