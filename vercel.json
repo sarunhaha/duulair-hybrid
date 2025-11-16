@@ -16,20 +16,16 @@
       "dest": "/public/liff/index.html"
     },
     {
-      "src": "/liff/register/?$",
-      "dest": "/public/liff/register.html"
+      "src": "/liff/group-registration/?$",
+      "dest": "/public/liff/group-registration.html"
     },
     {
-      "src": "/liff/role-selection/?$",
-      "dest": "/public/liff/role-selection.html"
+      "src": "/liff/group-dashboard/?$",
+      "dest": "/public/liff/group-dashboard.html"
     },
     {
-      "src": "/liff/patient-registration/?$",
-      "dest": "/public/liff/patient-registration.html"
-    },
-    {
-      "src": "/liff/caregiver-registration/?$",
-      "dest": "/public/liff/caregiver-registration.html"
+      "src": "/liff/my-profile/?$",
+      "dest": "/public/liff/my-profile.html"
     },
     {
       "src": "/liff/success/?$",
