@@ -105,6 +105,12 @@
       font-size: 16px;
     }
 
+    .medication-schedule {
+      margin-top: 10px;
+      color: #666;
+      font-size: 14px;
+    }
+
     .medication-times {
       display: flex;
       gap: 8px;
@@ -170,6 +176,7 @@
       z-index: 1000;
       align-items: center;
       justify-content: center;
+      overflow-y: auto;
     }
 
     .modal.active {
@@ -184,6 +191,7 @@
       width: 90%;
       max-height: 90vh;
       overflow-y: auto;
+      margin: 20px;
     }
 
     .modal-header {
@@ -203,6 +211,41 @@
       color: #333;
       font-weight: 500;
       font-size: 14px;
+    }
+
+    .label-with-tooltip {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .tooltip-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+      background: #4facfe;
+      color: white;
+      border-radius: 50%;
+      font-size: 12px;
+      cursor: help;
+      position: relative;
+    }
+
+    .tooltip-icon:hover::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: 125%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #333;
+      color: white;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      white-space: nowrap;
+      z-index: 1001;
     }
 
     .form-group input,
@@ -228,17 +271,95 @@
       min-height: 60px;
     }
 
+    .help-text {
+      font-size: 12px;
+      color: #666;
+      margin-top: 5px;
+      font-style: italic;
+    }
+
     .dose-input-group {
-      display: flex;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
       gap: 10px;
     }
 
-    .dose-input-group input {
-      flex: 2;
+    .liquid-display {
+      display: none;
+      margin-top: 10px;
+      padding: 10px;
+      background: #e3f2fd;
+      border-radius: 8px;
+      font-size: 14px;
+      color: #1976d2;
     }
 
-    .dose-input-group select {
-      flex: 1;
+    .frequency-options {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .frequency-option {
+      display: flex;
+      align-items: center;
+      padding: 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .frequency-option input[type="radio"] {
+      margin-right: 10px;
+      width: 20px;
+      height: 20px;
+    }
+
+    .frequency-option.selected {
+      background: #e3f2fd;
+      border-color: #4facfe;
+    }
+
+    .days-of-week {
+      display: none;
+      margin-top: 15px;
+      padding: 15px;
+      background: #f5f5f5;
+      border-radius: 10px;
+    }
+
+    .days-of-week.visible {
+      display: block;
+    }
+
+    .days-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .day-checkbox {
+      display: flex;
+      align-items: center;
+      padding: 10px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s;
+      background: white;
+    }
+
+    .day-checkbox input {
+      margin-right: 8px;
+      width: 18px;
+      height: 18px;
+    }
+
+    .day-checkbox.selected {
+      background: #e3f2fd;
+      border-color: #4facfe;
     }
 
     .times-selector {
@@ -266,6 +387,59 @@
     .time-checkbox.selected {
       background: #e3f2fd;
       border-color: #4facfe;
+    }
+
+    .reminder-toggle {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 15px;
+      background: #f5f5f5;
+      border-radius: 10px;
+    }
+
+    .toggle-switch {
+      position: relative;
+      width: 50px;
+      height: 26px;
+    }
+
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: 0.4s;
+      border-radius: 26px;
+    }
+
+    .toggle-slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 4px;
+      bottom: 4px;
+      background-color: white;
+      transition: 0.4s;
+      border-radius: 50%;
+    }
+
+    .toggle-switch input:checked + .toggle-slider {
+      background-color: #4facfe;
+    }
+
+    .toggle-switch input:checked + .toggle-slider:before {
+      transform: translateX(24px);
     }
 
     .modal-actions {
@@ -416,17 +590,92 @@
         </div>
 
         <div class="form-group">
-          <label>ปริมาณและหน่วย *</label>
+          <label>รูปแบบยา *</label>
+          <select id="dosageForm" required>
+            <option value="tablet">เม็ด (Tablet)</option>
+            <option value="capsule">แคปซูล (Capsule)</option>
+            <option value="liquid">น้ำ (Liquid)</option>
+            <option value="injection">ฉีด (Injection)</option>
+            <option value="topical">ทา (Topical)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>จำนวนยาต่อครั้ง *</label>
           <div class="dose-input-group">
-            <input type="number" id="dosageAmount" required placeholder="จำนวน" step="0.5">
-            <select id="dosageUnit" required>
-              <option value="เม็ด">เม็ด</option>
-              <option value="แคปซูล">แคปซูล</option>
-              <option value="ช้อนชา">ช้อนชา</option>
-              <option value="มล.">มล.</option>
-              <option value="หยด">หยด</option>
-              <option value="แผ่น">แผ่น</option>
+            <select id="dosageAmount" required>
+              <option value="0.25">¼ เม็ด</option>
+              <option value="0.5">½ เม็ด</option>
+              <option value="0.75">¾ เม็ด</option>
+              <option value="1" selected>1 เม็ด</option>
+              <option value="1.5">1½ เม็ด</option>
+              <option value="2">2 เม็ด</option>
+              <option value="2.5">2½ เม็ด</option>
+              <option value="3">3 เม็ด</option>
             </select>
+            <select id="dosageUnit">
+              <option value="tablet">เม็ด</option>
+              <option value="capsule">แคปซูล</option>
+              <option value="ml">ml</option>
+            </select>
+          </div>
+          <div id="liquidDisplay" class="liquid-display"></div>
+          <div class="help-text">เลือกจำนวนยาที่ต้องทานต่อครั้ง</div>
+        </div>
+
+        <div class="form-group">
+          <label>ความถี่</label>
+          <div class="frequency-options">
+            <label class="frequency-option">
+              <input type="radio" name="frequency" value="daily" checked>
+              <span>ทุกวัน (Daily)</span>
+            </label>
+            <label class="frequency-option">
+              <input type="radio" name="frequency" value="specific_days">
+              <span>เลือกวัน (Specific Days)</span>
+            </label>
+            <label class="frequency-option">
+              <input type="radio" name="frequency" value="weekly">
+              <span>สัปดาห์ละ X วัน (Weekly)</span>
+            </label>
+            <label class="frequency-option">
+              <input type="radio" name="frequency" value="as_needed">
+              <span>เมื่อจำเป็น (As Needed)</span>
+            </label>
+          </div>
+        </div>
+
+        <div id="daysOfWeek" class="days-of-week">
+          <label style="font-weight: 600; margin-bottom: 10px; display: block;">เลือกวัน</label>
+          <div class="days-grid">
+            <label class="day-checkbox">
+              <input type="checkbox" value="monday">
+              <span>จันทร์</span>
+            </label>
+            <label class="day-checkbox">
+              <input type="checkbox" value="tuesday">
+              <span>อังคาร</span>
+            </label>
+            <label class="day-checkbox">
+              <input type="checkbox" value="wednesday">
+              <span>พุธ</span>
+            </label>
+            <label class="day-checkbox">
+              <input type="checkbox" value="thursday">
+              <span>พฤหัสบดี</span>
+            </label>
+            <label class="day-checkbox">
+              <input type="checkbox" value="friday">
+              <span>ศุกร์</span>
+            </label>
+            <label class="day-checkbox">
+              <input type="checkbox" value="saturday">
+              <span>เสาร์</span>
+            </label>
+            <label class="day-checkbox">
+              <input type="checkbox" value="sunday">
+              <span>อาทิตย์</span>
+            </label>
           </div>
         </div>
 
@@ -450,6 +699,7 @@
               <span>🌙 ก่อนนอน (21:00)</span>
             </label>
           </div>
+          <div class="help-text">เลือกเวลาที่ต้องทานยา</div>
         </div>
 
         <div class="form-group">
@@ -466,6 +716,19 @@
         <div class="form-group">
           <label>หมายเหตุ</label>
           <textarea id="medicationNote" placeholder="เช่น ทานพร้อมน้ำมาก ๆ"></textarea>
+        </div>
+
+        <div class="form-group">
+          <div class="reminder-toggle">
+            <label class="toggle-switch">
+              <input type="checkbox" id="reminderEnabled" checked>
+              <span class="toggle-slider"></span>
+            </label>
+            <div class="label-with-tooltip">
+              <span>เปิดการเตือน</span>
+              <span class="tooltip-icon" data-tooltip="ระบบจะส่งการแจ้งเตือนให้ทานยาตามเวลาที่กำหนด">?</span>
+            </div>
+          </div>
         </div>
 
         <div class="modal-actions">
@@ -497,6 +760,63 @@
       night: '🌙 ก่อนนอน'
     };
 
+    const thaiDays = {
+      monday: 'จันทร์',
+      tuesday: 'อังคาร',
+      wednesday: 'พุธ',
+      thursday: 'พฤหัสบดี',
+      friday: 'ศุกร์',
+      saturday: 'เสาร์',
+      sunday: 'อาทิตย์'
+    };
+
+    // Format dosage display
+    function formatDosage(amount, unit, form) {
+      if (form === 'tablet' || form === 'capsule') {
+        if (amount === 0.25) return '¼ เม็ด';
+        if (amount === 0.5) return '½ เม็ด';
+        if (amount === 0.75) return '¾ เม็ด';
+        if (amount === 1) return '1 เม็ด';
+        if (amount === 1.5) return '1½ เม็ด';
+        return `${amount} เม็ด`;
+      }
+
+      if (form === 'liquid' && unit === 'ml') {
+        const teaspoons = amount / 5;
+        const tablespoons = amount / 15;
+
+        if (amount === 5) return '5 ml (1 ชอนชา)';
+        if (amount === 15) return '15 ml (1 ช้อนโต๊ะ)';
+        if (amount % 5 === 0 && teaspoons < 3) {
+          return `${amount} ml (${teaspoons} ชอนชา)`;
+        }
+        if (amount % 15 === 0) {
+          return `${amount} ml (${tablespoons} ช้อนโต๊ะ)`;
+        }
+        return `${amount} ml`;
+      }
+
+      return `${amount} ${unit}`;
+    }
+
+    // Get schedule description
+    function getScheduleDescription(med) {
+      if (med.frequency === 'daily') {
+        return 'ทุกวัน';
+      }
+      if (med.frequency === 'specific_days' && med.days_of_week) {
+        const days = med.days_of_week.map(d => thaiDays[d]).join(', ');
+        return days;
+      }
+      if (med.frequency === 'weekly' && med.days_of_week) {
+        return `สัปดาห์ละ ${med.days_of_week.length} วัน`;
+      }
+      if (med.frequency === 'as_needed') {
+        return 'เมื่อจำเป็น';
+      }
+      return 'ตามแพทย์สั่ง';
+    }
+
     // Initialize LIFF
     async function initializeLiff() {
       try {
@@ -511,11 +831,9 @@
         isGroupContext = context && context.type === 'group';
 
         if (isGroupContext) {
-          // Group context - load patient from group
           groupId = context.groupId;
           await loadGroupData();
         } else {
-          // 1:1 context - load patient from localStorage
           await loadUserData();
         }
       } catch (error) {
@@ -524,10 +842,9 @@
       }
     }
 
-    // Load group and medications data (Group context)
+    // Load group and medications data
     async function loadGroupData() {
       try {
-        // Get group data
         const { data: group, error: groupError } = await supabaseClient
           .from('caregiver_groups')
           .select('patient_id')
@@ -551,10 +868,9 @@
       }
     }
 
-    // Load user data (1:1 context)
+    // Load user data
     async function loadUserData() {
       try {
-        // Get user data from localStorage
         const userData = JSON.parse(localStorage.getItem('duulair_user') || '{}');
 
         if (!userData.profile_id) {
@@ -587,7 +903,11 @@
 
         if (error) throw error;
 
-        medications = data || [];
+        medications = (data || []).map(med => ({
+          ...med,
+          days_of_week: med.days_of_week ? (typeof med.days_of_week === 'string' ? JSON.parse(med.days_of_week) : med.days_of_week) : undefined,
+          times: med.times ? (typeof med.times === 'string' ? JSON.parse(med.times) : med.times) : []
+        }));
         renderMedications();
       } catch (error) {
         console.error('Error loading medications:', error);
@@ -612,13 +932,20 @@
       emptyState.style.display = 'none';
       container.innerHTML = medications.map(med => {
         const times = med.times || [];
+        const dosageDisplay = formatDosage(
+          parseFloat(med.dosage_amount),
+          med.dosage_unit || 'tablet',
+          med.dosage_form || 'tablet'
+        );
+        const schedule = getScheduleDescription(med);
 
         return `
           <div class="medication-card">
             <div class="medication-header">
               <div>
                 <div class="medication-name">${med.name}</div>
-                <div class="medication-dosage">${med.dosage_amount} ${med.dosage_unit}</div>
+                <div class="medication-dosage">${dosageDisplay}</div>
+                <div class="medication-schedule">📅 ${schedule}</div>
               </div>
             </div>
 
@@ -647,10 +974,27 @@
         const medication = medications.find(m => m.id === medicationId);
         if (medication) {
           document.getElementById('medicationName').value = medication.name;
+          document.getElementById('dosageForm').value = medication.dosage_form || 'tablet';
           document.getElementById('dosageAmount').value = medication.dosage_amount;
-          document.getElementById('dosageUnit').value = medication.dosage_unit;
+          document.getElementById('dosageUnit').value = medication.dosage_unit || 'tablet';
           document.getElementById('medicationInstructions').value = medication.instructions || '';
           document.getElementById('medicationNote').value = medication.note || '';
+          document.getElementById('reminderEnabled').checked = medication.reminder_enabled !== false;
+
+          // Set frequency
+          const freqRadio = document.querySelector(`input[name="frequency"][value="${medication.frequency || 'daily'}"]`);
+          if (freqRadio) {
+            freqRadio.checked = true;
+            updateFrequencySelection();
+          }
+
+          // Select days
+          document.querySelectorAll('.days-grid input[type="checkbox"]').forEach(cb => {
+            cb.checked = (medication.days_of_week || []).includes(cb.value);
+            if (cb.checked) {
+              cb.parentElement.classList.add('selected');
+            }
+          });
 
           // Select times
           document.querySelectorAll('.times-selector input[type="checkbox"]').forEach(cb => {
@@ -659,6 +1003,8 @@
               cb.parentElement.classList.add('selected');
             }
           });
+
+          updateDosageDisplay();
         }
       } else {
         document.getElementById('medication-form').reset();
@@ -666,6 +1012,13 @@
           cb.checked = false;
           cb.parentElement.classList.remove('selected');
         });
+        document.querySelectorAll('.days-grid input[type="checkbox"]').forEach(cb => {
+          cb.checked = false;
+          cb.parentElement.classList.remove('selected');
+        });
+        document.getElementById('reminderEnabled').checked = true;
+        updateFrequencySelection();
+        updateDosageDisplay();
       }
 
       document.getElementById('medication-modal').classList.add('active');
@@ -675,6 +1028,80 @@
     function closeModal() {
       document.getElementById('medication-modal').classList.remove('active');
       editingMedicationId = null;
+    }
+
+    // Update frequency selection UI
+    function updateFrequencySelection() {
+      const selected = document.querySelector('input[name="frequency"]:checked');
+      const daysContainer = document.getElementById('daysOfWeek');
+
+      document.querySelectorAll('.frequency-option').forEach(opt => {
+        opt.classList.remove('selected');
+      });
+
+      if (selected) {
+        selected.closest('.frequency-option').classList.add('selected');
+
+        if (selected.value === 'specific_days' || selected.value === 'weekly') {
+          daysContainer.classList.add('visible');
+        } else {
+          daysContainer.classList.remove('visible');
+        }
+      }
+    }
+
+    // Update dosage display for liquid
+    function updateDosageDisplay() {
+      const form = document.getElementById('dosageForm').value;
+      const amount = parseFloat(document.getElementById('dosageAmount').value);
+      const unit = document.getElementById('dosageUnit').value;
+      const display = document.getElementById('liquidDisplay');
+      const amountSelect = document.getElementById('dosageAmount');
+      const unitSelect = document.getElementById('dosageUnit');
+
+      // Update dosage amount options based on form
+      if (form === 'liquid') {
+        amountSelect.innerHTML = `
+          <option value="2.5">2.5 ml</option>
+          <option value="5">5 ml (½ ชอนชา)</option>
+          <option value="7.5">7.5 ml (1½ ชอนชา)</option>
+          <option value="10">10 ml (2 ชอนชา)</option>
+          <option value="15">15 ml (1 ช้อนโต๊ะ)</option>
+          <option value="20">20 ml</option>
+          <option value="30">30 ml (2 ช้อนโต๊ะ)</option>
+        `;
+        unitSelect.value = 'ml';
+
+        // Show conversion
+        const teaspoons = amount / 5;
+        const tablespoons = amount / 15;
+        let conversion = '';
+
+        if (amount === 5) conversion = '1 ชอนชา';
+        else if (amount === 15) conversion = '1 ช้อนโต๊ะ';
+        else if (amount % 5 === 0 && teaspoons < 3) conversion = `${teaspoons} ชอนชา`;
+        else if (amount % 15 === 0) conversion = `${tablespoons} ช้อนโต๊ะ`;
+
+        if (conversion) {
+          display.textContent = `💧 ${amount} ml = ${conversion}`;
+          display.style.display = 'block';
+        } else {
+          display.style.display = 'none';
+        }
+      } else {
+        amountSelect.innerHTML = `
+          <option value="0.25">¼ เม็ด</option>
+          <option value="0.5">½ เม็ด</option>
+          <option value="0.75">¾ เม็ด</option>
+          <option value="1" selected>1 เม็ด</option>
+          <option value="1.5">1½ เม็ด</option>
+          <option value="2">2 เม็ด</option>
+          <option value="2.5">2½ เม็ด</option>
+          <option value="3">3 เม็ด</option>
+        `;
+        unitSelect.value = form === 'capsule' ? 'capsule' : 'tablet';
+        display.style.display = 'none';
+      }
     }
 
     // Handle checkbox selection styling
@@ -688,16 +1115,45 @@
       });
     });
 
+    document.querySelectorAll('.day-checkbox input').forEach(checkbox => {
+      checkbox.addEventListener('change', (e) => {
+        if (e.target.checked) {
+          e.target.parentElement.classList.add('selected');
+        } else {
+          e.target.parentElement.classList.remove('selected');
+        }
+      });
+    });
+
+    // Handle frequency changes
+    document.querySelectorAll('input[name="frequency"]').forEach(radio => {
+      radio.addEventListener('change', updateFrequencySelection);
+    });
+
+    // Handle dosage form changes
+    document.getElementById('dosageForm').addEventListener('change', updateDosageDisplay);
+    document.getElementById('dosageAmount').addEventListener('change', updateDosageDisplay);
+
     // Form submission
     document.getElementById('medication-form').addEventListener('submit', async (e) => {
       e.preventDefault();
 
+      const frequency = document.querySelector('input[name="frequency"]:checked').value;
       const selectedTimes = Array.from(
         document.querySelectorAll('.times-selector input[type="checkbox"]:checked')
       ).map(cb => cb.value);
 
-      if (selectedTimes.length === 0) {
+      if (selectedTimes.length === 0 && frequency !== 'as_needed') {
         alert('กรุณาเลือกเวลาทานยาอย่างน้อย 1 เวลา');
+        return;
+      }
+
+      const selectedDays = Array.from(
+        document.querySelectorAll('.days-grid input[type="checkbox"]:checked')
+      ).map(cb => cb.value);
+
+      if ((frequency === 'specific_days' || frequency === 'weekly') && selectedDays.length === 0) {
+        alert('กรุณาเลือกวันอย่างน้อย 1 วัน');
         return;
       }
 
@@ -705,10 +1161,14 @@
         patient_id: patientId,
         name: document.getElementById('medicationName').value,
         dosage_amount: parseFloat(document.getElementById('dosageAmount').value),
+        dosage_form: document.getElementById('dosageForm').value,
         dosage_unit: document.getElementById('dosageUnit').value,
+        frequency: frequency,
+        days_of_week: (frequency === 'specific_days' || frequency === 'weekly') ? selectedDays : null,
         times: selectedTimes,
         instructions: document.getElementById('medicationInstructions').value,
-        note: document.getElementById('medicationNote').value
+        note: document.getElementById('medicationNote').value,
+        reminder_enabled: document.getElementById('reminderEnabled').checked
       };
 
       try {
@@ -733,7 +1193,7 @@
         closeModal();
       } catch (error) {
         console.error('Error saving medication:', error);
-        showError('ไม่สามารถบันทึกรายการยาได้');
+        showError('ไม่สามารถบันทึกรายการยาได้: ' + error.message);
       }
     });
 

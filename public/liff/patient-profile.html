@@ -273,6 +273,140 @@
       cursor: pointer;
       font-weight: 500;
     }
+
+    .allergy-tabs {
+      display: flex;
+      gap: 10px;
+      margin: 15px 0;
+      border-bottom: 2px solid #e0e0e0;
+    }
+
+    .allergy-tab {
+      padding: 10px 20px;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      transition: all 0.3s;
+      font-weight: 500;
+      color: #666;
+    }
+
+    .allergy-tab.active {
+      color: #667eea;
+      border-bottom-color: #667eea;
+    }
+
+    .allergy-content {
+      margin-top: 15px;
+    }
+
+    #allergy-list {
+      min-height: 50px;
+      margin-bottom: 15px;
+    }
+
+    .allergy-item {
+      background: #f5f5f5;
+      padding: 12px 15px;
+      border-radius: 10px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .allergy-item-content {
+      flex: 1;
+    }
+
+    .allergy-item-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 5px;
+    }
+
+    .allergy-name {
+      font-weight: 600;
+      color: #333;
+      font-size: 15px;
+    }
+
+    .severity-badge {
+      padding: 3px 10px;
+      border-radius: 15px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .severity-mild {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .severity-moderate {
+      background: #fff3cd;
+      color: #856404;
+    }
+
+    .severity-severe {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    .allergy-symptoms {
+      color: #666;
+      font-size: 13px;
+      margin-top: 5px;
+    }
+
+    .allergy-notes {
+      color: #999;
+      font-size: 12px;
+      font-style: italic;
+      margin-top: 3px;
+    }
+
+    .delete-allergy {
+      background: #f44336;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      padding: 5px 10px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .btn-add-allergy {
+      width: 100%;
+      padding: 12px;
+      background: #f5f5f5;
+      color: #667eea;
+      border: 2px dashed #667eea;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.3s;
+    }
+
+    .btn-add-allergy:hover {
+      background: #e8eaf6;
+    }
+
+    #allergy-form {
+      background: #f9f9f9;
+      padding: 15px;
+      border-radius: 10px;
+      margin-top: 15px;
+      border: 2px solid #667eea;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 20px;
+      color: #999;
+      font-size: 14px;
+    }
   </style>
 </head>
 <body>
@@ -351,6 +485,26 @@
         <div id="medical-tab" class="tab-content">
           <form id="medical-form">
             <div class="form-group">
+              <label>ลักษณะอาการป่วย / โรคประจำตัว</label>
+              <textarea id="medicalCondition" rows="4" placeholder="อธิบายอาการและประวัติการป่วย"></textarea>
+            </div>
+
+            <div class="form-group">
+              <label>โรงพยาบาลที่รับการรักษาและมีประวัติ</label>
+              <input type="text" id="hospitalName" placeholder="โรงพยาบาลจุฬาลงกรณ์">
+            </div>
+
+            <div class="form-group">
+              <label>ชื่อแพทย์ผู้ดูแล</label>
+              <input type="text" id="doctorName" placeholder="นพ. สมชาย ใจดี">
+            </div>
+
+            <div class="form-group">
+              <label>เบอร์โทรศัพท์แพทย์</label>
+              <input type="tel" id="doctorPhone" placeholder="02-xxx-xxxx">
+            </div>
+
+            <div class="form-group">
               <label>กลุ่มเลือด</label>
               <select id="bloodType">
                 <option value="">เลือกกลุ่มเลือด</option>
@@ -381,8 +535,44 @@
             </div>
 
             <div class="form-group">
-              <label>แพ้ยา</label>
-              <textarea id="allergies" rows="3" placeholder="ระบุยาที่แพ้ (ถ้ามี)"></textarea>
+              <label>อาการแพ้</label>
+              <div class="allergy-tabs">
+                <div class="allergy-tab active" data-type="medication">ยา</div>
+                <div class="allergy-tab" data-type="food">อาหาร</div>
+                <div class="allergy-tab" data-type="other">อื่นๆ</div>
+              </div>
+
+              <div class="allergy-content">
+                <div id="allergy-list"></div>
+                <button type="button" class="btn-add-allergy" onclick="showAllergyForm()">+ เพิ่มอาการแพ้</button>
+              </div>
+
+              <div id="allergy-form" style="display: none;">
+                <div class="form-group">
+                  <label>ชื่ออาการแพ้</label>
+                  <input type="text" id="allergenName" placeholder="ระบุชื่อสิ่งที่แพ้">
+                </div>
+                <div class="form-group">
+                  <label>ระดับความรุนแรง</label>
+                  <select id="allergySeverity">
+                    <option value="mild">เล็กน้อย (Mild)</option>
+                    <option value="moderate">ปานกลาง (Moderate)</option>
+                    <option value="severe">รุนแรง (Severe)</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>อาการที่เกิดขึ้น</label>
+                  <textarea id="reactionSymptoms" rows="2" placeholder="เช่น คัน ผื่นแดง"></textarea>
+                </div>
+                <div class="form-group">
+                  <label>หมายเหตุ</label>
+                  <textarea id="allergyNotes" rows="2"></textarea>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                  <button type="button" class="btn btn-secondary" onclick="cancelAllergyForm()">ยกเลิก</button>
+                  <button type="button" class="btn btn-primary" onclick="saveAllergy()">บันทึกอาการแพ้</button>
+                </div>
+              </div>
             </div>
 
             <div class="form-group">
@@ -430,16 +620,6 @@
               <input type="tel" id="emergencyContactPhone">
             </div>
 
-            <div class="form-group">
-              <label>โรงพยาบาลประจำ</label>
-              <input type="text" id="hospitalName">
-            </div>
-
-            <div class="form-group">
-              <label>เบอร์โรงพยาบาล</label>
-              <input type="tel" id="hospitalPhone">
-            </div>
-
             <button type="submit" class="btn btn-primary">
               💾 บันทึกข้อมูลฉุกเฉิน
             </button>
@@ -460,6 +640,8 @@
     let groupId = null;
     let patientId = null;
     let medicalConditions = [];
+    let allergies = [];
+    let currentAllergyType = 'medication';
     let isGroupContext = false;
 
     // Initialize LIFF
@@ -556,7 +738,7 @@
     }
 
     // Populate form with patient data
-    function populateForm(patient) {
+    async function populateForm(patient) {
       // Profile tab
       document.getElementById('firstName').value = patient.first_name || '';
       document.getElementById('lastName').value = patient.last_name || '';
@@ -566,11 +748,16 @@
       document.getElementById('phoneNumber').value = patient.phone_number || '';
       document.getElementById('address').value = patient.address || '';
 
-      // Medical tab
+      // Medical tab - New fields
+      document.getElementById('medicalCondition').value = patient.medical_condition || '';
+      document.getElementById('hospitalName').value = patient.hospital_name || '';
+      document.getElementById('doctorName').value = patient.doctor_name || '';
+      document.getElementById('doctorPhone').value = patient.doctor_phone || '';
+
+      // Medical tab - Existing fields
       document.getElementById('bloodType').value = patient.blood_type || '';
       document.getElementById('weight').value = patient.weight || '';
       document.getElementById('height').value = patient.height || '';
-      document.getElementById('allergies').value = patient.allergies || '';
       document.getElementById('medicalNotes').value = patient.medical_notes || '';
 
       // Medical conditions
@@ -581,12 +768,13 @@
         renderMedicalConditions();
       }
 
+      // Load allergies from database
+      await loadAllergies();
+
       // Emergency tab
       document.getElementById('emergencyContactName').value = patient.emergency_contact_name || '';
       document.getElementById('emergencyContactRelation').value = patient.emergency_contact_relation || '';
       document.getElementById('emergencyContactPhone').value = patient.emergency_contact_phone || '';
-      document.getElementById('hospitalName').value = patient.hospital_name || '';
-      document.getElementById('hospitalPhone').value = patient.hospital_phone || '';
     }
 
     // Tab switching
@@ -650,11 +838,14 @@
     document.getElementById('medical-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       await updatePatient({
+        medical_condition: document.getElementById('medicalCondition').value,
+        hospital_name: document.getElementById('hospitalName').value,
+        doctor_name: document.getElementById('doctorName').value,
+        doctor_phone: document.getElementById('doctorPhone').value,
         blood_type: document.getElementById('bloodType').value,
         weight: parseFloat(document.getElementById('weight').value) || null,
         height: parseFloat(document.getElementById('height').value) || null,
         medical_conditions: medicalConditions,
-        allergies: document.getElementById('allergies').value,
         medical_notes: document.getElementById('medicalNotes').value
       });
     });
@@ -664,9 +855,7 @@
       await updatePatient({
         emergency_contact_name: document.getElementById('emergencyContactName').value,
         emergency_contact_relation: document.getElementById('emergencyContactRelation').value,
-        emergency_contact_phone: document.getElementById('emergencyContactPhone').value,
-        hospital_name: document.getElementById('hospitalName').value,
-        hospital_phone: document.getElementById('hospitalPhone').value
+        emergency_contact_phone: document.getElementById('emergencyContactPhone').value
       });
     });
 
@@ -701,6 +890,141 @@
       alert.style.display = 'block';
       document.getElementById('loading').style.display = 'none';
     }
+
+    // Allergy Management Functions
+    async function loadAllergies() {
+      try {
+        const { data, error } = await supabaseClient
+          .from('allergies')
+          .select('*')
+          .eq('patient_id', patientId)
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        allergies = data || [];
+        renderAllergies();
+      } catch (error) {
+        console.error('Error loading allergies:', error);
+      }
+    }
+
+    function renderAllergies() {
+      const filtered = allergies.filter(a => a.allergy_type === currentAllergyType);
+      const container = document.getElementById('allergy-list');
+
+      if (filtered.length === 0) {
+        container.innerHTML = '<div class="empty-state">ยังไม่มีข้อมูลอาการแพ้</div>';
+        return;
+      }
+
+      container.innerHTML = filtered.map(allergy => {
+        const severityText = {
+          'mild': 'เล็กน้อย',
+          'moderate': 'ปานกลาง',
+          'severe': 'รุนแรง'
+        };
+
+        return `
+          <div class="allergy-item">
+            <div class="allergy-item-content">
+              <div class="allergy-item-header">
+                <span class="allergy-name">${allergy.allergen_name}</span>
+                <span class="severity-badge severity-${allergy.severity}">${severityText[allergy.severity]}</span>
+              </div>
+              ${allergy.reaction_symptoms ? `<div class="allergy-symptoms">อาการ: ${allergy.reaction_symptoms}</div>` : ''}
+              ${allergy.notes ? `<div class="allergy-notes">${allergy.notes}</div>` : ''}
+            </div>
+            <button class="delete-allergy" onclick="deleteAllergy('${allergy.id}')">ลบ</button>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function showAllergyForm() {
+      document.getElementById('allergy-form').style.display = 'block';
+      document.getElementById('allergenName').focus();
+    }
+
+    function cancelAllergyForm() {
+      document.getElementById('allergy-form').style.display = 'none';
+      clearAllergyForm();
+    }
+
+    function clearAllergyForm() {
+      document.getElementById('allergenName').value = '';
+      document.getElementById('allergySeverity').value = 'mild';
+      document.getElementById('reactionSymptoms').value = '';
+      document.getElementById('allergyNotes').value = '';
+    }
+
+    async function saveAllergy() {
+      const allergenName = document.getElementById('allergenName').value.trim();
+
+      if (!allergenName) {
+        showError('กรุณาระบุชื่ออาการแพ้');
+        return;
+      }
+
+      try {
+        const { data, error } = await supabaseClient
+          .from('allergies')
+          .insert([{
+            patient_id: patientId,
+            allergy_type: currentAllergyType,
+            allergen_name: allergenName,
+            severity: document.getElementById('allergySeverity').value,
+            reaction_symptoms: document.getElementById('reactionSymptoms').value,
+            notes: document.getElementById('allergyNotes').value
+          }])
+          .select();
+
+        if (error) throw error;
+
+        allergies.push(data[0]);
+        renderAllergies();
+        cancelAllergyForm();
+        showSuccess('บันทึกอาการแพ้เรียบร้อยแล้ว');
+      } catch (error) {
+        console.error('Error saving allergy:', error);
+        showError('ไม่สามารถบันทึกข้อมูลได้');
+      }
+    }
+
+    async function deleteAllergy(allergyId) {
+      if (!confirm('ต้องการลบอาการแพ้นี้ใช่หรือไม่?')) return;
+
+      try {
+        const { error } = await supabaseClient
+          .from('allergies')
+          .delete()
+          .eq('id', allergyId);
+
+        if (error) throw error;
+
+        allergies = allergies.filter(a => a.id !== allergyId);
+        renderAllergies();
+        showSuccess('ลบอาการแพ้เรียบร้อยแล้ว');
+      } catch (error) {
+        console.error('Error deleting allergy:', error);
+        showError('ไม่สามารถลบข้อมูลได้');
+      }
+    }
+
+    // Allergy tab switching
+    document.addEventListener('DOMContentLoaded', () => {
+      document.querySelectorAll('.allergy-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+          currentAllergyType = tab.dataset.type;
+
+          document.querySelectorAll('.allergy-tab').forEach(t => t.classList.remove('active'));
+          tab.classList.add('active');
+
+          renderAllergies();
+          cancelAllergyForm();
+        });
+      });
+    });
 
     // Initialize on load
     window.addEventListener('load', initializeLiff);

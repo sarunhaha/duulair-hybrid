@@ -36,6 +36,26 @@
       "dest": "/public/liff/success.html"
     },
     {
+      "src": "/liff/water-tracking/?$",
+      "dest": "/public/liff/water-tracking.html"
+    },
+    {
+      "src": "/liff/medications/?$",
+      "dest": "/public/liff/medications.html"
+    },
+    {
+      "src": "/liff/reminders/?$",
+      "dest": "/public/liff/reminders.html"
+    },
+    {
+      "src": "/liff/patient-profile/?$",
+      "dest": "/public/liff/patient-profile.html"
+    },
+    {
+      "src": "/liff/settings/?$",
+      "dest": "/public/liff/settings.html"
+    },
+    {
       "src": "/liff/(.*\\.(html|css|js|png|jpg|jpeg|gif|svg|ico))",
       "dest": "/public/liff/$1"
     },

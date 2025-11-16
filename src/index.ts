@@ -6,6 +6,7 @@ import { Client, WebhookEvent, TextMessage, FlexMessage, validateSignature } fro
 import { OrchestratorAgent } from './agents';
 import registrationRoutes from './routes/registration.routes';
 import groupRoutes from './routes/group.routes';
+import reportRoutes from './routes/report.routes';
 import { groupWebhookService } from './services/group-webhook.service';
 import { commandHandlerService } from './services/command-handler.service';
 import crypto from 'crypto';
@@ -405,6 +406,9 @@ app.use('/api/registration', registrationRoutes);
 
 // Group API routes (TASK-002)
 app.use('/api/groups', groupRoutes);
+
+// Report API routes (Download reports - Premium feature)
+app.use('/api/reports', reportRoutes);
 
 // LINE Webhook - with manual signature verification
 app.post('/webhook', async (req, res) => {
