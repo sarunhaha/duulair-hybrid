@@ -117,15 +117,22 @@
     // Initialize LIFF
     async function initLiff() {
       try {
+        console.log('🔄 Initializing LIFF...', LIFF_ID);
         await liff.init({ liffId: LIFF_ID });
+        console.log('✅ LIFF initialized');
 
         if (!liff.isLoggedIn()) {
+          console.log('⚠️ Not logged in, redirecting to login...');
           liff.login();
           return;
         }
 
+        console.log('✅ User is logged in');
+
         // Auto-fill caregiver name from LINE profile
         const profile = await liff.getProfile();
+        console.log('✅ Got profile for auto-fill:', profile.displayName);
+
         const displayName = profile.displayName || '';
         const nameParts = displayName.split(' ');
 
@@ -136,9 +143,16 @@
           document.getElementById('caregiverFirstName').value = displayName;
         }
 
+        console.log('✅ LIFF initialization complete');
+
       } catch (error) {
-        console.error('LIFF initialization failed:', error);
-        alert('เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่อีกครั้ง');
+        console.error('❌ LIFF initialization failed:', error);
+        console.error('Error details:', {
+          message: error.message,
+          stack: error.stack,
+          name: error.name
+        });
+        alert('❌ เกิดข้อผิดพลาดในการเชื่อมต่อ LIFF\n\nError: ' + error.message + '\n\nกรุณาลองใหม่อีกครั้ง');
       }
     }
 
@@ -151,9 +165,14 @@
       submitBtn.textContent = 'กำลังบันทึก...';
 
       try {
+        console.log('🚀 Starting registration...');
+
         const profile = await liff.getProfile();
+        console.log('✅ Got LINE profile:', profile.userId);
+
         const contextType = liff.getContext()?.type || 'utou';
         const groupId = contextType === 'group' ? liff.getContext().groupId : null;
+        console.log('📍 Context:', { contextType, groupId });
 
         // Prepare data
         const formData = {
@@ -176,6 +195,12 @@
             conditions: document.getElementById('patientConditions').value.trim() || null
           }
         };
+
+        console.log('📤 Sending registration data:', {
+          ...formData,
+          lineUserId: formData.lineUserId.substring(0, 10) + '...',
+          pictureUrl: formData.pictureUrl ? 'set' : 'null'
+        });
 
         // Send to API
         const response = await fetch(`${API_BASE_URL}/quick-register`, {
