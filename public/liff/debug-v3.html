@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>Debug v3 - ตรวจสอบทีละ Step</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      padding: 16px;
+      background: #f5f5f5;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    .section {
+      background: white;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .section-title {
+      font-weight: 600;
+      font-size: 16px;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #e0e0e0;
+    }
+    .status {
+      padding: 8px 12px;
+      border-radius: 6px;
+      margin-bottom: 8px;
+      font-size: 13px;
+    }
+    .status.pending { background: #fff3cd; border-left: 4px solid #ffc107; }
+    .status.success { background: #d4edda; border-left: 4px solid #28a745; }
+    .status.error { background: #f8d7da; border-left: 4px solid #dc3545; }
+    .status.info { background: #d1ecf1; border-left: 4px solid #17a2b8; }
+    .data-item {
+      margin-bottom: 8px;
+      padding: 8px;
+      background: #f8f9fa;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      word-break: break-all;
+    }
+    .data-label {
+      font-weight: 600;
+      color: #495057;
+      margin-bottom: 4px;
+    }
+    .data-value {
+      color: #212529;
+    }
+    button {
+      background: #007bff;
+      color: white;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 8px;
+    }
+    button:active {
+      background: #0056b3;
+    }
+    button:disabled {
+      background: #6c757d;
+      cursor: not-allowed;
+    }
+    .hidden {
+      display: none;
+    }
+    pre {
+      background: #2d2d2d;
+      color: #f8f8f2;
+      padding: 12px;
+      border-radius: 4px;
+      overflow-x: auto;
+      font-size: 11px;
+      line-height: 1.4;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="section">
+    <div class="section-title">🔍 Debug Tool v3.0</div>
+    <div class="status info">
+      ตรวจสอบทีละขั้นตอน - กด "เริ่มตรวจสอบ" เพื่อเริ่มต้น
+    </div>
+  </div>
+
+  <!-- Step 1: LIFF Initialization -->
+  <div class="section">
+    <div class="section-title">Step 1: LIFF Initialization</div>
+    <div id="step1-status" class="status pending">⏳ รอการตรวจสอบ...</div>
+    <div id="step1-data"></div>
+  </div>
+
+  <!-- Step 2: localStorage Check -->
+  <div class="section">
+    <div class="section-title">Step 2: localStorage Data</div>
+    <div id="step2-status" class="status pending">⏳ รอการตรวจสอบ...</div>
+    <div id="step2-data"></div>
+  </div>
+
+  <!-- Step 3: LINE Profile -->
+  <div class="section">
+    <div class="section-title">Step 3: LINE Profile</div>
+    <div id="step3-status" class="status pending">⏳ รอการตรวจสอบ...</div>
+    <div id="step3-data"></div>
+  </div>
+
+  <!-- Step 4: API Test -->
+  <div class="section">
+    <div class="section-title">Step 4: API Endpoint Test</div>
+    <div id="step4-status" class="status pending">⏳ รอการตรวจสอบ...</div>
+    <div id="step4-data"></div>
+    <button id="testApiBtn" class="hidden">🔄 ทดสอบ API อีกครั้ง</button>
+  </div>
+
+  <!-- Step 5: Raw Error Logs -->
+  <div class="section">
+    <div class="section-title">Step 5: Error Logs (ถ้ามี)</div>
+    <div id="error-logs"></div>
+  </div>
+
+  <button id="startBtn">▶️ เริ่มตรวจสอบ</button>
+
+  <!-- LIFF SDK -->
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+  <script>
+    const LIFF_ID = '2008278683-5k69jxNq';
+    const API_BASE_URL = 'https://duulair.vercel.app/api';
+
+    let globalErrors = [];
+    let patientId = null;
+
+    // Error tracking
+    window.addEventListener('error', (e) => {
+      globalErrors.push({
+        type: 'error',
+        message: e.message,
+        stack: e.error?.stack
+      });
+      updateErrorLogs();
+    });
+
+    window.addEventListener('unhandledrejection', (e) => {
+      globalErrors.push({
+        type: 'unhandledrejection',
+        message: e.reason?.message || e.reason,
+        stack: e.reason?.stack
+      });
+      updateErrorLogs();
+    });
+
+    function updateErrorLogs() {
+      const logsDiv = document.getElementById('error-logs');
+      if (globalErrors.length === 0) {
+        logsDiv.innerHTML = '<div class="status success">✅ ไม่มี errors</div>';
+      } else {
+        logsDiv.innerHTML = globalErrors.map((err, i) => `
+          <div class="status error">
+            <strong>Error ${i + 1}:</strong> ${err.type}<br>
+            ${err.message}
+          </div>
+          ${err.stack ? `<pre>${err.stack}</pre>` : ''}
+        `).join('');
+      }
+    }
+
+    function showData(stepId, label, value) {
+      const dataDiv = document.getElementById(`${stepId}-data`);
+      const item = document.createElement('div');
+      item.className = 'data-item';
+      item.innerHTML = `
+        <div class="data-label">${label}:</div>
+        <div class="data-value">${typeof value === 'object' ? JSON.stringify(value, null, 2) : value}</div>
+      `;
+      dataDiv.appendChild(item);
+    }
+
+    function setStatus(stepId, type, message) {
+      const statusDiv = document.getElementById(`${stepId}-status`);
+      statusDiv.className = `status ${type}`;
+      statusDiv.textContent = message;
+    }
+
+    async function step1_initLiff() {
+      try {
+        setStatus('step1', 'pending', '⏳ กำลังเริ่มต้น LIFF...');
+
+        await liff.init({ liffId: LIFF_ID });
+
+        showData('step1', 'LIFF Version', liff.getVersion());
+        showData('step1', 'Is In Client', liff.isInClient());
+        showData('step1', 'Is Logged In', liff.isLoggedIn());
+
+        if (!liff.isLoggedIn()) {
+          setStatus('step1', 'error', '❌ ไม่ได้ login - จะทำการ login');
+          liff.login();
+          return false;
+        }
+
+        const context = liff.getContext();
+        showData('step1', 'Context Type', context?.type || 'N/A');
+        showData('step1', 'Group ID', context?.groupId || 'N/A');
+
+        setStatus('step1', 'success', '✅ LIFF เริ่มต้นสำเร็จ');
+        return true;
+      } catch (error) {
+        setStatus('step1', 'error', '❌ LIFF ล้มเหลว: ' + error.message);
+        showData('step1', 'Error', error.message);
+        globalErrors.push({ type: 'step1', message: error.message, stack: error.stack });
+        updateErrorLogs();
+        return false;
+      }
+    }
+
+    async function step2_checkLocalStorage() {
+      try {
+        setStatus('step2', 'pending', '⏳ กำลังตรวจสอบ localStorage...');
+
+        const duulairUser = localStorage.getItem('duulair_user');
+        const duulairContext = localStorage.getItem('duulair_context');
+
+        showData('step2', 'duulair_user (raw)', duulairUser || 'NULL');
+        showData('step2', 'duulair_context (raw)', duulairContext || 'NULL');
+
+        if (!duulairUser) {
+          setStatus('step2', 'error', '❌ ไม่พบ duulair_user ใน localStorage');
+          return false;
+        }
+
+        const userData = JSON.parse(duulairUser);
+        showData('step2', 'duulair_user (parsed)', userData);
+
+        if (!userData.profile_id) {
+          setStatus('step2', 'error', '❌ ไม่มี profile_id ใน duulair_user');
+          return false;
+        }
+
+        patientId = userData.profile_id;
+        showData('step2', 'Patient ID (extracted)', patientId);
+
+        if (duulairContext) {
+          const contextData = JSON.parse(duulairContext);
+          showData('step2', 'duulair_context (parsed)', contextData);
+        }
+
+        setStatus('step2', 'success', '✅ localStorage ถูกต้อง');
+        return true;
+      } catch (error) {
+        setStatus('step2', 'error', '❌ localStorage error: ' + error.message);
+        showData('step2', 'Error', error.message);
+        globalErrors.push({ type: 'step2', message: error.message, stack: error.stack });
+        updateErrorLogs();
+        return false;
+      }
+    }
+
+    async function step3_getProfile() {
+      try {
+        setStatus('step3', 'pending', '⏳ กำลังดึงข้อมูล LINE Profile...');
+
+        const profile = await liff.getProfile();
+
+        showData('step3', 'User ID', profile.userId);
+        showData('step3', 'Display Name', profile.displayName);
+        showData('step3', 'Picture URL', profile.pictureUrl);
+        showData('step3', 'Status Message', profile.statusMessage || 'N/A');
+
+        setStatus('step3', 'success', '✅ ดึงข้อมูล LINE Profile สำเร็จ');
+        return true;
+      } catch (error) {
+        setStatus('step3', 'error', '❌ Profile error: ' + error.message);
+        showData('step3', 'Error', error.message);
+        globalErrors.push({ type: 'step3', message: error.message, stack: error.stack });
+        updateErrorLogs();
+        return false;
+      }
+    }
+
+    async function step4_testApi() {
+      try {
+        setStatus('step4', 'pending', '⏳ กำลังเรียก API...');
+
+        if (!patientId) {
+          setStatus('step4', 'error', '❌ ไม่มี patientId - ข้าม step นี้');
+          return false;
+        }
+
+        const url = `${API_BASE_URL}/patient/${patientId}`;
+        showData('step4', 'API URL', url);
+
+        const startTime = Date.now();
+        const response = await fetch(url);
+        const elapsed = Date.now() - startTime;
+
+        showData('step4', 'Response Time', `${elapsed}ms`);
+        showData('step4', 'HTTP Status', response.status);
+        showData('step4', 'Status Text', response.statusText);
+
+        const responseText = await response.text();
+        showData('step4', 'Response (raw)', responseText);
+
+        if (!response.ok) {
+          setStatus('step4', 'error', `❌ API ตอบกลับ HTTP ${response.status}`);
+          return false;
+        }
+
+        const result = JSON.parse(responseText);
+        showData('step4', 'Response (parsed)', result);
+
+        if (!result.success) {
+          setStatus('step4', 'error', '❌ API ตอบกลับ success: false');
+          showData('step4', 'Error from API', result.error || 'Unknown error');
+          return false;
+        }
+
+        if (!result.profile) {
+          setStatus('step4', 'error', '❌ API ไม่มี profile');
+          return false;
+        }
+
+        showData('step4', 'Patient Profile', result.profile);
+        setStatus('step4', 'success', '✅ API ทำงานสำเร็จ!');
+        return true;
+      } catch (error) {
+        setStatus('step4', 'error', '❌ API error: ' + error.message);
+        showData('step4', 'Error', error.message);
+        showData('step4', 'Error Stack', error.stack);
+        globalErrors.push({ type: 'step4', message: error.message, stack: error.stack });
+        updateErrorLogs();
+        return false;
+      }
+    }
+
+    async function runAllSteps() {
+      const startBtn = document.getElementById('startBtn');
+      const testApiBtn = document.getElementById('testApiBtn');
+
+      startBtn.disabled = true;
+      startBtn.textContent = '⏳ กำลังตรวจสอบ...';
+
+      const step1 = await step1_initLiff();
+      if (!step1) {
+        startBtn.disabled = false;
+        startBtn.textContent = '🔄 ลองใหม่';
+        return;
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      const step2 = await step2_checkLocalStorage();
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      const step3 = await step3_getProfile();
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      const step4 = await step4_testApi();
+
+      testApiBtn.classList.remove('hidden');
+      startBtn.disabled = false;
+      startBtn.textContent = '🔄 ตรวจสอบใหม่อีกครั้ง';
+
+      updateErrorLogs();
+    }
+
+    document.getElementById('startBtn').addEventListener('click', runAllSteps);
+    document.getElementById('testApiBtn').addEventListener('click', step4_testApi);
+
+    // Auto-start after 1 second
+    setTimeout(() => {
+      runAllSteps();
+    }, 1000);
+  </script>
+</body>
+</html>
