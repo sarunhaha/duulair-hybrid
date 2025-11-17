@@ -480,6 +480,30 @@ app.get('/api/patient/:patientId', async (req, res) => {
 });
 
 /**
+ * GET /api/debug-env
+ * Debug endpoint to check Supabase connection
+ */
+app.get('/api/debug-env', async (req, res) => {
+  try {
+    const supabaseUrl = process.env.SUPABASE_URL || 'NOT SET';
+    const hasServiceKey = !!process.env.SUPABASE_SERVICE_KEY;
+
+    // Get first 20 chars of URL to identify which project
+    const urlPreview = supabaseUrl.substring(0, 50);
+
+    res.json({
+      supabaseUrl: urlPreview,
+      hasServiceKey: hasServiceKey,
+      nodeEnv: process.env.NODE_ENV || 'development'
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      error: error.message
+    });
+  }
+});
+
+/**
  * POST /api/quick-register
  * Quick registration for caregiver + patient (simplified onboarding)
  */
