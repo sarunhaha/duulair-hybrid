@@ -427,8 +427,8 @@ app.get('/api/check-user', async (req, res) => {
 
     res.json({
       isRegistered: result.exists,
-      userId: result.user?.id || null,
-      role: result.user?.role || null
+      userId: result.profile?.id || null,
+      role: result.role || null
     });
   } catch (error: any) {
     console.error('❌ Check user error:', error);
@@ -544,15 +544,16 @@ app.post('/api/quick-register', async (req, res) => {
       {
         firstName: caregiver.firstName,
         lastName: caregiver.lastName,
-        phoneNumber: caregiver.phoneNumber || null
+        phoneNumber: caregiver.phoneNumber || null,
+        relationship: caregiver.relationship
       }
     );
 
     if (!caregiverResult.success) {
-      throw new Error(caregiverResult.error || 'Failed to register caregiver');
+      throw new Error('Failed to register caregiver');
     }
 
-    console.log(`✅ Caregiver registered: ${caregiverResult.caregiver_id}`);
+    console.log(`✅ Caregiver registered: ${caregiverResult.profile.id}`);
 
     // Create patient profile (without LINE account)
     // We'll need to create a new service method for this
@@ -568,7 +569,7 @@ app.post('/api/quick-register', async (req, res) => {
 
     // Link caregiver to patient with relationship
     const linkResult = await userService.linkCaregiverToPatient(
-      caregiverResult.caregiver_id!,
+      caregiverResult.profile.id,
       patientResult.patientId,
       caregiver.relationship
     );
@@ -577,7 +578,7 @@ app.post('/api/quick-register', async (req, res) => {
 
     res.json({
       success: true,
-      caregiverId: caregiverResult.caregiver_id,
+      caregiverId: caregiverResult.profile.id,
       patientId: patientResult.patientId,
       message: 'Registration successful'
     });

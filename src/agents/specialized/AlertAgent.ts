@@ -108,50 +108,55 @@ export class AlertAgent extends BaseAgent {
   private async sendAlert(message: Message, level: number) {
     const patient = await this.supabase.getPatient(message.context.patientId!);
 
-    // Get caregiver group (Group-Based Care Model)
-    const group = await this.supabase.getGroupByPatientId(message.context.patientId!);
-    if (!group) {
-      this.log('warn', 'No caregiver group found for patient');
-      return;
-    }
+    // TODO: Get caregiver group (Group-Based Care Model)
+    // Method getGroupByPatientId needs to be implemented in SupabaseService
+    // const group = await this.supabase.getGroupByPatientId(message.context.patientId!);
+    // if (!group) {
+    //   this.log('warn', 'No caregiver group found for patient');
+    //   return;
+    // }
 
-    const caregivers = group.members || [];
-    const alertMessage = this.formatAlertMessage(message, level, patient, group);
+    // Temporary: Skip group-based alerts until method is implemented
+    this.log('warn', 'Group-based alerts not yet implemented');
+    return;
 
-    // Send based on level and group settings
-    if (level >= this.alertLevels.CRITICAL) {
-      // CRITICAL: Send to ALL caregivers in group immediately
-      this.log('info', `Sending CRITICAL alert to ${caregivers.length} caregivers`);
-
-      for (const caregiver of caregivers) {
-        await this.lineService.sendMessage(caregiver.line_user_id, alertMessage);
-      }
-
-      // Also send to LINE group if exists
-      if (group.line_group_id) {
-        await this.lineService.sendMessage(group.line_group_id, alertMessage);
-      }
-
-    } else if (level >= this.alertLevels.URGENT) {
-      // URGENT: Send to primary caregiver + group
-      const primary = caregivers.find((c: any) => c.role === 'primary');
-
-      if (primary) {
-        await this.lineService.sendMessage(primary.line_user_id, alertMessage);
-      }
-
-      if (group.line_group_id) {
-        await this.lineService.sendMessage(group.line_group_id, alertMessage);
-      }
-
-    } else if (level >= this.alertLevels.WARNING) {
-      // WARNING: Send to group only (if group notifications enabled)
-      const settings = group.settings || {};
-
-      if (settings.emergency_notifications !== false && group.line_group_id) {
-        await this.lineService.sendMessage(group.line_group_id, alertMessage);
-      }
-    }
+    // const caregivers = group.members || [];
+    // const alertMessage = this.formatAlertMessage(message, level, patient, group);
+    //
+    // // Send based on level and group settings
+    // if (level >= this.alertLevels.CRITICAL) {
+    //   // CRITICAL: Send to ALL caregivers in group immediately
+    //   this.log('info', `Sending CRITICAL alert to ${caregivers.length} caregivers`);
+    //
+    //   for (const caregiver of caregivers) {
+    //     await this.lineService.sendMessage(caregiver.line_user_id, alertMessage);
+    //   }
+    //
+    //   // Also send to LINE group if exists
+    //   if (group.line_group_id) {
+    //     await this.lineService.sendMessage(group.line_group_id, alertMessage);
+    //   }
+    //
+    // } else if (level >= this.alertLevels.URGENT) {
+    //   // URGENT: Send to primary caregiver + group
+    //   const primary = caregivers.find((c: any) => c.role === 'primary');
+    //
+    //   if (primary) {
+    //     await this.lineService.sendMessage(primary.line_user_id, alertMessage);
+    //   }
+    //
+    //   if (group.line_group_id) {
+    //     await this.lineService.sendMessage(group.line_group_id, alertMessage);
+    //   }
+    //
+    // } else if (level >= this.alertLevels.WARNING) {
+    //   // WARNING: Send to group only (if group notifications enabled)
+    //   const settings = group.settings || {};
+    //
+    //   if (settings.emergency_notifications !== false && group.line_group_id) {
+    //     await this.lineService.sendMessage(group.line_group_id, alertMessage);
+    //   }
+    // }
   }
 
   private formatAlertMessage(message: Message, level: number, patient: any, group?: any): string {

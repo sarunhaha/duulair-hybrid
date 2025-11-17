@@ -55,7 +55,7 @@ export class UserService {
     let profile = null;
 
     // Determine role by checking which profile exists
-    let role = null;
+    let role: 'patient' | 'caregiver' | undefined = undefined;
 
     // Check patient profile first
     const { data: patientProfile, error: patientError } = await supabase
@@ -106,11 +106,8 @@ export class UserService {
 
     return {
       exists: true,
-      user: {
-        ...user,
-        role: role,
-        profile: profile
-      }
+      role: role,
+      profile: profile
     };
   }
 
