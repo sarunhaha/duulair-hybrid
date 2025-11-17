@@ -186,11 +186,12 @@
           body: JSON.stringify(formData)
         });
 
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
         const result = await response.json();
+
+        if (!response.ok) {
+          // Show detailed error from API
+          throw new Error(result.error || `HTTP error! status: ${response.status}`);
+        }
 
         if (result.success) {
           // ✅ Save context to localStorage for future access
