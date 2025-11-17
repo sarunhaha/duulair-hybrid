@@ -601,11 +601,18 @@
 
         console.log('📦 localStorage userData:', userData);
 
-        if (!userData.profile_id) {
+        if (!userData.profile_id || !userData.role) {
           showError('ไม่พบข้อมูลผู้ใช้ กรุณาลงทะเบียนก่อน');
           setTimeout(() => {
             window.location.href = '/liff/group-registration.html';
           }, 2000);
+          return;
+        }
+
+        // ✅ Check role - Caregivers need to select a patient first
+        if (userData.role === 'caregiver') {
+          showError('คุณเป็นผู้ดูแล กรุณาเชื่อมต่อกับผู้ป่วยก่อนเพื่อดูข้อมูล');
+          document.getElementById('loading').classList.add('hidden');
           return;
         }
 
