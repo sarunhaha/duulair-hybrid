@@ -609,14 +609,43 @@
           return;
         }
 
-        // ✅ Check role - Caregivers need to select a patient first
+        // ✅ Group-Based Flow: Caregiver must have a group with patient
         if (userData.role === 'caregiver') {
-          showError('คุณเป็นผู้ดูแล กรุณาเชื่อมต่อกับผู้ป่วยก่อนเพื่อดูข้อมูล');
-          document.getElementById('loading').classList.add('hidden');
-          return;
+          console.log('👤 User is caregiver, fetching group...');
+
+          // Get caregiver's groups
+          const { data: groups, error } = await supabaseClient
+            .from('groups')
+            .select('*, patient_profiles(*)')
+            .eq('primary_caregiver_id', userData.profile_id)
+            .eq('is_active', true)
+            .limit(1)
+            .maybeSingle();
+
+          if (error) {
+            console.error('❌ Error fetching group:', error);
+            showError('ไม่สามารถโหลดข้อมูลกลุ่มได้');
+            document.getElementById('loading').classList.add('hidden');
+            return;
+          }
+
+          if (!groups || !groups.patient_profiles) {
+            console.log('📭 No group found for caregiver');
+            showError('คุณยังไม่ได้สร้างกลุ่มครอบครัว กรุณาลงทะเบียนกลุ่มก่อน');
+            setTimeout(() => {
+              window.location.href = '/liff/group-registration.html';
+            }, 2000);
+            return;
+          }
+
+          console.log('✅ Found group with patient:', groups.patient_profiles);
+          patientId = groups.patient_profiles.id;
+
+        } else {
+          // Patient role - use their own profile_id
+          patientId = userData.profile_id;
         }
 
-        patientId = userData.profile_id;
         console.log('🔍 Loading patient profile:', patientId);
 
         // ✅ Get patient data via API (bypasses RLS)
