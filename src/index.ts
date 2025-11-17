@@ -556,7 +556,6 @@ app.post('/api/quick-register', async (req, res) => {
     console.log(`✅ Caregiver registered: ${caregiverResult.profile.id}`);
 
     // Create patient profile (without LINE account)
-    // We'll need to create a new service method for this
     const patientResult = await userService.createPatientProfile({
       firstName: patient.firstName,
       lastName: patient.lastName,
@@ -564,6 +563,15 @@ app.post('/api/quick-register', async (req, res) => {
       conditions: patient.conditions || null,
       groupId: contextType === 'group' ? groupId : null
     });
+
+    if (!patientResult.success || !patientResult.patientId) {
+      console.error('❌ Patient profile creation failed:', {
+        success: patientResult.success,
+        patientId: patientResult.patientId,
+        error: patientResult.error
+      });
+      throw new Error(patientResult.error || 'Failed to create patient profile');
+    }
 
     console.log(`✅ Patient profile created: ${patientResult.patientId}`);
 
