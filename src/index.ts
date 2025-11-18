@@ -407,14 +407,14 @@ app.use('/api/registration', registrationRoutes);
 
 // Quick API endpoints for simplified onboarding
 /**
- * GET /api/check-user
+ * GET /api/check-user/:lineUserId
  * Check if user is registered (for first-time user detection)
  */
-app.get('/api/check-user', async (req, res) => {
+app.get('/api/check-user/:lineUserId', async (req, res) => {
   try {
-    const { lineUserId } = req.query;
+    const { lineUserId } = req.params;
 
-    if (!lineUserId || typeof lineUserId !== 'string') {
+    if (!lineUserId) {
       return res.status(400).json({
         success: false,
         error: 'lineUserId is required'
@@ -425,16 +425,20 @@ app.get('/api/check-user', async (req, res) => {
 
     const result = await userService.checkUserExists(lineUserId);
 
+    // Return format expected by patient-profile.html
     res.json({
-      isRegistered: result.exists,
-      userId: result.profile?.id || null,
-      role: result.role || null
+      exists: result.exists,
+      role: result.role || null,
+      profile: result.profile ? {
+        profile_id: result.profile.id,
+        ...result.profile
+      } : null
     });
   } catch (error: any) {
     console.error('❌ Check user error:', error);
     res.status(500).json({
       success: false,
-      isRegistered: false,
+      exists: false,
       error: error.message || 'Failed to check user'
     });
   }
