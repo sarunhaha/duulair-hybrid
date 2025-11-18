@@ -95,6 +95,47 @@
   <!-- QR Code Library -->
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs2@0.0.2/qrcode.min.js"></script>
 
+  <!-- LIFF Helpers -->
+  <script>
+    const LIFF_ID = '2008278683-5k69jxNq';
+    let liffProfile = null;
+
+    function showLoading(message = 'กำลังโหลด...') {
+      console.log('Loading:', message);
+    }
+
+    function hideLoading() {
+      console.log('Loading hidden');
+    }
+
+    function showError(message) {
+      alert('Error: ' + message);
+      console.error('Error:', message);
+    }
+
+    async function initLiff() {
+      try {
+        await liff.init({ liffId: LIFF_ID });
+        console.log('✅ LIFF initialized');
+
+        if (!liff.isLoggedIn()) {
+          console.log('❌ Not logged in');
+          liff.login();
+          return null;
+        }
+
+        liffProfile = await liff.getProfile();
+        console.log('✅ LIFF Profile:', liffProfile);
+        return liffProfile;
+
+      } catch (error) {
+        console.error('❌ LIFF init failed:', error);
+        showError('ไม่สามารถเชื่อมต่อได้');
+        throw error;
+      }
+    }
+  </script>
+
   <!-- App JavaScript -->
 
   <script>

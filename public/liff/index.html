@@ -23,6 +23,55 @@
   <!-- LIFF SDK -->
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
+  <!-- LIFF Helpers -->
+  <script>
+    const LIFF_ID = '2008278683-5k69jxNq';
+    let liffProfile = null;
+
+    function showLoading(message = 'กำลังโหลด...') {
+      const loading = document.getElementById('initial-loading');
+      if (loading) {
+        const p = loading.querySelector('p');
+        if (p) p.textContent = message;
+      }
+    }
+
+    function hideLoading() {
+      const loading = document.getElementById('initial-loading');
+      if (loading) loading.style.display = 'none';
+    }
+
+    function showError(message) {
+      hideLoading();
+      alert('Error: ' + message);
+      console.error('Error:', message);
+    }
+
+    async function initLiff() {
+      try {
+        showLoading('กำลังเข้าสู่ระบบ...');
+        await liff.init({ liffId: LIFF_ID });
+        console.log('✅ LIFF initialized');
+
+        if (!liff.isLoggedIn()) {
+          console.log('❌ Not logged in, redirecting...');
+          liff.login();
+          return null;
+        }
+
+        liffProfile = await liff.getProfile();
+        console.log('✅ LIFF Profile:', liffProfile);
+        hideLoading();
+        return liffProfile;
+
+      } catch (error) {
+        console.error('❌ LIFF init failed:', error);
+        showError('ไม่สามารถเชื่อมต่อได้ กรุณาลองใหม่อีกครั้ง');
+        throw error;
+      }
+    }
+  </script>
+
   <!-- App JavaScript -->
 
   <script>
