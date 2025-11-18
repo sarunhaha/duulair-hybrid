@@ -682,7 +682,7 @@
         const patient = result.profile;
         console.log('✅ Patient profile loaded:', patient);
 
-        populateForm(patient);
+        await populateForm(patient);
 
         document.getElementById('loading').classList.add('hidden');
         document.getElementById('main-content').classList.remove('hidden');
@@ -800,9 +800,9 @@
         doctor_name: document.getElementById('doctorName').value,
         doctor_phone: document.getElementById('doctorPhone').value,
         blood_type: document.getElementById('bloodType').value,
-        weight: parseFloat(document.getElementById('weight').value) || null,
-        height: parseFloat(document.getElementById('height').value) || null,
-        medical_conditions: medicalConditions,
+        weight_kg: parseFloat(document.getElementById('weight').value) || null,
+        height_cm: parseFloat(document.getElementById('height').value) || null,
+        chronic_diseases: medicalConditions,
         medical_notes: document.getElementById('medicalNotes').value
       });
     });
