@@ -689,6 +689,8 @@
       } catch (error) {
         console.error('Error loading user data:', error);
         showError('ไม่สามารถโหลดข้อมูลได้');
+        // ซ่อน loading เมื่อเกิด error
+        document.getElementById('loading').classList.add('hidden');
       }
     }
 
@@ -711,14 +713,14 @@
 
       // Medical tab - Existing fields
       document.getElementById('bloodType').value = patient.blood_type || '';
-      document.getElementById('weight').value = patient.weight || '';
-      document.getElementById('height').value = patient.height || '';
+      document.getElementById('weight').value = patient.weight_kg || '';
+      document.getElementById('height').value = patient.height_cm || '';
       document.getElementById('medicalNotes').value = patient.medical_notes || '';
 
-      // Medical conditions
-      if (patient.medical_conditions) {
-        medicalConditions = Array.isArray(patient.medical_conditions)
-          ? patient.medical_conditions
+      // Medical conditions (use chronic_diseases from API)
+      if (patient.chronic_diseases) {
+        medicalConditions = Array.isArray(patient.chronic_diseases)
+          ? patient.chronic_diseases
           : [];
         renderMedicalConditions();
       }
