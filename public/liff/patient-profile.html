@@ -681,11 +681,14 @@
 
         const patient = result.profile;
         console.log('✅ Patient profile loaded:', patient);
+        console.log('🔄 Starting populateForm...');
 
         await populateForm(patient);
 
+        console.log('✅ populateForm completed');
         document.getElementById('loading').classList.add('hidden');
         document.getElementById('main-content').classList.remove('hidden');
+        console.log('✅ UI updated - loading hidden, main-content shown');
       } catch (error) {
         console.error('Error loading user data:', error);
         showError('ไม่สามารถโหลดข้อมูลได้');
@@ -696,42 +699,60 @@
 
     // Populate form with patient data
     async function populateForm(patient) {
-      // Profile tab
-      document.getElementById('firstName').value = patient.first_name || '';
-      document.getElementById('lastName').value = patient.last_name || '';
-      document.getElementById('nickname').value = patient.nickname || '';
-      document.getElementById('birthDate').value = patient.birth_date || '';
-      document.getElementById('gender').value = patient.gender || '';
-      document.getElementById('phoneNumber').value = patient.phone_number || '';
-      document.getElementById('address').value = patient.address || '';
+      console.log('📝 populateForm: Starting...');
+      try {
+        // Profile tab
+        console.log('📝 populateForm: Setting profile fields...');
+        document.getElementById('firstName').value = patient.first_name || '';
+        document.getElementById('lastName').value = patient.last_name || '';
+        document.getElementById('nickname').value = patient.nickname || '';
+        document.getElementById('birthDate').value = patient.birth_date || '';
+        document.getElementById('gender').value = patient.gender || '';
+        document.getElementById('phoneNumber').value = patient.phone_number || '';
+        document.getElementById('address').value = patient.address || '';
+        console.log('✅ populateForm: Profile fields set');
 
-      // Medical tab - New fields
-      document.getElementById('medicalCondition').value = patient.medical_condition || '';
-      document.getElementById('hospitalName').value = patient.hospital_name || '';
-      document.getElementById('doctorName').value = patient.doctor_name || '';
-      document.getElementById('doctorPhone').value = patient.doctor_phone || '';
+        // Medical tab - New fields
+        console.log('📝 populateForm: Setting medical fields...');
+        document.getElementById('medicalCondition').value = patient.medical_condition || '';
+        document.getElementById('hospitalName').value = patient.hospital_name || '';
+        document.getElementById('doctorName').value = patient.doctor_name || '';
+        document.getElementById('doctorPhone').value = patient.doctor_phone || '';
 
-      // Medical tab - Existing fields
-      document.getElementById('bloodType').value = patient.blood_type || '';
-      document.getElementById('weight').value = patient.weight_kg || '';
-      document.getElementById('height').value = patient.height_cm || '';
-      document.getElementById('medicalNotes').value = patient.medical_notes || '';
+        // Medical tab - Existing fields
+        document.getElementById('bloodType').value = patient.blood_type || '';
+        document.getElementById('weight').value = patient.weight_kg || '';
+        document.getElementById('height').value = patient.height_cm || '';
+        document.getElementById('medicalNotes').value = patient.medical_notes || '';
+        console.log('✅ populateForm: Medical fields set');
 
-      // Medical conditions (use chronic_diseases from API)
-      if (patient.chronic_diseases) {
-        medicalConditions = Array.isArray(patient.chronic_diseases)
-          ? patient.chronic_diseases
-          : [];
-        renderMedicalConditions();
+        // Medical conditions (use chronic_diseases from API)
+        console.log('📝 populateForm: Setting chronic diseases...');
+        if (patient.chronic_diseases) {
+          medicalConditions = Array.isArray(patient.chronic_diseases)
+            ? patient.chronic_diseases
+            : [];
+          renderMedicalConditions();
+        }
+        console.log('✅ populateForm: Chronic diseases set');
+
+        // Load allergies from database
+        console.log('📝 populateForm: Loading allergies...');
+        await loadAllergies();
+        console.log('✅ populateForm: Allergies loaded');
+
+        // Emergency tab
+        console.log('📝 populateForm: Setting emergency contact fields...');
+        document.getElementById('emergencyContactName').value = patient.emergency_contact_name || '';
+        document.getElementById('emergencyContactRelation').value = patient.emergency_contact_relation || '';
+        document.getElementById('emergencyContactPhone').value = patient.emergency_contact_phone || '';
+        console.log('✅ populateForm: Emergency contact fields set');
+
+        console.log('✅ populateForm: ALL DONE!');
+      } catch (error) {
+        console.error('❌ populateForm ERROR:', error);
+        throw error; // Re-throw to be caught by loadUserData
       }
-
-      // Load allergies from database
-      await loadAllergies();
-
-      // Emergency tab
-      document.getElementById('emergencyContactName').value = patient.emergency_contact_name || '';
-      document.getElementById('emergencyContactRelation').value = patient.emergency_contact_relation || '';
-      document.getElementById('emergencyContactPhone').value = patient.emergency_contact_phone || '';
     }
 
     // Tab switching
