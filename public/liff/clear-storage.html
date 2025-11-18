@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ล้างข้อมูล Cache</title>
+  <link rel="stylesheet" href="css/minimal-theme.css">
+</head>
+<body>
+  <div class="container">
+    <div class="header text-center">
+      <h1>🧹 ล้างข้อมูล Cache</h1>
+      <p>ใช้หน้านี้เมื่อพบปัญหาการแสดงผลข้อมูลเก่า</p>
+    </div>
+
+    <div class="card">
+      <div class="card-header">ข้อมูลที่เก็บไว้</div>
+      <div id="storage-info" style="background: #f5f5f5; padding: 15px; border-radius: 4px; margin-bottom: 15px; font-family: monospace; font-size: 12px; word-break: break-all;">
+        กำลังโหลด...
+      </div>
+
+      <button onclick="clearStorage()" class="btn btn-primary btn-block">
+        🗑️ ล้างข้อมูลและรีเฟรช
+      </button>
+
+      <p class="text-center text-small text-muted mt-2">
+        หลังจากล้างข้อมูล ระบบจะโหลดข้อมูลใหม่จากฐานข้อมูล
+      </p>
+    </div>
+  </div>
+
+  <!-- LIFF SDK -->
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+  <script>
+    const LIFF_ID = '2008278683-5k69jxNq';
+
+    async function init() {
+      try {
+        await liff.init({ liffId: LIFF_ID });
+
+        // Show current localStorage data
+        const duulairUser = localStorage.getItem('duulair_user');
+        const duulairContext = localStorage.getItem('duulair_context');
+
+        const infoDiv = document.getElementById('storage-info');
+        infoDiv.innerHTML = `
+          <strong>duulair_user:</strong><br>
+          ${duulairUser || '(ไม่มี)'}<br><br>
+          <strong>duulair_context:</strong><br>
+          ${duulairContext || '(ไม่มี)'}
+        `;
+
+      } catch (error) {
+        console.error('LIFF init error:', error);
+        alert('เกิดข้อผิดพลาด: ' + error.message);
+      }
+    }
+
+    function clearStorage() {
+      if (confirm('ยืนยันการล้างข้อมูล?\n\nข้อมูลที่เก็บไว้บนเครื่องจะถูกลบ และโหลดใหม่จากฐานข้อมูล')) {
+        localStorage.clear();
+        alert('✅ ล้างข้อมูลสำเร็จ!\n\nกำลังรีเฟรชหน้า...');
+        location.reload();
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>

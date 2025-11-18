@@ -596,28 +596,35 @@
     // Load user data (1:1 context)
     async function loadUserData() {
       try {
-        // Get user data from localStorage
-        const userData = JSON.parse(localStorage.getItem('duulair_user') || '{}');
+        // ✅ Get LINE user ID from LIFF (source of truth, not localStorage)
+        const profile = await liff.getProfile();
+        const lineUserId = profile.userId;
+        console.log('👤 LINE User ID:', lineUserId);
 
-        console.log('📦 localStorage userData:', userData);
+        // ✅ Query user from database using LINE userId
+        const API_BASE_URL = window.location.hostname === 'localhost'
+          ? 'http://localhost:3000/api'
+          : 'https://duulair.vercel.app/api';
 
-        if (!userData.profile_id || !userData.role) {
+        const checkUserResponse = await fetch(`${API_BASE_URL}/check-user/${lineUserId}`);
+        const checkUserResult = await checkUserResponse.json();
+
+        console.log('📋 User check result:', checkUserResult);
+
+        if (!checkUserResult.exists) {
           showError('ไม่พบข้อมูลผู้ใช้ กรุณาลงทะเบียนก่อน');
           setTimeout(() => {
-            window.location.href = '/liff/group-registration.html';
+            window.location.href = '/liff/registration.html';
           }, 2000);
           return;
         }
 
         // ✅ CORRECTED: Query patient through patient_caregivers table
-        if (userData.role === 'caregiver') {
+        if (checkUserResult.role === 'caregiver') {
           console.log('👤 User is caregiver, fetching patient...');
 
-          // ✅ Support both flows:
-          // - Group flow: userData has caregiver_id (use this)
-          // - 1:1 flow: userData.profile_id IS caregiver_id
-          const caregiverId = userData.caregiver_id || userData.profile_id;
-          console.log('🔑 Using caregiver ID:', caregiverId);
+          const caregiverId = checkUserResult.profile.profile_id;
+          console.log('🔑 Caregiver ID from database:', caregiverId);
 
           // Get patient(s) linked to this caregiver
           const { data: caregiverLinks, error } = await supabaseClient
@@ -648,8 +655,9 @@
           patientId = caregiverLinks.patient_profiles.id;
 
         } else {
-          // Patient role - use their own profile_id
-          patientId = userData.profile_id;
+          // Patient role - use their own profile_id from database
+          patientId = checkUserResult.profile.profile_id;
+          console.log('👤 User is patient, using profile_id:', patientId);
         }
 
         console.log('🔍 Loading patient profile:', patientId);
