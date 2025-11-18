@@ -514,11 +514,18 @@
   </div>
 
   <script>
+    console.log('🚀 Script started loading...');
+
     // Configuration
     const SUPABASE_URL = 'https://mqxklnzxfrupwwkwlwwc.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1xeGtsbnp4ZnJ1cHd3a3dsd3djIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNjcxMjYsImV4cCI6MjA3MjY0MzEyNn0.vPBkIGHdvrfotD3QMnFGrNRMTP3fFzn715XGwqKG-6Y';
     const LIFF_ID = '2008278683-5k69jxNq';
+
+    console.log('📦 Checking window.supabase:', typeof window.supabase);
+    console.log('📦 Checking window.liff:', typeof window.liff);
+
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    console.log('✅ Supabase client created');
 
     let liffId = null;
     let groupId = null;
@@ -530,16 +537,23 @@
 
     // Initialize LIFF
     async function initializeLiff() {
+      console.log('🔧 initializeLiff() called!');
       try {
+        console.log('📱 Calling liff.init with LIFF_ID:', LIFF_ID);
         await liff.init({ liffId: LIFF_ID });
+        console.log('✅ liff.init success');
 
         if (!liff.isLoggedIn()) {
+          console.log('⚠️ User not logged in, redirecting to login...');
           liff.login();
           return;
         }
 
+        console.log('✅ User is logged in');
         // Get user profile
+        console.log('👤 Getting user profile...');
         const profile = await liff.getProfile();
+        console.log('✅ Got profile:', profile.displayName);
 
         // Check if user is registered (first-time detection)
         const isRegistered = await checkUserRegistration(profile.userId);
@@ -561,8 +575,11 @@
           await loadUserData();
         }
       } catch (error) {
-        console.error('LIFF initialization failed:', error);
+        console.error('❌ LIFF initialization failed:', error);
+        console.error('❌ Error message:', error.message);
+        console.error('❌ Error stack:', error.stack);
         showError('ไม่สามารถเชื่อมต่อ LINE ได้');
+        document.getElementById('loading').classList.add('hidden');
       }
     }
 
@@ -1005,7 +1022,12 @@
     });
 
     // Initialize on load
-    window.addEventListener('load', initializeLiff);
+    console.log('⏰ Setting up window.load event listener...');
+    window.addEventListener('load', () => {
+      console.log('🎬 window.load event fired!');
+      initializeLiff();
+    });
+    console.log('✅ Event listener registered');
   </script>
 </body>
 </html>
