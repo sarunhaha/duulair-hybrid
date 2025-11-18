@@ -613,11 +613,17 @@
         if (userData.role === 'caregiver') {
           console.log('👤 User is caregiver, fetching patient...');
 
+          // ✅ Support both flows:
+          // - Group flow: userData has caregiver_id (use this)
+          // - 1:1 flow: userData.profile_id IS caregiver_id
+          const caregiverId = userData.caregiver_id || userData.profile_id;
+          console.log('🔑 Using caregiver ID:', caregiverId);
+
           // Get patient(s) linked to this caregiver
           const { data: caregiverLinks, error } = await supabaseClient
             .from('patient_caregivers')
             .select('patient_id, patient_profiles(*)')
-            .eq('caregiver_id', userData.profile_id)
+            .eq('caregiver_id', caregiverId)
             .eq('status', 'active')
             .limit(1)
             .maybeSingle();
