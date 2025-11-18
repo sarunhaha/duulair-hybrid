@@ -609,37 +609,37 @@
           return;
         }
 
-        // ✅ Group-Based Flow: Caregiver must have a group with patient
+        // ✅ CORRECTED: Query patient through patient_caregivers table
         if (userData.role === 'caregiver') {
-          console.log('👤 User is caregiver, fetching group...');
+          console.log('👤 User is caregiver, fetching patient...');
 
-          // Get caregiver's groups
-          const { data: groups, error } = await supabaseClient
-            .from('groups')
-            .select('*, patient_profiles(*)')
-            .eq('primary_caregiver_id', userData.profile_id)
-            .eq('is_active', true)
+          // Get patient(s) linked to this caregiver
+          const { data: caregiverLinks, error } = await supabaseClient
+            .from('patient_caregivers')
+            .select('patient_id, patient_profiles(*)')
+            .eq('caregiver_id', userData.profile_id)
+            .eq('status', 'active')
             .limit(1)
             .maybeSingle();
 
           if (error) {
-            console.error('❌ Error fetching group:', error);
-            showError('ไม่สามารถโหลดข้อมูลกลุ่มได้');
+            console.error('❌ Error fetching patient:', error);
+            showError('ไม่สามารถโหลดข้อมูลผู้ป่วยได้');
             document.getElementById('loading').classList.add('hidden');
             return;
           }
 
-          if (!groups || !groups.patient_profiles) {
-            console.log('📭 No group found for caregiver');
-            showError('คุณยังไม่ได้สร้างกลุ่มครอบครัว กรุณาลงทะเบียนกลุ่มก่อน');
+          if (!caregiverLinks || !caregiverLinks.patient_profiles) {
+            console.log('📭 No patient found for caregiver');
+            showError('คุณยังไม่ได้ลงทะเบียนผู้ป่วย กรุณาลงทะเบียนก่อน');
             setTimeout(() => {
-              window.location.href = '/liff/group-registration.html';
+              window.location.href = '/liff/registration.html';
             }, 2000);
             return;
           }
 
-          console.log('✅ Found group with patient:', groups.patient_profiles);
-          patientId = groups.patient_profiles.id;
+          console.log('✅ Found patient:', caregiverLinks.patient_profiles);
+          patientId = caregiverLinks.patient_profiles.id;
 
         } else {
           // Patient role - use their own profile_id
@@ -649,7 +649,10 @@
         console.log('🔍 Loading patient profile:', patientId);
 
         // ✅ Get patient data via API (bypasses RLS)
-        const response = await fetch(`https://duulair.vercel.app/api/patient/${patientId}`);
+        const API_BASE_URL = window.location.hostname === 'localhost'
+          ? 'http://localhost:3000/api'
+          : 'https://duulair.vercel.app/api';
+        const response = await fetch(`${API_BASE_URL}/patient/${patientId}`);
 
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);

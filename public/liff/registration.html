@@ -235,11 +235,10 @@
           console.log('💾 Saving context to localStorage:', contextData);
           localStorage.setItem('duulair_context', JSON.stringify(contextData));
 
-          // ✅ Save to duulair_user - use patientId so patient-profile.html can load patient data
+          // ✅ Save to duulair_user - use caregiverId (CORRECTED 2025-01-17)
           const userData = {
             role: 'caregiver',
-            profile_id: result.patientId, // ✅ Patient ID, not caregiver ID
-            caregiver_id: result.caregiverId, // Keep caregiver ID for reference
+            profile_id: result.caregiverId, // ✅ Caregiver ID (correct!)
             line_user_id: profile.userId
           };
           localStorage.setItem('duulair_user', JSON.stringify(userData));

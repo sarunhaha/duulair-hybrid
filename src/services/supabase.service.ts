@@ -1,6 +1,10 @@
 // src/services/supabase.service.ts
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { ActivityLog } from '../types/user.types';
+import dotenv from 'dotenv';
+
+// Load environment variables
+dotenv.config();
 
 export class SupabaseService {
   private client: SupabaseClient;

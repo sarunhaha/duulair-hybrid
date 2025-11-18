@@ -714,7 +714,10 @@
         // ✅ Get patient profile with settings via API (bypasses RLS)
         console.log('🔍 Loading patient settings for:', userData.profile_id);
 
-        const response = await fetch(`https://duulair.vercel.app/api/patient/${userData.profile_id}`);
+        const API_BASE_URL = window.location.hostname === 'localhost'
+          ? 'http://localhost:3000/api'
+          : 'https://duulair.vercel.app/api';
+        const response = await fetch(`${API_BASE_URL}/patient/${userData.profile_id}`);
 
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);

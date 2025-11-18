@@ -145,7 +145,10 @@
 
   <script>
     const LIFF_ID = '2008278683-5k69jxNq';
-    const API_BASE_URL = 'https://duulair.vercel.app/api';
+    // Use localhost for development, Vercel for production
+    const API_BASE_URL = window.location.hostname === 'localhost'
+      ? 'http://localhost:3000/api'
+      : 'https://duulair.vercel.app/api';
 
     let globalErrors = [];
     let patientId = null;

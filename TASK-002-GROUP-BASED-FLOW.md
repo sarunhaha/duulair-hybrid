@@ -1,16 +1,34 @@
-# TASK-002: Group-Based Flow Redesign
+# TASK-002: Hybrid Flow (1:1 + Optional Group)
 
-**Status:** 📝 Specification
+**Status:** ⚠️ DEPRECATED - See CONCEPT-CORRECT.md for actual flow
 **Priority:** High
 **Estimated Time:** 11-16 hours
 **Created:** 2025-11-05
-**Version:** 1.0.0
+**Updated:** 2025-01-17
+**Version:** 2.0.0
 
 ---
 
-## 🎯 Objective
+## ⚠️ IMPORTANT UPDATE (2025-01-17)
 
-Redesign registration and usage flow from **Patient-Centric** to **Group-Based** model.
+**This document contains INCORRECT flow assumptions.**
+
+**✅ Correct concept: See `CONCEPT-CORRECT.md`**
+
+### Key Changes:
+- ❌ Group is NOT the starting point
+- ✅ 1:1 Chat is the MAIN flow
+- ✅ Group is OPTIONAL feature
+- ✅ Caregiver registers via 1:1 first
+- ✅ Group can be added later (optional)
+
+---
+
+## 🎯 Objective (CORRECTED)
+
+Support **both 1:1 and Group flows** where:
+1. **Primary Flow:** Caregiver registers via 1:1 chat
+2. **Optional Flow:** Caregiver invites bot to family LINE group
 
 ### Current Problems:
 - ❌ Too many registration steps (4 steps for patient, separate for caregiver)

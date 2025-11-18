@@ -910,13 +910,121 @@ async function handleFollow(event: any) {
       return { success: true, skipped: true };
     }
 
-    const welcomeMessage: TextMessage = {
-      type: 'text',
-      text: 'สวัสดีค่ะ! ยินดีต้อนรับสู่ Duulair ระบบดูแลสุขภาพผู้สูงอายุ 🏥\n\nคุณสามารถบันทึกข้อมูลสุขภาพได้ทันที เช่น:\n💊 บันทึกการกินยา\n💧 บันทึกการดื่มน้ำ\n🩺 วัดความดันโลหิต\n🚶 บันทึกการเดิน\n\nเริ่มต้นได้เลยค่ะ!'
+    // ✅ Check if user already registered
+    console.log('🔍 Checking if user is registered...');
+    const checkResult = await userService.checkUserExists(userId);
+
+    if (checkResult.exists) {
+      // Already registered - send welcome back message
+      console.log('✅ User already registered, sending welcome back message');
+      const welcomeBackMessage: TextMessage = {
+        type: 'text',
+        text: `สวัสดีค่ะ! ยินดีต้อนรับกลับมานะคะ 👋\n\nคุณลงทะเบียนเป็น${checkResult.role === 'caregiver' ? 'ผู้ดูแล' : 'ผู้ป่วย'}แล้ว\nสามารถใช้งานได้ทันทีผ่านเมนูด้านล่างเลยค่ะ ✨`
+      };
+      await lineClient.replyMessage(replyToken, welcomeBackMessage);
+      return { success: true, alreadyRegistered: true };
+    }
+
+    // ✅ New user - send registration link
+    console.log('📝 New user - sending registration link');
+    const registrationUrl = `https://liff.line.me/${LIFF_ID}/registration.html`;
+
+    const welcomeMessage: FlexMessage = {
+      type: 'flex',
+      altText: 'ยินดีต้อนรับสู่ Duulair - กรุณาลงทะเบียน',
+      contents: {
+        type: 'bubble',
+        body: {
+          type: 'box',
+          layout: 'vertical',
+          contents: [
+            {
+              type: 'text',
+              text: '👋 สวัสดีค่ะ!',
+              weight: 'bold',
+              size: 'xl',
+              color: '#2E7D32'
+            },
+            {
+              type: 'text',
+              text: 'ยินดีต้อนรับสู่ Duulair',
+              size: 'lg',
+              color: '#424242',
+              margin: 'md'
+            },
+            {
+              type: 'text',
+              text: 'ระบบดูแลสุขภาพผู้สูงอายุ',
+              size: 'sm',
+              color: '#757575',
+              wrap: true
+            },
+            {
+              type: 'separator',
+              margin: 'xl'
+            },
+            {
+              type: 'box',
+              layout: 'vertical',
+              margin: 'xl',
+              spacing: 'sm',
+              contents: [
+                {
+                  type: 'text',
+                  text: '📋 กรุณาลงทะเบียนก่อนใช้งาน',
+                  color: '#424242',
+                  size: 'md',
+                  weight: 'bold'
+                },
+                {
+                  type: 'text',
+                  text: 'กรอกข้อมูลเพียง 1 ครั้ง:\n• ข้อมูลผู้ดูแล (คุณ)\n• ข้อมูลผู้ป่วย (ผู้ที่คุณดูแล)',
+                  color: '#757575',
+                  size: 'sm',
+                  wrap: true,
+                  margin: 'md'
+                }
+              ]
+            }
+          ]
+        },
+        footer: {
+          type: 'box',
+          layout: 'vertical',
+          spacing: 'sm',
+          contents: [
+            {
+              type: 'button',
+              style: 'primary',
+              height: 'sm',
+              color: '#4CAF50',
+              action: {
+                type: 'uri',
+                label: '📝 ลงทะเบียนเลย',
+                uri: registrationUrl
+              }
+            },
+            {
+              type: 'box',
+              layout: 'baseline',
+              margin: 'md',
+              contents: [
+                {
+                  type: 'text',
+                  text: '⏱️ ใช้เวลาไม่ถึง 2 นาที',
+                  color: '#999999',
+                  size: 'xs',
+                  flex: 0
+                }
+              ]
+            }
+          ]
+        }
+      }
     };
 
     await lineClient.replyMessage(replyToken, welcomeMessage);
-    console.log('✅ Welcome message sent');
+    console.log('✅ Registration link sent');
 
     return { success: true };
   } catch (error) {
