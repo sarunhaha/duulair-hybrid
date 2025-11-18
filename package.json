@@ -12,6 +12,8 @@
     "db:reset": "supabase db reset",
     "agent:validate": "ts-node scripts/validate-specs.ts",
     "agent:deploy": "ts-node scripts/deploy-agents.ts",
+    "validate:liff": "node scripts/validate-liff-pages.js",
+    "predeploy": "npm run validate:liff",
     "lint": "eslint src/**/*.ts",
     "format": "prettier --write src/**/*.ts",
     "dev-agent": "ts-node src/agents/development/DevAgentCLI.ts",

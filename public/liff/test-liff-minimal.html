@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Test LIFF Minimal</title>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script>
+    console.log('🚀 TEST: After LIFF SDK script tag');
+    alert('TEST: After LIFF SDK script tag!');
+  </script>
+</head>
+<body>
+  <h1>LIFF Minimal Test</h1>
+  <div id="status">Loading...</div>
+  <div id="logs"></div>
+  
+  <script>
+    const logDiv = document.getElementById('logs');
+    const statusDiv = document.getElementById('status');
+    
+    function log(msg) {
+      console.log(msg);
+      logDiv.innerHTML += `<p>${msg}</p>`;
+    }
+    
+    log('✅ Script started');
+    log('Checking window.liff: ' + typeof window.liff);
+    
+    if (typeof window.liff === 'undefined') {
+      log('❌ LIFF SDK not loaded!');
+      statusDiv.innerHTML = '❌ LIFF SDK not loaded!';
+      statusDiv.style.color = 'red';
+    } else {
+      log('✅ LIFF SDK loaded');
+      statusDiv.innerHTML = '✅ LIFF SDK loaded';
+      statusDiv.style.color = 'green';
+      
+      liff.init({ liffId: '2008278683-5k69jxNq' })
+        .then(() => {
+          log('✅ LIFF init success');
+          statusDiv.innerHTML += '<br>✅ LIFF init success';
+        })
+        .catch((err) => {
+          log('❌ LIFF init error: ' + err.message);
+          statusDiv.innerHTML += '<br>❌ LIFF init error: ' + err.message;
+          statusDiv.style.color = 'red';
+        });
+    }
+  </script>
+</body>
+</html>
