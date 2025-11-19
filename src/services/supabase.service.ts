@@ -110,7 +110,7 @@ export class SupabaseService {
   // Alert Management
   async saveAlert(alert: any) {
     const { error } = await this.client
-      .from('alerts')
+      .from('alert_logs')
       .insert(alert);
 
     if (error) throw error;
@@ -133,11 +133,11 @@ export class SupabaseService {
   // Patient Management
   async getPatient(patientId: string) {
     const { data, error } = await this.client
-      .from('patients')
+      .from('patient_profiles')
       .select('*')
       .eq('id', patientId)
       .single();
-    
+
     if (error) throw error;
     return data;
   }
@@ -145,11 +145,11 @@ export class SupabaseService {
   // Real-time Subscriptions
   subscribeToAlerts(callback: (payload: any) => void) {
     return this.client
-      .channel('alerts')
+      .channel('alert_logs')
       .on('postgres_changes', {
         event: 'INSERT',
         schema: 'public',
-        table: 'alerts'
+        table: 'alert_logs'
       }, callback)
       .subscribe();
   }
