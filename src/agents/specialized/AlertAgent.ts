@@ -37,23 +37,29 @@ export class AlertAgent extends BaseAgent {
 
   async process(message: Message): Promise<Response> {
     const startTime = Date.now();
-    
+
     try {
       const alertType = message.metadata?.alertType || this.detectAlertType(message.content);
       const level = this.determineAlertLevel(alertType, message);
-      
+
+      console.log(`🚨 AlertAgent processing: type=${alertType}, level=${level}, patientId=${message.context.patientId}`);
+
       if (level >= this.alertLevels.WARNING) {
         await this.sendAlert(message, level);
       }
-      
-      // Log alert
-      await this.supabase.saveAlert({
-        patient_id: message.context.patientId,
-        alert_type: alertType,
-        level,
-        message: message.content,
-        timestamp: new Date()
-      });
+
+      // Log alert (non-critical, don't fail if table doesn't exist)
+      try {
+        await this.supabase.saveAlert({
+          patient_id: message.context.patientId,
+          alert_type: alertType,
+          level,
+          message: message.content,
+          timestamp: new Date()
+        });
+      } catch (saveError) {
+        console.error('⚠️ Failed to save alert to database (non-critical):', saveError);
+      }
 
       // Generate response message for user
       let responseText = '';
@@ -62,6 +68,8 @@ export class AlertAgent extends BaseAgent {
       } else if (level >= this.alertLevels.WARNING) {
         responseText = `⚠️ บันทึกการแจ้งเตือนแล้วค่ะ\n\nได้แจ้งไปยังผู้ดูแลในกลุ่มแล้ว`;
       }
+
+      console.log(`✅ AlertAgent response: ${responseText.substring(0, 50)}...`);
 
       return {
         success: true,
@@ -74,8 +82,9 @@ export class AlertAgent extends BaseAgent {
         agentName: this.config.name,
         processingTime: Date.now() - startTime
       };
-      
+
     } catch (error) {
+      console.error('❌ AlertAgent error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Alert processing failed',

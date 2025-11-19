@@ -1,13 +1,8 @@
 // src/services/scheduler.service.ts
 import cron from 'node-cron';
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { supabase } from './supabase.service';
 import { LineService } from './line.service';
 import { groupService } from './group.service';
-
-const supabase = createClient(
-  process.env.SUPABASE_URL || '',
-  process.env.SUPABASE_ANON_KEY || ''
-);
 
 class SchedulerService {
   private lineService: LineService;
