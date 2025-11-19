@@ -110,8 +110,10 @@ export class OrchestratorAgent extends BaseAgent {
       // Step 4: Aggregate results
       const aggregatedResponse = this.aggregateResponses(results);
 
-      // Step 5: Check for alerts
-      await this.checkAlerts(message, aggregatedResponse);
+      // Step 5: Check for alerts (only if alert agent wasn't already called)
+      if (!routingPlan.agents.includes('alert')) {
+        await this.checkAlerts(message, aggregatedResponse);
+      }
 
       // Step 6: Save to database
       await this.saveProcessingLog(message, aggregatedResponse);
@@ -300,18 +302,29 @@ export class OrchestratorAgent extends BaseAgent {
       combined: {} as any
     };
 
-    // Merge successful responses - prioritize health agent response over dialog
+    // Track priority responses
+    let alertResponse: string | null = null;
+    let healthResponse: string | null = null;
+
+    // Merge successful responses - prioritize: alert > health > dialog
     for (const response of aggregated.results) {
       if (response.data) {
-        // Keep existing response if already set (health agent has priority)
-        const existingResponse = aggregated.combined.response;
-        Object.assign(aggregated.combined, response.data);
-
-        // Restore health agent response if dialog tried to override
-        if (existingResponse && response.agentName === 'dialog') {
-          aggregated.combined.response = existingResponse;
+        // Store agent-specific responses
+        if (response.agentName === 'alert' && response.data.response) {
+          alertResponse = response.data.response;
+        } else if (response.agentName === 'health' && response.data.response) {
+          healthResponse = response.data.response;
         }
+
+        Object.assign(aggregated.combined, response.data);
       }
+    }
+
+    // Apply priority: alert > health > dialog
+    if (alertResponse) {
+      aggregated.combined.response = alertResponse;
+    } else if (healthResponse) {
+      aggregated.combined.response = healthResponse;
     }
 
     return aggregated;
