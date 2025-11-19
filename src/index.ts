@@ -445,6 +445,27 @@ app.get('/api/check-user/:lineUserId', async (req, res) => {
 });
 
 /**
+ * GET /api/patients (TEST ONLY)
+ * List all patients for testing
+ */
+app.get('/api/patients', async (req, res) => {
+  try {
+    const patients = await userService.listPatients();
+
+    res.json({
+      success: true,
+      patients: patients || []
+    });
+  } catch (error: any) {
+    console.error('Error listing patients:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
  * GET /api/patient/:patientId
  * Get patient profile by ID (bypasses RLS using service role)
  */
@@ -479,6 +500,46 @@ app.get('/api/patient/:patientId', async (req, res) => {
     res.status(500).json({
       success: false,
       error: error.message || 'Failed to get patient'
+    });
+  }
+});
+
+/**
+ * PUT /api/patient/:patientId
+ * Update patient profile by ID
+ */
+app.put('/api/patient/:patientId', async (req, res) => {
+  try {
+    const { patientId } = req.params;
+    const updateData = req.body;
+
+    if (!patientId) {
+      return res.status(400).json({
+        success: false,
+        error: 'patientId is required'
+      });
+    }
+
+    console.log(`📝 Updating patient profile: ${patientId}`, updateData);
+
+    const updatedProfile = await userService.updatePatientProfile(patientId, updateData);
+
+    if (!updatedProfile) {
+      return res.status(404).json({
+        success: false,
+        error: 'Patient not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      profile: updatedProfile
+    });
+  } catch (error: any) {
+    console.error('❌ Update patient error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to update patient'
     });
   }
 });

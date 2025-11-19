@@ -573,6 +573,55 @@ export class UserService {
   }
 
   /**
+   * List all patients (for testing)
+   */
+  async listPatients(): Promise<any[]> {
+    const { data, error } = await supabase
+      .from('patient_profiles')
+      .select('id, first_name, last_name, nickname, created_at')
+      .order('created_at', { ascending: false })
+      .limit(10);
+
+    if (error) {
+      console.error('Error listing patients:', error);
+      return [];
+    }
+
+    return data || [];
+  }
+
+  /**
+   * Update patient profile
+   */
+  async updatePatientProfile(patientId: string, updateData: Partial<PatientProfile>): Promise<PatientProfile | null> {
+    console.log(`📝 Updating patient profile: ${patientId}`, updateData);
+
+    // Remove fields that shouldn't be updated
+    const { id, user_id, created_at, ...safeData } = updateData as any;
+
+    // Add updated_at timestamp
+    const dataToUpdate = {
+      ...safeData,
+      updated_at: new Date().toISOString()
+    };
+
+    const { data, error } = await supabase
+      .from('patient_profiles')
+      .update(dataToUpdate)
+      .eq('id', patientId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('❌ Error updating patient profile:', error);
+      throw new Error(error.message);
+    }
+
+    console.log('✅ Patient profile updated successfully');
+    return data as PatientProfile;
+  }
+
+  /**
    * ดึงข้อมูล caregiver profile
    */
   async getCaregiverProfile(caregiverId: string): Promise<CaregiverProfile | null> {
@@ -621,27 +670,6 @@ export class UserService {
     }
 
     return data.map(item => item.patient_profiles) as PatientProfile[];
-  }
-
-  /**
-   * แก้ไข patient profile
-   */
-  async updatePatientProfile(
-    patientId: string,
-    updates: Partial<PatientProfile>
-  ): Promise<PatientProfile> {
-    const { data, error } = await supabase
-      .from('patient_profiles')
-      .update(updates)
-      .eq('id', patientId)
-      .select()
-      .single();
-
-    if (error || !data) {
-      throw new Error('แก้ไข profile ไม่สำเร็จ: ' + error?.message);
-    }
-
-    return data as PatientProfile;
   }
 
   /**

@@ -202,6 +202,33 @@
     // LIFF ID
     const LIFF_ID = '2008278683-5k69jxNq';
 
+    // Check user registration (first-time detection)
+    async function checkUserRegistration(lineUserId) {
+      try {
+        const API_BASE_URL = window.location.hostname === 'localhost'
+          ? 'http://localhost:3000/api'
+          : 'https://duulair.vercel.app/api';
+
+        const response = await fetch(`${API_BASE_URL}/check-user/${lineUserId}`);
+        const result = await response.json();
+
+        console.log('📋 Registration check:', result);
+
+        if (!result.exists) {
+          console.log('❌ Not registered, redirecting to registration...');
+          setTimeout(() => {
+            window.location.href = '/liff/index.html';
+          }, 1000);
+          return false;
+        }
+
+        return true;
+      } catch (error) {
+        console.error('❌ Error checking registration:', error);
+        return true; // Allow through on error to avoid blocking
+      }
+    }
+
     // Initialize with first-time user detection
     async function init() {
       try {

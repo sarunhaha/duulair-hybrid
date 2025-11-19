@@ -610,6 +610,33 @@
     const LIFF_ID = '2008278683-5k69jxNq';
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+    // Check user registration (first-time detection)
+    async function checkUserRegistration(lineUserId) {
+      try {
+        const API_BASE_URL = window.location.hostname === 'localhost'
+          ? 'http://localhost:3000/api'
+          : 'https://duulair.vercel.app/api';
+
+        const response = await fetch(`${API_BASE_URL}/check-user/${lineUserId}`);
+        const result = await response.json();
+
+        console.log('📋 Registration check:', result);
+
+        if (!result.exists) {
+          console.log('❌ Not registered, redirecting to registration...');
+          setTimeout(() => {
+            window.location.href = '/liff/index.html';
+          }, 1000);
+          return false;
+        }
+
+        return true;
+      } catch (error) {
+        console.error('❌ Error checking registration:', error);
+        return true; // Allow through on error to avoid blocking
+      }
+    }
+
     let liffId = null;
     let groupId = null;
     let groupData = null;
@@ -643,17 +670,26 @@
         const context = liff.getContext();
         isGroupContext = context && context.type === 'group';
 
-        if (isGroupContext) {
-          // Group context - load group settings
-          groupId = context.groupId;
-          await loadGroupData();
-        } else {
-          // 1:1 context - load user settings
-          await loadUserData();
+        // Show UI first, then load data
+        document.getElementById('loading').classList.add('hidden');
+        document.getElementById('main-content').classList.remove('hidden');
+
+        // Load data separately with its own error handling
+        try {
+          if (isGroupContext) {
+            groupId = context.groupId;
+            await loadGroupData();
+          } else {
+            await loadUserData();
+          }
+        } catch (dataError) {
+          console.error('❌ Data loading failed:', dataError);
+          showError('ไม่สามารถโหลดข้อมูลได้: ' + dataError.message);
         }
       } catch (error) {
         console.error('LIFF initialization failed:', error);
-        showError('ไม่สามารถเชื่อมต่อ LINE ได้');
+        showError('ไม่สามารถเชื่อมต่อ LINE ได้: ' + error.message);
+        document.getElementById('loading').classList.add('hidden');
       }
     }
 
@@ -685,12 +721,9 @@
 
         // Set toggle switches
         initializeToggles();
-
-        document.getElementById('loading').classList.add('hidden');
-        document.getElementById('main-content').classList.remove('hidden');
       } catch (error) {
         console.error('Error loading data:', error);
-        showError('ไม่สามารถโหลดข้อมูลได้');
+        throw error; // Re-throw to be caught by initializeLiff
       }
     }
 
@@ -744,12 +777,9 @@
 
         // Set toggle switches
         initializeToggles();
-
-        document.getElementById('loading').classList.add('hidden');
-        document.getElementById('main-content').classList.remove('hidden');
       } catch (error) {
         console.error('Error loading user data:', error);
-        showError('ไม่สามารถโหลดข้อมูลได้');
+        throw error; // Re-throw to be caught by initializeLiff
       }
     }
 

@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edit Patient Profile</title>
+  <link rel="stylesheet" href="css/minimal-theme.css">
+  <style>
+    .form-group {
+      margin-bottom: 15px;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      color: #333;
+      font-weight: 500;
+    }
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      border-color: #007bff;
+      outline: none;
+    }
+    .btn-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    .btn {
+      flex: 1;
+      padding: 12px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .btn-save {
+      background: #28a745;
+      color: white;
+    }
+    .btn-cancel {
+      background: #6c757d;
+      color: white;
+    }
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .section-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #007bff;
+    }
+    .back-link {
+      display: inline-block;
+      margin-bottom: 15px;
+      color: #007bff;
+      text-decoration: none;
+    }
+    .success-message {
+      background: #d4edda;
+      border: 1px solid #c3e6cb;
+      color: #155724;
+      padding: 10px;
+      border-radius: 4px;
+      margin-bottom: 15px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="#" onclick="goBack()" class="back-link">← กลับ</a>
+
+    <!-- Loading State -->
+    <div id="loading" class="loading">
+      <div class="loading-spinner"></div>
+      <p>Loading...</p>
+    </div>
+
+    <!-- Error Message -->
+    <div id="error" class="alert alert-error" style="display: none;"></div>
+
+    <!-- Success Message -->
+    <div id="success" class="success-message"></div>
+
+    <!-- Edit Form -->
+    <div id="edit-form" style="display: none;">
+      <h1 id="page-title">Edit Profile</h1>
+
+      <!-- Basic Info Section -->
+      <div id="section-basic" class="card" style="display: none;">
+        <div class="section-title">Basic Info</div>
+        <div class="form-group">
+          <label>ชื่อ</label>
+          <input type="text" id="first_name" placeholder="ชื่อ">
+        </div>
+        <div class="form-group">
+          <label>นามสกุล</label>
+          <input type="text" id="last_name" placeholder="นามสกุล">
+        </div>
+        <div class="form-group">
+          <label>ชื่อเล่น</label>
+          <input type="text" id="nickname" placeholder="ชื่อเล่น">
+        </div>
+        <div class="form-group">
+          <label>วันเกิด</label>
+          <input type="date" id="birth_date">
+        </div>
+        <div class="form-group">
+          <label>เพศ</label>
+          <select id="gender">
+            <option value="">เลือกเพศ</option>
+            <option value="male">ชาย</option>
+            <option value="female">หญิง</option>
+            <option value="other">อื่นๆ</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>เบอร์โทรศัพท์</label>
+          <input type="tel" id="phone_number" placeholder="0812345678">
+        </div>
+      </div>
+
+      <!-- Medical Info Section -->
+      <div id="section-medical" class="card" style="display: none;">
+        <div class="section-title">Medical Info</div>
+        <div class="form-group">
+          <label>กรุ๊ปเลือด</label>
+          <select id="blood_type">
+            <option value="">เลือกกรุ๊ปเลือด</option>
+            <option value="A">A</option>
+            <option value="B">B</option>
+            <option value="O">O</option>
+            <option value="AB">AB</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>น้ำหนัก (kg)</label>
+          <input type="number" id="weight_kg" placeholder="60" step="0.1">
+        </div>
+        <div class="form-group">
+          <label>ส่วนสูง (cm)</label>
+          <input type="number" id="height_cm" placeholder="170">
+        </div>
+        <div class="form-group">
+          <label>โรคประจำตัว</label>
+          <textarea id="medical_condition" rows="3" placeholder="โรคประจำตัว..."></textarea>
+        </div>
+        <div class="form-group">
+          <label>โรคเรื้อรัง (คั่นด้วยเครื่องหมายจุลภาค)</label>
+          <textarea id="chronic_diseases" rows="3" placeholder="ความดันสูง, เบาหวาน..."></textarea>
+        </div>
+        <div class="form-group">
+          <label>แพ้ยา</label>
+          <textarea id="drug_allergies" rows="2" placeholder="ยาที่แพ้..."></textarea>
+        </div>
+        <div class="form-group">
+          <label>แพ้อาหาร</label>
+          <textarea id="food_allergies" rows="2" placeholder="อาหารที่แพ้..."></textarea>
+        </div>
+      </div>
+
+      <!-- Emergency Contact Section -->
+      <div id="section-emergency" class="card" style="display: none;">
+        <div class="section-title">Emergency Contact</div>
+        <div class="form-group">
+          <label>ชื่อผู้ติดต่อฉุกเฉิน</label>
+          <input type="text" id="emergency_contact_name" placeholder="ชื่อ-นามสกุล">
+        </div>
+        <div class="form-group">
+          <label>ความสัมพันธ์</label>
+          <select id="emergency_contact_relation">
+            <option value="">เลือกความสัมพันธ์</option>
+            <option value="ลูก">ลูก</option>
+            <option value="ลูกสะใภ้">ลูกสะใภ้</option>
+            <option value="ลูกเขย">ลูกเขย</option>
+            <option value="หลาน">หลาน</option>
+            <option value="คู่สมรส">คู่สมรส</option>
+            <option value="พี่น้อง">พี่น้อง</option>
+            <option value="ญาติ">ญาติ</option>
+            <option value="เพื่อน">เพื่อน</option>
+            <option value="ผู้ดูแล">ผู้ดูแล</option>
+            <option value="อื่นๆ">อื่นๆ</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>เบอร์โทรศัพท์</label>
+          <input type="tel" id="emergency_contact_phone" placeholder="0812345678">
+        </div>
+      </div>
+
+      <div class="btn-group">
+        <button class="btn btn-cancel" onclick="goBack()">ยกเลิก</button>
+        <button class="btn btn-save" id="save-btn" onclick="saveChanges()">บันทึก</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE_URL = window.location.hostname === 'localhost'
+      ? 'http://localhost:3000/api'
+      : 'https://duulair.vercel.app/api';
+    let currentPatientId = null;
+    let currentSection = null;
+    let originalData = null;
+
+    // Get params from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    currentPatientId = urlParams.get('patient_id');
+    currentSection = urlParams.get('section') || 'basic';
+
+    // Initialize page
+    async function init() {
+      if (!currentPatientId) {
+        showError('ไม่พบ Patient ID');
+        return;
+      }
+
+      // Set page title
+      const sectionTitles = {
+        basic: 'แก้ไขข้อมูลพื้นฐาน',
+        medical: 'แก้ไขข้อมูลทางการแพทย์',
+        emergency: 'แก้ไขผู้ติดต่อฉุกเฉิน'
+      };
+      document.getElementById('page-title').textContent = sectionTitles[currentSection] || 'แก้ไขข้อมูล';
+
+      // Show relevant section
+      document.getElementById(`section-${currentSection}`).style.display = 'block';
+
+      // Load patient data
+      await loadPatientData();
+    }
+
+    async function loadPatientData() {
+      try {
+        const response = await fetch(`${API_BASE_URL}/patient/${currentPatientId}`);
+        const result = await response.json();
+
+        if (!result.success || !result.profile) {
+          throw new Error(result.error || 'ไม่พบข้อมูลผู้ป่วย');
+        }
+
+        originalData = result.profile;
+        populateForm(result.profile);
+
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('edit-form').style.display = 'block';
+
+      } catch (error) {
+        console.error('Error loading patient:', error);
+        showError(error.message);
+      }
+    }
+
+    function populateForm(patient) {
+      // Basic Info
+      if (currentSection === 'basic') {
+        document.getElementById('first_name').value = patient.first_name || '';
+        document.getElementById('last_name').value = patient.last_name || '';
+        document.getElementById('nickname').value = patient.nickname || '';
+        document.getElementById('birth_date').value = patient.birth_date || '';
+        document.getElementById('gender').value = patient.gender || '';
+        document.getElementById('phone_number').value = patient.phone_number || '';
+      }
+
+      // Medical Info
+      if (currentSection === 'medical') {
+        document.getElementById('blood_type').value = patient.blood_type || '';
+        document.getElementById('weight_kg').value = patient.weight_kg || '';
+        document.getElementById('height_cm').value = patient.height_cm || '';
+        document.getElementById('medical_condition').value = patient.medical_condition || '';
+        document.getElementById('chronic_diseases').value =
+          Array.isArray(patient.chronic_diseases) ? patient.chronic_diseases.join(', ') : (patient.chronic_diseases || '');
+        document.getElementById('drug_allergies').value = patient.drug_allergies || '';
+        document.getElementById('food_allergies').value = patient.food_allergies || '';
+      }
+
+      // Emergency Contact
+      if (currentSection === 'emergency') {
+        document.getElementById('emergency_contact_name').value = patient.emergency_contact_name || '';
+        document.getElementById('emergency_contact_relation').value = patient.emergency_contact_relation || '';
+        document.getElementById('emergency_contact_phone').value = patient.emergency_contact_phone || '';
+      }
+    }
+
+    function getFormData() {
+      const data = {};
+
+      if (currentSection === 'basic') {
+        data.first_name = document.getElementById('first_name').value.trim();
+        data.last_name = document.getElementById('last_name').value.trim();
+        data.nickname = document.getElementById('nickname').value.trim() || null;
+        data.birth_date = document.getElementById('birth_date').value || null;
+        data.gender = document.getElementById('gender').value || null;
+        data.phone_number = document.getElementById('phone_number').value.trim() || null;
+      }
+
+      if (currentSection === 'medical') {
+        data.blood_type = document.getElementById('blood_type').value || null;
+        const weight = document.getElementById('weight_kg').value;
+        data.weight_kg = weight ? parseFloat(weight) : null;
+        const height = document.getElementById('height_cm').value;
+        data.height_cm = height ? parseFloat(height) : null;
+        data.medical_condition = document.getElementById('medical_condition').value.trim() || null;
+        const chronicStr = document.getElementById('chronic_diseases').value.trim();
+        data.chronic_diseases = chronicStr ? chronicStr.split(',').map(s => s.trim()).filter(s => s) : null;
+        data.drug_allergies = document.getElementById('drug_allergies').value.trim() || null;
+        data.food_allergies = document.getElementById('food_allergies').value.trim() || null;
+      }
+
+      if (currentSection === 'emergency') {
+        data.emergency_contact_name = document.getElementById('emergency_contact_name').value.trim() || null;
+        data.emergency_contact_relation = document.getElementById('emergency_contact_relation').value.trim() || null;
+        data.emergency_contact_phone = document.getElementById('emergency_contact_phone').value.trim() || null;
+      }
+
+      return data;
+    }
+
+    async function saveChanges() {
+      const saveBtn = document.getElementById('save-btn');
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'กำลังบันทึก...';
+
+      try {
+        const formData = getFormData();
+        console.log('Saving data:', formData);
+
+        const response = await fetch(`${API_BASE_URL}/patient/${currentPatientId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(formData)
+        });
+
+        const result = await response.json();
+
+        if (!result.success) {
+          throw new Error(result.error || 'ไม่สามารถบันทึกข้อมูลได้');
+        }
+
+        // Show success
+        const successEl = document.getElementById('success');
+        successEl.textContent = 'บันทึกข้อมูลสำเร็จ!';
+        successEl.style.display = 'block';
+
+        // Go back after delay
+        setTimeout(() => {
+          goBack();
+        }, 1500);
+
+      } catch (error) {
+        console.error('Error saving:', error);
+        showError(error.message);
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'บันทึก';
+      }
+    }
+
+    function showError(message) {
+      document.getElementById('loading').style.display = 'none';
+      const errorEl = document.getElementById('error');
+      errorEl.textContent = message;
+      errorEl.style.display = 'block';
+    }
+
+    function goBack() {
+      // Check if we came from test page or production page
+      const referrer = document.referrer;
+      const isTest = referrer.includes('test-patient-profile');
+      const returnUrl = isTest
+        ? `test-patient-profile.html?patient_id=${currentPatientId}`
+        : `patient-profile.html?patient_id=${currentPatientId}`;
+      window.location.href = returnUrl;
+    }
+
+    // Initialize on load
+    init();
+  </script>
+</body>
+</html>

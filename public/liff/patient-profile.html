@@ -541,13 +541,14 @@
       if (loading) loading.classList.add('hidden');
     }
 
+    // API Base URL
+    const API_BASE_URL = window.location.hostname === 'localhost'
+      ? 'http://localhost:3000/api'
+      : 'https://duulair.vercel.app/api';
+
     // Check user registration (first-time detection)
     async function checkUserRegistration(lineUserId) {
       try {
-        const API_BASE_URL = window.location.hostname === 'localhost'
-          ? 'http://localhost:3000/api'
-          : 'https://duulair.vercel.app/api';
-
         const response = await fetch(`${API_BASE_URL}/check-user/${lineUserId}`);
         const result = await response.json();
 
@@ -607,19 +608,27 @@
         const context = liff.getContext();
         isGroupContext = context && context.type === 'group';
 
-        if (isGroupContext) {
-          // Group context - load patient from group
-          groupId = context.groupId;
-          await loadGroupData();
-        } else {
-          // 1:1 context - load patient from localStorage
-          await loadUserData();
+        // Show UI first, then load data
+        document.getElementById('loading').classList.add('hidden');
+        document.getElementById('main-content').classList.remove('hidden');
+
+        // Load data separately with its own error handling
+        try {
+          if (isGroupContext) {
+            groupId = context.groupId;
+            await loadGroupData();
+          } else {
+            await loadUserData();
+          }
+        } catch (dataError) {
+          console.error('❌ Data loading failed:', dataError);
+          showError('ไม่สามารถโหลดข้อมูลได้: ' + dataError.message);
         }
       } catch (error) {
         console.error('❌ LIFF initialization failed:', error);
         console.error('❌ Error message:', error.message);
         console.error('❌ Error stack:', error.stack);
-        showError('ไม่สามารถเชื่อมต่อ LINE ได้');
+        showError('ไม่สามารถเชื่อมต่อ LINE ได้: ' + error.message);
         document.getElementById('loading').classList.add('hidden');
       }
     }
@@ -642,12 +651,9 @@
 
         patientId = group.patient_profiles.id;
         populateForm(group.patient_profiles);
-
-        document.getElementById('loading').classList.add('hidden');
-        document.getElementById('main-content').classList.remove('hidden');
       } catch (error) {
         console.error('Error loading data:', error);
-        showError('ไม่สามารถโหลดข้อมูลได้');
+        throw error; // Re-throw to be caught by initializeLiff
       }
     }
 
@@ -660,10 +666,6 @@
         console.log('👤 LINE User ID:', lineUserId);
 
         // ✅ Query user from database using LINE userId
-        const API_BASE_URL = window.location.hostname === 'localhost'
-          ? 'http://localhost:3000/api'
-          : 'https://duulair.vercel.app/api';
-
         const checkUserResponse = await fetch(`${API_BASE_URL}/check-user/${lineUserId}`);
         const checkUserResult = await checkUserResponse.json();
 
@@ -721,9 +723,6 @@
         console.log('🔍 Loading patient profile:', patientId);
 
         // ✅ Get patient data via API (bypasses RLS)
-        const API_BASE_URL = window.location.hostname === 'localhost'
-          ? 'http://localhost:3000/api'
-          : 'https://duulair.vercel.app/api';
         const response = await fetch(`${API_BASE_URL}/patient/${patientId}`);
 
         if (!response.ok) {
@@ -742,16 +741,10 @@
         console.log('🔄 Starting populateForm...');
 
         await populateForm(patient);
-
         console.log('✅ populateForm completed');
-        document.getElementById('loading').classList.add('hidden');
-        document.getElementById('main-content').classList.remove('hidden');
-        console.log('✅ UI updated - loading hidden, main-content shown');
       } catch (error) {
         console.error('Error loading user data:', error);
-        showError('ไม่สามารถโหลดข้อมูลได้');
-        // ซ่อน loading เมื่อเกิด error
-        document.getElementById('loading').classList.add('hidden');
+        throw error; // Re-throw to be caught by initializeLiff
       }
     }
 

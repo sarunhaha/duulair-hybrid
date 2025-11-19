@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Patient Profile - Localhost</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="css/minimal-theme.css">
+  <style>
+    .test-controls {
+      background: #fff3cd;
+      border: 1px solid #ffc107;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+    .test-controls h3 {
+      margin: 0 0 10px 0;
+      color: #856404;
+    }
+    .test-controls input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      margin-bottom: 10px;
+    }
+    .test-controls button {
+      background: #007bff;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid #eee;
+    }
+    .info-label { color: #666; }
+    .info-value { font-weight: 500; }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .card-header h3 {
+      margin: 0;
+    }
+    .edit-btn {
+      background: #28a745;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .edit-btn:hover {
+      background: #218838;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Test Controls -->
+    <div class="test-controls">
+      <h3>Test Controls (Localhost Only)</h3>
+      <input type="text" id="testPatientId" placeholder="Enter Patient ID (UUID)">
+      <button onclick="loadPatientData()">Load Patient Data</button>
+    </div>
+
+    <!-- Loading State -->
+    <div id="loading" class="loading hidden">
+      <div class="loading-spinner"></div>
+      <p>Loading...</p>
+    </div>
+
+    <!-- Error Message -->
+    <div id="error" class="alert alert-error" style="display: none;"></div>
+
+    <!-- Patient Data Display -->
+    <div id="patient-data" class="hidden">
+      <div class="header">
+        <h1>ข้อมูลผู้ป่วย</h1>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h3>ข้อมูลพื้นฐาน</h3>
+          <button class="edit-btn" onclick="editSection('basic')">แก้ไข</button>
+        </div>
+        <div class="info-row">
+          <span class="info-label">ชื่อ-นามสกุล:</span>
+          <span class="info-value" id="patientName">-</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">ชื่อเล่น:</span>
+          <span class="info-value" id="patientNickname">-</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">วันเกิด:</span>
+          <span class="info-value" id="patientBirthDate">-</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">เพศ:</span>
+          <span class="info-value" id="patientGender">-</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">เบอร์โทร:</span>
+          <span class="info-value" id="patientPhone">-</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h3>ข้อมูลทางการแพทย์</h3>
+          <button class="edit-btn" onclick="editSection('medical')">แก้ไข</button>
+        </div>
+        <div class="info-row">
+          <span class="info-label">กรุ๊ปเลือด:</span>
+          <span class="info-value" id="patientBloodType">-</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">น้ำหนัก:</span>
+          <span class="info-value" id="patientWeight">-</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">ส่วนสูง:</span>
+          <span class="info-value" id="patientHeight">-</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">โรคประจำตัว:</span>
+          <span class="info-value" id="patientMedicalCondition">-</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">โรคเรื้อรัง:</span>
+          <span class="info-value" id="patientChronicDiseases">-</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h3>ผู้ติดต่อฉุกเฉิน</h3>
+          <button class="edit-btn" onclick="editSection('emergency')">แก้ไข</button>
+        </div>
+        <div class="info-row">
+          <span class="info-label">ชื่อ:</span>
+          <span class="info-value" id="emergencyName">-</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">ความสัมพันธ์:</span>
+          <span class="info-value" id="emergencyRelation">-</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">เบอร์โทร:</span>
+          <span class="info-value" id="emergencyPhone">-</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>ข้อมูล JSON</h3>
+        <pre id="rawData" style="background: #f5f5f5; padding: 10px; overflow-x: auto; font-size: 12px;"></pre>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE_URL = 'http://localhost:3000/api';
+    let currentPatientId = null;
+
+    // Thai month names
+    const thaiMonths = [
+      'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+      'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
+    ];
+
+    // Format date to Thai format (e.g., "15 มกราคม 2496")
+    function formatThaiDate(dateStr) {
+      if (!dateStr) return '-';
+
+      const date = new Date(dateStr);
+      const day = date.getDate();
+      const month = thaiMonths[date.getMonth()];
+      const year = date.getFullYear() + 543; // Convert to Buddhist Era
+
+      return `${day} ${month} ${year}`;
+    }
+
+    // Format gender to Thai
+    function formatGender(gender) {
+      if (!gender) return '-';
+      const genderMap = {
+        'male': 'ชาย',
+        'female': 'หญิง',
+        'other': 'อื่นๆ'
+      };
+      return genderMap[gender] || gender;
+    }
+
+    // Handle edit button clicks
+    function editSection(section) {
+      if (!currentPatientId) {
+        alert('กรุณาโหลดข้อมูลผู้ป่วยก่อน');
+        return;
+      }
+
+      // Navigate to edit page with section and patient ID
+      const editUrl = `edit-profile.html?patient_id=${currentPatientId}&section=${section}`;
+      console.log('Navigating to edit:', editUrl);
+      window.location.href = editUrl;
+    }
+
+    async function loadPatientData() {
+      const patientId = document.getElementById('testPatientId').value.trim();
+
+      if (!patientId) {
+        alert('Please enter a Patient ID');
+        return;
+      }
+
+      document.getElementById('loading').classList.remove('hidden');
+      document.getElementById('patient-data').classList.add('hidden');
+      document.getElementById('error').style.display = 'none';
+
+      try {
+        console.log('Fetching patient:', patientId);
+        const response = await fetch(`${API_BASE_URL}/patient/${patientId}`);
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const result = await response.json();
+        console.log('API Response:', result);
+
+        if (!result.success || !result.profile) {
+          throw new Error(result.error || 'No profile data returned');
+        }
+
+        const patient = result.profile;
+        currentPatientId = patient.id;
+
+        // Populate UI
+        document.getElementById('patientName').textContent =
+          `${patient.first_name || ''} ${patient.last_name || ''}`.trim() || '-';
+        document.getElementById('patientNickname').textContent = patient.nickname || '-';
+        document.getElementById('patientBirthDate').textContent = formatThaiDate(patient.birth_date);
+        document.getElementById('patientGender').textContent = formatGender(patient.gender);
+        document.getElementById('patientPhone').textContent = patient.phone_number || '-';
+
+        document.getElementById('patientBloodType').textContent = patient.blood_type || '-';
+        document.getElementById('patientWeight').textContent = patient.weight_kg ? `${patient.weight_kg} กก.` : '-';
+        document.getElementById('patientHeight').textContent = patient.height_cm ? `${patient.height_cm} ซม.` : '-';
+        document.getElementById('patientMedicalCondition').textContent = patient.medical_condition || '-';
+        document.getElementById('patientChronicDiseases').textContent =
+          Array.isArray(patient.chronic_diseases) ? patient.chronic_diseases.join(', ') : '-';
+
+        document.getElementById('emergencyName').textContent = patient.emergency_contact_name || '-';
+        document.getElementById('emergencyRelation').textContent = patient.emergency_contact_relation || '-';
+        document.getElementById('emergencyPhone').textContent = patient.emergency_contact_phone || '-';
+
+        // Show raw JSON
+        document.getElementById('rawData').textContent = JSON.stringify(patient, null, 2);
+
+        document.getElementById('loading').classList.add('hidden');
+        document.getElementById('patient-data').classList.remove('hidden');
+
+        console.log('Patient data loaded successfully');
+
+      } catch (error) {
+        console.error('Error:', error);
+        document.getElementById('loading').classList.add('hidden');
+        document.getElementById('error').textContent = `Error: ${error.message}`;
+        document.getElementById('error').style.display = 'block';
+      }
+    }
+
+    // Load from URL param if provided
+    const urlParams = new URLSearchParams(window.location.search);
+    const patientIdParam = urlParams.get('patient_id');
+    if (patientIdParam) {
+      document.getElementById('testPatientId').value = patientIdParam;
+      loadPatientData();
+    }
+  </script>
+</body>
+</html>

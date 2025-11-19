@@ -268,10 +268,38 @@
 
   <script>
     const LIFF_ID = '2008278683-5k69jxNq';
-    const SUPABASE_URL = 'YOUR_SUPABASE_URL';
-    const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+    const SUPABASE_URL = 'https://mqxklnzxfrupwwkwlwwc.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1xeGtsbnp4ZnJ1cHd3a3dsd3djIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNjcxMjYsImV4cCI6MjA3MjY0MzEyNn0.vPBkIGHdvrfotD3QMnFGrNRMTP3fFzn715XGwqKG-6Y';
 
     const supabase = window.supabase?.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // Check user registration (first-time detection)
+    async function checkUserRegistration(lineUserId) {
+      try {
+        const API_BASE_URL = window.location.hostname === 'localhost'
+          ? 'http://localhost:3000/api'
+          : 'https://duulair.vercel.app/api';
+
+        const response = await fetch(`${API_BASE_URL}/check-user/${lineUserId}`);
+        const result = await response.json();
+
+        console.log('📋 Registration check:', result);
+
+        if (!result.exists) {
+          console.log('❌ Not registered, redirecting to registration...');
+          setTimeout(() => {
+            window.location.href = '/liff/index.html';
+          }, 1000);
+          return false;
+        }
+
+        return true;
+      } catch (error) {
+        console.error('❌ Error checking registration:', error);
+        return true; // Allow through on error to avoid blocking
+      }
+    }
+
     let patientId = null;
     let groupId = null;
     let dailyGoal = 2000;
