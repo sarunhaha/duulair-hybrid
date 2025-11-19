@@ -224,7 +224,10 @@
 
         if (!result.exists) {
           // Not registered - redirect to registration
-          window.location.href = '/liff/role-selection.html';
+          console.log('❌ Not registered, redirecting to registration...');
+          setTimeout(() => {
+            window.location.href = '/liff/index.html';
+          }, 1000);
           return;
         }
 

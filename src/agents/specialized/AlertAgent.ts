@@ -48,14 +48,18 @@ export class AlertAgent extends BaseAgent {
         await this.sendAlert(message, level);
       }
 
-      // Log alert (non-critical, don't fail if table doesn't exist)
+      // Log alert to activity_logs (non-critical)
       try {
-        await this.supabase.saveAlert({
+        await this.supabase.saveActivityLog({
           patient_id: message.context.patientId,
-          alert_type: alertType,
-          level,
-          message: message.content,
-          timestamp: new Date()
+          task_type: 'alert',
+          value: message.content,
+          intent: `${alertType}:${level}`,
+          timestamp: new Date(),
+          source: message.context.source === 'group' ? 'group' : '1:1',
+          group_id: message.context.groupId,
+          actor_line_user_id: message.context.actorLineUserId,
+          actor_display_name: message.context.actorDisplayName
         });
       } catch (saveError) {
         console.error('⚠️ Failed to save alert to database (non-critical):', saveError);
