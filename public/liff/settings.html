@@ -696,10 +696,10 @@
     // Load group data (Group context)
     async function loadGroupData() {
       try {
-        // Get group data
+        // Get group data from correct table
         const { data: group, error: groupError } = await supabaseClient
-          .from('caregiver_groups')
-          .select('*, group_members(*)')
+          .from('groups')
+          .select('*, group_members(*), patient_profiles(*)')
           .eq('line_group_id', groupId)
           .single();
 
@@ -710,10 +710,21 @@
         }
 
         groupData = group;
-        settings = group.settings || {};
 
-        // Populate UI
-        document.getElementById('linkCode').textContent = group.link_code;
+        // Get link code from link_codes table
+        if (group.patient_id) {
+          const { data: linkCode } = await supabaseClient
+            .from('link_codes')
+            .select('code')
+            .eq('patient_id', group.patient_id)
+            .eq('used', false)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+
+          document.getElementById('linkCode').textContent = linkCode?.code || '------';
+        }
+
         document.getElementById('groupName').value = group.group_name || '';
 
         // Render members
@@ -730,10 +741,24 @@
     // Load user data (1:1 context)
     async function loadUserData() {
       try {
-        // Get user data from localStorage
-        const storedUserData = JSON.parse(localStorage.getItem('duulair_user') || '{}');
+        const API_BASE_URL = window.location.hostname === 'localhost'
+          ? 'http://localhost:3000/api'
+          : 'https://duulair.vercel.app/api';
 
-        if (!storedUserData.profile_id) {
+        // Get LINE profile
+        const profile = await liff.getProfile();
+        const lineUserId = profile.userId;
+
+        // Check user role and get patient ID
+        const checkUserResponse = await fetch(`${API_BASE_URL}/check-user/${lineUserId}`);
+        if (!checkUserResponse.ok) {
+          throw new Error(`check-user API failed: ${checkUserResponse.status}`);
+        }
+
+        const checkUserResult = await checkUserResponse.json();
+        console.log('📋 check-user result:', checkUserResult);
+
+        if (!checkUserResult.exists) {
           showError('ไม่พบข้อมูลผู้ใช้ กรุณาลงทะเบียนก่อน');
           setTimeout(() => {
             window.location.href = '/liff/group-registration.html';
@@ -741,15 +766,23 @@
           return;
         }
 
-        userData = storedUserData;
+        // Get patient ID based on role
+        let patientId = null;
+        if (checkUserResult.role === 'patient') {
+          patientId = checkUserResult.profile.profile_id;
+        } else if (checkUserResult.role === 'caregiver') {
+          if (checkUserResult.profile.linked_patient_id) {
+            patientId = checkUserResult.profile.linked_patient_id;
+          } else {
+            showError('คุณยังไม่ได้ลิงก์กับผู้ป่วย กรุณาลิงก์ผู้ป่วยก่อน');
+            return;
+          }
+        }
 
-        // ✅ Get patient profile with settings via API (bypasses RLS)
-        console.log('🔍 Loading patient settings for:', userData.profile_id);
+        console.log('🔍 Loading patient settings for:', patientId);
 
-        const API_BASE_URL = window.location.hostname === 'localhost'
-          ? 'http://localhost:3000/api'
-          : 'https://duulair.vercel.app/api';
-        const response = await fetch(`${API_BASE_URL}/patient/${userData.profile_id}`);
+        // Get patient profile with settings via API (bypasses RLS)
+        const response = await fetch(`${API_BASE_URL}/patient/${patientId}`);
 
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -761,10 +794,10 @@
           throw new Error('ไม่พบข้อมูลผู้ป่วย');
         }
 
-        const profile = result.profile;
-        console.log('✅ Patient settings loaded:', profile);
+        const patientProfile = result.profile;
+        console.log('✅ Patient settings loaded:', patientProfile);
 
-        settings = profile.settings || {};
+        settings = patientProfile.settings || {};
 
         // Hide group-specific sections
         const linkCodeSection = document.querySelector('.link-code-display');
@@ -832,12 +865,10 @@
     // Update settings
     async function updateSettings() {
       try {
-        const { error } = await supabaseClient
-          .from('caregiver_groups')
-          .update({ settings })
-          .eq('id', groupData.id);
-
-        if (error) throw error;
+        // Settings are stored in patient_profiles or notification_settings
+        // For now, just log - group settings not implemented yet
+        console.log('Settings update requested:', settings);
+        // TODO: Implement proper settings storage
       } catch (error) {
         console.error('Error updating settings:', error);
         showError('ไม่สามารถบันทึกการตั้งค่าได้');
@@ -866,8 +897,13 @@
       e.preventDefault();
 
       try {
+        if (!groupData || !groupData.id) {
+          showError('ไม่พบข้อมูลกลุ่ม');
+          return;
+        }
+
         const { error } = await supabaseClient
-          .from('caregiver_groups')
+          .from('groups')
           .update({
             group_name: document.getElementById('groupName').value
           })
@@ -897,8 +933,31 @@
       document.getElementById('loading').classList.add('hidden');
     }
 
+    // Activate tab from URL parameter
+    function activateTabFromUrl() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tab = urlParams.get('tab');
+
+      if (tab && ['group', 'reports', 'packages', 'help'].includes(tab)) {
+        // Update tabs
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        const targetTab = document.querySelector(`.tab[data-tab="${tab}"]`);
+        if (targetTab) targetTab.classList.add('active');
+
+        // Update content
+        document.querySelectorAll('.tab-content').forEach(content => {
+          content.classList.remove('active');
+        });
+        const targetContent = document.getElementById(`${tab}-tab`);
+        if (targetContent) targetContent.classList.add('active');
+      }
+    }
+
     // Initialize on load
-    window.addEventListener('load', initializeLiff);
+    window.addEventListener('load', () => {
+      activateTabFromUrl();
+      initializeLiff();
+    });
   </script>
 </body>
 </html>

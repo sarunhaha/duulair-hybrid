@@ -305,6 +305,116 @@ export class GroupService {
   }
 
   /**
+   * Auto-link group with patient from registered caregiver
+   * Called when caregiver sends first message in group
+   */
+  async autoLinkGroupWithPatient(lineGroupId: string, caregiverLineUserId: string): Promise<{
+    success: boolean;
+    group?: Group;
+    patientId?: string;
+    message: string;
+  }> {
+    console.log(`🔗 Auto-linking group ${lineGroupId} for caregiver ${caregiverLineUserId}`);
+
+    try {
+      // 1. Check if group already registered
+      const existingGroup = await this.checkGroupExists(lineGroupId);
+      if (existingGroup.exists) {
+        console.log('✅ Group already registered');
+        return {
+          success: true,
+          group: existingGroup.group,
+          patientId: existingGroup.patient?.id,
+          message: 'กลุ่มลงทะเบียนแล้ว'
+        };
+      }
+
+      // 2. Check if user is registered caregiver with linked patient
+      const caregiverCheck = await userService.checkUserExists(caregiverLineUserId);
+
+      if (!caregiverCheck.exists || caregiverCheck.role !== 'caregiver') {
+        console.log('❌ User is not a registered caregiver');
+        return {
+          success: false,
+          message: 'กรุณาลงทะเบียนผ่าน LINE OA ก่อนใช้งานในกลุ่ม'
+        };
+      }
+
+      // 3. Get caregiver's linked patient
+      const caregiverProfile = caregiverCheck.profile;
+      if (!caregiverProfile || !caregiverProfile.linked_patient_id) {
+        console.log('❌ Caregiver has no linked patient');
+        return {
+          success: false,
+          message: 'ไม่พบข้อมูลผู้ป่วยที่เชื่อมต่อ กรุณาลงทะเบียนผู้ป่วยก่อน'
+        };
+      }
+
+      const patientId = caregiverProfile.linked_patient_id;
+
+      // 4. Get patient info
+      const { data: patient, error: patientError } = await supabase
+        .from('patient_profiles')
+        .select('*')
+        .eq('id', patientId)
+        .single();
+
+      if (patientError || !patient) {
+        console.log('❌ Patient not found');
+        return {
+          success: false,
+          message: 'ไม่พบข้อมูลผู้ป่วย'
+        };
+      }
+
+      // 5. Create group linked to patient
+      const groupName = `กลุ่มดูแล ${patient.first_name} ${patient.last_name}`;
+
+      const { data: newGroup, error: groupError } = await supabase
+        .from('groups')
+        .insert({
+          line_group_id: lineGroupId,
+          group_name: groupName,
+          patient_id: patientId,
+          primary_caregiver_id: caregiverProfile.id
+        })
+        .select()
+        .single();
+
+      if (groupError || !newGroup) {
+        console.error('❌ Failed to create group:', groupError);
+        return {
+          success: false,
+          message: 'ไม่สามารถสร้างกลุ่มได้'
+        };
+      }
+
+      console.log('✅ Created group:', newGroup.id);
+
+      // 6. Add caregiver as member
+      await this.addMember(newGroup.id, {
+        lineUserId: caregiverLineUserId,
+        displayName: caregiverProfile.first_name + ' ' + caregiverProfile.last_name,
+        role: 'caregiver'
+      });
+
+      return {
+        success: true,
+        group: this.mapToGroup(newGroup),
+        patientId: patientId,
+        message: `เชื่อมต่อกลุ่มกับ ${patient.first_name} ${patient.last_name} สำเร็จ!`
+      };
+
+    } catch (error) {
+      console.error('❌ Auto-link error:', error);
+      return {
+        success: false,
+        message: 'เกิดข้อผิดพลาดในการเชื่อมต่อกลุ่ม'
+      };
+    }
+  }
+
+  /**
    * Map database record to Group type
    */
   private mapToGroup(record: any): Group {

@@ -68,7 +68,7 @@ export class ReportAgent extends BaseAgent {
     // Get from Supabase
     const endDate = new Date();
     const startDate = new Date();
-    
+
     if (type === 'daily') {
       startDate.setHours(0, 0, 0, 0);
     } else {
@@ -76,18 +76,123 @@ export class ReportAgent extends BaseAgent {
     }
 
     const logs = await this.supabase.getActivityLogs(patientId, startDate, endDate);
-    
+
+    // Get planned activities
+    const medications = await this.supabase.getPatientMedications(patientId);
+    const waterGoal = await this.supabase.getWaterIntakeGoal(patientId);
+    const waterLogs = await this.supabase.getWaterIntakeLogs(patientId, startDate, endDate);
+
+    // Calculate detailed stats
+    const medicationLogs = logs.filter((l: any) => l.task_type === 'medication');
+    const vitalsLogs = logs.filter((l: any) => l.task_type === 'vitals');
+
+    // Build medication status
+    const medicationStatus = this.buildMedicationStatus(medications, medicationLogs);
+
+    // Build water status
+    const waterStatus = this.buildWaterStatus(waterGoal, waterLogs);
+
+    // Build vitals status
+    const vitalsStatus = this.buildVitalsStatus(vitalsLogs);
+
     // Calculate statistics
     const stats = {
       totalActivities: logs.length,
-      medications: logs.filter((l: any) => l.task_type === 'medication').length,
-      vitals: logs.filter((l: any) => l.task_type === 'vitals').length,
-      water: logs.filter((l: any) => l.task_type === 'water').length,
+      medications: medicationLogs.length,
+      vitals: vitalsLogs.length,
+      water: waterLogs.length,
       exercise: logs.filter((l: any) => l.task_type === 'walk').length,
       meals: logs.filter((l: any) => l.task_type === 'food').length
     };
 
-    return { logs, stats, patientId, startDate, endDate };
+    return {
+      logs,
+      stats,
+      patientId,
+      startDate,
+      endDate,
+      medicationStatus,
+      waterStatus,
+      vitalsStatus,
+      medications,
+      waterGoal
+    };
+  }
+
+  private buildMedicationStatus(medications: any[], logs: any[]) {
+    const status: any[] = [];
+    const today = new Date();
+    const dayOfWeek = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][today.getDay()];
+
+    for (const med of medications) {
+      if (!med.is_active) continue;
+
+      // Check if medication should be taken today
+      const frequency = med.frequency || [];
+      const daysOfWeek = med.days_of_week || null;
+
+      // Determine times to take
+      let times: string[] = [];
+      if (frequency.includes('เช้า') || frequency.includes('morning')) times.push('เช้า');
+      if (frequency.includes('กลางวัน') || frequency.includes('noon')) times.push('กลางวัน');
+      if (frequency.includes('เย็น') || frequency.includes('evening')) times.push('เย็น');
+      if (frequency.includes('ก่อนนอน') || frequency.includes('bedtime')) times.push('ก่อนนอน');
+
+      if (times.length === 0) times = ['วันละครั้ง'];
+
+      for (const time of times) {
+        // Check if this dose was taken
+        const taken = logs.find((log: any) => {
+          const logMedName = log.value || log.metadata?.medication_name || '';
+          return logMedName.toLowerCase().includes(med.name.toLowerCase());
+        });
+
+        status.push({
+          name: med.name,
+          dosage: med.dosage,
+          time,
+          done: !!taken,
+          takenAt: taken ? new Date(taken.timestamp).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : null
+        });
+      }
+    }
+
+    return status;
+  }
+
+  private buildWaterStatus(goal: any, logs: any[]) {
+    const targetMl = goal?.daily_goal_ml || 2000;
+    const totalDrunk = logs.reduce((sum: number, log: any) => sum + (log.amount_ml || 0), 0);
+
+    const details = logs.map((log: any) => ({
+      amount: log.amount_ml,
+      time: new Date(log.logged_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
+      loggedBy: log.logged_by_display_name || 'ไม่ระบุ'
+    }));
+
+    return {
+      target: targetMl,
+      current: totalDrunk,
+      remaining: Math.max(0, targetMl - totalDrunk),
+      percentage: Math.min(100, Math.round((totalDrunk / targetMl) * 100)),
+      details
+    };
+  }
+
+  private buildVitalsStatus(logs: any[]) {
+    const vitals: any[] = [];
+
+    for (const log of logs) {
+      const metadata = log.metadata || {};
+      vitals.push({
+        type: metadata.vital_type || 'ความดัน',
+        value: log.value || `${metadata.systolic}/${metadata.diastolic}`,
+        time: new Date(log.timestamp).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
+        loggedBy: log.actor_display_name || 'ไม่ระบุ'
+      });
+    }
+
+    return vitals;
   }
 
   private async generateDailyReport(data: any) {
@@ -122,7 +227,10 @@ Example format:
       summary,
       stats: data.stats,
       completionRate: this.calculateCompletionRate(data.stats),
-      targetAudience: 'caregivers'
+      targetAudience: 'caregivers',
+      medicationStatus: data.medicationStatus,
+      waterStatus: data.waterStatus,
+      vitalsStatus: data.vitalsStatus
     };
   }
 
@@ -162,7 +270,11 @@ Example format:
       analysis,
       stats: data.stats,
       trends: this.calculateTrends(data.logs),
-      targetAudience: 'caregivers'
+      targetAudience: 'caregivers',
+      completionRate: this.calculateCompletionRate(data.stats),
+      medicationStatus: data.medicationStatus,
+      waterStatus: data.waterStatus,
+      vitalsStatus: data.vitalsStatus
     };
   }
 
@@ -185,78 +297,157 @@ Example format:
     // Create LINE Flex Message format for caregiver group
     const isWeekly = report.weekRange !== undefined;
 
+    // Build medication section
+    const medicationContents: any[] = [];
+    if (report.medicationStatus && report.medicationStatus.length > 0) {
+      const done = report.medicationStatus.filter((m: any) => m.done).length;
+      const total = report.medicationStatus.length;
+
+      medicationContents.push({
+        type: 'text',
+        text: `💊 ยา (${done}/${total})`,
+        weight: 'bold',
+        size: 'sm',
+        color: '#333333'
+      });
+
+      for (const med of report.medicationStatus.slice(0, 5)) { // Limit to 5 items
+        medicationContents.push({
+          type: 'text',
+          text: med.done
+            ? `✅ ${med.name} ${med.dosage || ''} - ${med.takenAt}`
+            : `⏳ ${med.name} ${med.dosage || ''} (${med.time})`,
+          size: 'xs',
+          color: med.done ? '#28a745' : '#6c757d',
+          margin: 'sm',
+          wrap: true
+        });
+      }
+    }
+
+    // Build water section
+    const waterContents: any[] = [];
+    if (report.waterStatus) {
+      waterContents.push({
+        type: 'text',
+        text: `💧 น้ำ (${report.waterStatus.current}/${report.waterStatus.target} ml)`,
+        weight: 'bold',
+        size: 'sm',
+        color: '#333333',
+        margin: 'lg'
+      });
+
+      if (report.waterStatus.details && report.waterStatus.details.length > 0) {
+        for (const log of report.waterStatus.details.slice(0, 3)) { // Limit to 3 items
+          waterContents.push({
+            type: 'text',
+            text: `✅ ${log.amount}ml - ${log.time}`,
+            size: 'xs',
+            color: '#28a745',
+            margin: 'sm'
+          });
+        }
+      }
+
+      if (report.waterStatus.remaining > 0) {
+        waterContents.push({
+          type: 'text',
+          text: `⏳ เหลืออีก ${report.waterStatus.remaining}ml`,
+          size: 'xs',
+          color: '#6c757d',
+          margin: 'sm'
+        });
+      }
+    }
+
+    // Build vitals section
+    const vitalsContents: any[] = [];
+    if (report.vitalsStatus && report.vitalsStatus.length > 0) {
+      vitalsContents.push({
+        type: 'text',
+        text: `🩺 วัดค่าสุขภาพ (${report.vitalsStatus.length})`,
+        weight: 'bold',
+        size: 'sm',
+        color: '#333333',
+        margin: 'lg'
+      });
+
+      for (const vital of report.vitalsStatus.slice(0, 3)) { // Limit to 3 items
+        vitalsContents.push({
+          type: 'text',
+          text: `✅ ${vital.type} ${vital.value} - ${vital.time}`,
+          size: 'xs',
+          color: '#28a745',
+          margin: 'sm'
+        });
+      }
+    }
+
     return {
       type: 'bubble',
+      size: 'mega',
       header: {
         type: 'box',
         layout: 'vertical',
         backgroundColor: '#667eea',
-        contents: [{
-          type: 'text',
-          text: isWeekly ? '📊 รายงานสัปดาห์' : '📊 รายงานประจำวัน',
-          weight: 'bold',
-          size: 'xl',
-          color: '#ffffff'
-        },
-        {
-          type: 'text',
-          text: isWeekly ? report.weekRange : report.date,
-          size: 'sm',
-          color: '#ffffff',
-          margin: 'sm'
-        }]
-      },
-      body: {
-        type: 'box',
-        layout: 'vertical',
+        paddingAll: 'lg',
         contents: [
+          {
+            type: 'text',
+            text: isWeekly ? '📊 รายงานสัปดาห์' : '📊 รายงานประจำวัน',
+            weight: 'bold',
+            size: 'xl',
+            color: '#ffffff'
+          },
+          {
+            type: 'text',
+            text: isWeekly ? report.weekRange : report.date,
+            size: 'sm',
+            color: '#ffffff',
+            margin: 'sm'
+          },
           {
             type: 'box',
             layout: 'horizontal',
+            margin: 'md',
             contents: [
               {
                 type: 'text',
                 text: '✅ ความสำเร็จ',
-                flex: 0,
                 size: 'sm',
-                color: '#666666'
+                color: '#ffffff'
               },
               {
                 type: 'text',
                 text: `${report.completionRate}%`,
                 size: 'lg',
                 weight: 'bold',
-                color: '#667eea',
+                color: '#ffffff',
                 align: 'end'
               }
-            ],
-            margin: 'md'
-          },
-          {
-            type: 'separator',
-            margin: 'md'
-          },
-          {
-            type: 'text',
-            text: report.summary || report.analysis,
-            wrap: true,
-            size: 'sm',
-            margin: 'md',
-            color: '#333333'
+            ]
           }
         ]
       },
-      footer: {
+      body: {
         type: 'box',
         layout: 'vertical',
+        paddingAll: 'lg',
         contents: [
+          ...medicationContents,
+          ...waterContents,
+          ...vitalsContents,
+          {
+            type: 'separator',
+            margin: 'lg'
+          },
           {
             type: 'text',
-            text: '💡 ดูรายละเอียดเพิ่มเติมได้ที่เมนู "📊 รายงาน"',
-            size: 'xs',
-            color: '#999999',
+            text: report.summary || report.analysis || '',
             wrap: true,
-            align: 'center'
+            size: 'xs',
+            margin: 'lg',
+            color: '#666666'
           }
         ]
       }

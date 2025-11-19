@@ -382,9 +382,18 @@
       // Check if we came from test page or production page
       const referrer = document.referrer;
       const isTest = referrer.includes('test-patient-profile');
+
+      // Map section to tab name
+      const tabMap = {
+        basic: 'profile',
+        medical: 'medical',
+        emergency: 'emergency'
+      };
+      const tab = tabMap[currentSection] || 'profile';
+
       const returnUrl = isTest
         ? `test-patient-profile.html?patient_id=${currentPatientId}`
-        : `patient-profile.html?patient_id=${currentPatientId}`;
+        : `patient-profile.html?tab=${tab}`;
       window.location.href = returnUrl;
     }
 

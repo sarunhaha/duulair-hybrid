@@ -10,6 +10,7 @@ import reportRoutes from './routes/report.routes';
 import { groupWebhookService } from './services/group-webhook.service';
 import { commandHandlerService } from './services/command-handler.service';
 import { userService } from './services/user.service';
+import { groupService } from './services/group.service';
 import crypto from 'crypto';
 
 dotenv.config();
@@ -798,12 +799,72 @@ async function handleTextMessage(event: any) {
     if (isGroup) {
       console.log(`👥 Group message detected in group: ${groupId}`);
 
-      // Get group context
-      const groupContext = await groupWebhookService.getGroupContext(groupId);
+      // Get group context first to check if registered
+      let groupContext = await groupWebhookService.getGroupContext(groupId);
 
+      // Check if bot is mentioned (REQUIRED for group messages)
+      const hasMention = message.mention?.mentionees?.some((m: any) => m.type === 'all' || m.isSelf) ||
+                         message.text.includes('@duulair') ||
+                         message.text.includes('@Duulair');
+
+      // If group is registered and no mention, ignore (MUST mention to trigger bot)
+      // But allow any message for first-time auto-link
+      if (groupContext && !hasMention) {
+        console.log('⏭️ Group message without mention, ignoring');
+        return { success: true, skipped: true, reason: 'no_mention' };
+      }
+
+      if (hasMention) {
+        console.log('✅ Bot triggered by mention');
+      }
+
+      // If group not registered, try to auto-link if sender is registered caregiver
       if (!groupContext) {
-        console.log('⏭️ Group not registered, ignoring message');
-        return { success: true, skipped: true, reason: 'group_not_registered' };
+        console.log('📝 Group not registered, checking if sender is caregiver...');
+
+        const autoLinkResult = await groupService.autoLinkGroupWithPatient(groupId, userId);
+
+        if (autoLinkResult.success && autoLinkResult.patientId) {
+          console.log('✅ Auto-linked group with patient:', autoLinkResult.patientId);
+
+          // Update groupContext for processing the message
+          groupContext = {
+            patientId: autoLinkResult.patientId,
+            groupId: autoLinkResult.group!.id,
+            source: 'group' as const
+          };
+
+          // Update context with new group info
+          context = {
+            userId,
+            patientId: autoLinkResult.patientId,
+            groupId: autoLinkResult.group!.id,
+            source: 'group',
+            timestamp: new Date(),
+            actorLineUserId: userId,
+            actorDisplayName: 'ผู้ดูแล'
+          };
+
+          // Process message with orchestrator (will be handled below)
+          // Bot will respond to the message AND the auto-link is done
+          console.log('👥 Group auto-linked, continuing to process message...');
+        } else {
+          // Not a registered caregiver - send registration guidance
+          console.log('❌ Auto-link failed:', autoLinkResult.message);
+
+          const guidanceMessage: TextMessage = {
+            type: 'text',
+            text: `❌ ${autoLinkResult.message}\n\nเพิ่มเพื่อน @duulair แล้วลงทะเบียนก่อนใช้งานในกลุ่มนะคะ`
+          };
+
+          try {
+            await lineClient.replyMessage(replyToken, guidanceMessage);
+          } catch (sendError) {
+            console.error('❌ Failed to send guidance:', sendError);
+          }
+
+          return { success: true, skipped: true, reason: 'not_registered' };
+        }
       }
 
       // Get actor info
@@ -1114,7 +1175,7 @@ async function handleGroupJoin(event: any) {
     console.log('🎉 Bot joined group event');
     const result = await groupWebhookService.handleGroupJoin(event);
 
-    // Send welcome message with registration link
+    // Send welcome message - tell caregiver to start chatting if already registered
     const replyToken = event.replyToken;
     const welcomeMessage: TextMessage = {
       type: 'text',
@@ -1122,13 +1183,16 @@ async function handleGroupJoin(event: any) {
 
 ขอบคุณที่เพิ่มบอท Duulair เข้ามาในกลุ่มนะคะ
 
-🎯 ขั้นตอนต่อไป:
-1. ลงทะเบียนกลุ่มและข้อมูลผู้ป่วย
-2. เริ่มบันทึกกิจกรรมดูแลสุขภาพ
-3. ดูรายงานสุขภาพรายวัน/รายสัปดาห์
+✅ ถ้าคุณลงทะเบียนผ่าน LINE OA แล้ว:
+→ พิมพ์อะไรก็ได้เพื่อเชื่อมต่อกลุ่มกับผู้ป่วยของคุณ
 
-กรุณากดลงทะเบียนเพื่อเริ่มใช้งาน 👇
-https://liff.line.me/${LIFF_ID}/group-registration.html`
+❌ ถ้ายังไม่ได้ลงทะเบียน:
+→ เพิ่มเพื่อน @duulair แล้วลงทะเบียนก่อนนะคะ
+
+เมื่อเชื่อมต่อแล้ว ทุกคนในกลุ่มสามารถ:
+• คุยกับบอทเกี่ยวกับผู้ป่วยได้
+• บันทึกข้อมูลสุขภาพได้
+• ดูรายงานได้`
     };
 
     try {

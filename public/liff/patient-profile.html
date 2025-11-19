@@ -511,8 +511,29 @@
       errorEl.style.display = 'block';
     }
 
+    // Activate tab from URL parameter
+    function activateTabFromUrl() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tab = urlParams.get('tab');
+
+      if (tab && ['profile', 'medical', 'emergency'].includes(tab)) {
+        // Update tabs
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelector(`.tab[data-tab="${tab}"]`).classList.add('active');
+
+        // Update content
+        document.querySelectorAll('.tab-content').forEach(content => {
+          content.classList.remove('active');
+        });
+        document.getElementById(`${tab}-tab`).classList.add('active');
+      }
+    }
+
     // Initialize on load
-    document.addEventListener('DOMContentLoaded', initializeLiff);
+    document.addEventListener('DOMContentLoaded', () => {
+      activateTabFromUrl();
+      initializeLiff();
+    });
   </script>
 </body>
 </html>

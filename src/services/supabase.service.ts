@@ -154,6 +154,45 @@ export class SupabaseService {
       .subscribe();
   }
 
+  // Get patient medications
+  async getPatientMedications(patientId: string) {
+    const { data, error } = await this.client
+      .from('patient_medications')
+      .select('*')
+      .eq('patient_id', patientId)
+      .eq('is_active', true)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  }
+
+  // Get water intake goal
+  async getWaterIntakeGoal(patientId: string) {
+    const { data, error } = await this.client
+      .from('water_intake_goals')
+      .select('*')
+      .eq('patient_id', patientId)
+      .single();
+
+    if (error && error.code !== 'PGRST116') throw error; // Ignore not found
+    return data || { daily_goal_ml: 2000 };
+  }
+
+  // Get water intake logs
+  async getWaterIntakeLogs(patientId: string, startDate: Date, endDate: Date) {
+    const { data, error } = await this.client
+      .from('water_intake_logs')
+      .select('*')
+      .eq('patient_id', patientId)
+      .gte('logged_at', startDate.toISOString())
+      .lte('logged_at', endDate.toISOString())
+      .order('logged_at', { ascending: true });
+
+    if (error) throw error;
+    return data || [];
+  }
+
   // Get client instance (for direct queries)
   getClient() {
     return this.client;
