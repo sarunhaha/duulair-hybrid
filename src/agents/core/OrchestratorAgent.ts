@@ -82,14 +82,28 @@ export class OrchestratorAgent extends BaseAgent {
 
       // Step 2: Route to appropriate agent(s)
       const routingPlan = this.createRoutingPlan(intent, confidence);
-      
+
+      // Step 2.5: Fetch patient data if needed
+      let patientData = null;
+      if (routingPlan.requiresPatientData && message.context.patientId) {
+        patientData = await this.fetchPatientDataForQuery(message.context.patientId, intent);
+      }
+
+      // Step 2.6: Generate group help if needed
+      let groupHelpText = null;
+      if (routingPlan.requiresGroupHelp) {
+        groupHelpText = this.generateGroupHelpText();
+      }
+
       // Step 3: Execute routing plan
       const results = await this.executeRoutingPlan(routingPlan, {
         ...message,
         metadata: {
           ...message.metadata,
           intent,
-          confidence
+          confidence,
+          patientData,
+          groupHelpText
         }
       });
 
@@ -166,6 +180,8 @@ export class OrchestratorAgent extends BaseAgent {
       flexMessageType?: string;
       requiresQuickReply?: boolean;
       quickReplyType?: string;
+      requiresPatientData?: boolean;
+      requiresGroupHelp?: boolean;
     } = {
       agents: [] as string[],
       parallel: false,
@@ -214,6 +230,20 @@ export class OrchestratorAgent extends BaseAgent {
           plan.agents = ['dialog'];
           plan.requiresFlexMessage = true;
           plan.flexMessageType = 'help';
+          break;
+        // Patient info queries (for group)
+        case 'patient_info':
+        case 'patient_name':
+        case 'patient_age':
+        case 'patient_conditions':
+        case 'patient_medications':
+        case 'patient_allergies':
+          plan.agents = ['dialog'];
+          plan.requiresPatientData = true;
+          break;
+        case 'group_help':
+          plan.agents = ['dialog'];
+          plan.requiresGroupHelp = true;
           break;
         default:
           plan.agents = ['dialog'];
@@ -326,6 +356,78 @@ export class OrchestratorAgent extends BaseAgent {
         intent: response.combined?.intent
       });
     }
+  }
+
+  private async fetchPatientDataForQuery(patientId: string, intent: string) {
+    try {
+      // Fetch patient profile
+      const { data: patient, error } = await this.supabase.getClient()
+        .from('patient_profiles')
+        .select('*')
+        .eq('id', patientId)
+        .single();
+
+      if (error || !patient) return null;
+
+      // Fetch medications if needed
+      let medications = [];
+      if (intent === 'patient_medications' || intent === 'patient_info') {
+        const medsResult = await this.supabase.getPatientMedications(patientId);
+        medications = medsResult || [];
+      }
+
+      // Calculate age
+      const birthDate = new Date(patient.birth_date);
+      const age = Math.floor((Date.now() - birthDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+
+      return {
+        name: `${patient.first_name} ${patient.last_name}`,
+        nickname: patient.nickname,
+        age,
+        birthDate: patient.birth_date,
+        gender: patient.gender,
+        bloodType: patient.blood_type,
+        chronicDiseases: patient.chronic_diseases || [],
+        drugAllergies: patient.drug_allergies || [],
+        foodAllergies: patient.food_allergies || [],
+        medications,
+        emergencyContact: {
+          name: patient.emergency_contact_name,
+          phone: patient.emergency_contact_phone,
+          relation: patient.emergency_contact_relation
+        }
+      };
+    } catch (error) {
+      this.log('error', 'Failed to fetch patient data', error);
+      return null;
+    }
+  }
+
+  private generateGroupHelpText(): string {
+    return `📋 สิ่งที่สามารถถาม/ทำได้ในกลุ่ม:
+
+🔍 ถามข้อมูลผู้ป่วย:
+• "ชื่อผู้ป่วยอะไร"
+• "อายุเท่าไหร่"
+• "มีโรคประจำตัวอะไร"
+• "กินยาอะไรบ้าง"
+• "แพ้อะไร"
+• "ข้อมูลผู้ป่วยทั้งหมด"
+
+📝 บันทึกกิจกรรม:
+• "กินยาแล้ว"
+• "วัดความดัน 120/80"
+• "ดื่มน้ำ 500ml"
+• "ออกกำลังกาย 30 นาที"
+
+📊 ดูรายงาน:
+• "รายงานวันนี้"
+• "รายงานสัปดาห์"
+
+🆘 ฉุกเฉิน:
+• "ฉุกเฉิน" - แจ้งเตือนทุกคน
+
+💡 หมายเหตุ: ต้อง @mention บอทก่อนทุกครั้งนะคะ`;
   }
 
   private setupAgentListeners(agent: BaseAgent) {

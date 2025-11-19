@@ -111,7 +111,7 @@ function createViewReportQuickReply() {
 function createRegistrationFlexMessage(): FlexMessage {
   return {
     type: 'flex',
-    altText: 'ลงทะเบียนใช้งาน Duulair',
+    altText: 'ลงทะเบียนใช้งาน OONJAI',
     contents: {
       type: 'bubble',
       hero: {
@@ -140,7 +140,7 @@ function createRegistrationFlexMessage(): FlexMessage {
             contents: [
               {
                 type: 'text',
-                text: 'ยินดีต้อนรับสู่ Duulair',
+                text: 'ยินดีต้อนรับสู่ OONJAI',
                 size: 'md',
                 color: '#555555',
                 wrap: true
@@ -217,7 +217,7 @@ function createRegistrationFlexMessage(): FlexMessage {
 function createPackageFlexMessage(): FlexMessage {
   return {
     type: 'flex',
-    altText: 'แพ็กเกจบริการ Duulair',
+    altText: 'แพ็กเกจบริการ OONJAI',
     contents: {
       type: 'bubble',
       header: {
@@ -291,7 +291,7 @@ function createHelpFlexMessage(): FlexMessage {
         contents: [
           {
             type: 'text',
-            text: 'วิธีใช้งาน Duulair',
+            text: 'วิธีใช้งาน OONJAI',
             weight: 'bold',
             size: 'xl',
             color: '#4CAF50'
@@ -380,7 +380,7 @@ function createHelpFlexMessage(): FlexMessage {
 let initialized = false;
 async function initializeIfNeeded() {
   if (!initialized) {
-    console.log('🚀 Initializing Duulair Multi-Agent System...');
+    console.log('🚀 Initializing OONJAI Multi-Agent System...');
     initialized = await orchestrator.initialize();
     if (initialized) {
       console.log('✅ All agents ready!');
@@ -804,8 +804,8 @@ async function handleTextMessage(event: any) {
 
       // Check if bot is mentioned (REQUIRED for group messages)
       const hasMention = message.mention?.mentionees?.some((m: any) => m.type === 'all' || m.isSelf) ||
-                         message.text.includes('@duulair') ||
-                         message.text.includes('@Duulair');
+                         message.text.includes('@oonjai') ||
+                         message.text.includes('@OONJAI');
 
       // If group is registered and no mention, ignore (MUST mention to trigger bot)
       // But allow any message for first-time auto-link
@@ -854,7 +854,7 @@ async function handleTextMessage(event: any) {
 
           const guidanceMessage: TextMessage = {
             type: 'text',
-            text: `❌ ${autoLinkResult.message}\n\nเพิ่มเพื่อน @duulair แล้วลงทะเบียนก่อนใช้งานในกลุ่มนะคะ`
+            text: `❌ ${autoLinkResult.message}\n\nเพิ่มเพื่อน @oonjai แล้วลงทะเบียนก่อนใช้งานในกลุ่มนะคะ`
           };
 
           try {
@@ -1057,7 +1057,7 @@ async function handleFollow(event: any) {
 
     const welcomeMessage: FlexMessage = {
       type: 'flex',
-      altText: 'ยินดีต้อนรับสู่ Duulair - กรุณาลงทะเบียน',
+      altText: 'ยินดีต้อนรับสู่ OONJAI - กรุณาลงทะเบียน',
       contents: {
         type: 'bubble',
         body: {
@@ -1073,7 +1073,7 @@ async function handleFollow(event: any) {
             },
             {
               type: 'text',
-              text: 'ยินดีต้อนรับสู่ Duulair',
+              text: 'ยินดีต้อนรับสู่ OONJAI',
               size: 'lg',
               color: '#424242',
               margin: 'md'
@@ -1181,13 +1181,13 @@ async function handleGroupJoin(event: any) {
       type: 'text',
       text: `สวัสดีค่ะ! 👋
 
-ขอบคุณที่เพิ่มบอท Duulair เข้ามาในกลุ่มนะคะ
+ขอบคุณที่เพิ่มบอท OONJAI เข้ามาในกลุ่มนะคะ
 
 ✅ ถ้าคุณลงทะเบียนผ่าน LINE OA แล้ว:
 → พิมพ์อะไรก็ได้เพื่อเชื่อมต่อกลุ่มกับผู้ป่วยของคุณ
 
 ❌ ถ้ายังไม่ได้ลงทะเบียน:
-→ เพิ่มเพื่อน @duulair แล้วลงทะเบียนก่อนนะคะ
+→ เพิ่มเพื่อน @oonjai แล้วลงทะเบียนก่อนนะคะ
 
 เมื่อเชื่อมต่อแล้ว ทุกคนในกลุ่มสามารถ:
 • คุยกับบอทเกี่ยวกับผู้ป่วยได้
@@ -1271,7 +1271,7 @@ app.post('/test', async (req, res) => {
 app.get('/', (req, res) => {
   res.json({
     status: 'ok',
-    service: 'Duulair Multi-Agent System',
+    service: 'OONJAI Multi-Agent System',
     initialized
   });
 });

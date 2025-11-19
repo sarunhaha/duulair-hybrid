@@ -20,9 +20,42 @@ export class DialogAgent extends BaseAgent {
 
   async process(message: Message): Promise<Response> {
     const startTime = Date.now();
-    
+
     try {
-      const systemPrompt = `You are a Thai digital health assistant for Duulair - a Group-Based Care platform where caregivers manage elderly loved ones' health.
+      // Check if group help is requested
+      if (message.metadata?.groupHelpText) {
+        return {
+          success: true,
+          data: {
+            response: message.metadata.groupHelpText,
+            intent: 'group_help'
+          },
+          agentName: this.config.name,
+          processingTime: Date.now() - startTime
+        };
+      }
+
+      // Build patient data context if available
+      let patientContext = '';
+      if (message.metadata?.patientData) {
+        const p = message.metadata.patientData;
+        patientContext = `
+PATIENT DATA (use this to answer questions):
+- ชื่อ: ${p.name} ${p.nickname ? `(${p.nickname})` : ''}
+- อายุ: ${p.age} ปี
+- เพศ: ${p.gender || 'ไม่ระบุ'}
+- กรุ๊ปเลือด: ${p.bloodType || 'ไม่ระบุ'}
+- โรคประจำตัว: ${p.chronicDiseases?.length > 0 ? p.chronicDiseases.join(', ') : 'ไม่มี'}
+- แพ้ยา: ${p.drugAllergies?.length > 0 ? p.drugAllergies.join(', ') : 'ไม่มี'}
+- แพ้อาหาร: ${p.foodAllergies?.length > 0 ? p.foodAllergies.join(', ') : 'ไม่มี'}
+- ยาที่กิน: ${p.medications?.length > 0 ? p.medications.map((m: any) => `${m.name} ${m.dosage || ''}`).join(', ') : 'ไม่มีรายการยา'}
+- ผู้ติดต่อฉุกเฉิน: ${p.emergencyContact?.name || 'ไม่ระบุ'} (${p.emergencyContact?.relation || ''}) ${p.emergencyContact?.phone || ''}
+
+When answering patient info questions, use this data directly. Format nicely with emojis.`;
+      }
+
+      const systemPrompt = `You are a Thai digital health assistant for OONJAI (อุ่นใจ) - a Group-Based Care platform where caregivers manage elderly loved ones' health.
+${patientContext}
 
 TARGET USERS: Caregivers (family members: children, grandchildren, relatives managing elderly care)
 SECONDARY: May interact with patients for activity logging
