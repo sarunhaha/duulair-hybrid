@@ -85,6 +85,20 @@ export class UserService {
         console.log('📋 Caregiver profile found:', {
           profile_id: profile?.id
         });
+
+        // Get linked patient for caregiver
+        const { data: linkedPatient, error: linkedError } = await supabase
+          .from('patient_caregivers')
+          .select('patient_id')
+          .eq('caregiver_id', caregiverProfile.id)
+          .eq('status', 'active')
+          .limit(1)
+          .maybeSingle();
+
+        if (linkedPatient && !linkedError) {
+          (profile as any).linked_patient_id = linkedPatient.patient_id;
+          console.log('📋 Linked patient found:', linkedPatient.patient_id);
+        }
       }
     }
 
@@ -107,7 +121,10 @@ export class UserService {
     return {
       exists: true,
       role: role,
-      profile: profile
+      profile: {
+        ...profile,
+        profile_id: profile.id
+      }
     };
   }
 

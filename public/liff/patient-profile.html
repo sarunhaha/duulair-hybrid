@@ -408,28 +408,21 @@
         }
 
         // Get patient ID based on role
-        if (checkUserResult.role === 'caregiver') {
-          // Caregiver - need to find linked patient
-          const caregiverId = checkUserResult.profile.profile_id;
-
-          // Get patients API endpoint
-          const patientsResponse = await fetch(`${API_BASE_URL}/caregiver/${caregiverId}/patients`);
-
-          if (!patientsResponse.ok) {
-            // Fallback: use profile_id directly if no caregiver endpoint
-            patientId = checkUserResult.profile.profile_id;
-          } else {
-            const patientsResult = await patientsResponse.json();
-            if (patientsResult.patients && patientsResult.patients.length > 0) {
-              patientId = patientsResult.patients[0].id;
-            } else {
-              showError('ยังไม่มีผู้ป่วยที่ลิงก์');
-              return;
-            }
-          }
-        } else {
+        if (checkUserResult.role === 'patient') {
           // Patient - use own profile
           patientId = checkUserResult.profile.profile_id;
+        } else if (checkUserResult.role === 'caregiver') {
+          // Caregiver - check if linked_patient_id exists in the response
+          if (checkUserResult.profile.linked_patient_id) {
+            patientId = checkUserResult.profile.linked_patient_id;
+          } else {
+            // No patient linked yet
+            showError('คุณยังไม่ได้ลิงก์กับผู้ป่วย กรุณาลิงก์ผู้ป่วยก่อน');
+            return;
+          }
+        } else {
+          showError('ไม่สามารถระบุประเภทผู้ใช้ได้');
+          return;
         }
 
         // Load patient profile
