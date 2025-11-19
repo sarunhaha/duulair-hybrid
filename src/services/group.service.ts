@@ -262,6 +262,34 @@ export class GroupService {
   }
 
   /**
+   * ดึงข้อมูลกลุ่มจาก Patient ID
+   */
+  async getGroupByPatientId(patientId: string): Promise<GroupInfoResponse | null> {
+    const { data, error } = await supabase
+      .from('groups')
+      .select(`
+        *,
+        patient_profiles(*),
+        caregiver_profiles(*),
+        group_members(*)
+      `)
+      .eq('patient_id', patientId)
+      .single();
+
+    if (error || !data) {
+      return null;
+    }
+
+    return {
+      success: true,
+      group: this.mapToGroup(data),
+      patient: data.patient_profiles,
+      primaryCaregiver: data.caregiver_profiles,
+      members: data.group_members.map(this.mapToGroupMember)
+    };
+  }
+
+  /**
    * เพิ่มสมาชิกในกลุ่ม
    */
   async addMember(groupId: string, request: AddGroupMemberRequest): Promise<AddGroupMemberResponse> {

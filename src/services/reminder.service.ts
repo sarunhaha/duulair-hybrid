@@ -398,6 +398,99 @@ export class ReminderService {
       };
     }
   }
+
+  /**
+   * Create default reminders for a new patient
+   * Called after patient registration
+   */
+  async createDefaultReminders(patientId: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const defaultReminders = [
+        // Morning medication reminder
+        {
+          patient_id: patientId,
+          reminder_type: 'medication' as ReminderType,
+          title: 'กินยาเช้า',
+          description: 'อย่าลืมกินยาตอนเช้านะคะ',
+          custom_time: '08:00',
+          frequency: 'daily' as const,
+          is_active: true,
+          notification_enabled: true
+        },
+        // Evening medication reminder
+        {
+          patient_id: patientId,
+          reminder_type: 'medication' as ReminderType,
+          title: 'กินยาเย็น',
+          description: 'อย่าลืมกินยาตอนเย็นนะคะ',
+          custom_time: '18:00',
+          frequency: 'daily' as const,
+          is_active: true,
+          notification_enabled: true
+        },
+        // Blood pressure check reminder
+        {
+          patient_id: patientId,
+          reminder_type: 'vitals' as ReminderType,
+          title: 'วัดความดัน',
+          description: 'ได้เวลาวัดความดันแล้วค่ะ',
+          custom_time: '09:00',
+          frequency: 'daily' as const,
+          is_active: true,
+          notification_enabled: true
+        },
+        // Water reminder - morning
+        {
+          patient_id: patientId,
+          reminder_type: 'water' as ReminderType,
+          title: 'ดื่มน้ำ',
+          description: 'อย่าลืมดื่มน้ำนะคะ',
+          custom_time: '10:00',
+          frequency: 'daily' as const,
+          is_active: true,
+          notification_enabled: true
+        },
+        // Water reminder - afternoon
+        {
+          patient_id: patientId,
+          reminder_type: 'water' as ReminderType,
+          title: 'ดื่มน้ำ',
+          description: 'อย่าลืมดื่มน้ำนะคะ',
+          custom_time: '14:00',
+          frequency: 'daily' as const,
+          is_active: true,
+          notification_enabled: true
+        },
+        // Exercise reminder
+        {
+          patient_id: patientId,
+          reminder_type: 'exercise' as ReminderType,
+          title: 'ออกกำลังกาย',
+          description: 'ได้เวลาเดินหรือออกกำลังกายเบาๆ แล้วค่ะ',
+          custom_time: '16:00',
+          frequency: 'daily' as const,
+          is_active: true,
+          notification_enabled: true
+        }
+      ];
+
+      for (const reminder of defaultReminders) {
+        const result = await this.createReminder(reminder);
+        if (!result.success) {
+          console.error(`Failed to create default reminder: ${reminder.title}`, result.error);
+        }
+      }
+
+      console.log(`✅ Created ${defaultReminders.length} default reminders for patient ${patientId}`);
+      return { success: true };
+    } catch (error: any) {
+      console.error('❌ Failed to create default reminders:', error);
+      return {
+        success: false,
+        error: error.message || 'Failed to create default reminders'
+      };
+    }
+  }
 }
 
 // Export singleton instance

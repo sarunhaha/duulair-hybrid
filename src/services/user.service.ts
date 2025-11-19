@@ -4,6 +4,7 @@
  */
 
 import { supabase } from './supabase.service';
+import { reminderService } from './reminder.service';
 import QRCode from 'qrcode';
 import {
   User,
@@ -925,6 +926,14 @@ export class UserService {
       }
 
       console.log(`✅ Patient profile created: ${profile.id}`);
+
+      // Create default reminders for the new patient
+      try {
+        await reminderService.createDefaultReminders(profile.id);
+      } catch (reminderError) {
+        console.error('⚠️ Failed to create default reminders (non-critical):', reminderError);
+        // Don't fail the registration if reminders fail
+      }
 
       return {
         success: true,

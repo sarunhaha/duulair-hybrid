@@ -1,6 +1,7 @@
 // src/agents/specialized/AlertAgent.ts
 import { BaseAgent, Message, Response, Config } from '../core/BaseAgent';
 import { LineService } from '../../services/line.service';
+import { groupService } from '../../services/group.service';
 
 export class AlertAgent extends BaseAgent {
   private lineService: LineService;
@@ -53,13 +54,22 @@ export class AlertAgent extends BaseAgent {
         message: message.content,
         timestamp: new Date()
       });
-      
+
+      // Generate response message for user
+      let responseText = '';
+      if (alertType === 'emergency' || level >= this.alertLevels.CRITICAL) {
+        responseText = `🆘 ได้รับแจ้งฉุกเฉินแล้วค่ะ!\n\n✅ กำลังแจ้งเตือนผู้ดูแลทุกคนในกลุ่ม\n⏰ เวลา: ${new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น.\n\n📞 หากเป็นกรณีฉุกเฉินร้ายแรง กรุณาโทร 1669`;
+      } else if (level >= this.alertLevels.WARNING) {
+        responseText = `⚠️ บันทึกการแจ้งเตือนแล้วค่ะ\n\nได้แจ้งไปยังผู้ดูแลในกลุ่มแล้ว`;
+      }
+
       return {
         success: true,
         data: {
           alerted: level >= this.alertLevels.WARNING,
           level,
-          type: alertType
+          type: alertType,
+          response: responseText
         },
         agentName: this.config.name,
         processingTime: Date.now() - startTime
@@ -106,57 +116,69 @@ export class AlertAgent extends BaseAgent {
   }
 
   private async sendAlert(message: Message, level: number) {
-    const patient = await this.supabase.getPatient(message.context.patientId!);
+    try {
+      const patient = await this.supabase.getPatient(message.context.patientId!);
 
-    // TODO: Get caregiver group (Group-Based Care Model)
-    // Method getGroupByPatientId needs to be implemented in SupabaseService
-    // const group = await this.supabase.getGroupByPatientId(message.context.patientId!);
-    // if (!group) {
-    //   this.log('warn', 'No caregiver group found for patient');
-    //   return;
-    // }
+      // Get caregiver group using groupService
+      const groupInfo = await groupService.getGroupByPatientId(message.context.patientId!);
 
-    // Temporary: Skip group-based alerts until method is implemented
-    this.log('warn', 'Group-based alerts not yet implemented');
-    return;
+      if (!groupInfo) {
+        this.log('warn', 'No caregiver group found for patient');
+        return;
+      }
 
-    // const caregivers = group.members || [];
-    // const alertMessage = this.formatAlertMessage(message, level, patient, group);
-    //
-    // // Send based on level and group settings
-    // if (level >= this.alertLevels.CRITICAL) {
-    //   // CRITICAL: Send to ALL caregivers in group immediately
-    //   this.log('info', `Sending CRITICAL alert to ${caregivers.length} caregivers`);
-    //
-    //   for (const caregiver of caregivers) {
-    //     await this.lineService.sendMessage(caregiver.line_user_id, alertMessage);
-    //   }
-    //
-    //   // Also send to LINE group if exists
-    //   if (group.line_group_id) {
-    //     await this.lineService.sendMessage(group.line_group_id, alertMessage);
-    //   }
-    //
-    // } else if (level >= this.alertLevels.URGENT) {
-    //   // URGENT: Send to primary caregiver + group
-    //   const primary = caregivers.find((c: any) => c.role === 'primary');
-    //
-    //   if (primary) {
-    //     await this.lineService.sendMessage(primary.line_user_id, alertMessage);
-    //   }
-    //
-    //   if (group.line_group_id) {
-    //     await this.lineService.sendMessage(group.line_group_id, alertMessage);
-    //   }
-    //
-    // } else if (level >= this.alertLevels.WARNING) {
-    //   // WARNING: Send to group only (if group notifications enabled)
-    //   const settings = group.settings || {};
-    //
-    //   if (settings.emergency_notifications !== false && group.line_group_id) {
-    //     await this.lineService.sendMessage(group.line_group_id, alertMessage);
-    //   }
-    // }
+      const group = groupInfo.group;
+      const members = groupInfo.members || [];
+      const alertMessage = this.formatAlertMessage(message, level, patient, group);
+
+      this.log('info', `Sending alert level ${level} to ${members.length} members`);
+
+      // Send based on level
+      if (level >= this.alertLevels.CRITICAL) {
+        // CRITICAL: Send to ALL caregivers in group immediately
+        this.log('info', `Sending CRITICAL alert to ${members.length} caregivers`);
+
+        for (const member of members) {
+          try {
+            await this.lineService.sendMessage(member.lineUserId, alertMessage);
+            this.log('info', `Alert sent to ${member.displayName}`);
+          } catch (err) {
+            this.log('error', `Failed to send alert to ${member.displayName}`, err);
+          }
+        }
+
+        // Also send to LINE group if exists
+        if (group.lineGroupId) {
+          try {
+            await this.lineService.sendMessage(group.lineGroupId, alertMessage);
+            this.log('info', 'Alert sent to LINE group');
+          } catch (err) {
+            this.log('error', 'Failed to send alert to LINE group', err);
+          }
+        }
+
+      } else if (level >= this.alertLevels.URGENT) {
+        // URGENT: Send to primary caregiver + group
+        const primary = members.find((m: any) => m.role === 'primary');
+
+        if (primary) {
+          await this.lineService.sendMessage(primary.lineUserId, alertMessage);
+        }
+
+        if (group.lineGroupId) {
+          await this.lineService.sendMessage(group.lineGroupId, alertMessage);
+        }
+
+      } else if (level >= this.alertLevels.WARNING) {
+        // WARNING: Send to group only
+        if (group.lineGroupId) {
+          await this.lineService.sendMessage(group.lineGroupId, alertMessage);
+        }
+      }
+
+    } catch (error) {
+      this.log('error', 'Failed to send alert', error);
+    }
   }
 
   private formatAlertMessage(message: Message, level: number, patient: any, group?: any): string {

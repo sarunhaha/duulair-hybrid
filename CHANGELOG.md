@@ -1,6 +1,70 @@
 # OONJAI Changelog
 
-## [2024-11-19] Session Update
+## [2024-11-19] Session 2 - Scheduler & Alerts
+
+### Completed Tasks
+
+#### 1. Emergency Alert System
+- File: `src/agents/specialized/AlertAgent.ts`
+  - Implemented full push notification system to caregivers
+  - CRITICAL alerts: Send to ALL caregivers + LINE group
+  - URGENT alerts: Send to primary caregiver + group
+  - WARNING alerts: Send to LINE group only
+  - Added response message back to user after emergency
+  - Added `getGroupByPatientId()` to `src/services/group.service.ts`
+
+#### 2. Cron Job Scheduler
+- File: `src/services/scheduler.service.ts` (NEW)
+  - Uses `node-cron` package
+  - `checkDueReminders()` - runs every minute
+  - `checkMissedActivities()` - runs every hour (4h threshold)
+  - Sends notifications to LINE groups and patients
+  - Started in `src/index.ts` on app initialization
+
+#### 3. Duplicate Send Prevention
+- File: `src/services/scheduler.service.ts`
+  - Added `checkIfAlreadySentToday()` method
+  - Logs sent reminders to `reminder_logs` table
+  - Prevents same reminder from being sent multiple times per day
+
+#### 4. Default Reminders on Patient Registration
+- File: `src/services/reminder.service.ts`
+  - Added `createDefaultReminders()` function
+  - Auto-creates 6 daily reminders for new patients:
+    - 08:00 กินยาเช้า
+    - 18:00 กินยาเย็น
+    - 09:00 วัดความดัน
+    - 10:00 ดื่มน้ำ
+    - 14:00 ดื่มน้ำ
+    - 16:00 ออกกำลังกาย
+- File: `src/services/user.service.ts`
+  - Integrated into `createPatientProfile()`
+
+#### 5. IntentAgent Pattern Updates
+- File: `src/agents/specialized/IntentAgent.ts`
+  - Added patterns for `group_help`: วิธีใช้, help, เมนู
+
+#### 6. Welcome Message Update
+- File: `src/index.ts`
+  - Added command examples when bot joins group
+
+### Files Modified
+- `src/agents/specialized/AlertAgent.ts` - Emergency alert implementation
+- `src/services/group.service.ts` - Added getGroupByPatientId()
+- `src/services/scheduler.service.ts` - NEW cron job scheduler
+- `src/services/reminder.service.ts` - Default reminders
+- `src/services/user.service.ts` - Integration of default reminders
+- `src/agents/specialized/IntentAgent.ts` - Pattern updates
+- `src/index.ts` - Scheduler start, welcome message
+
+### Database Tables Used
+- `reminders` - Reminder configurations
+- `reminder_logs` - Sent reminder history (for dedup)
+- `activity_logs` - For missed activity detection
+
+---
+
+## [2024-11-19] Session 1 - Image OCR & Brand Change
 
 ### Completed Tasks
 

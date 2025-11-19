@@ -12,6 +12,7 @@ import { commandHandlerService } from './services/command-handler.service';
 import { userService } from './services/user.service';
 import { groupService } from './services/group.service';
 import { supabaseService } from './services/supabase.service';
+import { schedulerService } from './services/scheduler.service';
 import crypto from 'crypto';
 
 dotenv.config();
@@ -1444,6 +1445,9 @@ if (process.env.NODE_ENV !== 'production') {
   app.listen(PORT, () => {
     console.log(`📡 Server running on port ${PORT}`);
     initializeIfNeeded();
+
+    // Start scheduler for reminders
+    schedulerService.start();
   });
 }
 
