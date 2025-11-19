@@ -395,12 +395,22 @@
     // Load user data
     async function loadUserData() {
       try {
+        console.log('📋 loadUserData: Starting...');
         const profile = await liff.getProfile();
         const lineUserId = profile.userId;
+        console.log('📋 LINE User ID:', lineUserId);
 
         // Get user info
+        console.log('📋 Calling check-user API...');
         const checkUserResponse = await fetch(`${API_BASE_URL}/check-user/${lineUserId}`);
+        console.log('📋 check-user response status:', checkUserResponse.status);
+
+        if (!checkUserResponse.ok) {
+          throw new Error(`check-user API failed: ${checkUserResponse.status}`);
+        }
+
         const checkUserResult = await checkUserResponse.json();
+        console.log('📋 check-user result:', checkUserResult);
 
         if (!checkUserResult.exists) {
           showError('ไม่พบข้อมูลผู้ใช้');
@@ -408,13 +418,16 @@
         }
 
         // Get patient ID based on role
+        console.log('📋 User role:', checkUserResult.role);
         if (checkUserResult.role === 'patient') {
           // Patient - use own profile
           patientId = checkUserResult.profile.profile_id;
+          console.log('📋 Patient ID (own profile):', patientId);
         } else if (checkUserResult.role === 'caregiver') {
           // Caregiver - check if linked_patient_id exists in the response
           if (checkUserResult.profile.linked_patient_id) {
             patientId = checkUserResult.profile.linked_patient_id;
+            console.log('📋 Patient ID (linked):', patientId);
           } else {
             // No patient linked yet
             showError('คุณยังไม่ได้ลิงก์กับผู้ป่วย กรุณาลิงก์ผู้ป่วยก่อน');
@@ -426,8 +439,16 @@
         }
 
         // Load patient profile
+        console.log('📋 Calling patient API:', patientId);
         const response = await fetch(`${API_BASE_URL}/patient/${patientId}`);
+        console.log('📋 patient response status:', response.status);
+
+        if (!response.ok) {
+          throw new Error(`patient API failed: ${response.status}`);
+        }
+
         const result = await response.json();
+        console.log('📋 patient result:', result);
 
         if (!result.success || !result.profile) {
           showError('ไม่พบข้อมูลผู้ป่วย');
@@ -435,9 +456,10 @@
         }
 
         displayPatientData(result.profile);
+        console.log('✅ Data loaded successfully');
 
       } catch (error) {
-        console.error('Error loading data:', error);
+        console.error('❌ Error loading data:', error);
         showError('ไม่สามารถโหลดข้อมูลได้: ' + error.message);
       }
     }
