@@ -126,18 +126,35 @@ export class HealthAgent extends BaseAgent {
 
   private async processVitals(message: Message, logData: any) {
     const entities = message.metadata?.entities || {};
-    
+    const isGroup = message.context.source === 'group';
+
     // Validate blood pressure
     if (entities.systolic && entities.diastolic) {
       const isValid = this.validateVitals(entities);
-      
+      const alert = this.checkVitalAlert(entities);
+
       logData.value = `${entities.systolic}/${entities.diastolic}`;
       logData.metadata = {
         systolic: entities.systolic,
         diastolic: entities.diastolic,
         valid: isValid,
-        alert: this.checkVitalAlert(entities)
+        alert: alert
       };
+
+      // Generate appropriate response
+      let responseMsg = `✅ บันทึกความดัน ${entities.systolic}/${entities.diastolic} เรียบร้อยแล้วค่ะ`;
+      if (alert === 'high_blood_pressure') {
+        responseMsg += '\n\n⚠️ ความดันสูงกว่าปกติ กรุณาติดตามอาการและปรึกษาแพทย์';
+      } else if (alert === 'low_blood_pressure') {
+        responseMsg += '\n\n⚠️ ความดันต่ำกว่าปกติ กรุณาติดตามอาการ';
+      }
+      logData.response = responseMsg;
+    } else {
+      // No values provided - ask for input
+      logData.needsInput = true;
+      logData.response = isGroup
+        ? '📝 กรุณาพิมพ์ค่าความดันในรูปแบบ "120/80" ค่ะ\n\nตัวอย่าง: @oonjai ความดัน 120/80'
+        : '📝 กรุณาพิมพ์ค่าความดันในรูปแบบ "120/80" ค่ะ';
     }
 
     // ถ้ามีรูปภาพ (สำหรับ OCR)
@@ -145,7 +162,7 @@ export class HealthAgent extends BaseAgent {
       const ocrResult = await this.processOCR(message.metadata.imageUrl);
       logData.metadata = { ...logData.metadata, ...ocrResult };
     }
-    
+
     return logData;
   }
 

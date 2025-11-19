@@ -300,10 +300,17 @@ export class OrchestratorAgent extends BaseAgent {
       combined: {} as any
     };
 
-    // Merge successful responses
+    // Merge successful responses - prioritize health agent response over dialog
     for (const response of aggregated.results) {
       if (response.data) {
+        // Keep existing response if already set (health agent has priority)
+        const existingResponse = aggregated.combined.response;
         Object.assign(aggregated.combined, response.data);
+
+        // Restore health agent response if dialog tried to override
+        if (existingResponse && response.agentName === 'dialog') {
+          aggregated.combined.response = existingResponse;
+        }
       }
     }
 

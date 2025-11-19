@@ -1,8 +1,13 @@
 // docs/Claude.md
-# 🤖 Duulair Multi-Agent System - Claude Integration Guide
+# 🤖 OONJAI Multi-Agent System - Claude Integration Guide
 
 ## Overview
-This document defines the behavior, capabilities, and constraints for Claude agents in the Duulair system.
+This document defines the behavior, capabilities, and constraints for Claude agents in the OONJAI system.
+
+## Current Status (2024-11-19)
+- **Brand**: OONJAI (formerly Duulair)
+- **Model**: Group-Based Care - Caregivers manage patient care via LINE groups
+- **Features**: Activity logging, Image OCR, Patient info queries, Reports
 
 ## System Architecture
 ```mermaid
@@ -68,9 +73,22 @@ Output format: {"intent": "...", "confidence": 0.0-1.0, "entities": {...}}
 Role: Process and validate health-related data
 Capabilities:
 
-OCR for blood pressure readings
-Food image classification
-Medication verification
+- OCR for blood pressure readings (via Claude Vision)
+- Image message support - extract BP values from photos
+- Food image classification
+- Medication verification
+- Context-aware responses (1:1 vs group chat)
+
+**Image OCR Flow** (added 2024-11-19):
+```typescript
+// In src/index.ts - handleImageMessage()
+// 1. Get image from LINE using getMessageContent()
+// 2. Convert to base64
+// 3. Send to Claude Vision (claude-3-haiku-20240307)
+// 4. Extract systolic, diastolic, pulse
+// 5. Save to database with source: 'image_ocr'
+// 6. Return response with alerts if BP abnormal
+```
 
 Validation Rules:
 const healthValidation = {
@@ -316,14 +334,44 @@ Debug Mode
 process.env.DEBUG = 'agent:*';
 process.env.LOG_LEVEL = 'debug';
 
+## Group-Based Care Model (TASK-002)
+
+### Context Handling
+The system differentiates between 1:1 chat and group chat contexts:
+
+```typescript
+// Message context includes:
+{
+  source: '1:1' | 'group',
+  groupId: string | null,
+  actorLineUserId: string,  // Person who sent message
+  actorDisplayName: string,
+  patientId: string         // Linked patient for the group
+}
+```
+
+### Response Priority
+In OrchestratorAgent.aggregateResponses():
+- HealthAgent responses take priority over DialogAgent
+- Prevents group users from being told to click Rich Menu buttons
+
+### Patient Info Queries (for group chat)
+Intents: patient_info, patient_name, patient_age, patient_conditions, patient_medications, patient_allergies, group_help
+
+Example: "@oonjai ชื่อผู้ป่วยอะไร" → Returns patient name from database
+
+---
+
 Future Enhancements
 
- Multi-language support (Thai, English, Chinese)
- Voice message processing
- Predictive health alerts
- Integration with wearable devices
- Advanced NLP with context memory
+- [ ] Multi-language support (Thai, English, Chinese)
+- [ ] Voice message processing
+- [ ] Predictive health alerts
+- [ ] Integration with wearable devices
+- [ ] Advanced NLP with context memory
+- [x] Image OCR for blood pressure (2024-11-19)
+- [x] Group-based care model (TASK-002)
 
 
-Last Updated: 2024-12-26
-Version: 1.0.0
+Last Updated: 2024-11-19
+Version: 1.1.0

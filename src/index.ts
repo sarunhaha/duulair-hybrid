@@ -11,6 +11,7 @@ import { groupWebhookService } from './services/group-webhook.service';
 import { commandHandlerService } from './services/command-handler.service';
 import { userService } from './services/user.service';
 import { groupService } from './services/group.service';
+import { supabaseService } from './services/supabase.service';
 import crypto from 'crypto';
 
 dotenv.config();
@@ -736,6 +737,8 @@ app.post('/webhook', async (req, res) => {
           case 'message':
             if (event.message.type === 'text') {
               return handleTextMessage(event);
+            } else if (event.message.type === 'image') {
+              return handleImageMessage(event);
             }
             break;
           case 'follow':
@@ -1021,6 +1024,153 @@ async function handleTextMessage(event: any) {
   }
 }
 
+// Handle image message (for OCR blood pressure reading)
+async function handleImageMessage(event: any) {
+  try {
+    const replyToken = event.replyToken;
+    const messageId = event.message.id;
+    const userId = event.source?.userId || '';
+    const isGroupContext = event.source?.type === 'group' || event.source?.type === 'room';
+    const groupId = event.source?.groupId || event.source?.roomId || null;
+
+    console.log(`📷 Image message received from ${userId} (group: ${isGroupContext})`);
+
+    // Check user registration
+    const userCheck = await userService.checkUserExists(userId);
+    if (!userCheck.exists || userCheck.role !== 'caregiver') {
+      const replyMessage: TextMessage = {
+        type: 'text',
+        text: 'กรุณาลงทะเบียนก่อนใช้งานค่ะ'
+      };
+      await lineClient.replyMessage(replyToken, replyMessage);
+      return { success: true, skipped: true, reason: 'not_registered' };
+    }
+
+    // Get patient ID
+    let patientId = (userCheck.profile as any)?.linkedPatientId;
+    if (!patientId) {
+      const replyMessage: TextMessage = {
+        type: 'text',
+        text: 'ไม่พบข้อมูลผู้ป่วยที่เชื่อมต่อ กรุณาลงทะเบียนผู้ป่วยก่อนค่ะ'
+      };
+      await lineClient.replyMessage(replyToken, replyMessage);
+      return { success: true, skipped: true, reason: 'no_patient' };
+    }
+
+    // Get image content from LINE
+    const stream = await lineClient.getMessageContent(messageId);
+    const chunks: Buffer[] = [];
+
+    for await (const chunk of stream) {
+      chunks.push(chunk as Buffer);
+    }
+
+    const imageBuffer = Buffer.concat(chunks);
+    const base64Image = imageBuffer.toString('base64');
+    const mimeType = 'image/jpeg'; // LINE images are usually JPEG
+
+    console.log(`📷 Image size: ${imageBuffer.length} bytes`);
+
+    // Use Claude Vision to read blood pressure from image
+    const Anthropic = require('@anthropic-ai/sdk').default;
+    const anthropic = new Anthropic();
+
+    const visionResponse = await anthropic.messages.create({
+      model: 'claude-3-haiku-20240307',
+      max_tokens: 500,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'image',
+              source: {
+                type: 'base64',
+                media_type: mimeType,
+                data: base64Image
+              }
+            },
+            {
+              type: 'text',
+              text: `อ่านค่าความดันโลหิตจากรูปนี้
+
+ถ้าเห็นค่าความดัน ให้ตอบในรูปแบบ JSON:
+{"systolic": 120, "diastolic": 80, "pulse": 70}
+
+ถ้าไม่เห็นค่าความดัน หรือรูปไม่ใช่เครื่องวัดความดัน ให้ตอบ:
+{"error": "ไม่พบค่าความดันในรูป"}
+
+ตอบเฉพาะ JSON เท่านั้น`
+            }
+          ]
+        }
+      ]
+    });
+
+    const visionResult = visionResponse.content[0].text;
+    console.log('📷 Vision result:', visionResult);
+
+    let responseText = '';
+
+    try {
+      const parsed = JSON.parse(visionResult);
+
+      if (parsed.error) {
+        responseText = `❌ ${parsed.error}\n\nกรุณาส่งรูปเครื่องวัดความดันที่เห็นตัวเลขชัดเจนค่ะ`;
+      } else if (parsed.systolic && parsed.diastolic) {
+        // Save to database
+        const logData: any = {
+          patient_id: patientId,
+          task_type: 'vitals',
+          value: `${parsed.systolic}/${parsed.diastolic}`,
+          metadata: {
+            systolic: parsed.systolic,
+            diastolic: parsed.diastolic,
+            pulse: parsed.pulse || null,
+            source: 'image_ocr',
+            valid: true
+          },
+          timestamp: new Date(),
+          source: isGroupContext ? 'group' : '1:1',
+          group_id: groupId,
+          actor_line_user_id: userId
+        };
+
+        await supabaseService.saveActivityLog(logData);
+
+        responseText = `✅ บันทึกความดัน ${parsed.systolic}/${parsed.diastolic} เรียบร้อยแล้วค่ะ`;
+
+        if (parsed.pulse) {
+          responseText += `\nชีพจร: ${parsed.pulse} ครั้ง/นาที`;
+        }
+
+        // Check for alerts
+        if (parsed.systolic > 140 || parsed.diastolic > 90) {
+          responseText += '\n\n⚠️ ความดันสูงกว่าปกติ กรุณาติดตามอาการและปรึกษาแพทย์';
+        } else if (parsed.systolic < 90 || parsed.diastolic < 60) {
+          responseText += '\n\n⚠️ ความดันต่ำกว่าปกติ กรุณาติดตามอาการ';
+        }
+      } else {
+        responseText = '❌ ไม่สามารถอ่านค่าความดันจากรูปได้\n\nกรุณาส่งรูปที่เห็นตัวเลขชัดเจนค่ะ';
+      }
+    } catch (e) {
+      responseText = '❌ ไม่สามารถอ่านค่าความดันจากรูปได้\n\nกรุณาส่งรูปเครื่องวัดความดันที่เห็นตัวเลขชัดเจนค่ะ';
+    }
+
+    const replyMessage: TextMessage = {
+      type: 'text',
+      text: responseText
+    };
+    await lineClient.replyMessage(replyToken, replyMessage);
+
+    return { success: true, type: 'image_ocr' };
+
+  } catch (error) {
+    console.error('Error handling image message:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+}
+
 // Handle follow event (user adds bot as friend)
 async function handleFollow(event: any) {
   try {
@@ -1189,10 +1339,22 @@ async function handleGroupJoin(event: any) {
 ❌ ถ้ายังไม่ได้ลงทะเบียน:
 → เพิ่มเพื่อน @oonjai แล้วลงทะเบียนก่อนนะคะ
 
-เมื่อเชื่อมต่อแล้ว ทุกคนในกลุ่มสามารถ:
-• คุยกับบอทเกี่ยวกับผู้ป่วยได้
-• บันทึกข้อมูลสุขภาพได้
-• ดูรายงานได้`
+━━━━━━━━━━━━━━━━━━━━
+📝 วิธีใช้งานในกลุ่ม
+━━━━━━━━━━━━━━━━━━━━
+
+⚠️ ต้อง @mention บอทก่อนทุกครั้ง
+
+ตัวอย่างคำสั่ง:
+• @oonjai กินยาแล้ว
+• @oonjai ความดัน 120/80
+• @oonjai ดื่มน้ำ 500ml
+• @oonjai เดิน 30 นาที
+• @oonjai ชื่อผู้ป่วยอะไร
+• @oonjai รายงานวันนี้
+• @oonjai ถามอะไรได้บ้าง
+
+📷 หรือส่งรูปเครื่องวัดความดันได้เลยค่ะ`
     };
 
     try {

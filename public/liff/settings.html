@@ -273,14 +273,14 @@
 
       <!-- Tabs -->
       <div class="tabs">
-        <div class="tab active" data-tab="group">กลุ่ม</div>
-        <div class="tab" data-tab="reports">รายงาน</div>
+        <div class="tab" data-tab="group" style="display: none;">กลุ่ม</div>
+        <div class="tab active" data-tab="reports">รายงาน</div>
         <div class="tab" data-tab="packages">แพ็คเกจ</div>
         <div class="tab" data-tab="help">ช่วยเหลือ</div>
       </div>
 
-      <!-- Group Tab -->
-      <div id="group-tab" class="tab-content active">
+      <!-- Group Tab (hidden by default) -->
+      <div id="group-tab" class="tab-content">
         <div class="link-code-display">
           <div class="label">รหัสกลุ่ม (Link Code)</div>
           <div class="code" id="linkCode">------</div>
@@ -313,8 +313,8 @@
         </div>
       </div>
 
-      <!-- Reports Tab -->
-      <div id="reports-tab" class="tab-content">
+      <!-- Reports Tab (default active) -->
+      <div id="reports-tab" class="tab-content active">
         <div class="section">
           <div class="section-header">📊 รายงานอัตโนมัติ</div>
 
