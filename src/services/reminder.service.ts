@@ -76,16 +76,21 @@ export class ReminderService {
         };
       }
 
+      // Ensure time is never null (required field)
+      const timeValue = reminder.custom_time && reminder.custom_time.trim() !== ''
+        ? reminder.custom_time
+        : '08:00';
+
       const { data, error } = await supabase
         .from('reminders')
         .insert([{
           patient_id: reminder.patient_id,
           type: reminder.reminder_type || reminder.type || 'general',
           title: reminder.title,
-          time: reminder.custom_time || '08:00',
+          time: timeValue,
           note: reminder.description || reminder.note || null,
-          custom_time: reminder.custom_time,
-          frequency: reminder.frequency,
+          custom_time: timeValue,
+          frequency: reminder.frequency || 'daily',
           days_of_week: reminder.days_of_week ? JSON.stringify(reminder.days_of_week) : null,
           is_active: reminder.is_active !== undefined ? reminder.is_active : true
         }])
