@@ -317,8 +317,10 @@
         data.medical_condition = document.getElementById('medical_condition').value.trim() || null;
         const chronicStr = document.getElementById('chronic_diseases').value.trim();
         data.chronic_diseases = chronicStr ? chronicStr.split(',').map(s => s.trim()).filter(s => s) : null;
-        data.drug_allergies = document.getElementById('drug_allergies').value.trim() || null;
-        data.food_allergies = document.getElementById('food_allergies').value.trim() || null;
+        const drugStr = document.getElementById('drug_allergies').value.trim();
+        data.drug_allergies = drugStr ? drugStr.split(',').map(s => s.trim()).filter(s => s) : null;
+        const foodStr = document.getElementById('food_allergies').value.trim();
+        data.food_allergies = foodStr ? foodStr.split(',').map(s => s.trim()).filter(s => s) : null;
       }
 
       if (currentSection === 'emergency') {
