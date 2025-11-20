@@ -4,8 +4,8 @@
 
 // API Base URL (auto-detect production/development)
 const API_BASE_URL = window.location.hostname === 'localhost'
-  ? 'http://localhost:3000'
-  : 'https://duulair.vercel.app';
+  ? 'http://localhost:3000/api'
+  : 'https://duulair.vercel.app/api';
 
 /**
  * API Client
@@ -100,7 +100,7 @@ const api = {
    * @returns {Promise<Object>}
    */
   async checkRegistration(lineUserId) {
-    return this.post('/api/registration/check', {
+    return this.post('/registration/check', {
       line_user_id: lineUserId
     });
   },
@@ -111,7 +111,7 @@ const api = {
    * @returns {Promise<Object>}
    */
   async registerPatient(data) {
-    return this.post('/api/registration/patient', data);
+    return this.post('/registration/patient', data);
   },
 
   /**
@@ -120,7 +120,7 @@ const api = {
    * @returns {Promise<Object>}
    */
   async registerCaregiver(data) {
-    return this.post('/api/registration/caregiver', data);
+    return this.post('/registration/caregiver', data);
   },
 
   /**
@@ -129,7 +129,7 @@ const api = {
    * @returns {Promise<Object>}
    */
   async generateLinkCode(patientId) {
-    return this.post('/api/registration/generate-link-code', {
+    return this.post('/registration/generate-link-code', {
       patient_id: patientId
     });
   },
@@ -142,7 +142,7 @@ const api = {
    * @returns {Promise<Object>}
    */
   async linkPatient(caregiverId, linkCode, relationship) {
-    return this.post('/api/registration/link-patient', {
+    return this.post('/registration/link-patient', {
       caregiver_id: caregiverId,
       link_code: linkCode,
       relationship
@@ -156,7 +156,7 @@ const api = {
    * @returns {Promise<Object>}
    */
   async addMedication(patientId, medication) {
-    return this.post(`/api/registration/patient/${patientId}/medications`, medication);
+    return this.post(`/registration/patient/${patientId}/medications`, medication);
   },
 
   /**
@@ -165,7 +165,7 @@ const api = {
    * @returns {Promise<Object>}
    */
   async getPatientProfile(patientId) {
-    return this.get(`/api/registration/patient/${patientId}`);
+    return this.get(`/registration/patient/${patientId}`);
   },
 
   /**
@@ -174,7 +174,7 @@ const api = {
    * @returns {Promise<Object>}
    */
   async getCaregiverProfile(caregiverId) {
-    return this.get(`/api/registration/caregiver/${caregiverId}`);
+    return this.get(`/registration/caregiver/${caregiverId}`);
   },
 
   /**
@@ -183,7 +183,7 @@ const api = {
    * @returns {Promise<Object>}
    */
   async getCaregiverPatients(caregiverId) {
-    return this.get(`/api/registration/caregiver/${caregiverId}/patients`);
+    return this.get(`/registration/caregiver/${caregiverId}/patients`);
   },
 
   /**
@@ -192,6 +192,6 @@ const api = {
    * @returns {Promise<Object>}
    */
   async getPatientCaregivers(patientId) {
-    return this.get(`/api/registration/patient/${patientId}/caregivers`);
+    return this.get(`/registration/patient/${patientId}/caregivers`);
   }
 };

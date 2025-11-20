@@ -266,6 +266,9 @@
     </div>
   </div>
 
+  <!-- API Client -->
+  <script src="js/api.js"></script>
+
   <script>
     const LIFF_ID = '2008278683-5k69jxNq';
     const SUPABASE_URL = 'https://mqxklnzxfrupwwkwlwwc.supabase.co';
@@ -276,10 +279,6 @@
     // Check user registration (first-time detection)
     async function checkUserRegistration(lineUserId) {
       try {
-        const API_BASE_URL = window.location.hostname === 'localhost'
-          ? 'http://localhost:3000/api'
-          : 'https://duulair.vercel.app/api';
-
         const response = await fetch(`${API_BASE_URL}/check-user/${lineUserId}`);
         const result = await response.json();
 

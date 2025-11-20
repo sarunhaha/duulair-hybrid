@@ -109,13 +109,12 @@
   <!-- LIFF SDK -->
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
+  <!-- API Client -->
+  <script src="js/api.js"></script>
+
   <script>
     // LIFF Configuration
     const LIFF_ID = '2008278683-5k69jxNq';
-    // Use localhost for development, Vercel for production
-    const API_BASE_URL = window.location.hostname === 'localhost'
-      ? 'http://localhost:3000/api'
-      : 'https://duulair.vercel.app/api';
 
     // Initialize LIFF
     async function initLiff() {
