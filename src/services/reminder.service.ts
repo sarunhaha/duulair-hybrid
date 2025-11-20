@@ -23,10 +23,12 @@ export interface Reminder {
   patient_id: string;
   group_id?: string;
 
-  // Type and description
-  reminder_type: ReminderType;
+  // Type and description (support both old and new field names)
+  reminder_type?: ReminderType;
+  type?: string;  // Database column name
   title: string;
   description?: string;
+  note?: string;  // Database column name
 
   // Scheduling
   custom_time: string; // '08:00', '14:30'
@@ -78,18 +80,14 @@ export class ReminderService {
         .from('reminders')
         .insert([{
           patient_id: reminder.patient_id,
-          group_id: reminder.group_id,
-          reminder_type: reminder.reminder_type,
+          type: reminder.reminder_type || reminder.type || 'general',
           title: reminder.title,
-          description: reminder.description,
+          time: reminder.custom_time || '08:00',
+          note: reminder.description || reminder.note || null,
           custom_time: reminder.custom_time,
           frequency: reminder.frequency,
           days_of_week: reminder.days_of_week ? JSON.stringify(reminder.days_of_week) : null,
-          is_active: reminder.is_active !== undefined ? reminder.is_active : true,
-          notification_enabled: reminder.notification_enabled !== undefined ? reminder.notification_enabled : true,
-          sound_enabled: reminder.sound_enabled,
-          metadata: reminder.metadata ? JSON.stringify(reminder.metadata) : null,
-          created_by: reminder.created_by
+          is_active: reminder.is_active !== undefined ? reminder.is_active : true
         }])
         .select()
         .single();

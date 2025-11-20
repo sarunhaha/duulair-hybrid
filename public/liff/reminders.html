@@ -683,7 +683,7 @@
                 <div class="reminder-title">${reminder.title}</div>
                 <div class="reminder-time">${reminder.custom_time || reminder.time}</div>
                 <div class="reminder-frequency">${frequencyText}</div>
-                ${reminder.description ? `<div style="color: var(--text-secondary); font-size: 13px; margin-top: 4px;">${reminder.description}</div>` : ''}
+                ${reminder.note ? `<div style="color: var(--text-secondary); font-size: 13px; margin-top: 4px;">${reminder.note}</div>` : ''}
               </div>
               <div class="toggle-switch ${isActive ? 'active' : ''}"
                    onclick="toggleReminder('${reminder.id}', ${!isActive})"></div>
@@ -724,7 +724,7 @@
         if (reminder) {
           document.getElementById('reminderTitle').value = reminder.title;
           document.getElementById('reminderTime').value = reminder.custom_time || reminder.time;
-          document.getElementById('reminderNote').value = reminder.description || '';
+          document.getElementById('reminderNote').value = reminder.note || '';
 
           selectedFrequency = reminder.frequency || 'daily';
           updateFrequencyUI();
@@ -807,14 +807,13 @@
 
       const reminderData = {
         patient_id: patientId,
-        reminder_type: currentReminderType || editingReminderId ? reminders.find(r => r.id === editingReminderId)?.reminder_type : 'custom',
+        type: currentReminderType || (editingReminderId ? reminders.find(r => r.id === editingReminderId)?.type : 'custom'),
         title: document.getElementById('reminderTitle').value,
         custom_time: document.getElementById('reminderTime').value,
-        description: document.getElementById('reminderNote').value || null,
+        note: document.getElementById('reminderNote').value || null,
         frequency: selectedFrequency,
         days_of_week: selectedFrequency === 'specific_days' ? JSON.stringify(Array.from(selectedDays)) : null,
-        is_active: true,
-        notification_enabled: true
+        is_active: true
       };
 
       try {
