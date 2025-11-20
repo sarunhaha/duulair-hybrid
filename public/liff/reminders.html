@@ -805,13 +805,21 @@
         return;
       }
 
+      // Get time value and ensure it's not empty
+      const timeValue = document.getElementById('reminderTime').value.trim();
+      if (!timeValue) {
+        showError('กรุณาระบุเวลาเตือน');
+        return;
+      }
+
       const reminderData = {
         patient_id: patientId,
         type: currentReminderType || (editingReminderId ? reminders.find(r => r.id === editingReminderId)?.type : 'custom'),
         title: document.getElementById('reminderTitle').value,
-        custom_time: document.getElementById('reminderTime').value,
+        time: timeValue,  // Required NOT NULL field
+        custom_time: timeValue,
         note: document.getElementById('reminderNote').value || null,
-        frequency: selectedFrequency,
+        frequency: selectedFrequency || 'daily',
         days_of_week: selectedFrequency === 'specific_days' ? JSON.stringify(Array.from(selectedDays)) : null,
         is_active: true
       };

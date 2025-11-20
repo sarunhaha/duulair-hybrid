@@ -378,6 +378,79 @@ function createHelpFlexMessage(): FlexMessage {
   };
 }
 
+// Flex Message for Report Menu
+function createReportMenuFlexMessage(): FlexMessage {
+  return {
+    type: 'flex',
+    altText: '📊 เลือกประเภทรายงาน',
+    contents: {
+      type: 'bubble',
+      header: {
+        type: 'box',
+        layout: 'vertical',
+        contents: [
+          {
+            type: 'text',
+            text: '📊 รายงานการดูแล',
+            weight: 'bold',
+            size: 'xl',
+            color: '#5A8BA8'
+          }
+        ]
+      },
+      body: {
+        type: 'box',
+        layout: 'vertical',
+        contents: [
+          {
+            type: 'text',
+            text: 'เลือกช่วงเวลาที่ต้องการดูรายงาน',
+            wrap: true,
+            size: 'md',
+            color: '#666666'
+          }
+        ]
+      },
+      footer: {
+        type: 'box',
+        layout: 'vertical',
+        spacing: 'sm',
+        contents: [
+          {
+            type: 'button',
+            action: {
+              type: 'message',
+              label: '📅 รายงานวันนี้',
+              text: 'รายงานวันนี้'
+            },
+            style: 'primary',
+            color: '#5A8BA8'
+          },
+          {
+            type: 'button',
+            action: {
+              type: 'message',
+              label: '📆 รายงานสัปดาห์นี้',
+              text: 'รายงานสัปดาห์'
+            },
+            style: 'primary',
+            color: '#A8D5BA'
+          },
+          {
+            type: 'button',
+            action: {
+              type: 'message',
+              label: '🗓️ รายงานเดือนนี้',
+              text: 'รายงานเดือน'
+            },
+            style: 'secondary'
+          }
+        ]
+      }
+    }
+  };
+}
+
 // Initialize orchestrator (once)
 let initialized = false;
 async function initializeIfNeeded() {
@@ -964,6 +1037,8 @@ async function handleTextMessage(event: any) {
         flexMessage = createPackageFlexMessage();
       } else if (flexMessageType === 'help') {
         flexMessage = createHelpFlexMessage();
+      } else if (flexMessageType === 'report_menu') {
+        flexMessage = createReportMenuFlexMessage();
       }
 
       if (flexMessage) {

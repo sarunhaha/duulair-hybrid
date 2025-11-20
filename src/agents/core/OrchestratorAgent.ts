@@ -204,6 +204,12 @@ export class OrchestratorAgent extends BaseAgent {
           plan.agents = ['alert', 'health'];
           plan.parallel = true;
           break;
+        case 'report_menu':
+          // Show report menu as Flex Card
+          plan.agents = [];
+          plan.requiresFlexMessage = true;
+          plan.flexMessageType = 'report_menu';
+          break;
         case 'report':
           plan.agents = ['report'];
           break;
