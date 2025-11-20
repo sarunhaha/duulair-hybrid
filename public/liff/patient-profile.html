@@ -233,25 +233,6 @@
             <span class="info-value" id="patientFoodAllergies">-</span>
           </div>
         </div>
-
-        <div class="card">
-          <div class="card-header">
-            <h3>ข้อมูลโรงพยาบาล</h3>
-            <button class="edit-btn" onclick="editSection('medical')">แก้ไข</button>
-          </div>
-          <div class="info-row">
-            <span class="info-label">โรงพยาบาล:</span>
-            <span class="info-value" id="patientHospital">-</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">แพทย์ผู้ดูแล:</span>
-            <span class="info-value" id="patientDoctor">-</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">เบอร์แพทย์:</span>
-            <span class="info-value" id="patientDoctorPhone">-</span>
-          </div>
-        </div>
       </div>
 
       <!-- Emergency Tab -->
@@ -491,10 +472,7 @@
         chronicContainer.innerHTML = '<span style="color: var(--text-secondary);">-</span>';
       }
 
-      // Hospital Info
-      document.getElementById('patientHospital').textContent = patient.hospital_name || '-';
-      document.getElementById('patientDoctor').textContent = patient.doctor_name || '-';
-      document.getElementById('patientDoctorPhone').textContent = patient.doctor_phone || '-';
+      // Hospital Info - removed (fields not in database)
 
       // Emergency Contact
       document.getElementById('emergencyName').textContent = patient.emergency_contact_name || '-';
