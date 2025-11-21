@@ -54,12 +54,12 @@ class SchedulerService {
         .from('reminders')
         .select(`
           *,
-          patient_profiles!inner(
+          patient_profiles(
             id,
             first_name,
             last_name,
             user_id,
-            users!inner(line_user_id)
+            users(line_user_id)
           )
         `)
         .eq('is_active', true)
