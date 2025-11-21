@@ -784,28 +784,33 @@
           const response = await fetch(`${API_BASE_URL}/check-user/${profile.userId}`);
           const result = await response.json();
 
-          if (result.exists && result.role === 'caregiver' && result.profile) {
-            // For caregiver, get linked patient
-            const caregiverId = result.profile.profile_id;
+          if (result.exists && result.profile) {
+            if (result.role === 'patient') {
+              // For patient, use their own profile_id as patient_id
+              patientId = result.profile.profile_id;
 
-            // Fetch linked patient
-            const { data: link } = await supabaseClient
-              .from('caregiver_patient_links')
-              .select('patient_id')
-              .eq('caregiver_id', caregiverId)
-              .single();
-
-            if (link && link.patient_id) {
-              patientId = link.patient_id;
-
-              // Save to localStorage for future use
               contextData = {
-                caregiverId: caregiverId,
                 patientId: patientId,
-                role: 'caregiver'
+                role: 'patient'
               };
               localStorage.setItem('duulair_context', JSON.stringify(contextData));
-              console.log('✅ Saved context to localStorage:', contextData);
+              console.log('✅ Saved patient context to localStorage:', contextData);
+            } else if (result.role === 'caregiver') {
+              // For caregiver, use linked_patient_id from API response
+              const caregiverId = result.profile.profile_id;
+              const linkedPatientId = result.profile.linked_patient_id;
+
+              if (linkedPatientId) {
+                patientId = linkedPatientId;
+
+                contextData = {
+                  caregiverId: caregiverId,
+                  patientId: patientId,
+                  role: 'caregiver'
+                };
+                localStorage.setItem('duulair_context', JSON.stringify(contextData));
+                console.log('✅ Saved caregiver context to localStorage:', contextData);
+              }
             }
           }
         }
