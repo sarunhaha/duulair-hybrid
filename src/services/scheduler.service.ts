@@ -47,21 +47,35 @@ class SchedulerService {
       const dayName = this.getDayName(now);
       const today = now.toISOString().split('T')[0]; // YYYY-MM-DD
 
+      console.log(`⏰ [Scheduler] Checking reminders at ${currentTime}`);
+
       // Get all active reminders due at current time
       const { data: reminders, error } = await supabase
         .from('reminders')
         .select(`
           *,
-          patient_profiles(id, first_name, last_name, line_user_id)
+          patient_profiles!inner(
+            id,
+            first_name,
+            last_name,
+            user_id,
+            users!inner(line_user_id)
+          )
         `)
         .eq('is_active', true)
         .eq('time', currentTime);
 
-      if (error || !reminders || reminders.length === 0) {
+      if (error) {
+        console.error('❌ [Scheduler] Error fetching reminders:', error);
         return;
       }
 
-      console.log(`⏰ Found ${reminders.length} reminders due at ${currentTime}`);
+      if (!reminders || reminders.length === 0) {
+        // Don't log every minute, it's too noisy
+        return;
+      }
+
+      console.log(`⏰ [Scheduler] Found ${reminders.length} reminders due at ${currentTime}`);
 
       for (const reminder of reminders) {
         // Check frequency
@@ -133,8 +147,9 @@ class SchedulerService {
       }
 
       // Also send to patient's LINE if they have it
-      if (patient.line_user_id) {
-        await this.lineService.sendMessage(patient.line_user_id, message);
+      const patientLineUserId = patient.users?.line_user_id;
+      if (patientLineUserId) {
+        await this.lineService.sendMessage(patientLineUserId, message);
         console.log(`✅ Reminder sent to patient ${patient.first_name}`);
       }
 
