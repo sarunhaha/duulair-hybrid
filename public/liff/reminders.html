@@ -318,6 +318,37 @@
         font-size: 12px;
       }
     }
+
+    /* Toast Notification */
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      padding: 16px 24px;
+      border-radius: var(--radius-md);
+      color: white;
+      font-weight: 500;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      z-index: 10000;
+      opacity: 0;
+      transition: all 0.3s ease;
+      max-width: 90%;
+      text-align: center;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .toast.success {
+      background: linear-gradient(135deg, #51cf66 0%, #37b24d 100%);
+    }
+
+    .toast.error {
+      background: linear-gradient(135deg, #ff6b6b 0%, #fa5252 100%);
+    }
   </style>
 </head>
 <body>
@@ -471,6 +502,9 @@
     </div>
   </div>
 
+  <!-- Toast Notification -->
+  <div id="toast" class="toast"></div>
+
   <!-- API Client -->
   <script src="js/api.js"></script>
 
@@ -597,9 +631,14 @@
     // Load user data (1:1 context)
     async function loadUserData() {
       try {
-        const userData = JSON.parse(localStorage.getItem('duulair_user') || '{}');
+        // ✅ Get patientId from duulair_context
+        const contextData = JSON.parse(localStorage.getItem('duulair_context') || '{}');
 
-        if (!userData.profile_id) {
+        // ✅ IMPORTANT: Use contextData.patientId ONLY
+        // Do NOT use userData.profile_id as it contains caregiverId!
+        patientId = contextData.patientId;
+
+        if (!patientId) {
           showError('ไม่พบข้อมูลผู้ใช้ กรุณาลงทะเบียนก่อน');
           setTimeout(() => {
             window.location.href = '/liff/group-registration.html';
@@ -607,7 +646,7 @@
           return;
         }
 
-        patientId = userData.profile_id;
+        console.log('📋 Using patient_id:', patientId);
         await loadReminders();
 
         document.getElementById('loading').classList.add('hidden');
@@ -895,18 +934,28 @@
       }
     }
 
+    // Toast notification helper
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.className = `toast ${type}`;
+
+      // Show toast
+      setTimeout(() => toast.classList.add('show'), 10);
+
+      // Hide toast after 3 seconds
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 3000);
+    }
+
     // Alert helpers
     function showSuccess(message) {
-      const alert = document.getElementById('success');
-      alert.textContent = message;
-      alert.style.display = 'block';
-      setTimeout(() => { alert.style.display = 'none'; }, 3000);
+      showToast(message, 'success');
     }
 
     function showError(message) {
-      const alert = document.getElementById('error');
-      alert.textContent = message;
-      alert.style.display = 'block';
+      showToast(message, 'error');
       document.getElementById('loading').classList.add('hidden');
     }
 

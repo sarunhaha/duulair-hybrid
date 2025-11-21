@@ -153,32 +153,11 @@
         </a>
 
         <!-- Vitals -->
-        <div class="action-card" onclick="logVitals()">
+        <a href="vitals-tracking.html" class="action-card">
           <div class="icon">🩺</div>
           <div class="label">วัดความดัน</div>
           <div class="sublabel">Vitals</div>
-        </div>
-
-        <!-- Food -->
-        <div class="action-card" onclick="logFood()">
-          <div class="icon">🍚</div>
-          <div class="label">บันทึกอาหาร</div>
-          <div class="sublabel">Food</div>
-        </div>
-
-        <!-- Exercise -->
-        <div class="action-card" onclick="logExercise()">
-          <div class="icon">🚶</div>
-          <div class="label">ออกกำลังกาย</div>
-          <div class="sublabel">Exercise</div>
-        </div>
-
-        <!-- Sleep -->
-        <div class="action-card" onclick="logSleep()">
-          <div class="icon">😴</div>
-          <div class="label">บันทึกการนอน</div>
-          <div class="sublabel">Sleep</div>
-        </div>
+        </a>
       </div>
 
       <!-- Info Section -->
@@ -257,74 +236,6 @@
       } catch (error) {
         console.error('LIFF initialization failed:', error);
         alert('เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่อีกครั้ง');
-      }
-    }
-
-    // Log Vitals (Send message to bot)
-    function logVitals() {
-      if (liff.isApiAvailable('sendMessages')) {
-        liff.sendMessages([{
-          type: 'text',
-          text: '🩺 วัดความดัน'
-        }]).then(() => {
-          liff.closeWindow();
-        }).catch(err => {
-          console.error('Failed to send message:', err);
-          alert('กรุณาส่งข้อความ "วัดความดัน" ในแชทเพื่อบันทึก');
-        });
-      } else {
-        alert('กรุณาส่งข้อความ "วัดความดัน [ค่าที่วัดได้]" ในแชทเพื่อบันทึก\nตัวอย่าง: วัดความดัน 120/80');
-      }
-    }
-
-    // Log Food
-    function logFood() {
-      if (liff.isApiAvailable('sendMessages')) {
-        liff.sendMessages([{
-          type: 'text',
-          text: '🍚 บันทึกอาหาร'
-        }]).then(() => {
-          liff.closeWindow();
-        }).catch(err => {
-          console.error('Failed to send message:', err);
-          alert('กรุณาส่งข้อความ "ทานอาหาร" ในแชทเพื่อบันทึก');
-        });
-      } else {
-        alert('กรุณาส่งข้อความ "ทานอาหาร [มื้อ]" ในแชทเพื่อบันทึก\nตัวอย่าง: ทานอาหารเช้า');
-      }
-    }
-
-    // Log Exercise
-    function logExercise() {
-      if (liff.isApiAvailable('sendMessages')) {
-        liff.sendMessages([{
-          type: 'text',
-          text: '🚶 ออกกำลังกาย'
-        }]).then(() => {
-          liff.closeWindow();
-        }).catch(err => {
-          console.error('Failed to send message:', err);
-          alert('กรุณาส่งข้อความ "ออกกำลังกาย" ในแชทเพื่อบันทึก');
-        });
-      } else {
-        alert('กรุณาส่งข้อความ "ออกกำลังกาย [ระยะเวลา]" ในแชทเพื่อบันทึก\nตัวอย่าง: ออกกำลังกาย 30 นาที');
-      }
-    }
-
-    // Log Sleep
-    function logSleep() {
-      if (liff.isApiAvailable('sendMessages')) {
-        liff.sendMessages([{
-          type: 'text',
-          text: '😴 บันทึกการนอน'
-        }]).then(() => {
-          liff.closeWindow();
-        }).catch(err => {
-          console.error('Failed to send message:', err);
-          alert('กรุณาส่งข้อความ "นอน" ในแชทเพื่อบันทึก');
-        });
-      } else {
-        alert('กรุณาส่งข้อความ "นอน [จำนวนชั่วโมง]" ในแชทเพื่อบันทึก\nตัวอย่าง: นอน 8 ชั่วโมง');
       }
     }
 

@@ -14,6 +14,8 @@ import { groupService } from './services/group.service';
 import { supabaseService } from './services/supabase.service';
 import { schedulerService } from './services/scheduler.service';
 import crypto from 'crypto';
+import multer from 'multer';
+import Anthropic from '@anthropic-ai/sdk';
 
 dotenv.config();
 
@@ -28,6 +30,27 @@ const LIFF_ID = process.env.LIFF_ID || '';
 
 const app = express();
 const orchestrator = new OrchestratorAgent();
+
+// Anthropic Claude for OCR
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY || '',
+});
+
+// Multer for file uploads (in-memory storage)
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB max
+  },
+  fileFilter: (req, file, cb) => {
+    // Only accept images
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed'));
+    }
+  },
+});
 
 // Quick Reply for Health Menu
 function createHealthMenuQuickReply() {
@@ -760,6 +783,112 @@ app.post('/api/quick-register', async (req, res) => {
     res.status(500).json({
       success: false,
       error: error.message || 'Registration failed'
+    });
+  }
+});
+
+/**
+ * POST /api/ocr/vitals
+ * OCR blood pressure from image (LIFF upload)
+ */
+app.post('/api/ocr/vitals', upload.single('image'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        error: 'No image file uploaded'
+      });
+    }
+
+    console.log(`📷 OCR vitals request - file size: ${req.file.size} bytes`);
+
+    // Convert buffer to base64
+    const base64Image = req.file.buffer.toString('base64');
+    const mimeType = req.file.mimetype;
+
+    // Use Claude Vision to read blood pressure from image
+    const visionResponse = await anthropic.messages.create({
+      model: 'claude-3-haiku-20240307',
+      max_tokens: 500,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'image',
+              source: {
+                type: 'base64',
+                media_type: mimeType as any,
+                data: base64Image,
+              },
+            },
+            {
+              type: 'text',
+              text: `กรุณาอ่านค่าความดันโลหิตจากรูปภาพนี้
+
+หากเป็นเครื่องวัดความดันที่มีตัวเลขชัดเจน ให้อ่านค่า systolic (ตัวบน) และ diastolic (ตัวล่าง) และชีพจร (pulse) ถ้ามี
+
+ตอบกลับมาในรูปแบบ JSON เท่านั้น:
+{
+  "systolic": number,
+  "diastolic": number,
+  "pulse": number or null,
+  "error": null
+}
+
+หากอ่านไม่ได้หรือไม่ใช่รูปเครื่องวัดความดัน ให้ตอบ:
+{
+  "error": "ไม่สามารถอ่านค่าความดันจากรูปภาพนี้ได้"
+}`
+            }
+          ]
+        }
+      ]
+    });
+
+    const visionResult = visionResponse.content[0].text;
+    console.log('📷 Vision result:', visionResult);
+
+    try {
+      const parsed = JSON.parse(visionResult);
+
+      if (parsed.error) {
+        return res.json({
+          success: false,
+          error: parsed.error
+        });
+      }
+
+      if (!parsed.systolic || !parsed.diastolic) {
+        return res.json({
+          success: false,
+          error: 'ไม่สามารถอ่านค่าความดันจากรูปภาพนี้ได้'
+        });
+      }
+
+      // Return the extracted values
+      res.json({
+        success: true,
+        data: {
+          systolic: parsed.systolic,
+          diastolic: parsed.diastolic,
+          pulse: parsed.pulse || null
+        }
+      });
+
+    } catch (parseError) {
+      console.error('Failed to parse vision result:', parseError);
+      res.json({
+        success: false,
+        error: 'ไม่สามารถประมวลผลรูปภาพได้ กรุณาลองใหม่อีกครั้ง'
+      });
+    }
+
+  } catch (error: any) {
+    console.error('❌ OCR vitals error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'OCR processing failed'
     });
   }
 });

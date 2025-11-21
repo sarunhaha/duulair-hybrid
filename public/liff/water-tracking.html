@@ -147,6 +147,13 @@
       box-shadow: var(--shadow-sm);
     }
 
+    .log-item-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex: 1;
+    }
+
     .log-item .time {
       font-size: 13px;
       color: var(--text-muted);
@@ -156,6 +163,23 @@
       font-size: 16px;
       font-weight: 600;
       color: #5A8BA8;
+    }
+
+    .log-item .delete-btn {
+      background: #ff6b6b;
+      color: white;
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 6px 12px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      margin-left: var(--spacing-sm);
+    }
+
+    .log-item .delete-btn:active {
+      transform: scale(0.95);
+      background: #fa5252;
     }
 
     .empty-state {
@@ -366,6 +390,7 @@
 
       const now = new Date();
       todayLogs.unshift({
+        id: Date.now(), // ✅ Add unique ID for delete
         time: now.toTimeString().slice(0, 5),
         amount: amount
       });
@@ -426,11 +451,30 @@
       } else {
         container.innerHTML = todayLogs.map(log => `
           <div class="log-item">
-            <span class="time">${log.time}</span>
-            <span class="amount">+${log.amount} ml</span>
+            <div class="log-item-info">
+              <span class="time">${log.time}</span>
+              <span class="amount">+${log.amount} ml</span>
+            </div>
+            <button class="delete-btn" onclick="deleteWaterLog(${log.id})">ลบ</button>
           </div>
         `).join('');
       }
+    }
+
+    function deleteWaterLog(logId) {
+      // Find the log to get its amount
+      const log = todayLogs.find(l => l.id === logId);
+      if (!log) return;
+
+      // Subtract from total
+      totalToday -= log.amount;
+
+      // Remove from array
+      todayLogs = todayLogs.filter(l => l.id !== logId);
+
+      // Save and update UI
+      saveData();
+      updateUI();
     }
 
     function closeLiff() {

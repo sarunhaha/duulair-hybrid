@@ -1,5 +1,53 @@
 # OONJAI Changelog
 
+## [2025-01-21] - LIFF Features & OCR Enhancement
+
+### Added
+- **Vitals Tracking LIFF Page** (`public/liff/vitals-tracking.html`)
+  - Full blood pressure recording with systolic/diastolic/pulse
+  - Blood pressure status indicator (normal/high/low) based on AHA guidelines
+  - Delete functionality for logged readings
+  - Toast notifications for user feedback
+  - Proper `patient_id` handling from `duulair_context`
+
+- **OCR API Endpoint** (`POST /api/ocr/vitals`)
+  - Image upload via multipart/form-data
+  - Claude Vision API (Haiku) for blood pressure OCR
+  - Extracts systolic, diastolic, and pulse values from images
+  - Returns JSON response with extracted data
+  - Error handling for invalid images
+
+- **Water Tracking Delete Feature** (`public/liff/water-tracking.html`)
+  - Delete button for each water log entry
+  - Properly updates total when deleting entries
+  - Unique ID for each log entry
+
+### Fixed
+- **Foreign Key Constraint Violations**
+  - Fixed `patient_id` loading in `public/liff/reminders.html`
+  - Fixed `patient_id` loading in `public/liff/medications.html`
+  - Corrected localStorage usage: `duulair_context.patientId` (✅) vs `duulair_user.profile_id` (❌ caregiverId)
+  - Added detailed comments explaining the difference
+
+- **Toast Notifications** (`public/liff/reminders.html`)
+  - Added CSS for slide-up toast animations
+  - Replaced alerts with toast notifications
+  - Auto-hide after 3 seconds
+
+- **Dashboard Menu** (`public/liff/dashboard.html`)
+  - Changed "วัดความดัน" button to link to `vitals-tracking.html`
+  - Removed unused functions: `logFood()`, `logExercise()`, `logSleep()`
+  - Removed buttons: Food, Exercise, Sleep tracking (simplified menu)
+
+### Dependencies
+- Added `multer` for file uploads
+- Added `@types/multer` for TypeScript support
+
+### Technical Notes
+- OCR feature works both via LIFF upload and LINE chat image messages
+- All LIFF pages now correctly use `contextData.patientId` for database operations
+- Water tracking and vitals tracking use localStorage for temporary storage with TODO for Supabase integration
+
 ## [2024-11-19] Session 2 - Scheduler & Alerts
 
 ### Completed Tasks

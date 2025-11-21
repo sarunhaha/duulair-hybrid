@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#FAF9F6">
+  <title>🩺 วัดความดัน - Duulair</title>
+  <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="css/minimal-theme.css">
+  <style>
+    /* Vitals-specific styles */
+    .vitals-summary {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--spacing-md);
+      margin-bottom: var(--spacing-lg);
+    }
+
+    .vitals-card {
+      background: var(--bg-card);
+      border-radius: var(--radius-md);
+      padding: var(--spacing-lg);
+      text-align: center;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .vitals-label {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: var(--spacing-xs);
+    }
+
+    .vitals-value {
+      font-size: 32px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: var(--spacing-xs);
+    }
+
+    .vitals-unit {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .vitals-status {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: var(--radius-full);
+      font-size: 12px;
+      font-weight: 500;
+      margin-top: var(--spacing-xs);
+    }
+
+    .vitals-status.normal {
+      background: #d3f9d8;
+      color: #2b8a3e;
+    }
+
+    .vitals-status.high {
+      background: #ffe8cc;
+      color: #e8590c;
+    }
+
+    .vitals-status.low {
+      background: #e7f5ff;
+      color: #1971c2;
+    }
+
+    .input-row {
+      display: flex;
+      gap: var(--spacing-sm);
+      margin-bottom: var(--spacing-md);
+    }
+
+    .input-group {
+      flex: 1;
+    }
+
+    .input-group label {
+      display: block;
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-bottom: var(--spacing-xs);
+    }
+
+    .input-group input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      border-radius: var(--radius-sm);
+      font-size: 16px;
+      font-weight: 600;
+      text-align: center;
+    }
+
+    .input-group .unit {
+      font-size: 12px;
+      color: var(--text-muted);
+      text-align: center;
+      margin-top: 4px;
+    }
+
+    .add-btn {
+      width: 100%;
+      padding: 14px;
+      background: var(--accent-primary);
+      color: white;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 16px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      margin-bottom: var(--spacing-lg);
+    }
+
+    .add-btn:active {
+      transform: scale(0.98);
+    }
+
+    .log-item {
+      background: var(--bg-card);
+      border-radius: var(--radius-sm);
+      padding: var(--spacing-md);
+      margin-bottom: var(--spacing-sm);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .log-item-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex: 1;
+    }
+
+    .log-item .time {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .log-item .reading {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .log-item .pulse {
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+
+    .log-item .delete-btn {
+      background: #ff6b6b;
+      color: white;
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 6px 12px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      margin-left: var(--spacing-sm);
+    }
+
+    .log-item .delete-btn:active {
+      transform: scale(0.95);
+      background: #fa5252;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: var(--spacing-xl);
+      color: var(--text-muted);
+    }
+
+    /* Toast Notification */
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      padding: 16px 24px;
+      border-radius: var(--radius-md);
+      color: white;
+      font-weight: 500;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      z-index: 10000;
+      opacity: 0;
+      transition: all 0.3s ease;
+      max-width: 90%;
+      text-align: center;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .toast.success {
+      background: linear-gradient(135deg, #51cf66 0%, #37b24d 100%);
+    }
+
+    .toast.error {
+      background: linear-gradient(135deg, #ff6b6b 0%, #fa5252 100%);
+    }
+
+    @media (max-width: 480px) {
+      .vitals-value {
+        font-size: 28px;
+      }
+
+      .input-group input {
+        font-size: 15px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Loading State -->
+    <div id="loadingState" class="loading">
+      <div class="loading-spinner"></div>
+      <p>กำลังโหลด...</p>
+    </div>
+
+    <!-- Main Content -->
+    <div id="mainContent" class="hidden">
+      <!-- Header -->
+      <div class="header">
+        <h1>🩺 วัดความดัน</h1>
+        <p>บันทึกค่าความดันโลหิต</p>
+      </div>
+
+      <!-- Latest Reading Summary -->
+      <div class="vitals-summary">
+        <div class="vitals-card">
+          <div class="vitals-label">ค่าบน (Systolic)</div>
+          <div class="vitals-value" id="latestSystolic">--</div>
+          <div class="vitals-unit">mmHg</div>
+        </div>
+        <div class="vitals-card">
+          <div class="vitals-label">ค่าล่าง (Diastolic)</div>
+          <div class="vitals-value" id="latestDiastolic">--</div>
+          <div class="vitals-unit">mmHg</div>
+        </div>
+      </div>
+
+      <!-- Blood Pressure Status -->
+      <div class="card" style="text-align: center; margin-bottom: var(--spacing-lg);">
+        <div id="bpStatus" class="vitals-status normal">ปกติ</div>
+      </div>
+
+      <!-- Add New Reading -->
+      <div class="card">
+        <div class="card-header">📝 บันทึกค่าใหม่</div>
+
+        <!-- OCR Option -->
+        <div style="margin-bottom: var(--spacing-md);">
+          <input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
+          <button class="add-btn" style="background: #5A8BA8; margin-bottom: var(--spacing-md);" onclick="document.getElementById('imageInput').click()">
+            📷 ถ่ายรูป/อัพโหลด
+          </button>
+          <div id="ocrStatus" style="display: none; text-align: center; color: var(--text-secondary); font-size: 13px; margin-bottom: var(--spacing-md);"></div>
+        </div>
+
+        <div style="text-align: center; color: var(--text-muted); font-size: 13px; margin-bottom: var(--spacing-md);">หรือกรอกด้วยตัวเอง</div>
+
+        <div class="input-row">
+          <div class="input-group">
+            <label for="systolic">ค่าบน</label>
+            <input type="number" id="systolic" placeholder="120" min="50" max="250">
+            <div class="unit">mmHg</div>
+          </div>
+          <div class="input-group">
+            <label for="diastolic">ค่าล่าง</label>
+            <input type="number" id="diastolic" placeholder="80" min="30" max="150">
+            <div class="unit">mmHg</div>
+          </div>
+        </div>
+
+        <div class="input-group" style="margin-bottom: var(--spacing-md);">
+          <label for="pulse">ชีพจร (ไม่บังคับ)</label>
+          <input type="number" id="pulse" placeholder="72" min="40" max="200">
+          <div class="unit">ครั้ง/นาที</div>
+        </div>
+
+        <button class="add-btn" onclick="addReading()">บันทึก</button>
+      </div>
+
+      <!-- Today's Log -->
+      <div class="card">
+        <div class="card-header">📊 บันทึกวันนี้</div>
+        <div id="logContainer">
+          <div class="empty-state">
+            <p>ยังไม่มีการบันทึก</p>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn btn-secondary btn-block mt-3" onclick="closeLiff()">ปิด</button>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast"></div>
+
+  <!-- API Client -->
+  <script src="js/api.js"></script>
+
+  <script>
+    const LIFF_ID = '2008278683-5k69jxNq';
+    const SUPABASE_URL = 'https://mqxklnzxfrupwwkwlwwc.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1xeGtsbnp4ZnJ1cHd3a3dsd3djIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNjcxMjYsImV4cCI6MjA3MjY0MzEyNn0.vPBkIGHdvrfotD3QMnFGrNRMTP3fFzn715XGwqKG-6Y';
+
+    const supabase = window.supabase?.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // Check user registration
+    async function checkUserRegistration(lineUserId) {
+      try {
+        const response = await fetch(`${API_BASE_URL}/check-user/${lineUserId}`);
+        const result = await response.json();
+
+        console.log('📋 Registration check:', result);
+
+        if (!result.exists) {
+          console.log('❌ Not registered, redirecting to registration...');
+          setTimeout(() => {
+            window.location.href = '/liff/index.html';
+          }, 1000);
+          return false;
+        }
+
+        return true;
+      } catch (error) {
+        console.error('❌ Error checking registration:', error);
+        return true;
+      }
+    }
+
+    let patientId = null;
+    let groupId = null;
+    let todayReadings = [];
+
+    async function initializeLIFF() {
+      try {
+        await liff.init({ liffId: LIFF_ID });
+
+        if (!liff.isLoggedIn()) {
+          liff.login();
+          return;
+        }
+
+        // Get user profile
+        const profile = await liff.getProfile();
+
+        // Check if user is registered
+        const isRegistered = await checkUserRegistration(profile.userId);
+
+        if (!isRegistered) {
+          return;
+        }
+
+        // Get user context
+        const context = JSON.parse(localStorage.getItem('duulair_context') || '{}');
+        patientId = context.patientId;
+        groupId = context.groupId;
+
+        if (!patientId) {
+          console.warn('No patient ID found in context');
+        }
+
+        // Load data
+        await loadTodayData();
+
+        // Show content
+        document.getElementById('loadingState').classList.add('hidden');
+        document.getElementById('mainContent').classList.remove('hidden');
+
+      } catch (error) {
+        console.error('LIFF initialization failed:', error);
+        showToast('เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่อีกครั้ง', 'error');
+      }
+    }
+
+    async function loadTodayData() {
+      // TODO: Load from Supabase when configured
+      // For now, use localStorage
+      const today = new Date().toISOString().split('T')[0];
+      const savedData = JSON.parse(localStorage.getItem(`vitals_${today}`) || '{"readings": []}');
+
+      todayReadings = savedData.readings || [];
+      updateUI();
+    }
+
+    function addReading() {
+      const systolic = parseInt(document.getElementById('systolic').value);
+      const diastolic = parseInt(document.getElementById('diastolic').value);
+      const pulse = parseInt(document.getElementById('pulse').value) || null;
+
+      // Validation
+      if (!systolic || !diastolic) {
+        showToast('กรุณากรอกค่าความดันให้ครบถ้วน', 'error');
+        return;
+      }
+
+      if (systolic < 50 || systolic > 250) {
+        showToast('ค่าบนควรอยู่ระหว่าง 50-250 mmHg', 'error');
+        return;
+      }
+
+      if (diastolic < 30 || diastolic > 150) {
+        showToast('ค่าล่างควรอยู่ระหว่าง 30-150 mmHg', 'error');
+        return;
+      }
+
+      if (systolic <= diastolic) {
+        showToast('ค่าบนต้องมากกว่าค่าล่าง', 'error');
+        return;
+      }
+
+      if (pulse && (pulse < 40 || pulse > 200)) {
+        showToast('ค่าชีพจรควรอยู่ระหว่าง 40-200 ครั้ง/นาที', 'error');
+        return;
+      }
+
+      // Add reading
+      const now = new Date();
+      const reading = {
+        id: Date.now(),
+        time: now.toTimeString().slice(0, 5),
+        systolic,
+        diastolic,
+        pulse,
+        timestamp: now.toISOString()
+      };
+
+      todayReadings.unshift(reading);
+
+      // Save and update
+      saveData();
+      updateUI();
+
+      // Clear inputs
+      document.getElementById('systolic').value = '';
+      document.getElementById('diastolic').value = '';
+      document.getElementById('pulse').value = '';
+
+      showToast('บันทึกความดันเรียบร้อยแล้ว', 'success');
+    }
+
+    function deleteReading(readingId) {
+      todayReadings = todayReadings.filter(r => r.id !== readingId);
+      saveData();
+      updateUI();
+      showToast('ลบรายการเรียบร้อยแล้ว', 'success');
+    }
+
+    function saveData() {
+      const today = new Date().toISOString().split('T')[0];
+      localStorage.setItem(`vitals_${today}`, JSON.stringify({
+        readings: todayReadings
+      }));
+
+      // TODO: Save to Supabase when configured
+    }
+
+    function updateUI() {
+      // Update latest reading
+      if (todayReadings.length > 0) {
+        const latest = todayReadings[0];
+        document.getElementById('latestSystolic').textContent = latest.systolic;
+        document.getElementById('latestDiastolic').textContent = latest.diastolic;
+
+        // Update status
+        const status = getBloodPressureStatus(latest.systolic, latest.diastolic);
+        const statusEl = document.getElementById('bpStatus');
+        statusEl.textContent = status.label;
+        statusEl.className = `vitals-status ${status.class}`;
+      } else {
+        document.getElementById('latestSystolic').textContent = '--';
+        document.getElementById('latestDiastolic').textContent = '--';
+        document.getElementById('bpStatus').textContent = '--';
+        document.getElementById('bpStatus').className = 'vitals-status';
+      }
+
+      // Update logs
+      const container = document.getElementById('logContainer');
+      if (todayReadings.length === 0) {
+        container.innerHTML = '<div class="empty-state"><p>ยังไม่มีการบันทึก</p></div>';
+      } else {
+        container.innerHTML = todayReadings.map(reading => {
+          const status = getBloodPressureStatus(reading.systolic, reading.diastolic);
+          return `
+            <div class="log-item">
+              <div class="log-item-info">
+                <span class="time">${reading.time}</span>
+                <span class="reading">${reading.systolic}/${reading.diastolic} mmHg</span>
+                ${reading.pulse ? `<span class="pulse">💓 ${reading.pulse} ครั้ง/นาที</span>` : ''}
+                <span class="vitals-status ${status.class}" style="align-self: flex-start; margin-top: 4px;">${status.label}</span>
+              </div>
+              <button class="delete-btn" onclick="deleteReading(${reading.id})">ลบ</button>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+
+    function getBloodPressureStatus(systolic, diastolic) {
+      // Based on American Heart Association guidelines
+      if (systolic >= 180 || diastolic >= 120) {
+        return { label: 'สูงมาก (วิกฤต)', class: 'high' };
+      } else if (systolic >= 140 || diastolic >= 90) {
+        return { label: 'สูง (ระยะ 2)', class: 'high' };
+      } else if (systolic >= 130 || diastolic >= 80) {
+        return { label: 'สูง (ระยะ 1)', class: 'high' };
+      } else if (systolic >= 120 && diastolic < 80) {
+        return { label: 'สูงกว่าปกติ', class: 'normal' };
+      } else if (systolic < 90 || diastolic < 60) {
+        return { label: 'ต่ำ', class: 'low' };
+      } else {
+        return { label: 'ปกติ', class: 'normal' };
+      }
+    }
+
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.className = `toast ${type}`;
+
+      setTimeout(() => toast.classList.add('show'), 10);
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    async function handleImageUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      // Show loading state
+      const statusEl = document.getElementById('ocrStatus');
+      statusEl.textContent = '⏳ กำลังอ่านค่าจากรูปภาพ...';
+      statusEl.style.display = 'block';
+      statusEl.style.color = '#5A8BA8';
+
+      try {
+        // Create FormData and append the image
+        const formData = new FormData();
+        formData.append('image', file);
+
+        // Call OCR API
+        const response = await fetch(`${API_BASE_URL}/ocr/vitals`, {
+          method: 'POST',
+          body: formData
+        });
+
+        const result = await response.json();
+
+        if (result.success && result.data) {
+          // Fill the form with extracted values
+          document.getElementById('systolic').value = result.data.systolic;
+          document.getElementById('diastolic').value = result.data.diastolic;
+          if (result.data.pulse) {
+            document.getElementById('pulse').value = result.data.pulse;
+          }
+
+          statusEl.textContent = '✅ อ่านค่าสำเร็จ! กรุณาตรวจสอบความถูกต้อง';
+          statusEl.style.color = '#37b24d';
+
+          showToast('อ่านค่าความดันจากรูปภาพสำเร็จ', 'success');
+        } else {
+          statusEl.textContent = '❌ ' + (result.error || 'ไม่สามารถอ่านค่าได้');
+          statusEl.style.color = '#fa5252';
+
+          showToast(result.error || 'ไม่สามารถอ่านค่าความดันจากรูปภาพนี้ได้', 'error');
+        }
+
+      } catch (error) {
+        console.error('OCR error:', error);
+        statusEl.textContent = '❌ เกิดข้อผิดพลาด กรุณาลองใหม่';
+        statusEl.style.color = '#fa5252';
+
+        showToast('เกิดข้อผิดพลาดในการประมวลผลรูปภาพ', 'error');
+      }
+
+      // Clear file input
+      event.target.value = '';
+    }
+
+    function closeLiff() {
+      liff.closeWindow();
+    }
+
+    // Initialize
+    initializeLIFF();
+  </script>
+</body>
+</html>
