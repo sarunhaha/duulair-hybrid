@@ -515,27 +515,10 @@
     const LIFF_ID = '2008278683-5k69jxNq';
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // Check user registration (first-time detection)
+    // Check user registration (DISABLED - checking via patientId instead)
     async function checkUserRegistration(lineUserId) {
-      try {
-        const response = await fetch(`${API_BASE_URL}/check-user/${lineUserId}`);
-        const result = await response.json();
-
-        console.log('📋 Registration check:', result);
-
-        if (!result.exists) {
-          console.log('❌ Not registered, redirecting to registration...');
-          setTimeout(() => {
-            window.location.href = '/liff/index.html';
-          }, 1000);
-          return false;
-        }
-
-        return true;
-      } catch (error) {
-        console.error('❌ Error checking registration:', error);
-        return true; // Allow through on error to avoid blocking
-      }
+      console.log('⚠️ Skipping registration check - will validate via patientId');
+      return true; // Always return true, validation happens in loadUserData()
     }
 
     let liffId = null;
@@ -578,14 +561,7 @@
 
         // Get user profile
         const profile = await liff.getProfile();
-
-        // Check if user is registered (first-time detection)
-        const isRegistered = await checkUserRegistration(profile.userId);
-
-        // If not registered, checkUserRegistration will redirect automatically
-        if (!isRegistered) {
-          return;
-        }
+        console.log('👤 LINE Profile:', profile);
 
         const context = liff.getContext();
         isGroupContext = context && context.type === 'group';
