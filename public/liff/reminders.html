@@ -632,11 +632,45 @@
     async function loadUserData() {
       try {
         // ✅ Get patientId from duulair_context
-        const contextData = JSON.parse(localStorage.getItem('duulair_context') || '{}');
+        let contextData = JSON.parse(localStorage.getItem('duulair_context') || '{}');
 
         // ✅ IMPORTANT: Use contextData.patientId ONLY
         // Do NOT use userData.profile_id as it contains caregiverId!
         patientId = contextData.patientId;
+
+        // ✅ If no patientId in localStorage, fetch from API
+        if (!patientId) {
+          console.log('⚠️ No patientId in localStorage, fetching from API...');
+
+          const profile = await liff.getProfile();
+          const response = await fetch(`${API_BASE_URL}/check-user/${profile.userId}`);
+          const result = await response.json();
+
+          if (result.exists && result.role === 'caregiver' && result.profile) {
+            // For caregiver, get linked patient
+            const caregiverId = result.profile.profile_id;
+
+            // Fetch linked patient
+            const { data: link } = await supabase
+              .from('caregiver_patient_links')
+              .select('patient_id')
+              .eq('caregiver_id', caregiverId)
+              .single();
+
+            if (link && link.patient_id) {
+              patientId = link.patient_id;
+
+              // Save to localStorage for future use
+              contextData = {
+                caregiverId: caregiverId,
+                patientId: patientId,
+                role: 'caregiver'
+              };
+              localStorage.setItem('duulair_context', JSON.stringify(contextData));
+              console.log('✅ Saved context to localStorage:', contextData);
+            }
+          }
+        }
 
         if (!patientId) {
           showError('ไม่พบข้อมูลผู้ใช้ กรุณาลงทะเบียนก่อน');
