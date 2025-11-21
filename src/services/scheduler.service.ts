@@ -55,7 +55,7 @@ class SchedulerService {
           patient_profiles(id, first_name, last_name, line_user_id)
         `)
         .eq('is_active', true)
-        .eq('custom_time', currentTime);
+        .eq('time', currentTime);
 
       if (error || !reminders || reminders.length === 0) {
         return;
@@ -174,12 +174,12 @@ class SchedulerService {
       meal: 'กินอาหาร'
     };
 
-    const emoji = typeEmojis[reminder.reminder_type] || '🔔';
-    const typeName = typeNames[reminder.reminder_type] || reminder.reminder_type;
+    const emoji = typeEmojis[reminder.type] || '🔔';
+    const typeName = typeNames[reminder.type] || reminder.type;
 
     let message = `${emoji} แจ้งเตือน${typeName}\n\n`;
     message += `📍 ผู้ป่วย: ${patientName}\n`;
-    message += `🕐 เวลา: ${reminder.custom_time} น.\n`;
+    message += `🕐 เวลา: ${reminder.time} น.\n`;
 
     if (reminder.title) {
       message += `📝 ${reminder.title}\n`;
@@ -189,7 +189,7 @@ class SchedulerService {
       message += `💬 ${reminder.description}\n`;
     }
 
-    message += `\n✅ พิมพ์ "@oonjai ${this.getConfirmCommand(reminder.reminder_type)}" เพื่อบันทึก`;
+    message += `\n✅ พิมพ์ "@oonjai ${this.getConfirmCommand(reminder.type)}" เพื่อบันทึก`;
 
     return message;
   }
