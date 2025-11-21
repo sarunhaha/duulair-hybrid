@@ -1634,6 +1634,27 @@ app.post('/test', async (req, res) => {
   }
 });
 
+// Test scheduler notification
+app.post('/test/scheduler-notification', async (req, res) => {
+  try {
+    const { groupId, message } = req.body;
+
+    if (!groupId || !message) {
+      return res.status(400).json({ error: 'groupId and message are required' });
+    }
+
+    await lineClient.pushMessage(groupId, {
+      type: 'text',
+      text: message
+    });
+
+    res.json({ success: true, message: 'Notification sent to group' });
+  } catch (error: any) {
+    console.error('Error sending test notification:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Health check endpoint
 app.get('/', (req, res) => {
   res.json({
