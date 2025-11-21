@@ -43,7 +43,7 @@ class SchedulerService {
   private async checkDueReminders() {
     try {
       const now = new Date();
-      const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+      const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:00`;
       const dayName = this.getDayName(now);
       const today = now.toISOString().split('T')[0]; // YYYY-MM-DD
 
