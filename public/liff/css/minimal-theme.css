@@ -4,29 +4,29 @@
  * Full screen, soft colors, minimal design
  */
 
-/* ===== Color Palette (Warm & Soft) ===== */
+/* ===== Color Palette (Fresh Green Theme) ===== */
 :root {
-  /* Primary Colors - Warm Beige/Cream */
-  --bg-primary: #FAF9F6;
-  --bg-secondary: #F5F3EF;
+  /* Primary Colors - Fresh Green */
+  --bg-primary: #F2F1F7;
+  --bg-secondary: #E8E7ED;
   --bg-card: #FFFFFF;
 
-  /* Accent Colors - Soft & Warm */
-  --accent-primary: #E8B4A8;      /* Soft coral */
-  --accent-secondary: #D4A59A;    /* Warm taupe */
-  --accent-tertiary: #C9B8A8;     /* Warm gray */
+  /* Accent Colors - Fresh Green Palette */
+  --accent-primary: #7EE081;      /* Mint green */
+  --accent-secondary: #62A87C;    /* Forest green */
+  --accent-tertiary: #D4F4D5;     /* Very light green */
 
   /* Text Colors */
-  --text-primary: #4A4A4A;
-  --text-secondary: #7A7A7A;
-  --text-muted: #B0B0B0;
+  --text-primary: #63595C;
+  --text-secondary: #9CA3AF;
+  --text-muted: #D1D5DB;
   --text-white: #FFFFFF;
 
-  /* Semantic Colors - Soft versions */
-  --success: #A8D5BA;
-  --warning: #F7C59F;
-  --error: #E8A8A8;
-  --info: #B4D4E8;
+  /* Semantic Colors */
+  --success: #7EE081;
+  --warning: #F59E0B;
+  --error: #CE3E40;
+  --info: #3B82F6;
 
   /* Shadows - Subtle */
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
@@ -196,7 +196,7 @@ body {
 .form-group textarea:focus {
   outline: none;
   border-color: var(--accent-primary);
-  box-shadow: 0 0 0 3px rgba(232, 180, 168, 0.1);
+  box-shadow: 0 0 0 3px rgba(126, 224, 129, 0.15);
 }
 
 .form-group textarea {
@@ -226,27 +226,27 @@ body {
 }
 
 .alert-info {
-  background: rgba(180, 212, 232, 0.15);
-  color: #5A8BA8;
-  border: 1px solid rgba(180, 212, 232, 0.3);
+  background: rgba(59, 130, 246, 0.1);
+  color: #2563EB;
+  border: 1px solid rgba(59, 130, 246, 0.2);
 }
 
 .alert-success {
-  background: rgba(168, 213, 186, 0.15);
-  color: #5A9876;
-  border: 1px solid rgba(168, 213, 186, 0.3);
+  background: rgba(126, 224, 129, 0.1);
+  color: #62A87C;
+  border: 1px solid rgba(126, 224, 129, 0.3);
 }
 
 .alert-warning {
-  background: rgba(247, 197, 159, 0.15);
-  color: #B88A5F;
-  border: 1px solid rgba(247, 197, 159, 0.3);
+  background: rgba(245, 158, 11, 0.1);
+  color: #D97706;
+  border: 1px solid rgba(245, 158, 11, 0.2);
 }
 
 .alert-error {
-  background: rgba(232, 168, 168, 0.15);
-  color: #B87676;
-  border: 1px solid rgba(232, 168, 168, 0.3);
+  background: rgba(206, 62, 64, 0.1);
+  color: #991B1B;
+  border: 1px solid rgba(206, 62, 64, 0.2);
 }
 
 /* ===== Loading State ===== */
