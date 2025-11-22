@@ -22,6 +22,22 @@ export class DialogAgent extends BaseAgent {
     const startTime = Date.now();
 
     try {
+      // Check if patient selection is required
+      if (message.metadata?.patientSelectionData) {
+        const data = message.metadata.patientSelectionData;
+        let responseText = `👥 กลุ่มนี้มีหลายผู้ป่วย กรุณาเลือกผู้ป่วยที่ต้องการบันทึก:`;
+
+        return {
+          success: true,
+          data: {
+            response: responseText,
+            intent: 'patient_selection'
+          },
+          agentName: this.config.name,
+          processingTime: Date.now() - startTime
+        };
+      }
+
       // Check if switch patient result is available
       if (message.metadata?.switchResult) {
         const result = message.metadata.switchResult;

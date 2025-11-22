@@ -100,6 +100,29 @@ function createHealthMenuQuickReply() {
   };
 }
 
+// Quick Reply for Patient Selection
+function createPatientSelectionQuickReply(patients: any[], originalMessage: string) {
+  const items = patients.map((patient) => {
+    // Build label with max 20 chars limit
+    let label = patient.nickname || patient.name.split(' ')[0]; // Use nickname or first name
+    if (label.length > 15) {
+      label = label.substring(0, 15);
+    }
+    label += ` ${patient.age}ปี`;
+
+    return {
+      type: 'action' as const,
+      action: {
+        type: 'message' as const,
+        label: label,
+        text: `PATIENT:${patient.id}:${originalMessage}`
+      }
+    };
+  });
+
+  return { items };
+}
+
 // Quick Reply for View Report
 function createViewReportQuickReply() {
   return {
@@ -992,6 +1015,18 @@ async function handleTextMessage(event: any) {
       return { success: true, skipped: true, reason: 'redelivery' };
     }
 
+    // Check if this is a patient selection response (PATIENT:uuid:original_message)
+    let selectedPatientId: string | null = null;
+    let originalMessage = message.text;
+    if (message.text.startsWith('PATIENT:')) {
+      const parts = message.text.split(':');
+      if (parts.length >= 3) {
+        selectedPatientId = parts[1];
+        originalMessage = parts.slice(2).join(':'); // Re-join in case original message has ":"
+        console.log(`👤 Patient selected: ${selectedPatientId}, original: ${originalMessage}`);
+      }
+    }
+
     // Detect group vs 1:1 context
     const isGroup = sourceType === 'group' && groupId;
 
@@ -1094,13 +1129,36 @@ async function handleTextMessage(event: any) {
       };
 
       console.log('👥 Group context:', context);
+
+      // If patient was selected via Quick Reply, switch active patient
+      if (selectedPatientId && groupContext.groupId) {
+        console.log(`🔄 Switching active patient to: ${selectedPatientId}`);
+        const { groupService } = await import('./services/group.service');
+        const switchResult = await groupService.switchActivePatient(groupContext.groupId, selectedPatientId);
+
+        if (switchResult.success) {
+          console.log(`✅ Switched to patient: ${switchResult.patientName}`);
+          // Update context with new patient
+          context.patientId = selectedPatientId;
+        } else {
+          console.log(`❌ Failed to switch patient: ${switchResult.message}`);
+          // Send error and return
+          const errorMessage: TextMessage = {
+            type: 'text',
+            text: `❌ ${switchResult.message}`
+          };
+          await lineClient.replyMessage(replyToken, errorMessage);
+          return { success: false, error: 'Failed to switch patient' };
+        }
+      }
     }
 
     // Check if message is a command (TASK-002 Phase 4)
-    if (commandHandlerService.isCommand(message.text)) {
-      console.log('🎯 Command detected:', message.text);
+    // Use originalMessage (in case it was from patient selection Quick Reply)
+    if (commandHandlerService.isCommand(originalMessage)) {
+      console.log('🎯 Command detected:', originalMessage);
 
-      const commandResponse = await commandHandlerService.handleCommand(message.text, context);
+      const commandResponse = await commandHandlerService.handleCommand(originalMessage, context);
 
       if (commandResponse) {
         try {
@@ -1114,9 +1172,10 @@ async function handleTextMessage(event: any) {
     }
 
     // Process with orchestrator
+    // Use originalMessage (in case it was from patient selection Quick Reply)
     const result = await orchestrator.process({
       id: message.id,
-      content: message.text,
+      content: originalMessage,
       context
     });
 
@@ -1137,6 +1196,15 @@ async function handleTextMessage(event: any) {
       } else if (quickReplyType === 'view_report') {
         quickReply = createViewReportQuickReply();
         text = 'คุณต้องการดูรายงานช่วงไหนคะ?';
+      } else if (quickReplyType === 'select_patient') {
+        const patientSelectionData = result.metadata?.patientSelectionData;
+        if (patientSelectionData) {
+          quickReply = createPatientSelectionQuickReply(
+            patientSelectionData.patients,
+            patientSelectionData.originalMessage
+          );
+          text = result.data.response || '👥 กลุ่มนี้มีหลายผู้ป่วย กรุณาเลือกผู้ป่วยที่ต้องการบันทึก:';
+        }
       }
 
       if (quickReply) {

@@ -81,7 +81,7 @@ export class OrchestratorAgent extends BaseAgent {
       const confidence = intentResponse.data.confidence;
 
       // Step 2: Route to appropriate agent(s)
-      const routingPlan = this.createRoutingPlan(intent, confidence);
+      const routingPlan = await this.createRoutingPlan(intent, confidence, message);
 
       // Step 2.5: Fetch patient data if needed
       let patientData = null;
@@ -117,7 +117,8 @@ export class OrchestratorAgent extends BaseAgent {
           patientData,
           groupHelpText,
           switchResult,
-          patientsList
+          patientsList,
+          patientSelectionData: routingPlan.patientSelectionData
         }
       });
 
@@ -144,7 +145,8 @@ export class OrchestratorAgent extends BaseAgent {
           confidence,
           agentsInvolved: routingPlan.agents,
           quickReplyType: routingPlan.quickReplyType,
-          flexMessageType: routingPlan.flexMessageType
+          flexMessageType: routingPlan.flexMessageType,
+          patientSelectionData: routingPlan.patientSelectionData
         }
       };
 
@@ -187,7 +189,7 @@ export class OrchestratorAgent extends BaseAgent {
     }
   }
 
-  private createRoutingPlan(intent: string, confidence: number) {
+  private async createRoutingPlan(intent: string, confidence: number, message: Message) {
     const plan: {
       agents: string[];
       parallel: boolean;
@@ -198,6 +200,8 @@ export class OrchestratorAgent extends BaseAgent {
       quickReplyType?: string;
       requiresPatientData?: boolean;
       requiresGroupHelp?: boolean;
+      requiresPatientSelection?: boolean;
+      patientSelectionData?: { patients: any[]; originalMessage: string; originalIntent: string };
     } = {
       agents: [] as string[],
       parallel: false,
@@ -212,6 +216,26 @@ export class OrchestratorAgent extends BaseAgent {
         case 'water':
         case 'walk':
         case 'food':
+          // Check if group has multiple patients
+          if (message.context.source === 'group' && message.context.groupId) {
+            const patientsList = await this.getGroupPatientsList(message.context.groupId);
+
+            // If multiple patients, show selection Quick Reply
+            if (patientsList && patientsList.patients && patientsList.patients.length > 1) {
+              plan.agents = ['dialog'];
+              plan.requiresQuickReply = true;
+              plan.quickReplyType = 'select_patient';
+              plan.requiresPatientSelection = true;
+              plan.patientSelectionData = {
+                patients: patientsList.patients,
+                originalMessage: message.content,
+                originalIntent: intent
+              };
+              break;
+            }
+          }
+
+          // Single patient or 1:1 chat - proceed to health agent
           plan.agents = ['health'];
           break;
         case 'emergency':
