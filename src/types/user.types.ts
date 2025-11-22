@@ -389,6 +389,7 @@ export interface GroupInfoResponse {
   success: boolean;
   group: Group;
   patient: PatientProfile;
+  patients?: PatientProfile[];  // All patients in the group (TASK-002)
   primaryCaregiver: CaregiverProfile;
   members: GroupMember[];
 }

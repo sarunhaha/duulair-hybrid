@@ -107,6 +107,25 @@ export class OrchestratorAgent extends BaseAgent {
         patientsList = await this.getGroupPatientsList(message.context.groupId);
       }
 
+      // Step 2.9: Handle detected patient switch (Phase 3 - Natural Language)
+      if (routingPlan.requiresPatientSwitch && routingPlan.detectedPatientId && message.context.groupId) {
+        console.log(`🔄 Switching to detected patient: ${routingPlan.detectedPatientId}`);
+
+        const { groupService } = await import('../../services/group.service');
+        const switchResult = await groupService.switchActivePatient(
+          message.context.groupId,
+          routingPlan.detectedPatientId
+        );
+
+        if (switchResult.success) {
+          console.log(`✅ Switched to patient: ${switchResult.patientName}`);
+          // Update message context with detected patient
+          message.context.patientId = routingPlan.detectedPatientId;
+        } else {
+          this.log('error', 'Failed to switch to detected patient', switchResult);
+        }
+      }
+
       // Step 3: Execute routing plan
       const results = await this.executeRoutingPlan(routingPlan, {
         ...message,
@@ -202,6 +221,10 @@ export class OrchestratorAgent extends BaseAgent {
       requiresGroupHelp?: boolean;
       requiresPatientSelection?: boolean;
       patientSelectionData?: { patients: any[]; originalMessage: string; originalIntent: string };
+      requiresPatientSwitch?: boolean;
+      detectedPatientId?: string;
+      requiresSwitchPatient?: boolean;
+      requiresListPatients?: boolean;
     } = {
       agents: [] as string[],
       parallel: false,
@@ -216,12 +239,24 @@ export class OrchestratorAgent extends BaseAgent {
         case 'water':
         case 'walk':
         case 'food':
-          // Check if group has multiple patients
+          // Check if group context
           if (message.context.source === 'group' && message.context.groupId) {
             const patientsList = await this.getGroupPatientsList(message.context.groupId);
 
-            // If multiple patients, show selection Quick Reply
             if (patientsList && patientsList.patients && patientsList.patients.length > 1) {
+              // Phase 3: Try to detect patient name in message (Natural Language)
+              const detectedPatient = this.detectPatientInMessage(message.content, patientsList.patients);
+
+              if (detectedPatient) {
+                // Found patient name in message → switch to that patient
+                console.log(`🎯 Detected patient in message: ${detectedPatient.name}`);
+                plan.agents = ['health'];
+                plan.requiresPatientSwitch = true;
+                plan.detectedPatientId = detectedPatient.id;
+                break;
+              }
+
+              // Phase 2: No patient name detected → show Quick Reply selection
               plan.agents = ['dialog'];
               plan.requiresQuickReply = true;
               plan.quickReplyType = 'select_patient';
@@ -603,6 +638,50 @@ export class OrchestratorAgent extends BaseAgent {
     }
   }
 
+  /**
+   * Phase 3: Detect patient name in message (Natural Language)
+   * Example: "ยายก้อยกินยาแล้ว" → detects "ก้อย"
+   */
+  private detectPatientInMessage(messageContent: string, patients: any[]): { id: string; name: string } | null {
+    const normalizedMessage = messageContent.toLowerCase();
+
+    for (const patient of patients) {
+      const firstName = patient.name.split(' ')[0].toLowerCase();
+      const lastName = patient.name.split(' ')[1]?.toLowerCase() || '';
+      const nickname = patient.nickname?.toLowerCase() || '';
+      const fullName = patient.name.toLowerCase();
+
+      // Check if message contains any patient identifier
+      const patterns = [
+        nickname,              // ก้อย
+        firstName,             // สมศรี
+        lastName,              // ใจดี
+        fullName,              // สมศรี ใจดี
+        `ยาย${nickname}`,      // ยายก้อย
+        `คุณยาย${nickname}`,   // คุณยายก้อย
+        `ปู่${nickname}`,      // ปู่วิชัย
+        `คุณปู่${nickname}`,   // คุณปู่วิชัย
+        `ตา${nickname}`,       // ตาวิชัย
+        `คุณตา${nickname}`,    // คุณตาวิชัย
+        `ย่า${nickname}`,      // ย่าก้อย
+        `คุณ${firstName}`,     // คุณสมศรี
+        `${firstName}${lastName}` // สมศรีใจดี (no space)
+      ].filter(Boolean); // Remove empty strings
+
+      for (const pattern of patterns) {
+        if (pattern && normalizedMessage.includes(pattern)) {
+          console.log(`🎯 Pattern matched: "${pattern}" for patient: ${patient.name}`);
+          return {
+            id: patient.id,
+            name: patient.name
+          };
+        }
+      }
+    }
+
+    return null;
+  }
+
   private generateGroupHelpText(): string {
     return `📋 สิ่งที่สามารถถาม/ทำได้ในกลุ่ม:
 
@@ -628,6 +707,7 @@ export class OrchestratorAgent extends BaseAgent {
 • "ฉุกเฉิน" / "ช่วยด้วย" / "ไม่สบาย"
 
 👥 **กลุ่มที่มีหลายผู้ป่วย**:
+• "ยายก้อยกินยาแล้ว" - ระบุชื่อในข้อความ (AI จะเลือกให้อัตโนมัติ)
 • "/switch ก้อย" - เปลี่ยนไปดูแลผู้ป่วยคนอื่น
 • "/switch 1" - เปลี่ยนด้วยตัวเลข
 • "ผู้ป่วยทั้งหมด" - ดูรายชื่อผู้ป่วยในกลุ่ม

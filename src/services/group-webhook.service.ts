@@ -332,14 +332,14 @@ export class GroupWebhookService {
       let activePatient;
       if (groupData.group.activePatientId) {
         activePatient = groupData.patients.find(p => p.id === groupData.group.activePatientId);
-        console.log(`✅ Using active patient: ${activePatient?.first_name}`);
+        console.log(`✅ Using active patient: ${activePatient?.firstName}`);
       }
 
       // Fallback to first patient if active not found
       if (!activePatient) {
         activePatient = groupData.patients[0];
         if (groupData.patients.length > 1) {
-          console.log(`⚠️ Group has ${groupData.patients.length} patients, using first: ${activePatient.first_name}`);
+          console.log(`⚠️ Group has ${groupData.patients.length} patients, using first: ${activePatient.firstName}`);
         }
       }
 
