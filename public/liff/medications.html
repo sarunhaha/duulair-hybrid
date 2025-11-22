@@ -11,8 +11,8 @@
   <style>
     /* Medications-specific styles */
     .summary-card {
-      background: linear-gradient(135deg, #E8B4A8 0%, #D4A59A 100%);
-      color: white;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
       padding: var(--spacing-lg);
       border-radius: var(--radius-md);
       margin-bottom: var(--spacing-lg);
@@ -21,7 +21,7 @@
 
     .summary-card h3 {
       font-size: 15px;
-      opacity: 0.95;
+      color: var(--text-secondary);
       margin-bottom: var(--spacing-xs);
       font-weight: 500;
     }
@@ -29,6 +29,7 @@
     .summary-card .number {
       font-size: 42px;
       font-weight: 700;
+      color: var(--accent-primary);
     }
 
     .add-medication-btn {
@@ -100,22 +101,19 @@
     }
 
     .time-badge {
-      background: linear-gradient(135deg, #B4D4E8 0%, #A8D5BA 100%);
-      color: white;
-      padding: 6px 12px;
-      border-radius: var(--radius-full);
+      color: var(--text-secondary);
       font-size: 13px;
-      font-weight: 500;
+      font-weight: 400;
     }
 
     .medication-note {
       margin-top: var(--spacing-sm);
       padding: var(--spacing-sm);
-      background: rgba(247, 197, 159, 0.2);
-      border-left: 3px solid var(--warning);
+      background: rgba(126, 224, 129, 0.1);
+      border-left: 3px solid var(--accent-primary);
       border-radius: var(--radius-sm);
       font-size: 14px;
-      color: #B88A5F;
+      color: var(--text-secondary);
     }
 
     .medication-actions {
@@ -264,7 +262,7 @@
     }
 
     .frequency-option.selected {
-      background: rgba(232, 180, 168, 0.15);
+      background: rgba(126, 224, 129, 0.1);
       border-color: var(--accent-primary);
     }
 
@@ -305,7 +303,7 @@
     }
 
     .day-checkbox.selected {
-      background: rgba(232, 180, 168, 0.15);
+      background: rgba(126, 224, 129, 0.1);
       border-color: var(--accent-primary);
     }
 
@@ -332,7 +330,7 @@
     }
 
     .time-checkbox.selected {
-      background: rgba(232, 180, 168, 0.15);
+      background: rgba(126, 224, 129, 0.1);
       border-color: var(--accent-primary);
     }
 
