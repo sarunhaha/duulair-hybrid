@@ -15,7 +15,10 @@ import {
   AddGroupMemberRequest,
   AddGroupMemberResponse,
   PatientProfile,
-  CaregiverProfile
+  CaregiverProfile,
+  SetDefaultPatientRequest,
+  SetDefaultPatientResponse,
+  GetDefaultPatientResponse
 } from '../types/user.types';
 
 const userService = new UserService();
@@ -663,6 +666,136 @@ export class GroupService {
       isActive: record.is_active,
       joinedAt: new Date(record.joined_at),
       leftAt: record.left_at ? new Date(record.left_at) : undefined
+    };
+  }
+
+  // ============================================================
+  // CAREGIVER PATIENT PREFERENCES (Phase 4)
+  // ============================================================
+
+  /**
+   * Get caregiver's default patient for a group
+   */
+  async getCaregiverDefaultPatient(
+    groupId: string,
+    caregiverLineUserId: string
+  ): Promise<GetDefaultPatientResponse> {
+    console.log(`🔍 GroupService.getCaregiverDefaultPatient() - groupId: ${groupId}, caregiver: ${caregiverLineUserId}`);
+
+    const { data, error } = await supabase
+      .from('caregiver_patient_preferences')
+      .select('default_patient_id, patient_profiles(id, first_name, last_name, nickname)')
+      .eq('group_id', groupId)
+      .eq('caregiver_line_user_id', caregiverLineUserId)
+      .single();
+
+    if (error || !data) {
+      console.log('📭 No default patient set for this caregiver');
+      return { hasDefault: false };
+    }
+
+    const patient = (data as any).patient_profiles;
+    return {
+      hasDefault: true,
+      patientId: data.default_patient_id,
+      patientName: patient ? `${patient.first_name} ${patient.last_name}` : undefined
+    };
+  }
+
+  /**
+   * Set caregiver's default patient
+   */
+  async setDefaultPatient(request: SetDefaultPatientRequest): Promise<SetDefaultPatientResponse> {
+    console.log(`💾 GroupService.setDefaultPatient() - groupId: ${request.groupId}, caregiver: ${request.caregiverLineUserId}, patient: ${request.patientId}`);
+
+    try {
+      // Verify patient exists in group
+      const { data: groupPatient, error: verifyError } = await supabase
+        .from('group_patients')
+        .select('id')
+        .eq('group_id', request.groupId)
+        .eq('patient_id', request.patientId)
+        .eq('is_active', true)
+        .single();
+
+      if (verifyError || !groupPatient) {
+        return {
+          success: false,
+          message: 'ไม่พบผู้ป่วยในกลุ่มนี้'
+        };
+      }
+
+      // Insert or update preference
+      const { data, error } = await supabase
+        .from('caregiver_patient_preferences')
+        .upsert({
+          group_id: request.groupId,
+          caregiver_line_user_id: request.caregiverLineUserId,
+          default_patient_id: request.patientId,
+          updated_at: new Date()
+        }, {
+          onConflict: 'group_id,caregiver_line_user_id'
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('❌ Error setting default patient:', error);
+        return {
+          success: false,
+          message: 'เกิดข้อผิดพลาดในการตั้งค่า'
+        };
+      }
+
+      console.log('✅ Default patient set successfully');
+      return {
+        success: true,
+        message: 'ตั้งค่าผู้ป่วยหลักเรียบร้อยแล้ว',
+        preference: {
+          id: data.id,
+          groupId: data.group_id,
+          caregiverLineUserId: data.caregiver_line_user_id,
+          defaultPatientId: data.default_patient_id,
+          createdAt: new Date(data.created_at),
+          updatedAt: new Date(data.updated_at)
+        }
+      };
+    } catch (error) {
+      console.error('❌ Unexpected error:', error);
+      return {
+        success: false,
+        message: 'เกิดข้อผิดพลาด'
+      };
+    }
+  }
+
+  /**
+   * Remove caregiver's default patient preference
+   */
+  async removeDefaultPatient(
+    groupId: string,
+    caregiverLineUserId: string
+  ): Promise<{ success: boolean; message: string }> {
+    console.log(`🗑️ GroupService.removeDefaultPatient() - groupId: ${groupId}, caregiver: ${caregiverLineUserId}`);
+
+    const { error } = await supabase
+      .from('caregiver_patient_preferences')
+      .delete()
+      .eq('group_id', groupId)
+      .eq('caregiver_line_user_id', caregiverLineUserId);
+
+    if (error) {
+      console.error('❌ Error removing default patient:', error);
+      return {
+        success: false,
+        message: 'เกิดข้อผิดพลาดในการลบการตั้งค่า'
+      };
+    }
+
+    console.log('✅ Default patient preference removed');
+    return {
+      success: true,
+      message: 'ลบการตั้งค่าเรียบร้อยแล้ว'
     };
   }
 }

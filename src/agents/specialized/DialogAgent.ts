@@ -114,6 +114,62 @@ export class DialogAgent extends BaseAgent {
         };
       }
 
+      // Check if set default patient result is available (Phase 4)
+      if (message.metadata?.setDefaultResult) {
+        const result = message.metadata.setDefaultResult;
+        let responseText = '';
+
+        if (result.success) {
+          responseText = `✅ ${result.message}\n💡 ตั้งค่า ${result.patientName} เป็นผู้ป่วยหลักของคุณแล้ว\n\nเมื่อคุณบันทึกข้อมูลโดยไม่ระบุชื่อ ระบบจะบันทึกให้ ${result.patientName} โดยอัตโนมัติค่ะ\n\n💬 ต้องการบันทึกให้คนอื่น: ระบุชื่อในข้อความ เช่น "ปู่วิชัยกินยา"`;
+        } else if (result.requiresSelection) {
+          responseText = `📋 ${result.message}\n\n`;
+          result.patients.forEach((p: any) => {
+            responseText += `${p.index}. ${p.name}\n`;
+          });
+          responseText += `\nใช้คำสั่ง: /setdefault [ชื่อ] หรือ /setdefault [เลข]`;
+        } else {
+          responseText = `❌ ${result.message}`;
+          if (result.availablePatients) {
+            responseText += `\n\nผู้ป่วยที่มี:\n`;
+            result.availablePatients.forEach((p: any) => {
+              responseText += `${p.index}. ${p.name}\n`;
+            });
+          }
+        }
+
+        return {
+          success: true,
+          data: {
+            response: responseText,
+            intent: 'set_default_patient'
+          },
+          agentName: this.config.name,
+          processingTime: Date.now() - startTime
+        };
+      }
+
+      // Check if remove default patient result is available (Phase 4)
+      if (message.metadata?.removeDefaultResult) {
+        const result = message.metadata.removeDefaultResult;
+        let responseText = '';
+
+        if (result.success) {
+          responseText = `✅ ${result.message}\n\nตอนนี้เมื่อคุณบันทึกข้อมูลโดยไม่ระบุชื่อ ระบบจะถามให้คุณเลือกผู้ป่วยทุกครั้งค่ะ\n\n💡 ต้องการตั้งผู้ป่วยหลักใหม่: พิมพ์ "/setdefault [ชื่อ]"`;
+        } else {
+          responseText = `❌ ${result.message}`;
+        }
+
+        return {
+          success: true,
+          data: {
+            response: responseText,
+            intent: 'remove_default_patient'
+          },
+          agentName: this.config.name,
+          processingTime: Date.now() - startTime
+        };
+      }
+
       // Build patient data context if available
       let patientContext = '';
       if (message.metadata?.patientData) {

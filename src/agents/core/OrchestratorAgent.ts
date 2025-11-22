@@ -126,6 +126,18 @@ export class OrchestratorAgent extends BaseAgent {
         }
       }
 
+      // Step 2.10: Handle set default patient (Phase 4)
+      let setDefaultResult = null;
+      if (routingPlan.requiresSetDefault && message.context.groupId) {
+        setDefaultResult = await this.handleSetDefaultPatient(message);
+      }
+
+      // Step 2.11: Handle remove default patient (Phase 4)
+      let removeDefaultResult = null;
+      if (routingPlan.requiresRemoveDefault && message.context.groupId) {
+        removeDefaultResult = await this.handleRemoveDefaultPatient(message);
+      }
+
       // Step 3: Execute routing plan
       const results = await this.executeRoutingPlan(routingPlan, {
         ...message,
@@ -137,7 +149,9 @@ export class OrchestratorAgent extends BaseAgent {
           groupHelpText,
           switchResult,
           patientsList,
-          patientSelectionData: routingPlan.patientSelectionData
+          patientSelectionData: routingPlan.patientSelectionData,
+          setDefaultResult,
+          removeDefaultResult
         }
       });
 
@@ -225,6 +239,8 @@ export class OrchestratorAgent extends BaseAgent {
       detectedPatientId?: string;
       requiresSwitchPatient?: boolean;
       requiresListPatients?: boolean;
+      requiresSetDefault?: boolean;
+      requiresRemoveDefault?: boolean;
     } = {
       agents: [] as string[],
       parallel: false,
@@ -249,14 +265,31 @@ export class OrchestratorAgent extends BaseAgent {
 
               if (detectedPatient) {
                 // Found patient name in message → switch to that patient
-                console.log(`🎯 Detected patient in message: ${detectedPatient.name}`);
+                console.log(`🎯 Phase 3: Detected patient in message: ${detectedPatient.name}`);
                 plan.agents = ['health'];
                 plan.requiresPatientSwitch = true;
                 plan.detectedPatientId = detectedPatient.id;
                 break;
               }
 
-              // Phase 2: No patient name detected → show Quick Reply selection
+              // Phase 4: Check if caregiver has default patient (Smart Default)
+              const { groupService } = await import('../../services/group.service');
+              const defaultPatientData = await groupService.getCaregiverDefaultPatient(
+                message.context.groupId,
+                message.context.actorLineUserId || ''
+              );
+
+              if (defaultPatientData.hasDefault && defaultPatientData.patientId) {
+                // Found default patient → use it
+                console.log(`💡 Phase 4: Using default patient: ${defaultPatientData.patientName}`);
+                plan.agents = ['health'];
+                plan.requiresPatientSwitch = true;
+                plan.detectedPatientId = defaultPatientData.patientId;
+                break;
+              }
+
+              // Phase 2: No patient name detected & no default → show Quick Reply selection
+              console.log(`📋 Phase 2: Showing Quick Reply for patient selection`);
               plan.agents = ['dialog'];
               plan.requiresQuickReply = true;
               plan.quickReplyType = 'select_patient';
@@ -333,6 +366,14 @@ export class OrchestratorAgent extends BaseAgent {
         case 'list_patients':
           plan.agents = ['dialog'];
           plan.requiresListPatients = true;
+          break;
+        case 'set_default_patient':
+          plan.agents = ['dialog'];
+          plan.requiresSetDefault = true;
+          break;
+        case 'remove_default_patient':
+          plan.agents = ['dialog'];
+          plan.requiresRemoveDefault = true;
           break;
         default:
           plan.agents = ['dialog'];
@@ -639,6 +680,116 @@ export class OrchestratorAgent extends BaseAgent {
   }
 
   /**
+   * Phase 4: Handle set default patient
+   */
+  private async handleSetDefaultPatient(message: Message): Promise<any> {
+    try {
+      const groupId = message.context.groupId;
+      const caregiverLineUserId = message.context.actorLineUserId;
+
+      if (!groupId || !caregiverLineUserId) {
+        return { success: false, message: 'ไม่พบข้อมูลกลุ่มหรือผู้ใช้' };
+      }
+
+      // Extract patient name/index from message
+      // Example: "/setdefault ก้อย" or "ตั้งผู้ป่วยหลัก ก้อย"
+      const text = message.content
+        .replace(/^\/setdefault\s*/i, '')
+        .replace(/^setdefault\s*/i, '')
+        .replace(/ตั้ง.*ผู้ป่วย.*หลัก\s*/i, '')
+        .replace(/ตั้ง.*ค่า.*ผู้ป่วย\s*/i, '')
+        .trim();
+
+      if (!text) {
+        // No patient specified - return list for selection
+        const patientsList = await this.getGroupPatientsList(groupId);
+
+        if (patientsList.patients && patientsList.patients.length > 0) {
+          return {
+            success: false,
+            requiresSelection: true,
+            patients: patientsList.patients,
+            message: 'กรุณาเลือกผู้ป่วยที่ต้องการตั้งเป็นหลัก',
+            action: 'set_default'
+          };
+        }
+        return { success: false, message: 'ไม่พบผู้ป่วยในกลุ่ม' };
+      }
+
+      // Get all patients in group
+      const patientsList = await this.getGroupPatientsList(groupId);
+
+      if (!patientsList.patients || patientsList.patients.length === 0) {
+        return { success: false, message: 'ไม่พบผู้ป่วยในกลุ่ม' };
+      }
+
+      // Find patient by name or index
+      let targetPatient = null;
+      if (/^\d+$/.test(text)) {
+        // Number index (1-based)
+        const index = parseInt(text) - 1;
+        if (index >= 0 && index < patientsList.patients.length) {
+          targetPatient = patientsList.patients[index];
+        }
+      } else {
+        // Name search
+        targetPatient = patientsList.patients.find((p: any) => {
+          const lowerText = text.toLowerCase();
+          return p.name.toLowerCase().includes(lowerText) ||
+                 (p.nickname && p.nickname.toLowerCase().includes(lowerText));
+        });
+      }
+
+      if (!targetPatient) {
+        return {
+          success: false,
+          message: `ไม่พบผู้ป่วยชื่อ "${text}"`,
+          availablePatients: patientsList.patients
+        };
+      }
+
+      // Set default patient
+      const { groupService } = await import('../../services/group.service');
+      const result = await groupService.setDefaultPatient({
+        groupId,
+        caregiverLineUserId,
+        patientId: targetPatient.id
+      });
+
+      return {
+        ...result,
+        patientName: targetPatient.name
+      };
+    } catch (error) {
+      this.log('error', 'Failed to set default patient', error);
+      return { success: false, message: 'เกิดข้อผิดพลาด' };
+    }
+  }
+
+  /**
+   * Phase 4: Handle remove default patient
+   */
+  private async handleRemoveDefaultPatient(message: Message): Promise<any> {
+    try {
+      const groupId = message.context.groupId;
+      const caregiverLineUserId = message.context.actorLineUserId;
+
+      if (!groupId || !caregiverLineUserId) {
+        return { success: false, message: 'ไม่พบข้อมูลกลุ่มหรือผู้ใช้' };
+      }
+
+      // Remove default patient
+      const { groupService } = await import('../../services/group.service');
+      const result = await groupService.removeDefaultPatient(groupId, caregiverLineUserId);
+
+      return result;
+    } catch (error) {
+      this.log('error', 'Failed to remove default patient', error);
+      return { success: false, message: 'เกิดข้อผิดพลาด' };
+    }
+  }
+
+  /**
    * Phase 3: Detect patient name in message (Natural Language)
    * Example: "ยายก้อยกินยาแล้ว" → detects "ก้อย"
    */
@@ -712,9 +863,15 @@ export class OrchestratorAgent extends BaseAgent {
 • "/switch 1" - เปลี่ยนด้วยตัวเลข
 • "ผู้ป่วยทั้งหมด" - ดูรายชื่อผู้ป่วยในกลุ่ม
 
+⚙️ **ตั้งค่าผู้ป่วยหลัก** (Smart Default):
+• "/setdefault ก้อย" - ตั้งผู้ป่วยหลักของคุณ (บันทึกไวขึ้น)
+• "/setdefault 1" - ตั้งด้วยตัวเลข
+• "/removedefault" - ลบการตั้งค่า
+
 💡 **หมายเหตุ:**
 • ต้อง @mention บอท (@oonjai) ก่อนทุกครั้ง
-• พูดแบบไหนก็ได้ บอทจะเข้าใจ 😊`;
+• พูดแบบไหนก็ได้ บอทจะเข้าใจ 😊
+• ตั้งผู้ป่วยหลัก = ไม่ต้องระบุชื่อทุกครั้ง`;
   }
 
   private setupAgentListeners(agent: BaseAgent) {

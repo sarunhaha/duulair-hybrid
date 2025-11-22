@@ -107,6 +107,17 @@ export class IntentAgent extends BaseAgent {
       /ผู้ป่วย.*อะไร.*บ้าง/, /ดูแล.*ใคร.*บ้าง/, /มี.*กี่.*คน/, /ผู้ป่วย.*กี่.*คน/,
       /ผู้ป่วย.*มี.*ใคร/, /รายชื่อผู้ป่วย/, /ดูรายชื่อ/, /เช็ครายชื่อ/,
       /^ทั้งหมด$/, /^รายชื่อ$/
+    ],
+
+    // Set default patient (Phase 4: Smart Default)
+    set_default_patient: [
+      /^\/setdefault/, /^setdefault/, /ตั้ง.*ผู้ป่วย.*หลัก/, /ตั้ง.*ค่า.*ผู้ป่วย/, /เลือก.*ผู้ป่วย.*หลัก/,
+      /ผู้ป่วย.*หลัก/, /default.*patient/, /ตั้ง.*default/, /เปลี่ยน.*หลัก/,
+      /ดูแล.*คน.*นี้.*หลัก/, /จำ.*ผู้ป่วย/
+    ],
+    remove_default_patient: [
+      /^\/removedefault/, /^removedefault/, /ลบ.*ผู้ป่วย.*หลัก/, /ลบ.*default/, /เคลีย.*ผู้ป่วย.*หลัก/,
+      /ไม่.*ต้องการ.*default/, /ยกเลิก.*default/
     ]
   };
 

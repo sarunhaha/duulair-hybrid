@@ -415,6 +415,37 @@ export interface AddGroupMemberResponse {
 }
 
 // ========================================
+// Caregiver Patient Preferences (Phase 4)
+// ========================================
+
+export interface CaregiverPatientPreference {
+  id: string;
+  groupId: string;
+  caregiverLineUserId: string;
+  defaultPatientId: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface SetDefaultPatientRequest {
+  groupId: string;
+  caregiverLineUserId: string;
+  patientId: string;
+}
+
+export interface SetDefaultPatientResponse {
+  success: boolean;
+  message: string;
+  preference?: CaregiverPatientPreference;
+}
+
+export interface GetDefaultPatientResponse {
+  hasDefault: boolean;
+  patientId?: string;
+  patientName?: string;
+}
+
+// ========================================
 // Activity Logs (TASK-002)
 // ========================================
 
