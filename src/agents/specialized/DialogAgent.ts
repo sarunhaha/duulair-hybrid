@@ -22,6 +22,69 @@ export class DialogAgent extends BaseAgent {
     const startTime = Date.now();
 
     try {
+      // Check if switch patient result is available
+      if (message.metadata?.switchResult) {
+        const result = message.metadata.switchResult;
+        let responseText = '';
+
+        if (result.success) {
+          responseText = `✅ ${result.message}\n📍 กำลังดูแล: ${result.patientName}`;
+        } else if (result.requiresSelection) {
+          responseText = `📋 ${result.message}\n\nผู้ป่วยในกลุ่ม:\n`;
+          result.patients.forEach((p: any) => {
+            responseText += `${p.index}. ${p.name}\n`;
+          });
+          responseText += `\nใช้คำสั่ง: /switch [ชื่อ] หรือ /switch [เลข]`;
+        } else {
+          responseText = `❌ ${result.message}`;
+          if (result.availablePatients) {
+            responseText += `\n\nผู้ป่วยที่มี:\n`;
+            result.availablePatients.forEach((p: any) => {
+              responseText += `${p.index}. ${p.name}\n`;
+            });
+          }
+        }
+
+        return {
+          success: true,
+          data: {
+            response: responseText,
+            intent: 'switch_patient'
+          },
+          agentName: this.config.name,
+          processingTime: Date.now() - startTime
+        };
+      }
+
+      // Check if patients list is requested
+      if (message.metadata?.patientsList) {
+        const list = message.metadata.patientsList;
+        let responseText = '';
+
+        if (list.patients && list.patients.length > 0) {
+          responseText = `👥 ผู้ป่วยในกลุ่ม (${list.total} คน):\n\n`;
+          list.patients.forEach((p: any) => {
+            const activeMarker = p.isActive ? '✅ ' : '';
+            responseText += `${activeMarker}${p.index}. ${p.name}`;
+            if (p.nickname) responseText += ` (${p.nickname})`;
+            responseText += ` - อายุ ${p.age} ปี\n`;
+          });
+          responseText += `\nเปลี่ยนผู้ป่วย: /switch [ชื่อ] หรือ /switch [เลข]`;
+        } else {
+          responseText = `❌ ${list.message || 'ไม่มีผู้ป่วยในกลุ่ม'}`;
+        }
+
+        return {
+          success: true,
+          data: {
+            response: responseText,
+            intent: 'list_patients'
+          },
+          agentName: this.config.name,
+          processingTime: Date.now() - startTime
+        };
+      }
+
       // Check if group help is requested
       if (message.metadata?.groupHelpText) {
         return {

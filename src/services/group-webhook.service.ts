@@ -328,16 +328,23 @@ export class GroupWebhookService {
         return null;
       }
 
-      // For now, use first patient (in order of added_at)
-      // Future: implement patient selection UI
-      const primaryPatient = groupData.patients[0];
+      // Use active patient if set, otherwise use first patient
+      let activePatient;
+      if (groupData.group.activePatientId) {
+        activePatient = groupData.patients.find(p => p.id === groupData.group.activePatientId);
+        console.log(`✅ Using active patient: ${activePatient?.first_name}`);
+      }
 
-      if (groupData.patients.length > 1) {
-        console.log(`⚠️ Group has ${groupData.patients.length} patients, using first: ${primaryPatient.first_name}`);
+      // Fallback to first patient if active not found
+      if (!activePatient) {
+        activePatient = groupData.patients[0];
+        if (groupData.patients.length > 1) {
+          console.log(`⚠️ Group has ${groupData.patients.length} patients, using first: ${activePatient.first_name}`);
+        }
       }
 
       return {
-        patientId: primaryPatient.id,
+        patientId: activePatient.id,
         groupId: groupData.group.id,
         source: 'group',
         patients: groupData.patients // Include all for future use

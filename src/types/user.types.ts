@@ -303,12 +303,14 @@ export interface Group {
   lineGroupId: string; // LINE Group ID
   groupName?: string;
   primaryCaregiverId: string;
+  activePatientId?: string; // Currently selected patient (NULL = use first)
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
 
   // Populated fields (optional, for API responses)
   patients?: PatientProfile[]; // Multiple patients support
+  activePatient?: PatientProfile; // Currently active patient
   primaryCaregiver?: CaregiverProfile;
   members?: GroupMember[];
 }

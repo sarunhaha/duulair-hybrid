@@ -589,6 +589,51 @@ export class GroupService {
   }
 
   /**
+   * Switch active patient in group
+   */
+  async switchActivePatient(
+    groupId: string,
+    patientId: string
+  ): Promise<{ success: boolean; message: string; patientName?: string }> {
+    try {
+      // Use database function
+      const { data, error } = await supabase.rpc('switch_active_patient', {
+        p_group_id: groupId,
+        p_patient_id: patientId
+      });
+
+      if (error) {
+        console.error('❌ Error switching patient:', error);
+        return {
+          success: false,
+          message: 'ไม่สามารถเปลี่ยนผู้ป่วยได้'
+        };
+      }
+
+      const result = data?.[0];
+      if (!result?.success) {
+        return {
+          success: false,
+          message: result?.message || 'ผู้ป่วยไม่อยู่ในกลุ่มนี้'
+        };
+      }
+
+      console.log(`✅ Switched active patient to: ${result.patient_name}`);
+      return {
+        success: true,
+        message: result.message,
+        patientName: result.patient_name
+      };
+    } catch (error) {
+      console.error('❌ Failed to switch patient:', error);
+      return {
+        success: false,
+        message: 'เกิดข้อผิดพลาด'
+      };
+    }
+  }
+
+  /**
    * Map database record to Group type
    */
   private mapToGroup(record: any): Group {
@@ -597,6 +642,7 @@ export class GroupService {
       lineGroupId: record.line_group_id,
       groupName: record.group_name,
       primaryCaregiverId: record.primary_caregiver_id,
+      activePatientId: record.active_patient_id,
       isActive: record.is_active,
       createdAt: new Date(record.created_at),
       updatedAt: new Date(record.updated_at)

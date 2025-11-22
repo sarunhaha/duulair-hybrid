@@ -95,6 +95,18 @@ export class OrchestratorAgent extends BaseAgent {
         groupHelpText = this.generateGroupHelpText();
       }
 
+      // Step 2.7: Handle switch patient command
+      let switchResult = null;
+      if (routingPlan.requiresSwitchPatient && message.context.groupId) {
+        switchResult = await this.handleSwitchPatient(message);
+      }
+
+      // Step 2.8: Get patient list if needed
+      let patientsList = null;
+      if (routingPlan.requiresListPatients && message.context.groupId) {
+        patientsList = await this.getGroupPatientsList(message.context.groupId);
+      }
+
       // Step 3: Execute routing plan
       const results = await this.executeRoutingPlan(routingPlan, {
         ...message,
@@ -103,7 +115,9 @@ export class OrchestratorAgent extends BaseAgent {
           intent,
           confidence,
           patientData,
-          groupHelpText
+          groupHelpText,
+          switchResult,
+          patientsList
         }
       });
 
@@ -252,6 +266,14 @@ export class OrchestratorAgent extends BaseAgent {
         case 'group_help':
           plan.agents = ['dialog'];
           plan.requiresGroupHelp = true;
+          break;
+        case 'switch_patient':
+          plan.agents = ['dialog'];
+          plan.requiresSwitchPatient = true;
+          break;
+        case 'list_patients':
+          plan.agents = ['dialog'];
+          plan.requiresListPatients = true;
           break;
         default:
           plan.agents = ['dialog'];
@@ -429,6 +451,134 @@ export class OrchestratorAgent extends BaseAgent {
     }
   }
 
+  private async handleSwitchPatient(message: Message): Promise<any> {
+    try {
+      const groupId = message.context.groupId;
+      if (!groupId) {
+        return { success: false, message: 'ไม่พบกลุ่ม' };
+      }
+
+      // Extract patient name/index from message
+      // Example: "/switch ก้อย" or "/switch 1"
+      const text = message.content.replace(/^\/switch\s*/i, '').replace(/^switch\s*/i, '').trim();
+
+      if (!text) {
+        // No patient specified - return list for selection
+        const patients = await this.supabase.getClient()
+          .from('group_patients')
+          .select('*, patient_profiles(*)')
+          .eq('group_id', groupId)
+          .eq('is_active', true)
+          .order('added_at', { ascending: true });
+
+        if (patients.data && patients.data.length > 0) {
+          return {
+            success: false,
+            requiresSelection: true,
+            patients: patients.data.map((gp: any, idx: number) => ({
+              index: idx + 1,
+              id: gp.patient_id,
+              name: `${gp.patient_profiles.first_name} ${gp.patient_profiles.last_name}`
+            })),
+            message: 'กรุณาระบุผู้ป่วยที่ต้องการเปลี่ยน'
+          };
+        }
+        return { success: false, message: 'ไม่พบผู้ป่วยในกลุ่ม' };
+      }
+
+      // Get all patients in group
+      const { data: groupPatients } = await this.supabase.getClient()
+        .from('group_patients')
+        .select('*, patient_profiles(*)')
+        .eq('group_id', groupId)
+        .eq('is_active', true)
+        .order('added_at', { ascending: true });
+
+      if (!groupPatients || groupPatients.length === 0) {
+        return { success: false, message: 'ไม่พบผู้ป่วยในกลุ่ม' };
+      }
+
+      // Find patient by name or index
+      let targetPatient = null;
+      if (/^\d+$/.test(text)) {
+        // Number index (1-based)
+        const index = parseInt(text) - 1;
+        if (index >= 0 && index < groupPatients.length) {
+          targetPatient = groupPatients[index];
+        }
+      } else {
+        // Name search
+        targetPatient = groupPatients.find((gp: any) => {
+          const fullName = `${gp.patient_profiles.first_name} ${gp.patient_profiles.last_name}`;
+          const firstName = gp.patient_profiles.first_name;
+          const nickname = gp.patient_profiles.nickname;
+          return fullName.includes(text) || firstName.includes(text) || (nickname && nickname.includes(text));
+        });
+      }
+
+      if (!targetPatient) {
+        return {
+          success: false,
+          message: `ไม่พบผู้ป่วยชื่อ "${text}"`,
+          availablePatients: groupPatients.map((gp: any, idx: number) => ({
+            index: idx + 1,
+            name: `${gp.patient_profiles.first_name} ${gp.patient_profiles.last_name}`
+          }))
+        };
+      }
+
+      // Import groupService
+      const { groupService } = await import('../../services/group.service');
+
+      // Switch active patient
+      const result = await groupService.switchActivePatient(groupId, targetPatient.patient_id);
+
+      return result;
+    } catch (error) {
+      this.log('error', 'Failed to switch patient', error);
+      return { success: false, message: 'เกิดข้อผิดพลาด' };
+    }
+  }
+
+  private async getGroupPatientsList(groupId: string): Promise<any> {
+    try {
+      const { data: groupPatients } = await this.supabase.getClient()
+        .from('group_patients')
+        .select('*, patient_profiles(*)')
+        .eq('group_id', groupId)
+        .eq('is_active', true)
+        .order('added_at', { ascending: true });
+
+      if (!groupPatients || groupPatients.length === 0) {
+        return { patients: [], message: 'ไม่มีผู้ป่วยในกลุ่ม' };
+      }
+
+      // Get active patient ID
+      const { data: group } = await this.supabase.getClient()
+        .from('groups')
+        .select('active_patient_id')
+        .eq('id', groupId)
+        .single();
+
+      const activePatientId = group?.active_patient_id;
+
+      return {
+        patients: groupPatients.map((gp: any, idx: number) => ({
+          index: idx + 1,
+          id: gp.patient_id,
+          name: `${gp.patient_profiles.first_name} ${gp.patient_profiles.last_name}`,
+          nickname: gp.patient_profiles.nickname,
+          age: Math.floor((Date.now() - new Date(gp.patient_profiles.birth_date).getTime()) / (365.25 * 24 * 60 * 60 * 1000)),
+          isActive: gp.patient_id === activePatientId
+        })),
+        total: groupPatients.length
+      };
+    } catch (error) {
+      this.log('error', 'Failed to get patients list', error);
+      return { patients: [], message: 'เกิดข้อผิดพลาด' };
+    }
+  }
+
   private generateGroupHelpText(): string {
     return `📋 สิ่งที่สามารถถาม/ทำได้ในกลุ่ม:
 
@@ -452,6 +602,11 @@ export class OrchestratorAgent extends BaseAgent {
 
 🆘 **ฉุกเฉิน**:
 • "ฉุกเฉิน" / "ช่วยด้วย" / "ไม่สบาย"
+
+👥 **กลุ่มที่มีหลายผู้ป่วย**:
+• "/switch ก้อย" - เปลี่ยนไปดูแลผู้ป่วยคนอื่น
+• "/switch 1" - เปลี่ยนด้วยตัวเลข
+• "ผู้ป่วยทั้งหมด" - ดูรายชื่อผู้ป่วยในกลุ่ม
 
 💡 **หมายเหตุ:**
 • ต้อง @mention บอท (@oonjai) ก่อนทุกครั้ง
