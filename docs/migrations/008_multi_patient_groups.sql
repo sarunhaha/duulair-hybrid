@@ -41,7 +41,15 @@ FROM groups
 WHERE patient_id IS NOT NULL;
 
 -- ============================================================
--- STEP 3: Drop old patient_id column from groups
+-- STEP 3: Drop old views that depend on patient_id
+-- ============================================================
+
+-- Drop views first (they depend on patient_id column)
+DROP VIEW IF EXISTS v_groups_summary;
+DROP VIEW IF EXISTS v_group_members_detail;
+
+-- ============================================================
+-- STEP 4: Drop old patient_id column from groups
 -- ============================================================
 
 -- Drop foreign key constraint first
@@ -51,7 +59,7 @@ ALTER TABLE groups DROP CONSTRAINT IF EXISTS groups_patient_id_fkey;
 ALTER TABLE groups DROP COLUMN IF EXISTS patient_id;
 
 -- ============================================================
--- STEP 4: Create indexes
+-- STEP 5: Create indexes
 -- ============================================================
 
 CREATE INDEX IF NOT EXISTS idx_group_patients_group_id ON group_patients(group_id);
@@ -59,7 +67,7 @@ CREATE INDEX IF NOT EXISTS idx_group_patients_patient_id ON group_patients(patie
 CREATE INDEX IF NOT EXISTS idx_group_patients_is_active ON group_patients(is_active);
 
 -- ============================================================
--- STEP 5: Add comments
+-- STEP 6: Add comments
 -- ============================================================
 
 COMMENT ON TABLE group_patients IS 'Many-to-many: Multiple patients can be managed in one LINE group';
@@ -67,11 +75,8 @@ COMMENT ON COLUMN group_patients.added_by_caregiver_id IS 'Which caregiver added
 COMMENT ON COLUMN group_patients.is_active IS 'Whether this patient is still being managed in this group';
 
 -- ============================================================
--- STEP 6: Update views
+-- STEP 7: Create new views
 -- ============================================================
-
--- Drop old view
-DROP VIEW IF EXISTS v_groups_summary;
 
 -- Create new view with patient count
 CREATE OR REPLACE VIEW v_groups_summary AS
@@ -114,8 +119,40 @@ ORDER BY g.created_at DESC;
 
 COMMENT ON VIEW v_groups_summary IS 'Summary view of all groups with multiple patients support';
 
+-- Recreate v_group_members_detail view
+CREATE OR REPLACE VIEW v_group_members_detail AS
+SELECT
+  gm.id,
+  gm.group_id,
+  g.group_name,
+  gm.line_user_id,
+  gm.display_name,
+  gm.picture_url,
+  gm.role,
+  gm.is_active,
+  gm.joined_at,
+  gm.left_at,
+
+  -- Patient names (comma-separated)
+  (SELECT STRING_AGG(p.first_name || ' ' || p.last_name, ', ')
+   FROM group_patients gp
+   JOIN patient_profiles p ON gp.patient_id = p.id
+   WHERE gp.group_id = gm.group_id AND gp.is_active = true) as patient_names,
+
+  -- Activity count by this member
+  (SELECT COUNT(*)
+   FROM activity_logs al
+   WHERE al.actor_line_user_id = gm.line_user_id
+     AND al.group_id = gm.group_id) as total_activities
+
+FROM group_members gm
+JOIN groups g ON gm.group_id = g.id
+ORDER BY gm.joined_at DESC;
+
+COMMENT ON VIEW v_group_members_detail IS 'Detailed view of group members with activity counts (updated for multi-patient support)';
+
 -- ============================================================
--- STEP 7: Create helper functions
+-- STEP 8: Create helper functions
 -- ============================================================
 
 -- Function to get all patients in a group
