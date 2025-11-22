@@ -1,5 +1,32 @@
 # OONJAI Changelog
 
+## [2025-01-21] - Group Auto-Link & Intent Flexibility
+
+### Fixed
+- **Group Auto-Link Bug** (`src/services/group.service.ts`)
+  - Fixed field name mismatch preventing caregiver from using bot in LINE groups
+  - `checkUserExists()` was setting `linked_patient_id` (snake_case)
+  - `autoLinkGroupWithPatient()` was reading `linkedPatientId` (camelCase)
+  - Now correctly auto-creates group when registered caregiver sends first message
+
+- **Scheduler Notification System** (`src/services/scheduler.service.ts`)
+  - Fixed time format from `HH:MM` to `HH:MM:SS` to match database
+  - Fixed field names: `custom_time` → `time`, `reminder_type` → `type`
+  - Changed INNER JOIN to LEFT JOIN for nullable `patient_profiles.user_id`
+  - Added extensive logging for debugging
+
+### Improved
+- **Intent Pattern Matching** (`src/agents/specialized/IntentAgent.ts`)
+  - Expanded patterns 2-3x for natural language understanding
+  - Examples: "ชื่ออะไร" / "เขาชื่อ" / "ผู้ป่วยชื่อ" all work
+  - Reduced confidence threshold from 0.7 to 0.5 for better flexibility
+  - Updated help text to encourage natural language usage
+
+### Database
+- **Medications Schema** (`docs/migrations/007_fix_medications_schema.sql`)
+  - Added missing columns: `patient_id`, `dosage_amount`, `dosage_unit`, `times`, `instructions`, `note`
+  - Migrated existing `user_id` to `patient_id`
+
 ## [2025-01-21] - LIFF Features & OCR Enhancement
 
 ### Added
