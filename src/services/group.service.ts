@@ -370,7 +370,7 @@ export class GroupService {
 
       // 3. Get caregiver's linked patient
       const caregiverProfile: any = caregiverCheck.profile;
-      if (!caregiverProfile || !caregiverProfile.linkedPatientId) {
+      if (!caregiverProfile || !caregiverProfile.linked_patient_id) {
         console.log('❌ Caregiver has no linked patient');
         return {
           success: false,
@@ -378,7 +378,7 @@ export class GroupService {
         };
       }
 
-      const patientId = caregiverProfile.linkedPatientId;
+      const patientId = caregiverProfile.linked_patient_id;
 
       // 4. Get patient info
       const { data: patient, error: patientError } = await supabase
