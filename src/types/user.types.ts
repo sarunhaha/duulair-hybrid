@@ -302,16 +302,27 @@ export interface Group {
   id: string;
   lineGroupId: string; // LINE Group ID
   groupName?: string;
-  patientId: string;
   primaryCaregiverId: string;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
 
   // Populated fields (optional, for API responses)
-  patient?: PatientProfile;
+  patients?: PatientProfile[]; // Multiple patients support
   primaryCaregiver?: CaregiverProfile;
   members?: GroupMember[];
+}
+
+export interface GroupPatient {
+  id: string;
+  groupId: string;
+  patientId: string;
+  addedByCaregiverId?: string;
+  addedAt: Date;
+  isActive: boolean;
+
+  // Populated fields
+  patient?: PatientProfile;
 }
 
 export interface GroupMember {
@@ -383,7 +394,8 @@ export interface GroupInfoResponse {
 export interface GroupCheckResponse {
   exists: boolean;
   group?: Group;
-  patient?: PatientProfile;
+  patient?: PatientProfile; // For backward compatibility - first patient
+  patients?: PatientProfile[]; // All patients in group
   primaryCaregiver?: CaregiverProfile;
 }
 

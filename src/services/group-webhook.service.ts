@@ -319,18 +319,28 @@ export class GroupWebhookService {
     patientId: string;
     groupId: string;
     source: 'group';
+    patients?: any[]; // All patients in group (for multi-patient support)
   } | null> {
     try {
       const groupData = await groupService.getGroupByLineId(groupId);
 
-      if (!groupData || !groupData.patient) {
+      if (!groupData || !groupData.patients || groupData.patients.length === 0) {
         return null;
       }
 
+      // For now, use first patient (in order of added_at)
+      // Future: implement patient selection UI
+      const primaryPatient = groupData.patients[0];
+
+      if (groupData.patients.length > 1) {
+        console.log(`⚠️ Group has ${groupData.patients.length} patients, using first: ${primaryPatient.first_name}`);
+      }
+
       return {
-        patientId: groupData.patient.id,
+        patientId: primaryPatient.id,
         groupId: groupData.group.id,
-        source: 'group'
+        source: 'group',
+        patients: groupData.patients // Include all for future use
       };
 
     } catch (error) {

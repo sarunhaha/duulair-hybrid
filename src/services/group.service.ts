@@ -29,7 +29,10 @@ export class GroupService {
 
     const { data: group, error } = await supabase
       .from('groups')
-      .select('*, patient_profiles(*), caregiver_profiles(*)')
+      .select(`
+        *,
+        caregiver_profiles(*)
+      `)
       .eq('line_group_id', lineGroupId)
       .single();
 
@@ -38,12 +41,22 @@ export class GroupService {
       return { exists: false };
     }
 
-    console.log('📬 Group found:', { id: group.id, group_name: group.group_name });
+    // Get all patients in this group
+    const { data: groupPatients } = await supabase
+      .from('group_patients')
+      .select('*, patient_profiles(*)')
+      .eq('group_id', group.id)
+      .eq('is_active', true);
+
+    const patients = groupPatients?.map((gp: any) => gp.patient_profiles) || [];
+
+    console.log('📬 Group found:', { id: group.id, group_name: group.group_name, patient_count: patients.length });
 
     return {
       exists: true,
       group: this.mapToGroup(group),
-      patient: group.patient_profiles,
+      patient: patients[0], // For backward compatibility
+      patients: patients,
       primaryCaregiver: group.caregiver_profiles
     };
   }
@@ -157,13 +170,12 @@ export class GroupService {
       const patientProfileId = newPatient.id;
       console.log('✅ Created patient:', patientProfileId);
 
-      // Step 4: สร้าง group
+      // Step 4: สร้าง group (ไม่มี patient_id แล้ว - ใช้ group_patients)
       const { data: newGroup, error: groupError } = await supabase
         .from('groups')
         .insert({
           line_group_id: form.lineGroupId,
           group_name: form.groupName,
-          patient_id: patientProfileId,
           primary_caregiver_id: caregiverProfileId
         })
         .select()
@@ -174,6 +186,19 @@ export class GroupService {
       }
 
       console.log('✅ Created group:', newGroup.id);
+
+      // Step 4.5: เพิ่ม patient เข้า group_patients table
+      const { error: groupPatientError } = await supabase
+        .from('group_patients')
+        .insert({
+          group_id: newGroup.id,
+          patient_id: patientProfileId,
+          added_by_caregiver_id: caregiverProfileId
+        });
+
+      if (groupPatientError) {
+        console.error('⚠️ Failed to add patient to group:', groupPatientError);
+      }
 
       // Step 5: เพิ่ม caregiver เป็น member
       await this.addMember(newGroup.id, {
@@ -241,7 +266,6 @@ export class GroupService {
       .from('groups')
       .select(`
         *,
-        patient_profiles(*),
         caregiver_profiles(*),
         group_members(*)
       `)
@@ -252,10 +276,14 @@ export class GroupService {
       return null;
     }
 
+    // Get all patients in this group
+    const patients = await this.getGroupPatients(data.id);
+
     return {
       success: true,
       group: this.mapToGroup(data),
-      patient: data.patient_profiles,
+      patient: patients[0], // For backward compatibility
+      patients: patients,
       primaryCaregiver: data.caregiver_profiles,
       members: data.group_members.map(this.mapToGroupMember)
     };
@@ -347,12 +375,57 @@ export class GroupService {
     try {
       // 1. Check if group already registered
       const existingGroup = await this.checkGroupExists(lineGroupId);
-      if (existingGroup.exists) {
-        console.log('✅ Group already registered');
+      if (existingGroup.exists && existingGroup.group) {
+        console.log('✅ Group already exists, checking if we need to add patient');
+
+        // Get caregiver info
+        const caregiverCheck = await userService.checkUserExists(caregiverLineUserId);
+        if (!caregiverCheck.exists || caregiverCheck.role !== 'caregiver') {
+          return {
+            success: false,
+            message: 'กรุณาลงทะเบียนผ่าน LINE OA ก่อนใช้งานในกลุ่ม'
+          };
+        }
+
+        const caregiverProfile: any = caregiverCheck.profile;
+        const linkedPatientId = caregiverProfile.linked_patient_id;
+
+        if (!linkedPatientId) {
+          return {
+            success: false,
+            message: 'ไม่พบข้อมูลผู้ป่วยที่เชื่อมต่อ'
+          };
+        }
+
+        // Check if this patient is already in group
+        const existingPatients = existingGroup.patients || [];
+        const patientExists = existingPatients.some((p: any) => p.id === linkedPatientId);
+
+        if (!patientExists) {
+          // Add new patient to existing group
+          console.log(`📝 Adding patient ${linkedPatientId} to existing group`);
+          await this.addPatientToGroup(existingGroup.group.id, linkedPatientId, caregiverProfile.id);
+
+          // Get patient name for response
+          const { data: patient } = await supabase
+            .from('patient_profiles')
+            .select('first_name, last_name')
+            .eq('id', linkedPatientId)
+            .single();
+
+          return {
+            success: true,
+            group: existingGroup.group,
+            patientId: linkedPatientId,
+            message: `เพิ่ม ${patient?.first_name} ${patient?.last_name} เข้ากลุ่มสำเร็จ!`
+          };
+        }
+
+        // Patient already in group
         return {
           success: true,
           group: existingGroup.group,
-          patientId: existingGroup.patient?.id,
+          patientId: linkedPatientId,
           message: 'กลุ่มลงทะเบียนแล้ว'
         };
       }
@@ -395,7 +468,7 @@ export class GroupService {
         };
       }
 
-      // 5. Create group linked to patient
+      // 5. Create group (without patient_id - will use group_patients table)
       const groupName = `กลุ่มดูแล ${patient.first_name} ${patient.last_name}`;
 
       const { data: newGroup, error: groupError } = await supabase
@@ -403,7 +476,6 @@ export class GroupService {
         .insert({
           line_group_id: lineGroupId,
           group_name: groupName,
-          patient_id: patientId,
           primary_caregiver_id: caregiverProfile.id
         })
         .select()
@@ -418,6 +490,19 @@ export class GroupService {
       }
 
       console.log('✅ Created group:', newGroup.id);
+
+      // 5.5. Add patient to group_patients table
+      const { error: groupPatientError } = await supabase
+        .from('group_patients')
+        .insert({
+          group_id: newGroup.id,
+          patient_id: patientId,
+          added_by_caregiver_id: caregiverProfile.id
+        });
+
+      if (groupPatientError) {
+        console.error('⚠️ Failed to add patient to group:', groupPatientError);
+      }
 
       // 6. Add caregiver as member
       await this.addMember(newGroup.id, {
@@ -443,6 +528,67 @@ export class GroupService {
   }
 
   /**
+   * เพิ่ม patient เข้ากลุ่ม (สำหรับ caregiver คนที่ 2, 3, ... ที่มาใช้กลุ่มเดียวกัน)
+   */
+  async addPatientToGroup(
+    groupId: string,
+    patientId: string,
+    caregiverId: string
+  ): Promise<{ success: boolean; message: string }> {
+    try {
+      const { error } = await supabase
+        .from('group_patients')
+        .insert({
+          group_id: groupId,
+          patient_id: patientId,
+          added_by_caregiver_id: caregiverId
+        });
+
+      if (error) {
+        // Check if it's duplicate
+        if (error.code === '23505') {
+          return {
+            success: true,
+            message: 'ผู้ป่วยอยู่ในกลุ่มแล้ว'
+          };
+        }
+        throw error;
+      }
+
+      console.log(`✅ Added patient ${patientId} to group ${groupId}`);
+      return {
+        success: true,
+        message: 'เพิ่มผู้ป่วยเข้ากลุ่มสำเร็จ'
+      };
+    } catch (error) {
+      console.error('❌ Failed to add patient to group:', error);
+      return {
+        success: false,
+        message: 'ไม่สามารถเพิ่มผู้ป่วยเข้ากลุ่มได้'
+      };
+    }
+  }
+
+  /**
+   * ดึงรายชื่อผู้ป่วยทั้งหมดในกลุ่ม
+   */
+  async getGroupPatients(groupId: string): Promise<PatientProfile[]> {
+    const { data, error } = await supabase
+      .from('group_patients')
+      .select('*, patient_profiles(*)')
+      .eq('group_id', groupId)
+      .eq('is_active', true)
+      .order('added_at', { ascending: true });
+
+    if (error || !data) {
+      console.error('❌ Error getting group patients:', error);
+      return [];
+    }
+
+    return data.map((gp: any) => gp.patient_profiles as PatientProfile);
+  }
+
+  /**
    * Map database record to Group type
    */
   private mapToGroup(record: any): Group {
@@ -450,7 +596,6 @@ export class GroupService {
       id: record.id,
       lineGroupId: record.line_group_id,
       groupName: record.group_name,
-      patientId: record.patient_id,
       primaryCaregiverId: record.primary_caregiver_id,
       isActive: record.is_active,
       createdAt: new Date(record.created_at),
