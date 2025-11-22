@@ -144,6 +144,49 @@ export class GroupWebhookService {
 
             console.log('✅ Added new member:', member.userId);
           }
+
+          // 🆕 Auto-detect: Check if this member is a caregiver with a patient
+          const { userService } = await import('./user.service');
+          const userCheck = await userService.checkUserExists(member.userId);
+
+          if (userCheck.exists && userCheck.role === 'caregiver' && userCheck.profile) {
+            const caregiverProfile = userCheck.profile as any;
+            const linkedPatientId = caregiverProfile.linked_patient_id;
+
+            if (linkedPatientId) {
+              console.log(`🔍 Detected caregiver ${member.userId} with patient: ${linkedPatientId}`);
+
+              // Check if patient already in group
+              const { data: existingPatient } = await supabase
+                .from('group_patients')
+                .select('*')
+                .eq('group_id', groupData.group.id)
+                .eq('patient_id', linkedPatientId)
+                .maybeSingle();
+
+              if (!existingPatient) {
+                // Get patient name
+                const { data: patient } = await supabase
+                  .from('patient_profiles')
+                  .select('first_name, last_name, nickname')
+                  .eq('id', linkedPatientId)
+                  .single();
+
+                const patientName = patient
+                  ? `${patient.first_name} ${patient.last_name}${patient.nickname ? ` (${patient.nickname})` : ''}`
+                  : 'ผู้ป่วย';
+
+                // Send confirmation message to group
+                await this.sendAddPatientConfirmation(
+                  groupId,
+                  member.userId,
+                  groupData.group.id,
+                  linkedPatientId,
+                  patientName
+                );
+              }
+            }
+          }
         }
       }
 
@@ -353,6 +396,170 @@ export class GroupWebhookService {
     } catch (error) {
       console.error('❌ Error getting group context:', error);
       return null;
+    }
+  }
+
+  /**
+   * Send add patient confirmation message to group
+   */
+  async sendAddPatientConfirmation(
+    groupId: string,
+    caregiverUserId: string,
+    internalGroupId: string,
+    patientId: string,
+    patientName: string
+  ): Promise<void> {
+    try {
+      const { lineClient } = await import('./line-client.service');
+
+      await lineClient.pushMessage(groupId, {
+        type: 'flex',
+        altText: `เพิ่ม ${patientName} เข้ากลุ่ม?`,
+        contents: {
+          type: 'bubble',
+          body: {
+            type: 'box',
+            layout: 'vertical',
+            contents: [
+              {
+                type: 'text',
+                text: '👋 สมาชิกใหม่!',
+                weight: 'bold',
+                size: 'xl'
+              },
+              {
+                type: 'text',
+                text: `พบว่ามีผู้ป่วยที่ดูแลอยู่`,
+                margin: 'md',
+                wrap: true
+              },
+              {
+                type: 'text',
+                text: `"${patientName}"`,
+                weight: 'bold',
+                size: 'lg',
+                color: '#4CAF50',
+                margin: 'md'
+              },
+              {
+                type: 'text',
+                text: 'ต้องการเพิ่มเข้ากลุ่มนี้ไหมคะ?',
+                margin: 'md',
+                wrap: true
+              }
+            ]
+          },
+          footer: {
+            type: 'box',
+            layout: 'horizontal',
+            spacing: 'sm',
+            contents: [
+              {
+                type: 'button',
+                action: {
+                  type: 'postback',
+                  label: '✅ เพิ่ม',
+                  data: `action=add_patient&group_id=${internalGroupId}&patient_id=${patientId}`
+                },
+                style: 'primary',
+                color: '#4CAF50'
+              },
+              {
+                type: 'button',
+                action: {
+                  type: 'postback',
+                  label: '❌ ไม่เพิ่ม',
+                  data: 'action=skip_add_patient'
+                }
+              }
+            ]
+          }
+        }
+      });
+
+      console.log(`✅ Sent add patient confirmation to group: ${groupId}`);
+    } catch (error) {
+      console.error('❌ Error sending confirmation:', error);
+    }
+  }
+
+  /**
+   * Handle postback event (button click)
+   */
+  async handlePostback(event: any): Promise<{ success: boolean; message?: string }> {
+    try {
+      const data = event.postback?.data;
+      const groupId = event.source?.groupId;
+
+      if (!data) {
+        return { success: false };
+      }
+
+      // Parse postback data
+      const params = new URLSearchParams(data);
+      const action = params.get('action');
+
+      if (action === 'add_patient') {
+        const internalGroupId = params.get('group_id');
+        const patientId = params.get('patient_id');
+
+        if (!internalGroupId || !patientId) {
+          return { success: false };
+        }
+
+        // Get caregiver ID from patient_caregivers table
+        const { data: caregiverLink } = await supabase
+          .from('patient_caregivers')
+          .select('caregiver_id')
+          .eq('patient_id', patientId)
+          .eq('status', 'active')
+          .limit(1)
+          .single();
+
+        if (!caregiverLink) {
+          console.error('❌ No caregiver found for patient:', patientId);
+          return { success: false };
+        }
+
+        // Add patient to group
+        const result = await groupService.addPatientToGroup(internalGroupId, patientId, caregiverLink.caregiver_id);
+
+        if (result.success) {
+          const { lineClient } = await import('./line-client.service');
+
+          // Get patient name
+          const { data: patient } = await supabase
+            .from('patient_profiles')
+            .select('first_name, last_name, nickname')
+            .eq('id', patientId)
+            .single();
+
+          const patientName = patient
+            ? `${patient.first_name} ${patient.last_name}${patient.nickname ? ` (${patient.nickname})` : ''}`
+            : 'ผู้ป่วย';
+
+          await lineClient.replyMessage(event.replyToken, {
+            type: 'text',
+            text: `✅ เพิ่ม ${patientName} เข้ากลุ่มเรียบร้อยแล้วค่ะ\n\nตอนนี้สามารถบันทึกข้อมูลสุขภาพให้ได้แล้วนะคะ 📝`
+          });
+        }
+
+        return { success: result.success };
+      } else if (action === 'skip_add_patient') {
+        const { lineClient } = await import('./line-client.service');
+
+        await lineClient.replyMessage(event.replyToken, {
+          type: 'text',
+          text: 'ตกลงค่ะ ถ้าต้องการเพิ่มทีหลัง สามารถใช้คำสั่ง /addpatient ได้นะคะ'
+        });
+
+        return { success: true };
+      }
+
+      return { success: false };
+    } catch (error) {
+      console.error('❌ Error handling postback:', error);
+      return { success: false };
     }
   }
 }

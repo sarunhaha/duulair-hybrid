@@ -982,6 +982,10 @@ app.post('/webhook', async (req, res) => {
           case 'memberLeft':
             return handleMemberLeave(event);
 
+          // Postback events (button clicks)
+          case 'postback':
+            return handlePostback(event);
+
           default:
             console.log('Unhandled event type:', event.type);
         }
@@ -1675,6 +1679,16 @@ async function handleMemberLeave(event: any) {
     return await groupWebhookService.handleMemberLeave(event);
   } catch (error) {
     console.error('❌ Error in handleMemberLeave:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+}
+
+async function handlePostback(event: any) {
+  try {
+    console.log('🔘 Postback event');
+    return await groupWebhookService.handlePostback(event);
+  } catch (error) {
+    console.error('❌ Error in handlePostback:', error);
     return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
   }
 }
