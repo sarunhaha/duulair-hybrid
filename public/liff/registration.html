@@ -7,14 +7,14 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>ลงทะเบียน - Duulair (v2.1)</title>
+  <title>ลงทะเบียน - OONJAI (v2.1)</title>
   <link rel="stylesheet" href="css/minimal-theme.css">
 </head>
 <body>
   <div class="container">
     <!-- Header -->
     <div class="header text-center">
-      <h1>👋 ยินดีต้อนรับสู่ Duulair</h1>
+      <h1>👋 ยินดีต้อนรับสู่ OONJAI</h1>
       <p>กรุณากรอกข้อมูลเพื่อเริ่มใช้งาน</p>
     </div>
 
@@ -232,19 +232,19 @@
           };
 
           console.log('💾 Saving context to localStorage:', contextData);
-          localStorage.setItem('duulair_context', JSON.stringify(contextData));
+          localStorage.setItem('oonjai_context', JSON.stringify(contextData));
 
-          // ✅ Save to duulair_user - use caregiverId (CORRECTED 2025-01-17)
+          // ✅ Save to oonjai_user - use caregiverId (CORRECTED 2025-01-17)
           const userData = {
             role: 'caregiver',
             profile_id: result.caregiverId, // ✅ Caregiver ID (correct!)
             line_user_id: profile.userId
           };
-          localStorage.setItem('duulair_user', JSON.stringify(userData));
+          localStorage.setItem('oonjai_user', JSON.stringify(userData));
 
           console.log('✅ Saved to localStorage!');
-          console.log('Context:', localStorage.getItem('duulair_context'));
-          console.log('User:', localStorage.getItem('duulair_user'));
+          console.log('Context:', localStorage.getItem('oonjai_context'));
+          console.log('User:', localStorage.getItem('oonjai_user'));
 
           // Show detailed success message with data
           alert('✅ ลงทะเบียนสำเร็จ! \n\nCaregiver ID: ' + result.caregiverId.substring(0, 8) + '...\nPatient ID: ' + result.patientId.substring(0, 8) + '...\n\nคุณสามารถเริ่มใช้งานได้เลย');

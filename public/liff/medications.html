@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#FAF9F6">
-  <title>💊 รายการยา - Duulair</title>
+  <title>💊 รายการยา - OONJAI</title>
   <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="stylesheet" href="css/minimal-theme.css">
@@ -769,8 +769,8 @@
     // Load user data
     async function loadUserData() {
       try {
-        // ✅ Get patientId from duulair_context
-        let contextData = JSON.parse(localStorage.getItem('duulair_context') || '{}');
+        // ✅ Get patientId from oonjai_context
+        let contextData = JSON.parse(localStorage.getItem('oonjai_context') || '{}');
 
         // ✅ IMPORTANT: Use contextData.patientId ONLY
         // Do NOT use userData.profile_id as it contains caregiverId!
@@ -793,7 +793,7 @@
                 patientId: patientId,
                 role: 'patient'
               };
-              localStorage.setItem('duulair_context', JSON.stringify(contextData));
+              localStorage.setItem('oonjai_context', JSON.stringify(contextData));
               console.log('✅ Saved patient context to localStorage:', contextData);
             } else if (result.role === 'caregiver') {
               // For caregiver, use linked_patient_id from API response
@@ -808,7 +808,7 @@
                   patientId: patientId,
                   role: 'caregiver'
                 };
-                localStorage.setItem('duulair_context', JSON.stringify(contextData));
+                localStorage.setItem('oonjai_context', JSON.stringify(contextData));
                 console.log('✅ Saved caregiver context to localStorage:', contextData);
               }
             }

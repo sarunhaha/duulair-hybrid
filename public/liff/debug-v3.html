@@ -148,7 +148,7 @@
     // Use localhost for development, Vercel for production
     const API_BASE_URL = window.location.hostname === 'localhost'
       ? 'http://localhost:3000/api'
-      : 'https://duulair.vercel.app/api';
+      : 'https://oonjai.vercel.app/api';
 
     let globalErrors = [];
     let patientId = null;
@@ -239,31 +239,31 @@
       try {
         setStatus('step2', 'pending', '⏳ กำลังตรวจสอบ localStorage...');
 
-        const duulairUser = localStorage.getItem('duulair_user');
-        const duulairContext = localStorage.getItem('duulair_context');
+        const oonjaiUser = localStorage.getItem('oonjai_user');
+        const oonjaiContext = localStorage.getItem('oonjai_context');
 
-        showData('step2', 'duulair_user (raw)', duulairUser || 'NULL');
-        showData('step2', 'duulair_context (raw)', duulairContext || 'NULL');
+        showData('step2', 'oonjai_user (raw)', oonjaiUser || 'NULL');
+        showData('step2', 'oonjai_context (raw)', oonjaiContext || 'NULL');
 
-        if (!duulairUser) {
-          setStatus('step2', 'error', '❌ ไม่พบ duulair_user ใน localStorage');
+        if (!oonjaiUser) {
+          setStatus('step2', 'error', '❌ ไม่พบ oonjai_user ใน localStorage');
           return false;
         }
 
-        const userData = JSON.parse(duulairUser);
-        showData('step2', 'duulair_user (parsed)', userData);
+        const userData = JSON.parse(oonjaiUser);
+        showData('step2', 'oonjai_user (parsed)', userData);
 
         if (!userData.profile_id) {
-          setStatus('step2', 'error', '❌ ไม่มี profile_id ใน duulair_user');
+          setStatus('step2', 'error', '❌ ไม่มี profile_id ใน oonjai_user');
           return false;
         }
 
         patientId = userData.profile_id;
         showData('step2', 'Patient ID (extracted)', patientId);
 
-        if (duulairContext) {
-          const contextData = JSON.parse(duulairContext);
-          showData('step2', 'duulair_context (parsed)', contextData);
+        if (oonjaiContext) {
+          const contextData = JSON.parse(oonjaiContext);
+          showData('step2', 'oonjai_context (parsed)', contextData);
         }
 
         setStatus('step2', 'success', '✅ localStorage ถูกต้อง');

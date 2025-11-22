@@ -47,7 +47,7 @@ class DevAgentCLI {
   setupCommands() {
     program
       .name('dev-agent')
-      .description('Development Multi-Agent System for Duulair Platform')
+      .description('Development Multi-Agent System for OONJAI Platform')
       .version('1.0.0');
 
     // Review command

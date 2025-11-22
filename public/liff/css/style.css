@@ -1,21 +1,34 @@
 /* ========================================
-   Duulair LIFF App - Elderly-Friendly Styles
+   OONJAI (อุ่นใจ) - Group-Based Care Platform
+   Modern, Accessible Design for Elderly Care
    ======================================== */
 
 /* ========== Design Tokens ========== */
 :root {
-  /* Colors */
+  /* Primary Colors - Warm Green (อุ่นใจ) */
   --primary: #4CAF50;        /* เขียว - ปลอดภัย */
   --primary-dark: #388E3C;
-  --primary-light: #C8E6C9;
+  --primary-light: #E8F5E9;
+  --primary-gradient: linear-gradient(135deg, #4CAF50 0%, #66BB6A 100%);
+
+  /* Accent Colors */
   --danger: #F44336;         /* แดง - อันตราย */
   --warning: #FF9800;
   --info: #2196F3;
+  --success: #4CAF50;
+
+  /* Text Colors */
   --text: #212121;           /* ดำ - อ่านง่าย */
   --text-secondary: #666666;
-  --background: #FAFAFA;     /* เทาอ่อน */
+  --text-light: #9E9E9E;
+
+  /* Background Colors */
+  --background: #F5F5F5;     /* เทาอ่อน - นุ่มตา */
   --white: #FFFFFF;
   --border: #E0E0E0;
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.15);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.2);
 
   /* Typography */
   --font-family: 'Sarabun', 'Noto Sans Thai', sans-serif;
@@ -178,30 +191,49 @@ textarea.error {
   text-align: center;
   text-decoration: none;
   color: var(--white);
-  background-color: var(--primary);
+  background: var(--primary-gradient);
   border: none;
   border-radius: var(--border-radius);
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   line-height: 1.2;
   -webkit-tap-highlight-color: rgba(76, 175, 80, 0.3);
   touch-action: manipulation;
+  box-shadow: var(--shadow-sm);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.5s;
+}
+
+.btn:hover::before {
+  left: 100%;
 }
 
 .btn:hover {
-  background-color: var(--primary-dark);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
 }
 
 .btn:active {
-  transform: translateY(0);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
 }
 
 .btn:disabled {
-  background-color: #CCCCCC;
+  background: #CCCCCC;
   cursor: not-allowed;
   transform: none;
+  box-shadow: none;
 }
 
 .btn-secondary {
@@ -280,7 +312,13 @@ textarea.error {
   border-radius: var(--border-radius);
   padding: calc(var(--spacing) * 1.5);
   margin-bottom: var(--spacing);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-sm);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
 }
 
 .card-header {
@@ -290,7 +328,11 @@ textarea.error {
   margin-bottom: var(--spacing);
   padding-bottom: var(--spacing);
   text-align: center;
-  border-bottom: 2px solid var(--border);
+  border-bottom: 3px solid var(--primary-light);
+  background: var(--primary-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 /* ========== Role Selection ========== */

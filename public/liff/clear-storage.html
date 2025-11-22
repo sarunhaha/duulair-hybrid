@@ -40,15 +40,15 @@
         await liff.init({ liffId: LIFF_ID });
 
         // Show current localStorage data
-        const duulairUser = localStorage.getItem('duulair_user');
-        const duulairContext = localStorage.getItem('duulair_context');
+        const oonjaiUser = localStorage.getItem('oonjai_user');
+        const oonjaiContext = localStorage.getItem('oonjai_context');
 
         const infoDiv = document.getElementById('storage-info');
         infoDiv.innerHTML = `
-          <strong>duulair_user:</strong><br>
-          ${duulairUser || '(ไม่มี)'}<br><br>
-          <strong>duulair_context:</strong><br>
-          ${duulairContext || '(ไม่มี)'}
+          <strong>oonjai_user:</strong><br>
+          ${oonjaiUser || '(ไม่มี)'}<br><br>
+          <strong>oonjai_context:</strong><br>
+          ${oonjaiContext || '(ไม่มี)'}
         `;
 
       } catch (error) {

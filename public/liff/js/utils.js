@@ -245,7 +245,7 @@ function validateEmail(email) {
  */
 function saveDraft(key, data) {
   try {
-    localStorage.setItem(`duulair_draft_${key}`, JSON.stringify(data));
+    localStorage.setItem(`oonjai_draft_${key}`, JSON.stringify(data));
   } catch (error) {
     console.error('Error saving draft:', error);
   }
@@ -258,7 +258,7 @@ function saveDraft(key, data) {
  */
 function loadDraft(key) {
   try {
-    const data = localStorage.getItem(`duulair_draft_${key}`);
+    const data = localStorage.getItem(`oonjai_draft_${key}`);
     return data ? JSON.parse(data) : null;
   } catch (error) {
     console.error('Error loading draft:', error);
@@ -272,7 +272,7 @@ function loadDraft(key) {
  */
 function clearDraft(key) {
   try {
-    localStorage.removeItem(`duulair_draft_${key}`);
+    localStorage.removeItem(`oonjai_draft_${key}`);
   } catch (error) {
     console.error('Error clearing draft:', error);
   }
@@ -284,7 +284,7 @@ function clearDraft(key) {
  */
 function saveUserData(data) {
   try {
-    localStorage.setItem('duulair_user', JSON.stringify(data));
+    localStorage.setItem('oonjai_user', JSON.stringify(data));
   } catch (error) {
     console.error('Error saving user data:', error);
   }
@@ -296,7 +296,7 @@ function saveUserData(data) {
  */
 function loadUserData() {
   try {
-    const data = localStorage.getItem('duulair_user');
+    const data = localStorage.getItem('oonjai_user');
     return data ? JSON.parse(data) : null;
   } catch (error) {
     console.error('Error loading user data:', error);
@@ -309,7 +309,7 @@ function loadUserData() {
  */
 function clearUserData() {
   try {
-    localStorage.removeItem('duulair_user');
+    localStorage.removeItem('oonjai_user');
   } catch (error) {
     console.error('Error clearing user data:', error);
   }

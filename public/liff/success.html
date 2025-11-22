@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#4CAF50">
-  <title>ลงทะเบียนสำเร็จ - Duulair</title>
+  <title>ลงทะเบียนสำเร็จ - OONJAI</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -13,7 +13,7 @@
     <div class="success-container">
       <div class="success-icon">✅</div>
       <h1 id="successTitle">ลงทะเบียนสำเร็จ!</h1>
-      <p id="successMessage" class="text-large">ขอบคุณที่ใช้บริการ Duulair</p>
+      <p id="successMessage" class="text-large">ขอบคุณที่ใช้บริการ OONJAI</p>
     </div>
 
     <!-- Patient Success: Link Code & QR Code -->
@@ -207,7 +207,7 @@
 
         if (typeof QRCode !== 'undefined') {
           new QRCode(qrContainer, {
-            text: `DUULAIR:${linkCode}`,
+            text: `OONJAI:${linkCode}`,
             width: 200,
             height: 200,
             colorDark: '#000000',
@@ -259,7 +259,7 @@
 
       const message = {
         type: 'text',
-        text: `🔗 รหัสเชื่อมต่อ Duulair\n\nรหัส: ${linkCode}\n\nใช้รหัสนี้เพื่อเชื่อมต่อกับบัญชีผู้ป่วยของฉัน\n\n📱 เปิด LINE → Duulair → ลงทะเบียนผู้ดูแล → กรอกรหัสนี้`
+        text: `🔗 รหัสเชื่อมต่อ OONJAI\n\nรหัส: ${linkCode}\n\nใช้รหัสนี้เพื่อเชื่อมต่อกับบัญชีผู้ป่วยของฉัน\n\n📱 เปิด LINE → OONJAI → ลงทะเบียนผู้ดูแล → กรอกรหัสนี้`
       };
 
       const success = await shareWithTargetPicker(message);

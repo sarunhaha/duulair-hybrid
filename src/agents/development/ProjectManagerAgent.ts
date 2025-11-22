@@ -48,7 +48,7 @@ export class ProjectManagerAgent extends BaseDevAgent {
     });
 
     this.projectRoot = process.cwd();
-    this.tasksFile = path.join(this.projectRoot, '.duulair', 'tasks.json');
+    this.tasksFile = path.join(this.projectRoot, '.oonjai', 'tasks.json');
   }
 
   async process(command: DevCommand): Promise<DevResult> {
@@ -492,7 +492,7 @@ ${JSON.stringify(tasks, null, 2)}
   }
 
   private async saveSprint(sprint: any): Promise<void> {
-    const sprintsFile = path.join(this.projectRoot, '.duulair', 'sprints.json');
+    const sprintsFile = path.join(this.projectRoot, '.oonjai', 'sprints.json');
     await fs.mkdir(path.dirname(sprintsFile), { recursive: true });
 
     let sprints = [];

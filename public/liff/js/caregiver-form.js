@@ -171,7 +171,7 @@ async function scanQRCode() {
 
     if (result && result.value) {
       // Extract link code from QR code value
-      // Expected format: "DUULAIR:123456" or just "123456"
+      // Expected format: "OONJAI:123456" or just "123456"
       let linkCode = result.value;
 
       if (linkCode.includes(':')) {

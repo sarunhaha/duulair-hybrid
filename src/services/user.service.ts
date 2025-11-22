@@ -370,7 +370,7 @@ export class UserService {
       });
 
       // Generate QR code for existing code
-      const qrCodeDataUrl = await QRCode.toDataURL(`DUULAIR:${existingCode.code}`, {
+      const qrCodeDataUrl = await QRCode.toDataURL(`OONJAI:${existingCode.code}`, {
         errorCorrectionLevel: 'H',
         type: 'image/png',
         width: 300,
@@ -416,7 +416,7 @@ export class UserService {
     });
 
     // Generate QR code
-    const qrCodeDataUrl = await QRCode.toDataURL(`DUULAIR:${code}`, {
+    const qrCodeDataUrl = await QRCode.toDataURL(`OONJAI:${code}`, {
       errorCorrectionLevel: 'H',
       type: 'image/png',
       width: 300,

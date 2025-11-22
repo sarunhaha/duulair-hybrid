@@ -62,7 +62,7 @@
         log('เรียก API /check-user...', null, 'info');
         const API_BASE_URL = window.location.hostname === 'localhost'
           ? 'http://localhost:3000/api'
-          : 'https://duulair.vercel.app/api';
+          : 'https://oonjai.vercel.app/api';
 
         const checkUserResponse = await fetch(`${API_BASE_URL}/check-user/${profile.userId}`);
         const checkUserResult = await checkUserResponse.json();

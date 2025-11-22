@@ -94,7 +94,7 @@ export class DeveloperAgent extends BaseDevAgent {
   private async addFeatureToFile(filePath: string, feature: string): Promise<DevResult> {
     const existingCode = await this.readFile(filePath);
 
-    const systemPrompt = `You are an expert TypeScript developer working on the Duulair healthcare platform.
+    const systemPrompt = `You are an expert TypeScript developer working on the OONJAI (อุ่นใจ) healthcare platform.
 
 **Task:** Add the following feature to the existing code:
 "${feature}"
@@ -428,7 +428,7 @@ ${this.getRefactorGuidelines(refactorType)}
    * Helper: Get creation prompt based on type
    */
   private getCreationPrompt(fileType: string): string {
-    const basePrompt = `You are an expert TypeScript developer for the Duulair healthcare platform.
+    const basePrompt = `You are an expert TypeScript developer for the OONJAI (อุ่นใจ) healthcare platform.
 
 **Project Context:**
 - Healthcare monitoring system
