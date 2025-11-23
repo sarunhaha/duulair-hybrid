@@ -428,9 +428,10 @@ function createHelpFlexMessage(): FlexMessage {
 function createReportMenuFlexMessage(): FlexMessage {
   return {
     type: 'flex',
-    altText: '📊 เลือกประเภทรายงาน',
+    altText: '📊 ดูรายงานการดูแล',
     contents: {
       type: 'bubble',
+      size: 'mega',
       header: {
         type: 'box',
         layout: 'vertical',
@@ -440,22 +441,87 @@ function createReportMenuFlexMessage(): FlexMessage {
             text: '📊 รายงานการดูแล',
             weight: 'bold',
             size: 'xl',
-            color: '#5A8BA8'
+            color: '#FFFFFF'
+          },
+          {
+            type: 'text',
+            text: 'สรุปกิจกรรมด้านสุขภาพ',
+            size: 'sm',
+            color: '#FFFFFF',
+            margin: 'sm'
           }
-        ]
+        ],
+        backgroundColor: '#7EE081',
+        paddingAll: '20px'
       },
       body: {
         type: 'box',
         layout: 'vertical',
+        spacing: 'md',
         contents: [
           {
             type: 'text',
             text: 'เลือกช่วงเวลาที่ต้องการดูรายงาน',
             wrap: true,
-            size: 'md',
-            color: '#666666'
+            size: 'sm',
+            color: '#666666',
+            margin: 'md'
+          },
+          {
+            type: 'box',
+            layout: 'vertical',
+            spacing: 'sm',
+            margin: 'lg',
+            contents: [
+              {
+                type: 'box',
+                layout: 'horizontal',
+                spacing: 'sm',
+                contents: [
+                  { type: 'text', text: '💊', size: 'sm', flex: 0 },
+                  { type: 'text', text: 'การรับประทานยา', size: 'sm', color: '#666666', flex: 1 }
+                ]
+              },
+              {
+                type: 'box',
+                layout: 'horizontal',
+                spacing: 'sm',
+                contents: [
+                  { type: 'text', text: '❤️', size: 'sm', flex: 0 },
+                  { type: 'text', text: 'สัญญาณชีพ', size: 'sm', color: '#666666', flex: 1 }
+                ]
+              },
+              {
+                type: 'box',
+                layout: 'horizontal',
+                spacing: 'sm',
+                contents: [
+                  { type: 'text', text: '💧', size: 'sm', flex: 0 },
+                  { type: 'text', text: 'การดื่มน้ำ', size: 'sm', color: '#666666', flex: 1 }
+                ]
+              },
+              {
+                type: 'box',
+                layout: 'horizontal',
+                spacing: 'sm',
+                contents: [
+                  { type: 'text', text: '🏃', size: 'sm', flex: 0 },
+                  { type: 'text', text: 'การออกกำลังกาย', size: 'sm', color: '#666666', flex: 1 }
+                ]
+              },
+              {
+                type: 'box',
+                layout: 'horizontal',
+                spacing: 'sm',
+                contents: [
+                  { type: 'text', text: '🍽️', size: 'sm', flex: 0 },
+                  { type: 'text', text: 'การรับประทานอาหาร', size: 'sm', color: '#666666', flex: 1 }
+                ]
+              }
+            ]
           }
-        ]
+        ],
+        paddingAll: '20px'
       },
       footer: {
         type: 'box',
@@ -470,7 +536,7 @@ function createReportMenuFlexMessage(): FlexMessage {
               text: 'รายงานวันนี้'
             },
             style: 'primary',
-            color: '#5A8BA8'
+            color: '#7EE081'
           },
           {
             type: 'button',
@@ -480,7 +546,7 @@ function createReportMenuFlexMessage(): FlexMessage {
               text: 'รายงานสัปดาห์'
             },
             style: 'primary',
-            color: '#A8D5BA'
+            color: '#62A87C'
           },
           {
             type: 'button',
@@ -489,9 +555,11 @@ function createReportMenuFlexMessage(): FlexMessage {
               label: '🗓️ รายงานเดือนนี้',
               text: 'รายงานเดือน'
             },
-            style: 'secondary'
+            style: 'link',
+            color: '#63595C'
           }
-        ]
+        ],
+        paddingAll: '20px'
       }
     }
   };
