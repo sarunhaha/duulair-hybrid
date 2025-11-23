@@ -312,7 +312,7 @@ export class OrchestratorAgent extends BaseAgent {
           break;
         case 'report_menu':
           // Show report menu as Flex Card
-          plan.agents = [];
+          plan.agents = ['report'];
           plan.requiresFlexMessage = true;
           plan.flexMessageType = 'report_menu';
           break;

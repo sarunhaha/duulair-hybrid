@@ -22,6 +22,22 @@ export class ReportAgent extends BaseAgent {
     const startTime = Date.now();
 
     try {
+      // Check if this is a report menu request (no patientId needed)
+      const intent = message.metadata?.intent;
+      if (intent === 'report_menu') {
+        const menuFlexMessage = this.createReportMenuFlexMessage();
+        return {
+          success: true,
+          data: {
+            flexMessage: menuFlexMessage,
+            flexMessageType: 'report_menu'
+          },
+          agentName: this.config.name,
+          processingTime: Date.now() - startTime
+        };
+      }
+
+      // For actual report generation, patientId is required
       const patientId = message.context.patientId;
       if (!patientId) {
         throw new Error('Patient ID required for report generation');
@@ -31,7 +47,7 @@ export class ReportAgent extends BaseAgent {
 
       // Get data from database
       const data = await this.fetchReportData(patientId, reportType);
-      
+
       // Generate report
       let report;
       if (reportType === 'daily') {
@@ -42,7 +58,7 @@ export class ReportAgent extends BaseAgent {
 
       // Format for LINE Flex Message
       const flexMessage = this.formatFlexMessage(report);
-      
+
       return {
         success: true,
         data: {
@@ -448,6 +464,229 @@ Example format:
             size: 'xs',
             margin: 'lg',
             color: '#666666'
+          }
+        ]
+      }
+    };
+  }
+
+  private createReportMenuFlexMessage() {
+    return {
+      type: 'bubble',
+      size: 'mega',
+      header: {
+        type: 'box',
+        layout: 'vertical',
+        backgroundColor: '#10b981',  // Modern green
+        paddingAll: 'xl',
+        contents: [
+          {
+            type: 'text',
+            text: '📊 เลือกประเภทรายงาน',
+            weight: 'bold',
+            size: 'xl',
+            color: '#ffffff'
+          },
+          {
+            type: 'text',
+            text: 'เลือกรายงานที่คุณต้องการดู',
+            size: 'sm',
+            color: '#ffffff',
+            margin: 'sm'
+          }
+        ]
+      },
+      body: {
+        type: 'box',
+        layout: 'vertical',
+        paddingAll: 'lg',
+        spacing: 'md',
+        contents: [
+          // Daily Report Button
+          {
+            type: 'box',
+            layout: 'vertical',
+            backgroundColor: '#f3f4f6',
+            cornerRadius: 'lg',
+            paddingAll: 'lg',
+            action: {
+              type: 'message',
+              label: 'รายงานวันนี้',
+              text: 'รายงานวันนี้'
+            },
+            contents: [
+              {
+                type: 'box',
+                layout: 'horizontal',
+                contents: [
+                  {
+                    type: 'text',
+                    text: '📅',
+                    size: 'xl',
+                    flex: 0
+                  },
+                  {
+                    type: 'box',
+                    layout: 'vertical',
+                    margin: 'md',
+                    flex: 1,
+                    contents: [
+                      {
+                        type: 'text',
+                        text: 'รายงานวันนี้',
+                        weight: 'bold',
+                        size: 'md',
+                        color: '#111827'
+                      },
+                      {
+                        type: 'text',
+                        text: 'ดูสรุปกิจกรรมประจำวันนี้',
+                        size: 'xs',
+                        color: '#6b7280',
+                        margin: 'xs'
+                      }
+                    ]
+                  },
+                  {
+                    type: 'text',
+                    text: '>',
+                    size: 'lg',
+                    color: '#9ca3af',
+                    flex: 0,
+                    gravity: 'center'
+                  }
+                ]
+              }
+            ]
+          },
+          // Weekly Report Button
+          {
+            type: 'box',
+            layout: 'vertical',
+            backgroundColor: '#f3f4f6',
+            cornerRadius: 'lg',
+            paddingAll: 'lg',
+            action: {
+              type: 'message',
+              label: 'รายงานสัปดาห์',
+              text: 'รายงานสัปดาห์'
+            },
+            contents: [
+              {
+                type: 'box',
+                layout: 'horizontal',
+                contents: [
+                  {
+                    type: 'text',
+                    text: '📈',
+                    size: 'xl',
+                    flex: 0
+                  },
+                  {
+                    type: 'box',
+                    layout: 'vertical',
+                    margin: 'md',
+                    flex: 1,
+                    contents: [
+                      {
+                        type: 'text',
+                        text: 'รายงานสัปดาห์',
+                        weight: 'bold',
+                        size: 'md',
+                        color: '#111827'
+                      },
+                      {
+                        type: 'text',
+                        text: 'ดูสรุปกิจกรรม 7 วันย้อนหลัง',
+                        size: 'xs',
+                        color: '#6b7280',
+                        margin: 'xs'
+                      }
+                    ]
+                  },
+                  {
+                    type: 'text',
+                    text: '>',
+                    size: 'lg',
+                    color: '#9ca3af',
+                    flex: 0,
+                    gravity: 'center'
+                  }
+                ]
+              }
+            ]
+          },
+          // Monthly Report Button (Optional - for future)
+          {
+            type: 'box',
+            layout: 'vertical',
+            backgroundColor: '#f3f4f6',
+            cornerRadius: 'lg',
+            paddingAll: 'lg',
+            action: {
+              type: 'message',
+              label: 'รายงานเดือน',
+              text: 'รายงานเดือน'
+            },
+            contents: [
+              {
+                type: 'box',
+                layout: 'horizontal',
+                contents: [
+                  {
+                    type: 'text',
+                    text: '📊',
+                    size: 'xl',
+                    flex: 0
+                  },
+                  {
+                    type: 'box',
+                    layout: 'vertical',
+                    margin: 'md',
+                    flex: 1,
+                    contents: [
+                      {
+                        type: 'text',
+                        text: 'รายงานเดือน',
+                        weight: 'bold',
+                        size: 'md',
+                        color: '#111827'
+                      },
+                      {
+                        type: 'text',
+                        text: 'ดูสรุปกิจกรรม 30 วันย้อนหลัง',
+                        size: 'xs',
+                        color: '#6b7280',
+                        margin: 'xs'
+                      }
+                    ]
+                  },
+                  {
+                    type: 'text',
+                    text: '>',
+                    size: 'lg',
+                    color: '#9ca3af',
+                    flex: 0,
+                    gravity: 'center'
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      footer: {
+        type: 'box',
+        layout: 'vertical',
+        backgroundColor: '#f9fafb',
+        paddingAll: 'md',
+        contents: [
+          {
+            type: 'text',
+            text: 'คลิกเลือกรายงานที่ต้องการดู',
+            size: 'xxs',
+            color: '#6b7280',
+            align: 'center'
           }
         ]
       }
