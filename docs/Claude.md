@@ -4,10 +4,11 @@
 ## Overview
 This document defines the behavior, capabilities, and constraints for Claude agents in the OONJAI system.
 
-## Current Status (2024-11-19)
+## Current Status (2025-11-23)
 - **Brand**: OONJAI (formerly Duulair)
 - **Model**: Group-Based Care - Caregivers manage patient care via LINE groups
 - **Features**: Activity logging, Image OCR, Patient info queries, Reports
+- **Latest Fix**: Report menu Flex Message now properly displays with interactive buttons
 
 ## System Architecture
 ```mermaid
@@ -371,7 +372,8 @@ Future Enhancements
 - [ ] Advanced NLP with context memory
 - [x] Image OCR for blood pressure (2024-11-19)
 - [x] Group-based care model (TASK-002)
+- [x] Report menu Flex Message with interactive buttons (2025-11-23)
 
 
-Last Updated: 2024-11-19
-Version: 1.1.0
+Last Updated: 2025-11-23
+Version: 1.2.0

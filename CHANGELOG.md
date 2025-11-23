@@ -1,6 +1,19 @@
 
 # OONJAI Changelog
 
+## [2025-11-23] - Report Menu Flex Message Fix
+
+### Fixed
+- **Report Menu Display** (`src/agents/specialized/ReportAgent.ts`)
+  - Fixed "ดูรายงาน" command not showing Flex Message
+  - Added `report_menu` intent handling without requiring `patientId`
+  - Created interactive menu with daily, weekly, and monthly report options
+  - Beautiful card UI matching OONJAI green theme
+
+- **Agent Routing** (`src/agents/core/OrchestratorAgent.ts`)
+  - Fixed empty agents array for `report_menu` intent
+  - Now correctly routes to ReportAgent for menu display
+
 ## [2025-01-21] - Group Auto-Link & Intent Flexibility
 
 ### Fixed
