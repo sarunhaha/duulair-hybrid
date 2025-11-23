@@ -431,7 +431,6 @@ function createReportMenuFlexMessage(): FlexMessage {
     altText: '📊 ดูรายงานการดูแล',
     contents: {
       type: 'bubble',
-      size: 'mega',
       header: {
         type: 'box',
         layout: 'vertical',
@@ -452,7 +451,7 @@ function createReportMenuFlexMessage(): FlexMessage {
           }
         ],
         backgroundColor: '#7EE081',
-        paddingAll: '20px'
+        paddingAll: 'lg'
       },
       body: {
         type: 'box',
@@ -464,8 +463,11 @@ function createReportMenuFlexMessage(): FlexMessage {
             text: 'เลือกช่วงเวลาที่ต้องการดูรายงาน',
             wrap: true,
             size: 'sm',
-            color: '#666666',
-            margin: 'md'
+            color: '#666666'
+          },
+          {
+            type: 'separator',
+            margin: 'lg'
           },
           {
             type: 'box',
@@ -474,54 +476,47 @@ function createReportMenuFlexMessage(): FlexMessage {
             margin: 'lg',
             contents: [
               {
-                type: 'box',
-                layout: 'horizontal',
-                spacing: 'sm',
-                contents: [
-                  { type: 'text', text: '💊', size: 'sm', flex: 0 },
-                  { type: 'text', text: 'การรับประทานยา', size: 'sm', color: '#666666', flex: 1 }
-                ]
+                type: 'text',
+                text: '📊 รายงานจะประกอบด้วย:',
+                size: 'sm',
+                weight: 'bold',
+                color: '#333333'
               },
               {
-                type: 'box',
-                layout: 'horizontal',
-                spacing: 'sm',
-                contents: [
-                  { type: 'text', text: '❤️', size: 'sm', flex: 0 },
-                  { type: 'text', text: 'สัญญาณชีพ', size: 'sm', color: '#666666', flex: 1 }
-                ]
+                type: 'text',
+                text: '• 💊 การรับประทานยา',
+                size: 'sm',
+                color: '#666666',
+                margin: 'sm'
               },
               {
-                type: 'box',
-                layout: 'horizontal',
-                spacing: 'sm',
-                contents: [
-                  { type: 'text', text: '💧', size: 'sm', flex: 0 },
-                  { type: 'text', text: 'การดื่มน้ำ', size: 'sm', color: '#666666', flex: 1 }
-                ]
+                type: 'text',
+                text: '• ❤️ การตรวจวัดสัญญาณชีพ',
+                size: 'sm',
+                color: '#666666'
               },
               {
-                type: 'box',
-                layout: 'horizontal',
-                spacing: 'sm',
-                contents: [
-                  { type: 'text', text: '🏃', size: 'sm', flex: 0 },
-                  { type: 'text', text: 'การออกกำลังกาย', size: 'sm', color: '#666666', flex: 1 }
-                ]
+                type: 'text',
+                text: '• 💧 การดื่มน้ำ',
+                size: 'sm',
+                color: '#666666'
               },
               {
-                type: 'box',
-                layout: 'horizontal',
-                spacing: 'sm',
-                contents: [
-                  { type: 'text', text: '🍽️', size: 'sm', flex: 0 },
-                  { type: 'text', text: 'การรับประทานอาหาร', size: 'sm', color: '#666666', flex: 1 }
-                ]
+                type: 'text',
+                text: '• 🏃 การออกกำลังกาย',
+                size: 'sm',
+                color: '#666666'
+              },
+              {
+                type: 'text',
+                text: '• 🍽️ การรับประทานอาหาร',
+                size: 'sm',
+                color: '#666666'
               }
             ]
           }
         ],
-        paddingAll: '20px'
+        paddingAll: 'lg'
       },
       footer: {
         type: 'box',
@@ -536,7 +531,8 @@ function createReportMenuFlexMessage(): FlexMessage {
               text: 'รายงานวันนี้'
             },
             style: 'primary',
-            color: '#7EE081'
+            color: '#7EE081',
+            height: 'sm'
           },
           {
             type: 'button',
@@ -546,7 +542,8 @@ function createReportMenuFlexMessage(): FlexMessage {
               text: 'รายงานสัปดาห์'
             },
             style: 'primary',
-            color: '#62A87C'
+            color: '#62A87C',
+            height: 'sm'
           },
           {
             type: 'button',
@@ -555,11 +552,11 @@ function createReportMenuFlexMessage(): FlexMessage {
               label: '🗓️ รายงานเดือนนี้',
               text: 'รายงานเดือน'
             },
-            style: 'link',
-            color: '#63595C'
+            style: 'secondary',
+            height: 'sm'
           }
         ],
-        paddingAll: '20px'
+        paddingAll: 'lg'
       }
     }
   };
