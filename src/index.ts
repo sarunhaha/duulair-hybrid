@@ -1297,13 +1297,22 @@ async function handleTextMessage(event: any) {
     if (flexMessageType) {
       let flexMessage;
 
-      if (flexMessageType === 'registration') {
+      // Check if ReportAgent already created the Flex Message
+      if (flexMessageType === 'report_menu' && result.data?.flexMessage) {
+        // Use Flex Message from ReportAgent
+        flexMessage = {
+          type: 'flex' as const,
+          altText: '📊 เลือกประเภทรายงาน',
+          contents: result.data.flexMessage
+        };
+      } else if (flexMessageType === 'registration') {
         flexMessage = createRegistrationFlexMessage();
       } else if (flexMessageType === 'package') {
         flexMessage = createPackageFlexMessage();
       } else if (flexMessageType === 'help') {
         flexMessage = createHelpFlexMessage();
       } else if (flexMessageType === 'report_menu') {
+        // Fallback to old function if ReportAgent didn't provide one
         flexMessage = createReportMenuFlexMessage();
       }
 

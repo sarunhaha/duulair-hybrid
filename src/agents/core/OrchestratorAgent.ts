@@ -247,6 +247,14 @@ export class OrchestratorAgent extends BaseAgent {
       fallback: 'dialog'
     };
 
+    // Special case: report_menu should work even with low confidence
+    if (intent === 'report_menu') {
+      plan.agents = ['report'];
+      plan.requiresFlexMessage = true;
+      plan.flexMessageType = 'report_menu';
+      return plan;
+    }
+
     // High confidence routing
     if (confidence > 0.8) {
       switch(intent) {
@@ -309,12 +317,6 @@ export class OrchestratorAgent extends BaseAgent {
         case 'emergency':
           plan.agents = ['alert', 'health'];
           plan.parallel = true;
-          break;
-        case 'report_menu':
-          // Show report menu as Flex Card
-          plan.agents = ['report'];
-          plan.requiresFlexMessage = true;
-          plan.flexMessageType = 'report_menu';
           break;
         case 'report':
           plan.agents = ['report'];
