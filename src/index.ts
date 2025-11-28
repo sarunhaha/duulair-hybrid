@@ -1294,7 +1294,46 @@ async function handleTextMessage(event: any) {
           contents: result.data.flexMessage
         };
       } else if (flexMessageType === 'registration') {
-        flexMessage = createRegistrationFlexMessage();
+        // Check if user is already registered before showing registration flex
+        // In group: if groupContext exists, user is already a member
+        // In 1:1: check if user exists in caregivers table
+        const isInGroup = context.source === 'group' && context.groupId;
+        let isAlreadyRegistered = false;
+
+        if (isInGroup) {
+          // If we're in a registered group, user is already a member
+          isAlreadyRegistered = !!context.patientId;
+        } else {
+          // 1:1 chat - check if user is registered caregiver
+          const { createClient } = await import('@supabase/supabase-js');
+          const supabase = createClient(
+            process.env.SUPABASE_URL || '',
+            process.env.SUPABASE_SERVICE_KEY || ''
+          );
+          const { data: caregiver } = await supabase
+            .from('caregivers')
+            .select('id')
+            .eq('line_user_id', userId)
+            .single();
+          isAlreadyRegistered = !!caregiver;
+        }
+
+        if (isAlreadyRegistered) {
+          // User is already registered - send confirmation message instead
+          const alreadyRegisteredMessage: TextMessage = {
+            type: 'text',
+            text: `✅ คุณลงทะเบียนแล้วค่ะ!\n\n${isInGroup ? 'สามารถใช้งานในกลุ่มนี้ได้เลย พิมพ์ "วิธีใช้" เพื่อดูคำสั่งทั้งหมดค่ะ' : 'กดเมนูด้านล่างเพื่อใช้งานได้เลยค่ะ'}`
+          };
+          try {
+            await lineClient.replyMessage(replyToken, alreadyRegisteredMessage);
+            console.log('✅ Already registered message sent');
+            return result;
+          } catch (sendError) {
+            console.error('❌ Failed to send already registered message:', sendError);
+          }
+        } else {
+          flexMessage = createRegistrationFlexMessage();
+        }
       } else if (flexMessageType === 'package') {
         flexMessage = createPackageFlexMessage();
       } else if (flexMessageType === 'help') {

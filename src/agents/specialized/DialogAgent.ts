@@ -26,11 +26,8 @@ export class DialogAgent extends BaseAgent {
     { pattern: /อยาก.*ดู.*รายงาน|จะ.*ดู.*รายงาน|ดู.*สรุป.*ยังไง|เช็ค.*กิจกรรม/i, intent: 'report', suggestion: 'ดูรายงาน', action: 'พิมพ์ "รายงานวันนี้" หรือ "รายงานสัปดาห์" ได้เลยค่ะ' },
     { pattern: /วันนี้.*ทำ.*อะไร|กิจกรรม.*วันนี้|สรุป.*วันนี้/i, intent: 'report', suggestion: 'สรุปวันนี้', action: 'พิมพ์ "รายงานวันนี้" ค่ะ' },
 
-    // Patient info
-    { pattern: /อยาก.*รู้.*ข้อมูล|ดู.*ข้อมูล.*ผู้ป่วย|เช็ค.*โปรไฟล์/i, intent: 'patient_info', suggestion: 'ดูข้อมูลผู้ป่วย', action: 'พิมพ์ "ข้อมูลผู้ป่วย" หรือกดปุ่ม 👤 ในเมนูด้านล่างค่ะ' },
-
     // Reminders
-    { pattern: /อยาก.*ตั้ง.*เตือน|จะ.*ตั้ง.*เวลา|เตือน.*ยังไง/i, intent: 'reminder', suggestion: 'ตั้งเตือน', action: 'กดปุ่ม 🔔 เตือน ในเมนูด้านล่างเพื่อตั้งเวลาเตือนค่ะ' },
+    { pattern: /อยาก.*ตั้ง.*เตือน|จะ.*ตั้ง.*เวลา|เตือน.*ยังไง/i, intent: 'reminder', suggestion: 'ตั้งเตือน', action: 'พิมพ์ "วิธีใช้" เพื่อดูคำสั่งทั้งหมดค่ะ' },
 
     // Help-related
     { pattern: /ทำ.*อะไร.*ได้|ช่วย.*อะไร.*ได้|มี.*ฟีเจอร์.*อะไร|ใช้.*งาน.*ยังไง/i, intent: 'help', suggestion: 'วิธีใช้งาน', action: 'พิมพ์ "ช่วยเหลือ" หรือ "วิธีใช้" เพื่อดูคำแนะนำทั้งหมดค่ะ' },
@@ -42,8 +39,9 @@ export class DialogAgent extends BaseAgent {
     // Thanks
     { pattern: /ขอบคุณ|ขอบใจ|thanks|thank you|thx/i, intent: 'thanks', suggestion: 'ขอบคุณ', action: undefined },
 
-    // Emergency guidance
-    { pattern: /ไม่สบาย|ป่วย|เจ็บ.*ตัว|มี.*อาการ/i, intent: 'health_concern', suggestion: 'ปัญหาสุขภาพ', action: 'ถ้าเป็นเรื่องฉุกเฉิน พิมพ์ "ฉุกเฉิน" ได้เลยค่ะ ระบบจะแจ้งผู้ดูแลทันที' },
+    // Emergency guidance - more specific patterns to avoid matching "ผู้ป่วย"
+    // Use negative lookahead to exclude "ผู้ป่วย" context
+    { pattern: /^ไม่สบาย|รู้สึก.*ไม่สบาย|เจ็บ.*ตัว|มี.*อาการ.*แปลก/i, intent: 'health_concern', suggestion: 'ปัญหาสุขภาพ', action: 'ถ้าเป็นเรื่องฉุกเฉิน พิมพ์ "ฉุกเฉิน" ได้เลยค่ะ ระบบจะแจ้งผู้ดูแลทันที' },
   ];
 
   constructor(config?: Partial<Config>) {
@@ -80,20 +78,27 @@ export class DialogAgent extends BaseAgent {
     const startTime = Date.now();
 
     try {
-      // Check for smart intent suggestion first
-      const intentSuggestion = this.checkIntentSuggestion(message.content);
-      if (intentSuggestion && intentSuggestion.action) {
-        // Return helpful guidance instead of generic response
-        return {
-          success: true,
-          data: {
-            response: `💡 ${intentSuggestion.action}`,
-            intent: intentSuggestion.intent,
-            suggestedAction: intentSuggestion.suggestion
-          },
-          agentName: this.config.name,
-          processingTime: Date.now() - startTime
-        };
+      // IMPORTANT: Check if this is a patient data query first (has patientData metadata)
+      // This takes priority over smart intent suggestions
+      if (message.metadata?.patientData) {
+        // Skip smart suggestions - let Claude handle with patient context
+        // This will be processed in the main Claude call below
+      } else {
+        // Check for smart intent suggestion only if NOT a patient data query
+        const intentSuggestion = this.checkIntentSuggestion(message.content);
+        if (intentSuggestion && intentSuggestion.action) {
+          // Return helpful guidance instead of generic response
+          return {
+            success: true,
+            data: {
+              response: `💡 ${intentSuggestion.action}`,
+              intent: intentSuggestion.intent,
+              suggestedAction: intentSuggestion.suggestion
+            },
+            agentName: this.config.name,
+            processingTime: Date.now() - startTime
+          };
+        }
       }
 
       // Check if patient selection is required
