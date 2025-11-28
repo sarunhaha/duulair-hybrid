@@ -1112,21 +1112,9 @@ async function handleTextMessage(event: any) {
       // Get group context first to check if registered
       let groupContext = await groupWebhookService.getGroupContext(groupId);
 
-      // Check if bot is mentioned (REQUIRED for group messages)
-      const hasMention = message.mention?.mentionees?.some((m: any) => m.type === 'all' || m.isSelf) ||
-                         message.text.includes('@oonjai') ||
-                         message.text.includes('@OONJAI');
-
-      // If group is registered and no mention, ignore (MUST mention to trigger bot)
-      // But allow any message for first-time auto-link
-      if (groupContext && !hasMention) {
-        console.log('⏭️ Group message without mention, ignoring');
-        return { success: true, skipped: true, reason: 'no_mention' };
-      }
-
-      if (hasMention) {
-        console.log('✅ Bot triggered by mention');
-      }
+      // Bot responds to ALL messages in group (no mention required)
+      // This provides better UX - users can chat naturally
+      console.log('✅ Group message - bot will respond');
 
       // If group not registered, try to auto-link if sender is registered caregiver
       if (!groupContext) {
@@ -1694,16 +1682,16 @@ async function handleGroupJoin(event: any) {
 📝 วิธีใช้งานในกลุ่ม
 ━━━━━━━━━━━━━━━━━━━━
 
-⚠️ ต้อง @mention บอทก่อนทุกครั้ง
+💬 พิมพ์คุยได้เลย ไม่ต้อง @mention
 
 ตัวอย่างคำสั่ง:
-• @oonjai กินยาแล้ว
-• @oonjai ความดัน 120/80
-• @oonjai ดื่มน้ำ 500ml
-• @oonjai เดิน 30 นาที
-• @oonjai ชื่อผู้ป่วยอะไร
-• @oonjai รายงานวันนี้
-• @oonjai ถามอะไรได้บ้าง
+• กินยาแล้ว
+• ความดัน 120/80
+• ดื่มน้ำ 500ml
+• เดิน 30 นาที
+• ชื่อผู้ป่วยอะไร
+• รายงานวันนี้
+• ถามอะไรได้บ้าง
 
 📷 หรือส่งรูปเครื่องวัดความดันได้เลยค่ะ`
     };
