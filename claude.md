@@ -199,7 +199,7 @@ if (patientId && (requiresPatientData || isGroupChat)) {
 289a9a1 - Fix: DialogAgent now differentiates group vs 1:1 context
 0f2adca - Fix: Multiple agent response issues
 [pending] - Feat: Enhanced patient data with reminders and activities
-[pending] - Fix: Medications not displaying (table name mismatch)
+[pending] - Fix: Medications & Report intent issues
 ```
 
 ### Testing Notes
@@ -225,6 +225,25 @@ if (patientId && (requiresPatientData || isGroupChat)) {
 - `src/services/supabase.service.ts` - Fixed table name and JSON parsing
 - `src/agents/specialized/DialogAgent.ts` - Fixed field names for medications formatting
 
+### Issue 8: Report Intent Not Showing Actual Data
+**Problem:** When user typed "รายงานวันนี้", bot returned generic dialog response instead of actual report data
+
+**Root Cause:**
+- `report` intent was inside `if (confidence > 0.8)` block (like the previous report_menu issue)
+- When confidence < 0.8, code fell through to else block using `['health', 'dialog']` instead of `['report']`
+- This is why bot responded with "สวัสดีค่ะ! วันนี้คุณต้องการตรวจสอบอะไรบ้างคะ?" instead of actual report
+
+**Solution:**
+1. Moved `report` intent handling BEFORE confidence check (lines 261-278)
+2. Added automatic reportType detection from message content:
+   - Contains "สัปดาห์" or "weekly" → weekly report
+   - Contains "เดือน" or "monthly" → monthly report
+   - Default → daily report
+3. Pass `reportType` through metadata to ReportAgent
+
+**Files Modified:**
+- `src/agents/core/OrchestratorAgent.ts` - Moved report handling, added reportType detection
+
 ---
 *Session: 2025-11-29*
-*Issues fixed: 7 major improvements*
+*Issues fixed: 8 major improvements*

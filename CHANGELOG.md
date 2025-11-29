@@ -14,6 +14,12 @@
   - Fixed schedule: uses `times` array and `frequency` instead of `schedule`
   - Now displays medications with proper formatting (name, dosage, schedule, instructions)
 
+- **Report Intent Not Showing Actual Data** (`src/agents/core/OrchestratorAgent.ts`)
+  - Fixed "รายงานวันนี้" not showing actual report data
+  - Moved `report` intent handling before confidence check (like `report_menu`)
+  - Added automatic reportType detection (daily/weekly/monthly) from message content
+  - Now properly routes to ReportAgent with correct reportType parameter
+
 - **Remove @mention Requirement** (`src/index.ts`)
   - Bot now responds to ALL messages in group chat without @mention
   - Better UX - users can chat naturally

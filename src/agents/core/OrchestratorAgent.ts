@@ -154,7 +154,8 @@ export class OrchestratorAgent extends BaseAgent {
           patientsList,
           patientSelectionData: routingPlan.patientSelectionData,
           setDefaultResult,
-          removeDefaultResult
+          removeDefaultResult,
+          reportType: (routingPlan as any).reportType // Pass reportType to ReportAgent
         }
       });
 
@@ -258,6 +259,25 @@ export class OrchestratorAgent extends BaseAgent {
       return plan;
     }
 
+    // Special case: report intent should work with any confidence
+    // and pass reportType based on message content
+    if (intent === 'report') {
+      // Determine report type from message
+      const msgLower = message.content.toLowerCase();
+      let reportType = 'daily'; // default
+      if (msgLower.includes('สัปดาห์') || msgLower.includes('weekly') || msgLower.includes('7 วัน')) {
+        reportType = 'weekly';
+      } else if (msgLower.includes('เดือน') || msgLower.includes('monthly') || msgLower.includes('30 วัน')) {
+        reportType = 'monthly';
+      }
+
+      plan.agents = ['report'];
+      plan.requiresPatientData = true;
+      // Store reportType to pass to ReportAgent
+      (plan as any).reportType = reportType;
+      return plan;
+    }
+
     // High confidence routing
     if (confidence > 0.8) {
       switch(intent) {
@@ -321,9 +341,7 @@ export class OrchestratorAgent extends BaseAgent {
           plan.agents = ['alert', 'health'];
           plan.parallel = true;
           break;
-        case 'report':
-          plan.agents = ['report'];
-          break;
+        // Note: 'report' is handled before confidence check (line 263-278)
         case 'registration':
           // Return special marker for registration
           plan.agents = ['dialog'];
