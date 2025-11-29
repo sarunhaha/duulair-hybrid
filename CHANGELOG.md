@@ -1,6 +1,44 @@
 
 # OONJAI Changelog
 
+## [2025-11-29] - Group Chat UX Improvements & Patient Context
+
+### Fixed
+- **Remove @mention Requirement** (`src/index.ts`)
+  - Bot now responds to ALL messages in group chat without @mention
+  - Better UX - users can chat naturally
+  - Updated welcome message to reflect new behavior
+
+- **Group vs 1:1 Context** (`src/agents/specialized/DialogAgent.ts`)
+  - Bot no longer mentions "เมนูด้านล่าง" in group chat (no Rich Menu there)
+  - Separate system prompts for group chat vs LINE OA
+  - Group chat: only suggests text commands
+
+- **"ข้อมูลผู้ป่วย" Intent Misclassification**
+  - Fixed pattern `ป่วย` matching "ผู้ป่วย" as emergency
+  - Now correctly routes to patient info handler
+
+- **Registration Flex for Registered Users** (`src/index.ts`)
+  - Check if user is already registered before showing registration flex
+  - Show "คุณลงทะเบียนแล้วค่ะ" for existing users
+
+### Added
+- **Smart Intent Suggestions** (`src/agents/specialized/DialogAgent.ts`)
+  - Added pattern matching for common user queries
+  - Suggests exact commands when user types similar phrases
+  - Examples: "อยากบันทึกยา" → "พิมพ์ 'กินยาแล้ว' ได้เลยค่ะ"
+
+- **Enhanced Patient Context** (`src/agents/core/OrchestratorAgent.ts`)
+  - Now fetches reminders that caregiver set up
+  - Now fetches recent activity logs (last 3 days)
+  - Always fetches patient data for group chat (not just specific intents)
+
+- **Rich Patient Context for Claude** (`src/agents/specialized/DialogAgent.ts`)
+  - Shows medications with dosage and schedule
+  - Shows active reminders with times
+  - Shows today's completed activities
+  - Bot can now answer questions about what was set up
+
 ## [2025-11-23] - Report Menu Flex Message Fix
 
 ### Fixed

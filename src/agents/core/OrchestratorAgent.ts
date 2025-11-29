@@ -84,8 +84,11 @@ export class OrchestratorAgent extends BaseAgent {
       const routingPlan = await this.createRoutingPlan(intent, confidence, message);
 
       // Step 2.5: Fetch patient data if needed
+      // Always fetch for group chat (so bot knows about patient context)
+      // Or when specifically required by routing plan
       let patientData = null;
-      if (routingPlan.requiresPatientData && message.context.patientId) {
+      const isGroupChat = message.context.source === 'group' || message.context.groupId;
+      if (message.context.patientId && (routingPlan.requiresPatientData || isGroupChat)) {
         patientData = await this.fetchPatientDataForQuery(message.context.patientId, intent);
       }
 
@@ -519,11 +522,40 @@ export class OrchestratorAgent extends BaseAgent {
 
       if (error || !patient) return null;
 
-      // Fetch medications if needed
-      let medications = [];
-      if (intent === 'patient_medications' || intent === 'patient_info') {
-        const medsResult = await this.supabase.getPatientMedications(patientId);
-        medications = medsResult || [];
+      // Always fetch medications (useful for context)
+      const medsResult = await this.supabase.getPatientMedications(patientId);
+      const medications = medsResult || [];
+
+      // Fetch active reminders
+      let reminders: any[] = [];
+      try {
+        const { data: reminderData } = await this.supabase.getClient()
+          .from('reminders')
+          .select('*')
+          .eq('patient_id', patientId)
+          .eq('is_active', true)
+          .order('custom_time', { ascending: true });
+        reminders = reminderData || [];
+      } catch (e) {
+        this.log('warn', 'Could not fetch reminders', e);
+      }
+
+      // Fetch recent activity logs (last 3 days)
+      let recentActivities: any[] = [];
+      try {
+        const threeDaysAgo = new Date();
+        threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+
+        const { data: activityData } = await this.supabase.getClient()
+          .from('activity_logs')
+          .select('*')
+          .eq('patient_id', patientId)
+          .gte('created_at', threeDaysAgo.toISOString())
+          .order('created_at', { ascending: false })
+          .limit(20);
+        recentActivities = activityData || [];
+      } catch (e) {
+        this.log('warn', 'Could not fetch recent activities', e);
       }
 
       // Calculate age
@@ -541,6 +573,8 @@ export class OrchestratorAgent extends BaseAgent {
         drugAllergies: patient.drug_allergies || [],
         foodAllergies: patient.food_allergies || [],
         medications,
+        reminders,
+        recentActivities,
         emergencyContact: {
           name: patient.emergency_contact_name,
           phone: patient.emergency_contact_phone,

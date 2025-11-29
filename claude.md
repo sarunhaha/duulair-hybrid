@@ -93,3 +93,119 @@ Message: Fix: Handle report_menu intent regardless of confidence level
 ---
 *Session started: 2025-11-23 11:35 (Bangkok Time)*
 *Final fix deployed: 2025-11-23 13:00 (Bangkok Time)*
+
+---
+
+## Session: 2025-11-29
+
+### Issues Fixed
+
+#### Issue 1: Remove @mention Requirement in Group Chat
+**Problem:** Users had to @mention the bot before every message in group chat - bad UX
+
+**Solution:**
+- Removed mention check in `src/index.ts` (lines 1113-1129)
+- Bot now responds to ALL messages in group chat
+- Updated welcome message to reflect no-mention policy
+- Updated help text in OrchestratorAgent
+
+**Files Modified:**
+- `src/index.ts` - Removed hasMention check
+- `src/agents/core/OrchestratorAgent.ts` - Updated help text
+- `src/agents/specialized/HealthAgent.ts` - Removed @oonjai from examples
+
+#### Issue 2: Smart Intent Suggestions
+**Problem:** Users didn't know exact commands to type
+
+**Solution:**
+- Added `intentSuggestions` array in DialogAgent with common patterns
+- When user types similar phrases, bot suggests exact commands
+- Examples:
+  - "อยากบันทึกยา" → "พิมพ์ 'กินยาแล้ว' ได้เลยค่ะ"
+  - "จะวัดความดัน" → "พิมพ์ 'ความดัน 120/80' ได้เลยค่ะ"
+
+#### Issue 3: Group Chat vs 1:1 Context Differentiation
+**Problem:** Bot mentioned "เมนูด้านล่าง" in group chat where there's no Rich Menu
+
+**Solution:**
+- Added `isGroupChat` detection in DialogAgent
+- Created separate system prompts for group vs 1:1
+- Group chat: NEVER mentions Rich Menu, buttons, LIFF pages
+- Group chat: Only suggests text commands
+
+#### Issue 4: "ข้อมูลผู้ป่วย" Returning Emergency Message
+**Problem:** Pattern `ป่วย` in health_concern matched "ผู้ป่วย"
+
+**Solution:**
+- Removed `ป่วย` from health_concern pattern
+- Used more specific pattern: `/^ไม่สบาย|รู้สึก.*ไม่สบาย|เจ็บ.*ตัว|มี.*อาการ.*แปลก/`
+- DialogAgent now skips intentSuggestion when patientData is available
+
+#### Issue 5: Registration Flex Card for Already Registered Users
+**Problem:** Bot sent registration flex even when user was already registered
+
+**Solution:**
+- Check if user is already registered before showing registration flex
+- In group: check if patientId exists
+- In 1:1: check caregivers table
+- Show "คุณลงทะเบียนแล้วค่ะ" message instead
+
+#### Issue 6: Bot Not Using Caregiver's Saved Data (Medications, Reminders)
+**Problem:** Bot didn't use medications/reminders that caregiver set up in LINE OA
+
+**Root Cause:**
+- `fetchPatientDataForQuery()` only fetched patient_profiles and medications (for some intents)
+- No reminders data
+- No recent activity logs
+- patientData only fetched for specific intents, not general group chat
+
+**Solution:**
+
+1. **Enhanced `fetchPatientDataForQuery()`:**
+```typescript
+// Now fetches:
+✅ patient_profiles
+✅ medications (always, not just some intents)
+✅ reminders (new!)
+✅ recentActivities - last 3 days (new!)
+```
+
+2. **Always Fetch patientData for Group Chat:**
+```typescript
+if (patientId && (requiresPatientData || isGroupChat)) {
+  patientData = await fetchPatientDataForQuery(...)
+}
+```
+
+3. **Enhanced DialogAgent patientContext:**
+```
+👤 ข้อมูลพื้นฐาน: ชื่อ, อายุ, เพศ, กรุ๊ปเลือด
+🏥 ประวัติสุขภาพ: โรคประจำตัว, แพ้ยา, แพ้อาหาร
+💊 ยาที่กินประจำ: รายการยาพร้อม dosage และ schedule
+🔔 การแจ้งเตือนที่ตั้งไว้: reminders พร้อมเวลา
+📋 กิจกรรมวันนี้: สิ่งที่ทำไปแล้ว (พร้อมเวลา)
+📞 ผู้ติดต่อฉุกเฉิน
+```
+
+### Files Modified
+1. `src/index.ts` - Removed mention check, added registration check
+2. `src/agents/core/OrchestratorAgent.ts` - Enhanced patientData fetching, updated help text
+3. `src/agents/specialized/DialogAgent.ts` - Smart suggestions, group context, enhanced patientContext
+4. `src/agents/specialized/HealthAgent.ts` - Removed @oonjai from examples
+
+### Commit History
+```
+7fd0014 - Feat: Remove @mention requirement & add smart intent suggestions
+289a9a1 - Fix: DialogAgent now differentiates group vs 1:1 context
+0f2adca - Fix: Multiple agent response issues
+[pending] - Feat: Enhanced patient data with reminders and activities
+```
+
+### Testing Notes
+- Build successful: `npm run build`
+- All TypeScript errors resolved
+- Ready for Vercel deployment
+
+---
+*Session: 2025-11-29*
+*Issues fixed: 6 major improvements*

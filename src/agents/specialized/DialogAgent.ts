@@ -253,19 +253,71 @@ export class DialogAgent extends BaseAgent {
       let patientContext = '';
       if (message.metadata?.patientData) {
         const p = message.metadata.patientData;
+
+        // Format medications list
+        const medicationsList = p.medications?.length > 0
+          ? p.medications.map((m: any) => {
+              const schedule = m.schedule ? ` (${m.schedule})` : '';
+              const dosage = m.dosage ? ` ${m.dosage}` : '';
+              return `${m.name}${dosage}${schedule}`;
+            }).join('\n  • ')
+          : 'ไม่มีรายการยา';
+
+        // Format reminders list
+        const remindersList = p.reminders?.length > 0
+          ? p.reminders.map((r: any) => {
+              const time = r.custom_time || r.time || '';
+              const type = r.type || r.reminder_type || 'general';
+              const typeIcon = type === 'medication' ? '💊' : type === 'vitals' ? '🩺' : type === 'water' ? '💧' : type === 'exercise' ? '🚶' : '🔔';
+              return `${typeIcon} ${r.title} - ${time}`;
+            }).join('\n  • ')
+          : 'ไม่มีการตั้งเตือน';
+
+        // Format recent activities (today only for relevance)
+        const today = new Date().toDateString();
+        const todayActivities = p.recentActivities?.filter((a: any) =>
+          new Date(a.created_at).toDateString() === today
+        ) || [];
+
+        const activitiesList = todayActivities.length > 0
+          ? todayActivities.slice(0, 5).map((a: any) => {
+              const time = new Date(a.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+              const type = a.activity_type || a.type || 'unknown';
+              const typeIcon = type === 'medication' ? '💊' : type === 'vitals' ? '🩺' : type === 'water' ? '💧' : type === 'walk' ? '🚶' : type === 'food' ? '🍚' : '📝';
+              return `${typeIcon} ${a.description || type} (${time})`;
+            }).join('\n  • ')
+          : 'ยังไม่มีกิจกรรมวันนี้';
+
         patientContext = `
 PATIENT DATA (use this to answer questions):
+👤 ข้อมูลพื้นฐาน:
 - ชื่อ: ${p.name} ${p.nickname ? `(${p.nickname})` : ''}
 - อายุ: ${p.age} ปี
 - เพศ: ${p.gender || 'ไม่ระบุ'}
 - กรุ๊ปเลือด: ${p.bloodType || 'ไม่ระบุ'}
+
+🏥 ประวัติสุขภาพ:
 - โรคประจำตัว: ${p.chronicDiseases?.length > 0 ? p.chronicDiseases.join(', ') : 'ไม่มี'}
 - แพ้ยา: ${p.drugAllergies?.length > 0 ? p.drugAllergies.join(', ') : 'ไม่มี'}
 - แพ้อาหาร: ${p.foodAllergies?.length > 0 ? p.foodAllergies.join(', ') : 'ไม่มี'}
-- ยาที่กิน: ${p.medications?.length > 0 ? p.medications.map((m: any) => `${m.name} ${m.dosage || ''}`).join(', ') : 'ไม่มีรายการยา'}
-- ผู้ติดต่อฉุกเฉิน: ${p.emergencyContact?.name || 'ไม่ระบุ'} (${p.emergencyContact?.relation || ''}) ${p.emergencyContact?.phone || ''}
 
-When answering patient info questions, use this data directly. Format nicely with emojis.`;
+💊 ยาที่กินประจำ:
+  • ${medicationsList}
+
+🔔 การแจ้งเตือนที่ตั้งไว้:
+  • ${remindersList}
+
+📋 กิจกรรมวันนี้:
+  • ${activitiesList}
+
+📞 ผู้ติดต่อฉุกเฉิน: ${p.emergencyContact?.name || 'ไม่ระบุ'} (${p.emergencyContact?.relation || ''}) ${p.emergencyContact?.phone || ''}
+
+INSTRUCTIONS:
+- Use this data to answer questions about the patient
+- When asked about medications, list them from the data above
+- When asked about reminders, show what's been set up
+- When asked about today's activities, show what's been done
+- Format responses nicely with emojis`;
       }
 
       // Detect if this is a group chat context
