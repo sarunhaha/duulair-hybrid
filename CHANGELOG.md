@@ -14,9 +14,11 @@
   - Fixed schedule: uses `times` array and `frequency` instead of `schedule`
   - Now displays medications with proper formatting (name, dosage, schedule, instructions)
 
-- **Report Intent Not Showing Actual Data** (`src/agents/core/OrchestratorAgent.ts`)
+- **Report Intent Not Showing Actual Data** (`src/agents/core/OrchestratorAgent.ts`, `src/agents/specialized/IntentAgent.ts`)
   - Fixed "รายงานวันนี้" not showing actual report data
-  - Moved `report` intent handling before confidence check (like `report_menu`)
+  - Root cause: confidence calculation `score/patterns.length` gave 1/11 = 0.09 for report intent
+  - Fixed IntentAgent to give 0.9 confidence for specific action intents (report, emergency, etc.)
+  - Moved `report` intent handling before confidence check in OrchestratorAgent
   - Added automatic reportType detection (daily/weekly/monthly) from message content
   - Now properly routes to ReportAgent with correct reportType parameter
 

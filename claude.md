@@ -228,20 +228,26 @@ if (patientId && (requiresPatientData || isGroupChat)) {
 ### Issue 8: Report Intent Not Showing Actual Data
 **Problem:** When user typed "รายงานวันนี้", bot returned generic dialog response instead of actual report data
 
-**Root Cause:**
-- `report` intent was inside `if (confidence > 0.8)` block (like the previous report_menu issue)
-- When confidence < 0.8, code fell through to else block using `['health', 'dialog']` instead of `['report']`
-- This is why bot responded with "สวัสดีค่ะ! วันนี้คุณต้องการตรวจสอบอะไรบ้างคะ?" instead of actual report
+**Root Cause (Deeper Issue):**
+- IntentAgent confidence calculation: `score / patterns.length`
+- "รายงานวันนี้" matches 1 pattern out of 11 in `report` array
+- **Confidence = 1/11 ≈ 0.09** (WAY below 0.5 threshold!)
+- Falls back to Claude API which doesn't return "report" intent correctly
+- Then in OrchestratorAgent, `report` was inside `if (confidence > 0.8)` block
 
 **Solution:**
-1. Moved `report` intent handling BEFORE confidence check (lines 261-278)
-2. Added automatic reportType detection from message content:
-   - Contains "สัปดาห์" or "weekly" → weekly report
-   - Contains "เดือน" or "monthly" → monthly report
-   - Default → daily report
-3. Pass `reportType` through metadata to ReportAgent
+1. **Fixed IntentAgent pattern matching** (`src/agents/specialized/IntentAgent.ts`):
+   - Created `highConfidenceIntents` list for specific action intents
+   - These intents get 0.9 confidence on ANY pattern match
+   - Other intents get minimum 0.6 confidence if any pattern matches
+
+2. **Fixed OrchestratorAgent routing** (lines 261-278):
+   - Moved `report` intent handling BEFORE confidence check
+   - Added automatic reportType detection from message content
+   - Pass `reportType` through metadata to ReportAgent
 
 **Files Modified:**
+- `src/agents/specialized/IntentAgent.ts` - Fixed confidence calculation
 - `src/agents/core/OrchestratorAgent.ts` - Moved report handling, added reportType detection
 
 ---

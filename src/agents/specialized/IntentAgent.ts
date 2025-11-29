@@ -183,17 +183,33 @@ export class IntentAgent extends BaseAgent {
   private matchPattern(text: string): { intent: string, confidence: number, entities?: any } {
     const normalized = text.toLowerCase();
     const scores: Record<string, number> = {};
-    
+
+    // Intents that should get high confidence on ANY pattern match
+    // These are specific action intents where a single match is definitive
+    const highConfidenceIntents = [
+      'report', 'report_menu', 'emergency', 'registration',
+      'switch_patient', 'list_patients', 'set_default_patient', 'remove_default_patient',
+      'group_help', 'help', 'package'
+    ];
+
     // นับคะแนนแต่ละ intent
     for (const [intent, patterns] of Object.entries(this.patterns)) {
-      let score = 0;
+      let matchCount = 0;
       for (const pattern of patterns) {
         if (pattern.test(normalized)) {
-          score++;
+          matchCount++;
         }
       }
-      if (score > 0) {
-        scores[intent] = score / patterns.length;
+      if (matchCount > 0) {
+        // For high-confidence intents, give 0.9 confidence on ANY match
+        // For others, use ratio but with a minimum of 0.6 if at least one pattern matches
+        if (highConfidenceIntents.includes(intent)) {
+          scores[intent] = 0.9;
+        } else {
+          // Calculate ratio but ensure minimum 0.6 for any match
+          const ratio = matchCount / patterns.length;
+          scores[intent] = Math.max(0.6, ratio);
+        }
       }
     }
 
