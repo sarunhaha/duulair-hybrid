@@ -4,6 +4,16 @@
 ## [2025-11-29] - Group Chat UX Improvements & Patient Context
 
 ### Fixed
+- **Medications Not Displaying** (`src/services/supabase.service.ts`)
+  - Fixed table name mismatch: was querying `patient_medications` instead of `medications`
+  - Added JSON parsing for `days_of_week` and `times` fields
+  - Medications now properly show in bot responses
+
+- **Medications Field Names** (`src/agents/specialized/DialogAgent.ts`)
+  - Fixed field mapping: `dosage_amount`, `dosage_unit`, `dosage_form` instead of `dosage`
+  - Fixed schedule: uses `times` array and `frequency` instead of `schedule`
+  - Now displays medications with proper formatting (name, dosage, schedule, instructions)
+
 - **Remove @mention Requirement** (`src/index.ts`)
   - Bot now responds to ALL messages in group chat without @mention
   - Better UX - users can chat naturally

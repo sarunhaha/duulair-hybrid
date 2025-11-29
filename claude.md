@@ -199,6 +199,7 @@ if (patientId && (requiresPatientData || isGroupChat)) {
 289a9a1 - Fix: DialogAgent now differentiates group vs 1:1 context
 0f2adca - Fix: Multiple agent response issues
 [pending] - Feat: Enhanced patient data with reminders and activities
+[pending] - Fix: Medications not displaying (table name mismatch)
 ```
 
 ### Testing Notes
@@ -206,6 +207,24 @@ if (patientId && (requiresPatientData || isGroupChat)) {
 - All TypeScript errors resolved
 - Ready for Vercel deployment
 
+### Issue 7: Medications Not Displaying in Bot Responses
+**Problem:** Bot said "ตอนนี้คุณ เอ ไม่ได้กินยาประจำเลย" even though medications existed
+
+**Root Cause (Multiple Issues):**
+1. **Table Name Mismatch:** `supabase.service.ts` queried `patient_medications` table, but medications are stored in `medications` table
+2. **Field Name Mismatch:** DialogAgent used `m.dosage` and `m.schedule`, but actual schema uses:
+   - `dosage_amount`, `dosage_unit`, `dosage_form` for dosage
+   - `times` array and `frequency` for schedule
+
+**Solution:**
+1. Fixed `supabase.service.ts` to query `medications` table (line 162)
+2. Added JSON parsing for `days_of_week` and `times` fields
+3. Fixed `DialogAgent.ts` to use correct field names
+
+**Files Modified:**
+- `src/services/supabase.service.ts` - Fixed table name and JSON parsing
+- `src/agents/specialized/DialogAgent.ts` - Fixed field names for medications formatting
+
 ---
 *Session: 2025-11-29*
-*Issues fixed: 6 major improvements*
+*Issues fixed: 7 major improvements*

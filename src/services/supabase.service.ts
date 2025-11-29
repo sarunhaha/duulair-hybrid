@@ -155,16 +155,23 @@ export class SupabaseService {
   }
 
   // Get patient medications
+  // NOTE: Table is 'medications' (not 'patient_medications')
+  // Schema matches medication.service.ts
   async getPatientMedications(patientId: string) {
     const { data, error } = await this.client
-      .from('patient_medications')
+      .from('medications')
       .select('*')
       .eq('patient_id', patientId)
-      .eq('is_active', true)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return data || [];
+
+    // Parse JSON fields (days_of_week, times) if needed
+    return (data || []).map((med: any) => ({
+      ...med,
+      days_of_week: med.days_of_week ? (typeof med.days_of_week === 'string' ? JSON.parse(med.days_of_week) : med.days_of_week) : undefined,
+      times: med.times ? (typeof med.times === 'string' ? JSON.parse(med.times) : med.times) : []
+    }));
   }
 
   // Get water intake goal

@@ -255,11 +255,31 @@ export class DialogAgent extends BaseAgent {
         const p = message.metadata.patientData;
 
         // Format medications list
+        // Schema: name, dosage_amount, dosage_unit, dosage_form, frequency, times, instructions
         const medicationsList = p.medications?.length > 0
           ? p.medications.map((m: any) => {
-              const schedule = m.schedule ? ` (${m.schedule})` : '';
-              const dosage = m.dosage ? ` ${m.dosage}` : '';
-              return `${m.name}${dosage}${schedule}`;
+              // Format dosage (e.g., "1 tablet", "5 ml")
+              let dosage = '';
+              if (m.dosage_amount) {
+                const unit = m.dosage_unit || m.dosage_form || 'เม็ด';
+                dosage = ` ${m.dosage_amount} ${unit}`;
+              }
+              // Format schedule from times array
+              let schedule = '';
+              if (m.times && Array.isArray(m.times) && m.times.length > 0) {
+                const timesStr = m.times.map((t: string) => t.substring(0, 5)).join(', ');
+                schedule = ` (${timesStr})`;
+              } else if (m.frequency) {
+                const freqMap: Record<string, string> = {
+                  'daily': 'ทุกวัน',
+                  'weekly': 'สัปดาห์ละครั้ง',
+                  'as_needed': 'เมื่อจำเป็น'
+                };
+                schedule = ` (${freqMap[m.frequency] || m.frequency})`;
+              }
+              // Add instructions if available
+              const instructions = m.instructions ? ` - ${m.instructions}` : '';
+              return `${m.name}${dosage}${schedule}${instructions}`;
             }).join('\n  • ')
           : 'ไม่มีรายการยา';
 
