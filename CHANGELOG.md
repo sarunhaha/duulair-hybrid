@@ -1,6 +1,32 @@
 
 # OONJAI Changelog
 
+## [2025-11-30] - Supabase Edge Functions + pg_cron for Reminders
+
+### Added
+- **Supabase Edge Functions** for scalable reminder notifications
+  - `send-reminders` - Sends reminders every minute via pg_cron
+  - `check-missed-activities` - Alerts if no activity for 4 hours
+  - Supports LINE Multicast for efficiency
+  - Logs all sent reminders to prevent duplicates
+
+- **pg_cron Integration** (`docs/migrations/008_setup_pg_cron_reminders.sql`)
+  - Database-level cron jobs for reliability
+  - Works on Vercel (unlike node-cron)
+  - Two jobs: every minute + every hour
+
+- **Setup Guide** (`docs/SUPABASE_CRON_SETUP.md`)
+  - Step-by-step instructions
+  - Troubleshooting guide
+  - Cost breakdown (free tier covers most use cases)
+
+### Changed
+- **Scheduler Service** (`src/services/scheduler.service.ts`)
+  - Auto-detects Vercel and skips node-cron
+  - node-cron still works for local development
+
+---
+
 ## [2025-11-29] - Group Chat UX Improvements & Patient Context
 
 ### Fixed
