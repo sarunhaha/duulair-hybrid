@@ -15,6 +15,25 @@
 -- STEP 1: Create missing tables
 -- ============================================
 
+-- Table for tracking sent reminders (prevent duplicate sends)
+CREATE TABLE IF NOT EXISTS reminder_logs (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    reminder_id UUID NOT NULL REFERENCES reminders(id) ON DELETE CASCADE,
+    patient_id UUID NOT NULL REFERENCES patient_profiles(id) ON DELETE CASCADE,
+    sent_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    status VARCHAR(20) DEFAULT 'sent',
+    channel VARCHAR(20) DEFAULT 'direct',
+    error_message TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Index for checking if already sent today
+CREATE INDEX IF NOT EXISTS idx_reminder_logs_reminder_date
+ON reminder_logs(reminder_id, sent_at);
+
+CREATE INDEX IF NOT EXISTS idx_reminder_logs_patient_date
+ON reminder_logs(patient_id, sent_at);
+
 -- Table for tracking missed activity alerts (prevent duplicate alerts)
 CREATE TABLE IF NOT EXISTS missed_activity_alerts (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -28,10 +47,6 @@ CREATE TABLE IF NOT EXISTS missed_activity_alerts (
 -- Index for efficient querying
 CREATE INDEX IF NOT EXISTS idx_missed_activity_alerts_patient_date
 ON missed_activity_alerts(patient_id, sent_at);
-
--- Ensure reminder_logs table has channel column
-ALTER TABLE reminder_logs
-ADD COLUMN IF NOT EXISTS channel VARCHAR(20) DEFAULT 'direct';
 
 -- ============================================
 -- STEP 2: Enable pg_cron extension
