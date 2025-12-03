@@ -623,7 +623,7 @@ Example format:
               }
             ]
           },
-          // Monthly Report Button (Optional - for future)
+          // Monthly Report Button
           {
             type: 'box',
             layout: 'vertical',
@@ -679,6 +679,69 @@ Example format:
                 ]
               }
             ]
+          },
+          // Separator
+          {
+            type: 'separator',
+            margin: 'lg'
+          },
+          // LIFF Dashboard Button (Charts & Export)
+          {
+            type: 'box',
+            layout: 'vertical',
+            backgroundColor: '#dbeafe',
+            cornerRadius: 'lg',
+            paddingAll: 'lg',
+            margin: 'md',
+            action: {
+              type: 'uri',
+              label: 'รายงานพร้อมกราฟ',
+              uri: 'https://liff.line.me/2008278683-5k69jxNq/reports.html'
+            },
+            contents: [
+              {
+                type: 'box',
+                layout: 'horizontal',
+                contents: [
+                  {
+                    type: 'text',
+                    text: '📈',
+                    size: 'xl',
+                    flex: 0
+                  },
+                  {
+                    type: 'box',
+                    layout: 'vertical',
+                    margin: 'md',
+                    flex: 1,
+                    contents: [
+                      {
+                        type: 'text',
+                        text: 'รายงานพร้อมกราฟ',
+                        weight: 'bold',
+                        size: 'md',
+                        color: '#1e40af'
+                      },
+                      {
+                        type: 'text',
+                        text: 'ดูกราฟ เลือกช่วงเวลา และส่งออก CSV/PDF',
+                        size: 'xs',
+                        color: '#3b82f6',
+                        margin: 'xs'
+                      }
+                    ]
+                  },
+                  {
+                    type: 'text',
+                    text: '→',
+                    size: 'lg',
+                    color: '#3b82f6',
+                    flex: 0,
+                    gravity: 'center'
+                  }
+                ]
+              }
+            ]
           }
         ]
       },
@@ -690,10 +753,11 @@ Example format:
         contents: [
           {
             type: 'text',
-            text: 'คลิกเลือกรายงานที่ต้องการดู',
+            text: 'เลือกรายงานแบบข้อความ หรือ เปิดรายงานพร้อมกราฟ',
             size: 'xxs',
             color: '#6b7280',
-            align: 'center'
+            align: 'center',
+            wrap: true
           }
         ]
       }

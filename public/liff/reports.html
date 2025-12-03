@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#F2F1F7">
+  <title>รายงานสุขภาพ - OONJAI</title>
+  <link rel="stylesheet" href="css/minimal-theme.css">
+  <link rel="stylesheet" href="css/reports.css">
+  <!-- LIFF SDK -->
+  <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Date picker -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script src="https://npmcdn.com/flatpickr/dist/l10n/th.js"></script>
+  <!-- PDF Generation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <!-- Loading Overlay -->
+    <div id="loading" class="loading-overlay">
+      <div class="loading-spinner"></div>
+      <p id="loading-text">กำลังโหลด...</p>
+    </div>
+
+    <!-- Header -->
+    <header class="header">
+      <div class="header-content">
+        <button class="back-button" onclick="closeLiff()">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+        </button>
+        <h1 class="page-title">รายงานสุขภาพ</h1>
+      </div>
+    </header>
+
+    <!-- Patient Selector (if multiple patients) -->
+    <div id="patient-selector" class="patient-selector hidden">
+      <label class="selector-label">เลือกผู้ป่วย</label>
+      <select id="patient-select" class="patient-select">
+        <option value="">-- เลือกผู้ป่วย --</option>
+      </select>
+    </div>
+
+    <!-- Date Range Picker -->
+    <div class="date-range-section">
+      <label class="selector-label">ช่วงเวลา</label>
+      <div class="date-presets">
+        <button class="preset-btn active" data-days="7">7 วัน</button>
+        <button class="preset-btn" data-days="30">30 วัน</button>
+        <button class="preset-btn" data-days="90">90 วัน</button>
+        <button class="preset-btn" data-days="custom">กำหนดเอง</button>
+      </div>
+      <div id="custom-date-range" class="custom-date-range hidden">
+        <div class="date-inputs">
+          <div class="date-input-group">
+            <label>จาก</label>
+            <input type="text" id="date-from" class="date-input" placeholder="เลือกวันที่">
+          </div>
+          <div class="date-input-group">
+            <label>ถึง</label>
+            <input type="text" id="date-to" class="date-input" placeholder="เลือกวันที่">
+          </div>
+        </div>
+        <button class="apply-date-btn" onclick="applyCustomDateRange()">ใช้ช่วงเวลานี้</button>
+      </div>
+      <div class="date-display">
+        <span id="date-range-display">1 ม.ค. - 7 ม.ค. 2567</span>
+      </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div id="summary-section" class="summary-section">
+      <h2 class="section-title">ภาพรวม</h2>
+      <div class="summary-cards">
+        <!-- Blood Pressure Card -->
+        <div class="summary-card bp-card">
+          <div class="card-icon">🩺</div>
+          <div class="card-content">
+            <div class="card-label">ความดันเฉลี่ย</div>
+            <div class="card-value" id="bp-value">--/--</div>
+            <div class="card-status" id="bp-status">กำลังโหลด...</div>
+          </div>
+        </div>
+
+        <!-- Medication Card -->
+        <div class="summary-card med-card">
+          <div class="card-icon">💊</div>
+          <div class="card-content">
+            <div class="card-label">การกินยา</div>
+            <div class="card-value" id="med-value">--%</div>
+            <div class="card-status" id="med-status">กำลังโหลด...</div>
+          </div>
+        </div>
+
+        <!-- Water Card -->
+        <div class="summary-card water-card">
+          <div class="card-icon">💧</div>
+          <div class="card-content">
+            <div class="card-label">ดื่มน้ำเฉลี่ย</div>
+            <div class="card-value" id="water-value">-- มล.</div>
+            <div class="card-status" id="water-status">กำลังโหลด...</div>
+          </div>
+        </div>
+
+        <!-- Activities Card -->
+        <div class="summary-card activity-card">
+          <div class="card-icon">📊</div>
+          <div class="card-content">
+            <div class="card-label">กิจกรรม</div>
+            <div class="card-value" id="activity-value">-- รายการ</div>
+            <div class="card-status" id="activity-status">กำลังโหลด...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts Section -->
+    <div id="charts-section" class="charts-section">
+      <!-- Blood Pressure Chart -->
+      <div class="chart-card">
+        <h3 class="chart-title">📈 ความดันโลหิต</h3>
+        <div class="chart-container">
+          <canvas id="bp-chart"></canvas>
+        </div>
+        <div class="chart-legend">
+          <span class="legend-item systolic">● Systolic</span>
+          <span class="legend-item diastolic">● Diastolic</span>
+        </div>
+      </div>
+
+      <!-- Medication Compliance Chart -->
+      <div class="chart-card">
+        <h3 class="chart-title">💊 การกินยา</h3>
+        <div class="chart-container">
+          <canvas id="med-chart"></canvas>
+        </div>
+      </div>
+
+      <!-- Water Intake Chart -->
+      <div class="chart-card">
+        <h3 class="chart-title">💧 การดื่มน้ำ</h3>
+        <div class="chart-container">
+          <canvas id="water-chart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Export Section -->
+    <div class="export-section">
+      <h2 class="section-title">ส่งออกรายงาน</h2>
+      <p class="export-note">ส่งออกข้อมูลเพื่อแชร์กับแพทย์</p>
+      <div class="export-buttons">
+        <button class="export-btn csv-btn" onclick="exportCSV()">
+          <span class="btn-icon">📥</span>
+          <span class="btn-text">ดาวน์โหลด CSV</span>
+        </button>
+        <button class="export-btn pdf-btn" onclick="exportPDF()">
+          <span class="btn-icon">📄</span>
+          <span class="btn-text">ดาวน์โหลด PDF</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Disclaimer -->
+    <div class="disclaimer">
+      <p>⚠️ ข้อมูลนี้เพื่อการติดตามสุขภาพเบื้องต้น<br>กรุณาปรึกษาแพทย์สำหรับการวินิจฉัยและรักษา</p>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/liff-init.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/reports.js"></script>
+</body>
+</html>
