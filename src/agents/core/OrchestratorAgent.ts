@@ -456,8 +456,9 @@ export class OrchestratorAgent extends BaseAgent {
     // Track priority responses
     let alertResponse: string | null = null;
     let healthResponse: string | null = null;
+    let reportResponse: string | null = null;
 
-    // Merge successful responses - prioritize: alert > health > dialog
+    // Merge successful responses - prioritize: alert > health > report > dialog
     for (const response of aggregated.results) {
       if (response.data) {
         // Store agent-specific responses
@@ -465,17 +466,22 @@ export class OrchestratorAgent extends BaseAgent {
           alertResponse = response.data.response;
         } else if (response.agentName === 'health' && response.data.response) {
           healthResponse = response.data.response;
+        } else if (response.agentName === 'report') {
+          // ReportAgent returns reportText or responseMessage
+          reportResponse = response.data.reportText || response.data.responseMessage || null;
         }
 
         Object.assign(aggregated.combined, response.data);
       }
     }
 
-    // Apply priority: alert > health > dialog
+    // Apply priority: alert > health > report > dialog
     if (alertResponse) {
       aggregated.combined.response = alertResponse;
     } else if (healthResponse) {
       aggregated.combined.response = healthResponse;
+    } else if (reportResponse) {
+      aggregated.combined.response = reportResponse;
     }
 
     return aggregated;

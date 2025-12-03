@@ -1,6 +1,7 @@
 // supabase/functions/send-reminders/index.ts
 // Supabase Edge Function for sending reminder notifications
 // Triggered by pg_cron every minute
+// Supports both reminders and medications
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
@@ -15,6 +16,14 @@ const LINE_CHANNEL_ACCESS_TOKEN = Deno.env.get('LINE_CHANNEL_ACCESS_TOKEN')!
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
+// Time period mapping (Thai timezone)
+const TIME_PERIOD_MAP: Record<string, { start: string, end: string, label: string }> = {
+  morning: { start: '06:00', end: '10:59', label: 'เช้า' },
+  afternoon: { start: '11:00', end: '14:59', label: 'กลางวัน' },
+  evening: { start: '15:00', end: '18:59', label: 'เย็น' },
+  night: { start: '19:00', end: '23:59', label: 'ก่อนนอน' }
+}
+
 interface Reminder {
   id: string
   patient_id: string
@@ -25,6 +34,25 @@ interface Reminder {
   frequency: string
   days_of_week: string[] | null
   is_active: boolean
+  patient_profiles: {
+    id: string
+    first_name: string
+    last_name: string
+    user_id: string | null
+  }
+}
+
+interface Medication {
+  id: string
+  patient_id: string
+  name: string
+  dosage_amount: string
+  dosage_unit: string
+  dosage_form: string
+  times: string[]
+  frequency: string
+  instructions: string
+  active: boolean
   patient_profiles: {
     id: string
     first_name: string
@@ -55,6 +83,14 @@ serve(async (req) => {
     const today = bangkokTime.toISOString().split('T')[0]
 
     console.log(`[Reminder] Checking at ${currentTime} (${dayName})`)
+
+    // Determine current time period for medications
+    const currentHour = bangkokTime.getHours()
+    const currentMinute = bangkokTime.getMinutes()
+    const currentTimePeriod = getCurrentTimePeriod(currentHour)
+    const isTimePeriodStart = isStartOfTimePeriod(currentHour, currentMinute)
+
+    console.log(`[Medication] Current period: ${currentTimePeriod}, isStart: ${isTimePeriodStart}`)
 
     // Get all active reminders due at current time
     const { data: reminders, error } = await supabase
@@ -129,23 +165,26 @@ serve(async (req) => {
 
       const message = formatReminderMessage(reminder)
 
-      // Get group for this patient
-      const { data: groupPatient } = await supabase
+      // Get ALL groups for this patient (not just one)
+      const { data: groupPatients } = await supabase
         .from('group_patients')
         .select('group_id, groups(id, line_group_id)')
         .eq('patient_id', reminder.patient_id)
         .eq('is_active', true)
-        .limit(1)
-        .single()
 
-      if (groupPatient?.groups) {
-        const group = groupPatient.groups as unknown as GroupInfo
-        if (group.line_group_id) {
-          // Add to group messages
-          if (!groupMessages.has(group.line_group_id)) {
-            groupMessages.set(group.line_group_id, [])
+      // Send to ALL groups that have this patient
+      if (groupPatients && groupPatients.length > 0) {
+        for (const groupPatient of groupPatients) {
+          if (groupPatient?.groups) {
+            const group = groupPatient.groups as unknown as GroupInfo
+            if (group.line_group_id) {
+              // Add to group messages
+              if (!groupMessages.has(group.line_group_id)) {
+                groupMessages.set(group.line_group_id, [])
+              }
+              groupMessages.get(group.line_group_id)!.push({ message, reminder })
+            }
           }
-          groupMessages.get(group.line_group_id)!.push({ message, reminder })
         }
       }
 
@@ -163,18 +202,16 @@ serve(async (req) => {
       }
     }
 
-    // Send to LINE groups
+    // Send to LINE groups - each reminder separately with Quick Reply
     for (const [groupId, messages] of groupMessages) {
-      try {
-        // Combine messages if multiple reminders for same group
-        const combinedMessage = messages.length > 1
-          ? messages.map(m => m.message).join('\n\n---\n\n')
-          : messages[0].message
+      for (const { message, reminder } of messages) {
+        try {
+          const patientName = reminder.patient_profiles?.first_name || 'ผู้ป่วย'
+          const quickReplyItems = createQuickReplyItems(reminder.type, patientName)
 
-        await sendLineMessage(groupId, combinedMessage)
+          await sendLineMessage(groupId, message, quickReplyItems)
 
-        // Log all reminders as sent
-        for (const { reminder } of messages) {
+          // Log reminder as sent
           await supabase.from('reminder_logs').insert({
             reminder_id: reminder.id,
             patient_id: reminder.patient_id,
@@ -184,10 +221,10 @@ serve(async (req) => {
           })
           results.sent++
           results.details.push({ id: reminder.id, status: 'sent', channel: 'group' })
+        } catch (err) {
+          console.error(`Error sending reminder ${reminder.id} to group ${groupId}:`, err)
+          results.errors++
         }
-      } catch (err) {
-        console.error(`Error sending to group ${groupId}:`, err)
-        results.errors++
       }
     }
 
@@ -237,10 +274,117 @@ serve(async (req) => {
 
     console.log(`[Reminder] Results: sent=${results.sent}, skipped=${results.skipped}, errors=${results.errors}`)
 
+    // ============================================
+    // MEDICATIONS PROCESSING
+    // Only process at the start of each time period
+    // ============================================
+    const medicationResults = {
+      sent: 0,
+      skipped: 0,
+      errors: 0
+    }
+
+    if (currentTimePeriod && isTimePeriodStart) {
+      console.log(`[Medication] Processing medications for period: ${currentTimePeriod}`)
+
+      // Get all active medications that include current time period
+      const { data: medications, error: medError } = await supabase
+        .from('medications')
+        .select(`
+          *,
+          patient_profiles(
+            id,
+            first_name,
+            last_name,
+            user_id
+          )
+        `)
+        .eq('active', true)
+        .contains('times', [currentTimePeriod])
+
+      if (medError) {
+        console.error('Error fetching medications:', medError)
+      } else if (medications && medications.length > 0) {
+        console.log(`[Medication] Found ${medications.length} medications for ${currentTimePeriod}`)
+
+        for (const medication of medications as Medication[]) {
+          // Check frequency (daily/weekly)
+          if (medication.frequency === 'weekly') {
+            // For weekly, only send on specific day (e.g., Monday)
+            if (dayName !== 'monday') {
+              medicationResults.skipped++
+              continue
+            }
+          }
+
+          // Check if already sent today for this medication
+          const { data: existingLog } = await supabase
+            .from('medication_notification_logs')
+            .select('id')
+            .eq('medication_id', medication.id)
+            .eq('time_period', currentTimePeriod)
+            .gte('sent_at', `${today}T00:00:00`)
+            .lte('sent_at', `${today}T23:59:59`)
+            .limit(1)
+
+          if (existingLog && existingLog.length > 0) {
+            medicationResults.skipped++
+            continue
+          }
+
+          const message = formatMedicationMessage(medication, currentTimePeriod)
+
+          // Get ALL groups for this patient
+          const { data: groupPatients } = await supabase
+            .from('group_patients')
+            .select('group_id, groups(id, line_group_id)')
+            .eq('patient_id', medication.patient_id)
+            .eq('is_active', true)
+
+          // Send to ALL groups that have this patient
+          if (groupPatients && groupPatients.length > 0) {
+            const patientName = medication.patient_profiles?.first_name || 'ผู้ป่วย'
+            const quickReplyItems = createQuickReplyItems('medication', patientName)
+
+            for (const groupPatient of groupPatients) {
+              if (groupPatient?.groups) {
+                const group = groupPatient.groups as unknown as GroupInfo
+                if (group.line_group_id) {
+                  try {
+                    await sendLineMessage(group.line_group_id, message, quickReplyItems)
+                    console.log(`[Medication] Sent: ${medication.name} for ${patientName} to group ${group.line_group_id}`)
+                  } catch (err) {
+                    console.error(`Error sending medication reminder to group ${group.line_group_id}:`, err)
+                    medicationResults.errors++
+                  }
+                }
+              }
+            }
+
+            // Log medication notification (once per medication, not per group)
+            await supabase.from('medication_notification_logs').insert({
+              medication_id: medication.id,
+              patient_id: medication.patient_id,
+              time_period: currentTimePeriod,
+              sent_at: new Date().toISOString(),
+              status: 'sent',
+              channel: 'group'
+            })
+
+            medicationResults.sent++
+          }
+        }
+      }
+    }
+
+    console.log(`[Medication] Results: sent=${medicationResults.sent}, skipped=${medicationResults.skipped}, errors=${medicationResults.errors}`)
+
     return new Response(JSON.stringify({
       success: true,
       time: currentTime,
-      results
+      timePeriod: currentTimePeriod,
+      results,
+      medicationResults
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
@@ -297,7 +441,7 @@ function formatReminderMessage(reminder: Reminder): string {
     message += `💬 ${reminder.description}\n`
   }
 
-  message += `\n✅ พิมพ์ "${getConfirmCommand(reminder.type)}" เพื่อบันทึก`
+  message += `\n✅ กดปุ่มด้านล่าง หรือพิมพ์ "${getConfirmCommand(reminder.type)} ${patientName}"`
 
   return message
 }
@@ -313,7 +457,49 @@ function getConfirmCommand(type: string): string {
   return commands[type] || 'บันทึกแล้ว'
 }
 
-async function sendLineMessage(to: string, message: string): Promise<void> {
+function createQuickReplyItems(type: string, patientName: string): QuickReplyItem[] {
+  const typeActions: Record<string, { label: string, text: string }> = {
+    medication: { label: '✅ กินยาแล้ว', text: `กินยาแล้ว ${patientName}` },
+    vitals: { label: '📊 บันทึกความดัน', text: `ความดัน ${patientName}` },
+    water: { label: '💧 ดื่มน้ำแล้ว', text: `ดื่มน้ำแล้ว ${patientName}` },
+    exercise: { label: '🏃 ออกกำลังกายแล้ว', text: `ออกกำลังกายแล้ว ${patientName}` },
+    meal: { label: '🍽️ กินข้าวแล้ว', text: `กินข้าวแล้ว ${patientName}` }
+  }
+
+  const action = typeActions[type] || { label: '✅ บันทึกแล้ว', text: `บันทึกแล้ว ${patientName}` }
+
+  return [{
+    type: 'action',
+    action: {
+      type: 'message',
+      label: action.label,
+      text: action.text
+    }
+  }]
+}
+
+interface QuickReplyItem {
+  type: 'action'
+  action: {
+    type: 'message'
+    label: string
+    text: string
+  }
+}
+
+async function sendLineMessage(to: string, message: string, quickReplyItems?: QuickReplyItem[]): Promise<void> {
+  const messageObj: any = {
+    type: 'text',
+    text: message
+  }
+
+  // Add Quick Reply if provided
+  if (quickReplyItems && quickReplyItems.length > 0) {
+    messageObj.quickReply = {
+      items: quickReplyItems
+    }
+  }
+
   const response = await fetch('https://api.line.me/v2/bot/message/push', {
     method: 'POST',
     headers: {
@@ -322,10 +508,7 @@ async function sendLineMessage(to: string, message: string): Promise<void> {
     },
     body: JSON.stringify({
       to,
-      messages: [{
-        type: 'text',
-        text: message
-      }]
+      messages: [messageObj]
     })
   })
 
@@ -333,4 +516,54 @@ async function sendLineMessage(to: string, message: string): Promise<void> {
     const error = await response.text()
     throw new Error(`LINE API error: ${response.status} - ${error}`)
   }
+}
+
+// ============================================
+// MEDICATION HELPER FUNCTIONS
+// ============================================
+
+function getCurrentTimePeriod(hour: number): string | null {
+  if (hour >= 6 && hour <= 10) return 'morning'
+  if (hour >= 11 && hour <= 14) return 'afternoon'
+  if (hour >= 15 && hour <= 18) return 'evening'
+  if (hour >= 19 && hour <= 23) return 'night'
+  return null
+}
+
+function isStartOfTimePeriod(hour: number, minute: number): boolean {
+  // Only trigger at the start of each period (first minute)
+  // morning: 06:00, afternoon: 11:00, evening: 15:00, night: 19:00
+  if (minute !== 0) return false
+
+  return hour === 6 || hour === 11 || hour === 15 || hour === 19
+}
+
+function formatMedicationMessage(medication: Medication, timePeriod: string): string {
+  const patient = medication.patient_profiles
+  const patientName = patient?.first_name || 'ผู้ป่วย'
+
+  const periodLabels: Record<string, string> = {
+    morning: 'เช้า',
+    afternoon: 'กลางวัน',
+    evening: 'เย็น',
+    night: 'ก่อนนอน'
+  }
+
+  const periodLabel = periodLabels[timePeriod] || timePeriod
+
+  let message = `💊 แจ้งเตือนกินยา (${periodLabel})\n\n`
+  message += `👤 ผู้ป่วย: ${patientName}\n`
+  message += `💊 ยา: ${medication.name}\n`
+
+  if (medication.dosage_amount && medication.dosage_unit) {
+    message += `📏 ขนาด: ${medication.dosage_amount} ${medication.dosage_unit}\n`
+  }
+
+  if (medication.instructions) {
+    message += `📝 ${medication.instructions}\n`
+  }
+
+  message += `\n✅ กดปุ่มด้านล่าง หรือพิมพ์ "กินยาแล้ว ${patientName}"`
+
+  return message
 }

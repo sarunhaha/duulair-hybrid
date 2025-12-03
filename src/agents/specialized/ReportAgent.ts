@@ -1,11 +1,12 @@
 // src/agents/specialized/ReportAgent.ts
 import { BaseAgent, Message, Response, Config } from '../core/BaseAgent';
+import { reportService } from '../../services/report.service';
 
 export class ReportAgent extends BaseAgent {
   constructor(config?: Partial<Config>) {
     super({
       name: 'report',
-      role: 'Generate daily and weekly reports',
+      role: 'Generate daily, weekly, and monthly reports',
       model: 'claude-3-sonnet-20240229',  // ใช้ sonnet เพราะต้องการ creativity
       temperature: 0.7,
       maxTokens: 2000,
@@ -45,31 +46,37 @@ export class ReportAgent extends BaseAgent {
 
       const reportType = message.metadata?.reportType || 'daily';
 
-      // Get data from database
-      const data = await this.fetchReportData(patientId, reportType);
+      // Use enhanced reportService for all report types
+      let reportText: string;
+      let reportData: any;
 
-      // Generate report
-      let report;
       if (reportType === 'daily') {
-        report = await this.generateDailyReport(data);
+        reportData = await reportService.generateDailyReport(patientId);
+        reportText = reportService.formatDailyReportText(reportData);
+      } else if (reportType === 'weekly') {
+        reportData = await reportService.generateWeeklyReport(patientId);
+        reportText = reportService.formatWeeklyReportText(reportData);
+      } else if (reportType === 'monthly') {
+        reportData = await reportService.generateMonthlyReport(patientId);
+        reportText = reportService.formatMonthlyReportText(reportData);
       } else {
-        report = await this.generateWeeklyReport(data);
+        // Default to daily
+        reportData = await reportService.generateDailyReport(patientId);
+        reportText = reportService.formatDailyReportText(reportData);
       }
-
-      // Format for LINE Flex Message
-      const flexMessage = this.formatFlexMessage(report);
 
       return {
         success: true,
         data: {
-          report,
-          flexMessage,
-          stats: data.stats
+          report: reportData,
+          reportText,
+          reportType,
+          responseMessage: reportText
         },
         agentName: this.config.name,
         processingTime: Date.now() - startTime
       };
-      
+
     } catch (error) {
       return {
         success: false,

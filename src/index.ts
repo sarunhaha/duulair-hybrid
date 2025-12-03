@@ -155,6 +155,99 @@ function createViewReportQuickReply() {
   };
 }
 
+/**
+ * Extract patient name from Quick Reply activity messages
+ * Patterns: "กินยาแล้ว สมหวัง", "ดื่มน้ำแล้ว สมหวัง", etc.
+ * Returns { patientName, activityMessage } or null if no patient name found
+ */
+function extractPatientNameFromMessage(message: string): { patientName: string, activityMessage: string } | null {
+  // Activity patterns that may have patient name at the end
+  const activityPatterns = [
+    /^(กินยาแล้ว)\s+(.+)$/,
+    /^(ดื่มน้ำแล้ว)\s+(.+)$/,
+    /^(ออกกำลังกายแล้ว)\s+(.+)$/,
+    /^(กินข้าวแล้ว)\s+(.+)$/,
+    /^(บันทึกแล้ว)\s+(.+)$/,
+    /^(ความดัน)\s+([^\d/]+)$/, // "ความดัน สมหวัง" but not "ความดัน 120/80"
+  ];
+
+  for (const pattern of activityPatterns) {
+    const match = message.match(pattern);
+    if (match) {
+      const activityMessage = match[1];
+      const patientName = match[2].trim();
+
+      // Skip if patientName looks like a blood pressure value
+      if (/^\d+\/\d+$/.test(patientName)) {
+        continue;
+      }
+
+      return { patientName, activityMessage };
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Find patient ID by name in a group's patients
+ * Returns patientId if found, null otherwise
+ */
+async function findPatientByNameInGroup(groupId: string, patientName: string): Promise<string | null> {
+  try {
+    const { supabase } = await import('./services/supabase.service');
+
+    // Get all patients in this group
+    const { data: groupPatients, error } = await supabase
+      .from('group_patients')
+      .select(`
+        patient_id,
+        patient_profiles (
+          id,
+          first_name,
+          last_name,
+          nickname
+        )
+      `)
+      .eq('group_id', groupId)
+      .eq('is_active', true);
+
+    if (error || !groupPatients) {
+      console.log('❌ Failed to get group patients:', error);
+      return null;
+    }
+
+    // Find matching patient by first_name, nickname, or last_name
+    const normalizedSearch = patientName.toLowerCase().trim();
+
+    for (const gp of groupPatients) {
+      const patient = (gp as any).patient_profiles;
+      if (!patient) continue;
+
+      const firstName = (patient.first_name || '').toLowerCase();
+      const lastName = (patient.last_name || '').toLowerCase();
+      const nickname = (patient.nickname || '').toLowerCase();
+      const fullName = `${firstName} ${lastName}`.trim();
+
+      if (
+        firstName === normalizedSearch ||
+        lastName === normalizedSearch ||
+        nickname === normalizedSearch ||
+        fullName === normalizedSearch
+      ) {
+        console.log(`✅ Found patient by name "${patientName}":`, patient.id);
+        return patient.id;
+      }
+    }
+
+    console.log(`❌ No patient found with name "${patientName}" in group ${groupId}`);
+    return null;
+  } catch (error) {
+    console.error('❌ Error finding patient by name:', error);
+    return null;
+  }
+}
+
 // Create Flex Message for registration
 function createRegistrationFlexMessage(): FlexMessage {
   return {
@@ -1206,6 +1299,25 @@ async function handleTextMessage(event: any) {
           };
           await lineClient.replyMessage(replyToken, errorMessage);
           return { success: false, error: 'Failed to switch patient' };
+        }
+      }
+
+      // Check if message contains patient name from Quick Reply (e.g., "กินยาแล้ว สมหวัง")
+      const extractedPatient = extractPatientNameFromMessage(originalMessage);
+      if (extractedPatient && groupContext.groupId) {
+        console.log(`🔍 Extracted patient name from message: "${extractedPatient.patientName}"`);
+
+        // Find patient by name in the group
+        const foundPatientId = await findPatientByNameInGroup(groupContext.groupId, extractedPatient.patientName);
+
+        if (foundPatientId) {
+          console.log(`✅ Matched patient "${extractedPatient.patientName}" to ID: ${foundPatientId}`);
+          // Update context with the found patient
+          context.patientId = foundPatientId;
+          // Keep the full message (with patient name) for processing
+          // The agents will handle it correctly
+        } else {
+          console.log(`⚠️ Patient "${extractedPatient.patientName}" not found in group, using default patient`);
         }
       }
     }
