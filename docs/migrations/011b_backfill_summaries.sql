@@ -112,11 +112,12 @@ BEGIN
           AND logged_at < v_end_ts;
 
         -- Get medication data
+        -- Note: patient_medications uses 'frequency' array (not 'times')
         SELECT
           COALESCE(SUM(
             CASE
-              WHEN frequency_type = 'daily' OR frequency_type IS NULL THEN array_length(times, 1)
-              WHEN frequency_type = 'specific_days' AND days_of_week ? v_day_name THEN array_length(times, 1)
+              WHEN frequency_type = 'daily' OR frequency_type IS NULL THEN COALESCE(array_length(frequency, 1), 1)
+              WHEN frequency_type = 'specific_days' AND days_of_week ? v_day_name THEN COALESCE(array_length(frequency, 1), 1)
               ELSE 0
             END
           ), 0) as scheduled,

@@ -5,6 +5,9 @@
 // API Base URL for Edge Functions
 const REPORTS_API_URL = 'https://mqxklnzxfrupwwkwlwwc.supabase.co/functions/v1/reports-api';
 
+// Supabase Anon Key (required for Edge Function authorization)
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1xeGtsbnp4ZnJ1cHd3a3dsd3djIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNjcxMjYsImV4cCI6MjA3MjY0MzEyNn0.vPBkIGHdvrfotD3QMnFGrNRMTP3fFzn715XGwqKG-6Y';
+
 // State
 let currentPatientId = null;
 let patients = [];
@@ -191,6 +194,7 @@ async function loadPatients() {
     const response = await fetch(`${REPORTS_API_URL}/patients`, {
       method: 'GET',
       headers: {
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
         'x-liff-access-token': liffAccessToken
       }
     });
@@ -241,6 +245,7 @@ async function loadReport() {
     const response = await fetch(url, {
       method: 'GET',
       headers: {
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
         'x-liff-access-token': liffAccessToken
       }
     });
@@ -516,6 +521,7 @@ async function exportCSV() {
     const response = await fetch(url, {
       method: 'GET',
       headers: {
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
         'x-liff-access-token': liffAccessToken
       }
     });

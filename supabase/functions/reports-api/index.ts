@@ -86,7 +86,12 @@ serve(async (req) => {
       return errorResponse(401, 'Invalid LIFF token')
     }
 
-    // Parse query parameters
+    // Handle /patients endpoint first (doesn't require patientId, from, to)
+    if (path === '/patients') {
+      return await handleGetPatients(supabase, userProfile.userId)
+    }
+
+    // Parse query parameters (required for other endpoints)
     const patientId = url.searchParams.get('patientId')
     const dateFrom = url.searchParams.get('from')
     const dateTo = url.searchParams.get('to')
@@ -143,9 +148,6 @@ serve(async (req) => {
       return await handleExportCSV(supabase, patientId, dateFrom, dateTo, userProfile)
     } else if (path === '/export/pdf') {
       return await handleExportPDF(supabase, patientId, dateFrom, dateTo, userProfile)
-    } else if (path === '/patients') {
-      // Get list of patients user has access to
-      return await handleGetPatients(supabase, userProfile.userId)
     } else {
       return errorResponse(404, 'Endpoint not found')
     }
