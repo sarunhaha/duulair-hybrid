@@ -164,6 +164,8 @@ serve(async (req) => {
 
 async function verifyLIFFToken(accessToken: string): Promise<LIFFProfile | null> {
   try {
+    console.log('[LIFF] Verifying token, length:', accessToken?.length)
+
     // Verify token with LINE API
     const response = await fetch('https://api.line.me/oauth2/v2.1/verify', {
       method: 'POST',
@@ -173,12 +175,13 @@ async function verifyLIFFToken(accessToken: string): Promise<LIFFProfile | null>
       body: `access_token=${accessToken}`,
     })
 
+    const verifyResult = await response.json()
+    console.log('[LIFF] Verify response:', response.status, JSON.stringify(verifyResult))
+
     if (!response.ok) {
-      console.error('[LIFF] Token verification failed:', response.status)
+      console.error('[LIFF] Token verification failed:', response.status, verifyResult)
       return null
     }
-
-    const tokenInfo = await response.json()
 
     // Get user profile
     const profileResponse = await fetch('https://api.line.me/v2/profile', {
@@ -188,11 +191,13 @@ async function verifyLIFFToken(accessToken: string): Promise<LIFFProfile | null>
     })
 
     if (!profileResponse.ok) {
-      console.error('[LIFF] Profile fetch failed:', profileResponse.status)
+      const profileError = await profileResponse.text()
+      console.error('[LIFF] Profile fetch failed:', profileResponse.status, profileError)
       return null
     }
 
     const profile = await profileResponse.json()
+    console.log('[LIFF] Profile fetched for user:', profile.userId)
 
     return {
       userId: profile.userId,

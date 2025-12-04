@@ -39,6 +39,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Get LIFF access token
     liffAccessToken = liff.getAccessToken();
+    console.log('🔑 LIFF Access Token:', liffAccessToken ? `${liffAccessToken.substring(0, 20)}...` : 'NULL');
+    console.log('🔑 Token length:', liffAccessToken?.length);
     if (!liffAccessToken) {
       throw new Error('ไม่สามารถดึง access token ได้');
     }
@@ -191,6 +193,9 @@ function formatDateForAPI(date) {
 
 async function loadPatients() {
   try {
+    console.log('📡 Calling /patients API...');
+    console.log('📡 Token being sent:', liffAccessToken ? `${liffAccessToken.substring(0, 20)}...` : 'NULL');
+
     const response = await fetch(`${REPORTS_API_URL}/patients`, {
       method: 'GET',
       headers: {
@@ -199,8 +204,11 @@ async function loadPatients() {
       }
     });
 
+    console.log('📡 Response status:', response.status);
+
     if (!response.ok) {
       const error = await response.json();
+      console.error('📡 Error response:', error);
       throw new Error(error.error || 'Failed to load patients');
     }
 
