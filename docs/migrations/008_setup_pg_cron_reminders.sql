@@ -77,7 +77,7 @@ SELECT cron.schedule(
     '* * * * *',  -- Every minute
     $$
     SELECT net.http_post(
-        url := 'https://YOUR_PROJECT_REF.supabase.co/functions/v1/send-reminders',
+        url := 'https://mqxklnzxfrupwwkwlwwc.supabase.co/functions/v1/send-reminders',
         headers := jsonb_build_object(
             'Content-Type', 'application/json',
             'Authorization', 'Bearer ' || current_setting('app.settings.service_role_key')
@@ -94,7 +94,7 @@ SELECT cron.schedule(
     '0 * * * *',  -- Every hour at minute 0
     $$
     SELECT net.http_post(
-        url := 'https://YOUR_PROJECT_REF.supabase.co/functions/v1/check-missed-activities',
+        url := 'https://mqxklnzxfrupwwkwlwwc.supabase.co/functions/v1/check-missed-activities',
         headers := jsonb_build_object(
             'Content-Type', 'application/json',
             'Authorization', 'Bearer ' || current_setting('app.settings.service_role_key')
