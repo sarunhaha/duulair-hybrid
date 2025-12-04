@@ -1398,12 +1398,13 @@ async function handleTextMessage(event: any) {
       let flexMessage;
 
       // Check if ReportAgent already created the Flex Message
-      if (flexMessageType === 'report_menu' && result.data?.flexMessage) {
+      // Note: flexMessage is in result.data.combined because OrchestratorAgent aggregates responses
+      if (flexMessageType === 'report_menu' && result.data?.combined?.flexMessage) {
         // Use Flex Message from ReportAgent
         flexMessage = {
           type: 'flex' as const,
           altText: '📊 เลือกประเภทรายงาน',
-          contents: result.data.flexMessage
+          contents: result.data.combined.flexMessage
         };
       } else if (flexMessageType === 'registration') {
         // Check if user is already registered before showing registration flex
