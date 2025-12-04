@@ -10,93 +10,85 @@
 
 -- ============================================
 -- STEP 1: Create daily_patient_summaries table
+-- STATUS: ✅ ALREADY RUN
 -- ============================================
 
-CREATE TABLE IF NOT EXISTS public.daily_patient_summaries (
-  id UUID NOT NULL DEFAULT gen_random_uuid(),
-  patient_id UUID NOT NULL,
-  summary_date DATE NOT NULL,
+-- CREATE TABLE public.daily_patient_summaries (
+--   id UUID NOT NULL DEFAULT gen_random_uuid(),
+--   patient_id UUID NOT NULL,
+--   summary_date DATE NOT NULL,
+--   bp_readings_count INTEGER DEFAULT 0,
+--   bp_systolic_avg NUMERIC(5,1),
+--   bp_systolic_min INTEGER,
+--   bp_systolic_max INTEGER,
+--   bp_diastolic_avg NUMERIC(5,1),
+--   bp_diastolic_min INTEGER,
+--   bp_diastolic_max INTEGER,
+--   bp_status CHARACTER VARYING,
+--   heart_rate_avg INTEGER,
+--   heart_rate_min INTEGER,
+--   heart_rate_max INTEGER,
+--   medications_scheduled INTEGER DEFAULT 0,
+--   medications_taken INTEGER DEFAULT 0,
+--   medications_missed INTEGER DEFAULT 0,
+--   medication_compliance_percent NUMERIC(5,2),
+--   water_intake_ml INTEGER DEFAULT 0,
+--   water_goal_ml INTEGER DEFAULT 2000,
+--   water_compliance_percent NUMERIC(5,2),
+--   activities_count INTEGER DEFAULT 0,
+--   exercise_minutes INTEGER DEFAULT 0,
+--   mood_avg NUMERIC(3,1),
+--   has_data BOOLEAN DEFAULT FALSE,
+--   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+--   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+--   CONSTRAINT daily_patient_summaries_pkey PRIMARY KEY (id),
+--   CONSTRAINT daily_patient_summaries_patient_id_fkey
+--     FOREIGN KEY (patient_id) REFERENCES public.patient_profiles(id) ON DELETE CASCADE,
+--   CONSTRAINT daily_patient_summaries_unique UNIQUE (patient_id, summary_date)
+-- );
 
-  -- Blood Pressure Summary
-  bp_readings_count INTEGER DEFAULT 0,
-  bp_systolic_avg NUMERIC(5,1),
-  bp_systolic_min INTEGER,
-  bp_systolic_max INTEGER,
-  bp_diastolic_avg NUMERIC(5,1),
-  bp_diastolic_min INTEGER,
-  bp_diastolic_max INTEGER,
-  bp_status CHARACTER VARYING, -- normal, elevated, high, crisis
-
-  -- Heart Rate
-  heart_rate_avg INTEGER,
-  heart_rate_min INTEGER,
-  heart_rate_max INTEGER,
-
-  -- Medications
-  medications_scheduled INTEGER DEFAULT 0,
-  medications_taken INTEGER DEFAULT 0,
-  medications_missed INTEGER DEFAULT 0,
-  medication_compliance_percent NUMERIC(5,2),
-
-  -- Water Intake
-  water_intake_ml INTEGER DEFAULT 0,
-  water_goal_ml INTEGER DEFAULT 2000,
-  water_compliance_percent NUMERIC(5,2),
-
-  -- Activities
-  activities_count INTEGER DEFAULT 0,
-  exercise_minutes INTEGER DEFAULT 0,
-
-  -- Mood (if tracked)
-  mood_avg NUMERIC(3,1),
-
-  -- Metadata
-  has_data BOOLEAN DEFAULT FALSE,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-
-  CONSTRAINT daily_patient_summaries_pkey PRIMARY KEY (id),
-  CONSTRAINT daily_patient_summaries_patient_id_fkey
-    FOREIGN KEY (patient_id) REFERENCES public.patient_profiles(id) ON DELETE CASCADE,
-  CONSTRAINT daily_patient_summaries_unique UNIQUE (patient_id, summary_date)
-);
-
--- Critical Indexes for Performance
-CREATE INDEX IF NOT EXISTS idx_daily_summaries_patient_date
-  ON public.daily_patient_summaries(patient_id, summary_date DESC);
-CREATE INDEX IF NOT EXISTS idx_daily_summaries_date
-  ON public.daily_patient_summaries(summary_date);
-CREATE INDEX IF NOT EXISTS idx_daily_summaries_has_data
-  ON public.daily_patient_summaries(patient_id, summary_date) WHERE has_data = TRUE;
+-- CREATE INDEX idx_daily_summaries_patient_date
+--   ON public.daily_patient_summaries(patient_id, summary_date DESC);
+-- CREATE INDEX idx_daily_summaries_date
+--   ON public.daily_patient_summaries(summary_date);
 
 -- ============================================
 -- STEP 2: Create report_access_logs table
+-- STATUS: ✅ ALREADY RUN
 -- ============================================
 
-CREATE TABLE IF NOT EXISTS public.report_access_logs (
-  id UUID NOT NULL DEFAULT gen_random_uuid(),
-  patient_id UUID NOT NULL,
-  accessed_by_line_user_id CHARACTER VARYING NOT NULL,
-  access_type CHARACTER VARYING NOT NULL, -- 'view', 'export_csv', 'export_pdf'
-  date_from DATE NOT NULL,
-  date_to DATE NOT NULL,
-  ip_address CHARACTER VARYING,
-  user_agent TEXT,
-  accessed_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+-- CREATE TABLE public.report_access_logs (
+--   id UUID NOT NULL DEFAULT gen_random_uuid(),
+--   patient_id UUID NOT NULL,
+--   accessed_by_line_user_id CHARACTER VARYING NOT NULL,
+--   access_type CHARACTER VARYING NOT NULL,
+--   date_from DATE NOT NULL,
+--   date_to DATE NOT NULL,
+--   ip_address CHARACTER VARYING,
+--   user_agent TEXT,
+--   accessed_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+--   CONSTRAINT report_access_logs_pkey PRIMARY KEY (id),
+--   CONSTRAINT report_access_logs_patient_id_fkey
+--     FOREIGN KEY (patient_id) REFERENCES public.patient_profiles(id)
+-- );
 
-  CONSTRAINT report_access_logs_pkey PRIMARY KEY (id),
-  CONSTRAINT report_access_logs_patient_id_fkey
-    FOREIGN KEY (patient_id) REFERENCES public.patient_profiles(id) ON DELETE CASCADE
-);
+-- CREATE INDEX idx_report_access_logs_rate_limit
+--   ON public.report_access_logs(accessed_by_line_user_id, access_type, accessed_at);
 
--- Index for rate limiting check
-CREATE INDEX IF NOT EXISTS idx_report_access_logs_rate_limit
-  ON public.report_access_logs(accessed_by_line_user_id, access_type, accessed_at);
+-- ============================================
+-- STEP 2.1: Add missing indexes (RUN THIS)
+-- STATUS: ⏳ NEED TO RUN
+-- ============================================
+
+CREATE INDEX IF NOT EXISTS idx_daily_summaries_has_data
+  ON public.daily_patient_summaries(patient_id, summary_date) WHERE has_data = TRUE;
+
 CREATE INDEX IF NOT EXISTS idx_report_access_logs_patient
   ON public.report_access_logs(patient_id, accessed_at);
 
 -- ============================================
 -- STEP 3: Enable RLS (Row Level Security)
+-- STATUS: ⏳ NEED TO RUN
 -- ============================================
 
 ALTER TABLE public.daily_patient_summaries ENABLE ROW LEVEL SECURITY;
@@ -119,6 +111,7 @@ WITH CHECK (true);
 
 -- ============================================
 -- STEP 4: Setup pg_cron job for nightly aggregation
+-- STATUS: ⏳ NEED TO RUN
 -- ============================================
 
 -- Remove existing job if it exists (for re-running migration)
@@ -145,6 +138,7 @@ SELECT cron.schedule(
 
 -- ============================================
 -- STEP 5: Create helper function for rate limiting
+-- STATUS: ⏳ NEED TO RUN
 -- ============================================
 
 CREATE OR REPLACE FUNCTION check_report_rate_limit(
@@ -169,6 +163,7 @@ $$ LANGUAGE plpgsql;
 
 -- ============================================
 -- STEP 6: Create function to get summary stats
+-- STATUS: ⏳ NEED TO RUN
 -- ============================================
 
 CREATE OR REPLACE FUNCTION get_patient_summary_stats(
@@ -225,10 +220,10 @@ SELECT * FROM cron.job WHERE jobname = 'aggregate-daily-summaries-nightly';
 --    See: docs/migrations/011b_backfill_summaries.sql
 --
 -- 2. To manually trigger aggregation:
---    curl -X POST https://YOUR_PROJECT.supabase.co/functions/v1/aggregate-daily-summaries \
+--    curl -X POST https://mqxklnzxfrupwwkwlwwc.supabase.co/functions/v1/aggregate-daily-summaries \
 --      -H "Authorization: Bearer YOUR_SERVICE_ROLE_KEY" \
 --      -H "Content-Type: application/json" \
---      -d '{"date": "2024-11-01"}'
+--      -d '{"date": "2024-12-03"}'
 --
 -- 3. To check aggregation history:
 --    SELECT * FROM cron.job_run_details
