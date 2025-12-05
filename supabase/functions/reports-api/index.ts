@@ -164,26 +164,11 @@ serve(async (req) => {
 
 async function verifyLIFFToken(accessToken: string): Promise<LIFFProfile | null> {
   try {
-    console.log('[LIFF] Verifying token, length:', accessToken?.length)
+    console.log('[LIFF] Verifying token via profile API, length:', accessToken?.length)
 
-    // Verify token with LINE API
-    const response = await fetch('https://api.line.me/oauth2/v2.1/verify', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: `access_token=${accessToken}`,
-    })
-
-    const verifyResult = await response.json()
-    console.log('[LIFF] Verify response:', response.status, JSON.stringify(verifyResult))
-
-    if (!response.ok) {
-      console.error('[LIFF] Token verification failed:', response.status, verifyResult)
-      return null
-    }
-
-    // Get user profile
+    // Use profile API directly to verify token
+    // If token is valid, profile API will return user data
+    // If token is invalid, it will return 401
     const profileResponse = await fetch('https://api.line.me/v2/profile', {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
@@ -197,7 +182,7 @@ async function verifyLIFFToken(accessToken: string): Promise<LIFFProfile | null>
     }
 
     const profile = await profileResponse.json()
-    console.log('[LIFF] Profile fetched for user:', profile.userId)
+    console.log('[LIFF] Token valid, user:', profile.userId, profile.displayName)
 
     return {
       userId: profile.userId,
@@ -345,6 +330,33 @@ async function handleSummary(
 
   const dailyData = summaries || []
 
+  // Get activity details from activity_logs
+  const { data: activityLogs, error: activityError } = await supabase
+    .from('activity_logs')
+    .select('task_type, value, metadata, timestamp')
+    .eq('patient_id', patientId)
+    .gte('timestamp', `${dateFrom}T00:00:00+07:00`)
+    .lte('timestamp', `${dateTo}T23:59:59+07:00`)
+    .order('timestamp', { ascending: false })
+
+  if (activityError) {
+    console.error('[Summary] Error fetching activities:', activityError)
+  }
+
+  // Group activities by date
+  const activitiesByDate: Record<string, Array<{type: string, value: string, time: string}>> = {}
+  for (const log of activityLogs || []) {
+    const date = log.timestamp.split('T')[0]
+    if (!activitiesByDate[date]) {
+      activitiesByDate[date] = []
+    }
+    activitiesByDate[date].push({
+      type: log.task_type,
+      value: log.value || '',
+      time: new Date(log.timestamp).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })
+    })
+  }
+
   // Calculate aggregate stats
   const daysWithData = dailyData.filter(d => d.has_data).length
   const totalDays = Math.ceil(
@@ -455,6 +467,16 @@ async function handleSummary(
       },
       activities: d.activities_count,
       exerciseMinutes: d.exercise_minutes,
+      activityDetails: activitiesByDate[d.summary_date] || [],
+    })),
+    // All activities in period (for summary view)
+    recentActivities: (activityLogs || []).slice(0, 20).map(log => ({
+      type: log.task_type,
+      value: log.value || '',
+      time: log.timestamp,
+      displayTime: new Date(log.timestamp).toLocaleString('th-TH', {
+        day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+      })
     })),
   }
 

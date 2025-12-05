@@ -285,6 +285,7 @@ function updateUI() {
 
   updateSummaryCards();
   updateCharts();
+  updateActivities();
 }
 
 function updateSummaryCards() {
@@ -510,6 +511,96 @@ function updateWaterChart(labels, dailyData) {
       }
     }
   });
+}
+
+// ========================================
+// Activity Details Functions
+// ========================================
+
+function updateActivities() {
+  const { recentActivities } = reportData;
+  const container = document.getElementById('activities-list');
+
+  if (!recentActivities || recentActivities.length === 0) {
+    container.innerHTML = `
+      <div class="no-data">
+        <div class="no-data-icon">📋</div>
+        <div class="no-data-text">ไม่มีกิจกรรมในช่วงเวลานี้</div>
+      </div>
+    `;
+    return;
+  }
+
+  // Group by date
+  const groupedByDate = {};
+  recentActivities.forEach(activity => {
+    const date = activity.time.split('T')[0];
+    if (!groupedByDate[date]) {
+      groupedByDate[date] = [];
+    }
+    groupedByDate[date].push(activity);
+  });
+
+  let html = '';
+  Object.keys(groupedByDate).sort().reverse().forEach(date => {
+    const dateObj = new Date(date);
+    const dateStr = dateObj.toLocaleDateString('th-TH', {
+      weekday: 'short', day: 'numeric', month: 'short'
+    });
+
+    html += `<div class="activity-date-header">📅 ${dateStr}</div>`;
+
+    groupedByDate[date].forEach(activity => {
+      const icon = getActivityIcon(activity.type);
+      const typeName = getActivityTypeName(activity.type);
+      const timeStr = new Date(activity.time).toLocaleTimeString('th-TH', {
+        hour: '2-digit', minute: '2-digit'
+      });
+
+      html += `
+        <div class="activity-item">
+          <div class="activity-icon">${icon}</div>
+          <div class="activity-content">
+            <div class="activity-type">${typeName}</div>
+            ${activity.value ? `<div class="activity-value">${activity.value}</div>` : ''}
+          </div>
+          <div class="activity-time">${timeStr}</div>
+        </div>
+      `;
+    });
+  });
+
+  container.innerHTML = html;
+}
+
+function getActivityIcon(type) {
+  const icons = {
+    'medication': '💊',
+    'blood_pressure': '🩺',
+    'water': '💧',
+    'walk': '🚶',
+    'exercise': '🏃',
+    'food': '🍽️',
+    'mood': '😊',
+    'patient_conditions': '📝',
+    'sleep': '😴'
+  };
+  return icons[type] || '📋';
+}
+
+function getActivityTypeName(type) {
+  const names = {
+    'medication': 'กินยา',
+    'blood_pressure': 'วัดความดัน',
+    'water': 'ดื่มน้ำ',
+    'walk': 'เดิน',
+    'exercise': 'ออกกำลังกาย',
+    'food': 'อาหาร',
+    'mood': 'อารมณ์',
+    'patient_conditions': 'บันทึกอาการ',
+    'sleep': 'นอนหลับ'
+  };
+  return names[type] || type;
 }
 
 // ========================================
