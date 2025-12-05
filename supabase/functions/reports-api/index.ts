@@ -204,7 +204,7 @@ async function verifyPatientAccess(
   lineUserId: string,
   patientId: string
 ): Promise<boolean> {
-  // Check if user is a member of a group that has this patient
+  // Route 1: Check if user is a member of a group that has this patient
   const { data: access, error } = await supabase
     .from('group_members')
     .select(`
@@ -220,23 +220,56 @@ async function verifyPatientAccess(
     .eq('line_user_id', lineUserId)
     .eq('is_active', true)
 
-  if (error || !access) {
-    console.error('[Access] Error checking access:', error)
-    return false
+  if (error) {
+    console.error('[Access] Group access error:', error)
   }
 
   // Check if any of user's groups have this patient
-  for (const membership of access) {
+  for (const membership of access || []) {
     const groups = membership.groups as any
     if (groups?.group_patients) {
       for (const gp of groups.group_patients) {
         if (gp.patient_id === patientId) {
+          console.log(`[Access] User ${lineUserId} has group access to patient ${patientId}`)
           return true
         }
       }
     }
   }
 
+  // Route 2: Check if user is a caregiver linked to this patient
+  // Path: line_user_id -> users -> caregiver_profiles -> patient_caregivers
+  const { data: caregiverAccess, error: caregiverError } = await supabase
+    .from('users')
+    .select(`
+      caregiver_profiles (
+        patient_caregivers (
+          patient_id,
+          status
+        )
+      )
+    `)
+    .eq('line_user_id', lineUserId)
+    .eq('role', 'caregiver')
+    .single()
+
+  if (caregiverError && caregiverError.code !== 'PGRST116') {
+    console.error('[Access] Caregiver access error:', caregiverError)
+  }
+
+  if (caregiverAccess?.caregiver_profiles) {
+    const caregiverProfile = caregiverAccess.caregiver_profiles as any
+    if (caregiverProfile?.patient_caregivers) {
+      for (const pc of caregiverProfile.patient_caregivers) {
+        if (pc.patient_id === patientId && pc.status === 'active') {
+          console.log(`[Access] User ${lineUserId} has caregiver access to patient ${patientId}`)
+          return true
+        }
+      }
+    }
+  }
+
+  console.log(`[Access] User ${lineUserId} has NO access to patient ${patientId}`)
   return false
 }
 
@@ -331,10 +364,17 @@ async function handleSummary(
   const dailyData = summaries || []
 
   // Get activity details from activity_logs
+  // Only include actual activities, not queries/intents
+  const ACTIVITY_TYPES = [
+    'medication', 'water', 'walk', 'blood_pressure', 'exercise',
+    'food', 'patient_conditions', 'sleep', 'mood', 'vitals'
+  ]
+
   const { data: activityLogs, error: activityError } = await supabase
     .from('activity_logs')
     .select('task_type, value, metadata, timestamp')
     .eq('patient_id', patientId)
+    .in('task_type', ACTIVITY_TYPES)
     .gte('timestamp', `${dateFrom}T00:00:00+07:00`)
     .lte('timestamp', `${dateTo}T23:59:59+07:00`)
     .order('timestamp', { ascending: false })
@@ -685,8 +725,16 @@ async function handleGetPatients(
   supabase: SupabaseClient,
   lineUserId: string
 ): Promise<Response> {
-  // Get all patients the user has access to via groups
-  const { data: memberships, error } = await supabase
+  const patients: Array<{
+    id: string
+    name: string
+    groupId: string | null
+    groupName: string
+    source: 'group' | 'caregiver'
+  }> = []
+
+  // Route 1: Get patients via group membership
+  const { data: memberships, error: groupError } = await supabase
     .from('group_members')
     .select(`
       group_id,
@@ -707,17 +755,9 @@ async function handleGetPatients(
     .eq('line_user_id', lineUserId)
     .eq('is_active', true)
 
-  if (error) {
-    console.error('[Patients] Error:', error)
-    return errorResponse(500, 'Failed to fetch patients')
+  if (groupError) {
+    console.error('[Patients] Group query error:', groupError)
   }
-
-  const patients: Array<{
-    id: string
-    name: string
-    groupId: string
-    groupName: string
-  }> = []
 
   for (const membership of memberships || []) {
     const groups = membership.groups as any
@@ -730,16 +770,69 @@ async function handleGetPatients(
             name: p.nickname || `${p.first_name} ${p.last_name}`,
             groupId: groups.id,
             groupName: groups.group_name || 'Unknown Group',
+            source: 'group',
           })
         }
       }
     }
   }
 
-  // Remove duplicates (same patient in multiple groups)
+  // Route 2: Get patients via caregiver link (for LINE OA / single caregiver)
+  // Path: line_user_id -> users -> caregiver_profiles -> patient_caregivers -> patient_profiles
+  const { data: caregiverData, error: caregiverError } = await supabase
+    .from('users')
+    .select(`
+      id,
+      caregiver_profiles (
+        id,
+        first_name,
+        last_name,
+        patient_caregivers (
+          patient_id,
+          status,
+          patient_profiles (
+            id,
+            first_name,
+            last_name,
+            nickname
+          )
+        )
+      )
+    `)
+    .eq('line_user_id', lineUserId)
+    .eq('role', 'caregiver')
+    .single()
+
+  if (caregiverError && caregiverError.code !== 'PGRST116') {
+    // PGRST116 = no rows returned (user is not a caregiver)
+    console.error('[Patients] Caregiver query error:', caregiverError)
+  }
+
+  if (caregiverData?.caregiver_profiles) {
+    const caregiverProfile = caregiverData.caregiver_profiles as any
+    if (caregiverProfile?.patient_caregivers) {
+      for (const pc of caregiverProfile.patient_caregivers) {
+        // Only include active patient-caregiver relationships
+        if (pc.status === 'active' && pc.patient_profiles) {
+          const p = pc.patient_profiles
+          patients.push({
+            id: p.id,
+            name: p.nickname || `${p.first_name} ${p.last_name}`,
+            groupId: null,
+            groupName: 'Direct Care',
+            source: 'caregiver',
+          })
+        }
+      }
+    }
+  }
+
+  // Remove duplicates (same patient from multiple sources)
   const uniquePatients = patients.filter(
     (p, index, self) => index === self.findIndex(t => t.id === p.id)
   )
+
+  console.log(`[Patients] Found ${uniquePatients.length} patients for user ${lineUserId}`)
 
   return new Response(JSON.stringify({ patients: uniquePatients }), {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
