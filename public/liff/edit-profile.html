@@ -2,55 +2,107 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Edit Patient Profile</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#10B981">
+  <title>แก้ไขข้อมูล - OONJAI</title>
+  <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <link rel="stylesheet" href="css/minimal-theme.css">
   <style>
+    /* Header styles */
+    .page-header {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-md);
+      margin-bottom: var(--spacing-lg);
+      padding-bottom: var(--spacing-md);
+      border-bottom: 1px solid rgba(0,0,0,0.08);
+    }
+
+    .back-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-full);
+      border: none;
+      background: var(--bg-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      color: var(--text-primary);
+    }
+
+    .back-btn:active {
+      transform: scale(0.95);
+      background: rgba(0,0,0,0.1);
+    }
+
+    .page-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin: 0;
+    }
+
     .form-group {
-      margin-bottom: 15px;
+      margin-bottom: 16px;
     }
     .form-group label {
       display: block;
-      margin-bottom: 5px;
-      color: #333;
+      margin-bottom: 6px;
+      color: var(--text-primary);
       font-weight: 500;
+      font-size: 14px;
     }
     .form-group input,
     .form-group select,
     .form-group textarea {
       width: 100%;
-      padding: 10px;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      font-size: 14px;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      font-size: 16px;
       box-sizing: border-box;
+      background: var(--bg-card);
+      color: var(--text-primary);
     }
     .form-group input:focus,
     .form-group select:focus,
     .form-group textarea:focus {
-      border-color: #007bff;
+      border-color: var(--accent-primary);
       outline: none;
+      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
     }
     .btn-group {
       display: flex;
-      gap: 10px;
-      margin-top: 20px;
+      gap: 12px;
+      margin-top: 24px;
+      padding-bottom: 32px;
     }
     .btn {
       flex: 1;
-      padding: 12px;
+      padding: 14px;
       border: none;
-      border-radius: 4px;
+      border-radius: var(--radius-md);
       cursor: pointer;
-      font-size: 14px;
+      font-size: 16px;
+      font-weight: 500;
+      transition: all 0.2s ease;
     }
     .btn-save {
-      background: #28a745;
+      background: var(--accent-primary);
       color: white;
     }
+    .btn-save:active {
+      background: var(--accent-secondary);
+      transform: scale(0.98);
+    }
     .btn-cancel {
-      background: #6c757d;
-      color: white;
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+    }
+    .btn-cancel:active {
+      background: rgba(0,0,0,0.1);
     }
     .btn:disabled {
       opacity: 0.6;
@@ -59,35 +111,28 @@
     .section-title {
       font-size: 18px;
       font-weight: 600;
-      margin-bottom: 15px;
-      padding-bottom: 10px;
-      border-bottom: 2px solid #007bff;
-    }
-    .back-link {
-      display: inline-block;
-      margin-bottom: 15px;
-      color: #007bff;
-      text-decoration: none;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid var(--accent-primary);
+      color: var(--text-primary);
     }
     .success-message {
-      background: #d4edda;
-      border: 1px solid #c3e6cb;
-      color: #155724;
-      padding: 10px;
-      border-radius: 4px;
-      margin-bottom: 15px;
+      background: #D1FAE5;
+      border: 1px solid #A7F3D0;
+      color: #065F46;
+      padding: 12px 16px;
+      border-radius: var(--radius-md);
+      margin-bottom: 16px;
       display: none;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <a href="#" onclick="goBack()" class="back-link">← กลับ</a>
-
     <!-- Loading State -->
     <div id="loading" class="loading">
       <div class="loading-spinner"></div>
-      <p>Loading...</p>
+      <p>กำลังโหลด...</p>
     </div>
 
     <!-- Error Message -->
@@ -98,11 +143,19 @@
 
     <!-- Edit Form -->
     <div id="edit-form" style="display: none;">
-      <h1 id="page-title">Edit Profile</h1>
+      <!-- Header -->
+      <div class="page-header">
+        <button class="back-btn" onclick="goBack()">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+        </button>
+        <h1 class="page-title" id="page-title">แก้ไขข้อมูล</h1>
+      </div>
 
       <!-- Basic Info Section -->
       <div id="section-basic" class="card" style="display: none;">
-        <div class="section-title">Basic Info</div>
+        <div class="section-title">📝 ข้อมูลพื้นฐาน</div>
         <div class="form-group">
           <label>ชื่อ</label>
           <input type="text" id="first_name" placeholder="ชื่อ">
@@ -140,7 +193,7 @@
 
       <!-- Medical Info Section -->
       <div id="section-medical" class="card" style="display: none;">
-        <div class="section-title">Medical Info</div>
+        <div class="section-title">🏥 ข้อมูลทางการแพทย์</div>
         <div class="form-group">
           <label>กรุ๊ปเลือด</label>
           <select id="blood_type">
@@ -179,7 +232,7 @@
 
       <!-- Emergency Contact Section -->
       <div id="section-emergency" class="card" style="display: none;">
-        <div class="section-title">Emergency Contact</div>
+        <div class="section-title">📞 ผู้ติดต่อฉุกเฉิน</div>
         <div class="form-group">
           <label>ชื่อผู้ติดต่อฉุกเฉิน</label>
           <input type="text" id="emergency_contact_name" placeholder="ชื่อ-นามสกุล">
@@ -203,6 +256,23 @@
         <div class="form-group">
           <label>เบอร์โทรศัพท์</label>
           <input type="tel" id="emergency_contact_phone" placeholder="0812345678">
+        </div>
+      </div>
+
+      <!-- Hospital Section -->
+      <div id="section-hospital" class="card" style="display: none;">
+        <div class="section-title">🏨 โรงพยาบาลและแพทย์</div>
+        <div class="form-group">
+          <label>ชื่อโรงพยาบาล</label>
+          <input type="text" id="hospital_name" placeholder="โรงพยาบาล...">
+        </div>
+        <div class="form-group">
+          <label>เบอร์โทรโรงพยาบาล</label>
+          <input type="tel" id="hospital_phone" placeholder="02-xxx-xxxx">
+        </div>
+        <div class="form-group">
+          <label>หมายเหตุทางการแพทย์</label>
+          <textarea id="medical_notes" rows="3" placeholder="หมายเหตุเพิ่มเติม..."></textarea>
         </div>
       </div>
 
@@ -237,7 +307,8 @@
       const sectionTitles = {
         basic: 'แก้ไขข้อมูลพื้นฐาน',
         medical: 'แก้ไขข้อมูลทางการแพทย์',
-        emergency: 'แก้ไขผู้ติดต่อฉุกเฉิน'
+        emergency: 'แก้ไขผู้ติดต่อฉุกเฉิน',
+        hospital: 'แก้ไขข้อมูลโรงพยาบาล'
       };
       document.getElementById('page-title').textContent = sectionTitles[currentSection] || 'แก้ไขข้อมูล';
 
@@ -299,6 +370,13 @@
         document.getElementById('emergency_contact_relation').value = patient.emergency_contact_relation || '';
         document.getElementById('emergency_contact_phone').value = patient.emergency_contact_phone || '';
       }
+
+      // Hospital
+      if (currentSection === 'hospital') {
+        document.getElementById('hospital_name').value = patient.hospital_name || '';
+        document.getElementById('hospital_phone').value = patient.hospital_phone || '';
+        document.getElementById('medical_notes').value = patient.medical_notes || '';
+      }
     }
 
     function getFormData() {
@@ -333,6 +411,12 @@
         data.emergency_contact_name = document.getElementById('emergency_contact_name').value.trim() || null;
         data.emergency_contact_relation = document.getElementById('emergency_contact_relation').value.trim() || null;
         data.emergency_contact_phone = document.getElementById('emergency_contact_phone').value.trim() || null;
+      }
+
+      if (currentSection === 'hospital') {
+        data.hospital_name = document.getElementById('hospital_name').value.trim() || null;
+        data.hospital_phone = document.getElementById('hospital_phone').value.trim() || null;
+        data.medical_notes = document.getElementById('medical_notes').value.trim() || null;
       }
 
       return data;
@@ -387,22 +471,15 @@
     }
 
     function goBack() {
-      // Check if we came from test page or production page
-      const referrer = document.referrer;
-      const isTest = referrer.includes('test-patient-profile');
-
-      // Map section to tab name
+      // Map section to tab name for patient-profile.html
       const tabMap = {
-        basic: 'profile',
+        basic: 'personal',
         medical: 'medical',
-        emergency: 'emergency'
+        emergency: 'emergency',
+        hospital: 'hospital'
       };
-      const tab = tabMap[currentSection] || 'profile';
-
-      const returnUrl = isTest
-        ? `test-patient-profile.html?patient_id=${currentPatientId}`
-        : `patient-profile.html?tab=${tab}`;
-      window.location.href = returnUrl;
+      const tab = tabMap[currentSection] || 'personal';
+      window.location.href = `patient-profile.html?tab=${tab}`;
     }
 
     // Initialize on load

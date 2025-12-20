@@ -381,7 +381,19 @@
         alert('กรุณารอโหลดข้อมูลก่อน');
         return;
       }
-      window.location.href = `edit-profile.html?patient_id=${patientId}&section=${section}`;
+      // Map section names to edit-profile.html sections
+      const sectionMap = {
+        'personal': 'basic',
+        'body': 'medical',
+        'medical': 'medical',
+        'allergies': 'medical',
+        'notes': 'medical',
+        'hospital': 'hospital',
+        'doctor': 'hospital',
+        'emergency': 'emergency'
+      };
+      const targetSection = sectionMap[section] || section;
+      window.location.href = `edit-profile.html?patient_id=${patientId}&section=${targetSection}`;
     }
 
     // Go to medications page
