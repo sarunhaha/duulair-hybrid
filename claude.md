@@ -431,5 +431,439 @@ src/services/
 ```
 
 ---
-*Session: 2025-12-20*
+*Session: 2025-12-20 (Morning)*
 *Status: AI Extraction Pipeline code complete, pending webhook integration*
+
+---
+
+## Session: 2025-12-20 (Afternoon) - Chat-based Profile Editing System
+
+### Goal
+เพิ่มความสามารถให้ผู้ใช้แก้ไข/อัพเดตข้อมูลส่วนตัวผ่าน LINE Chat โดยไม่ต้องเข้า LIFF pages
+
+### Implementation Summary
+
+#### 1. ProfileEditAgent (NEW)
+**File:** `src/agents/specialized/ProfileEditAgent.ts` (~700 lines)
+
+Main agent for handling all profile edits via chat:
+
+```typescript
+export class ProfileEditAgent extends BaseAgent {
+  constructor(config?: Partial<Config>) {
+    super({
+      name: 'profile_edit',
+      role: 'Handle profile and data editing via chat',
+      model: 'anthropic/claude-sonnet-4.5',
+      temperature: 0.3,
+      maxTokens: 1000,
+      ...config
+    });
+  }
+}
+```
+
+**Features:**
+- Claude-based entity extraction for Thai natural language
+- Validation rules (weight 20-200kg, height 50-250cm, phone format, blood type)
+- Handlers for 16 different edit intents
+
+**Handlers Implemented:**
+| Handler | Example Input |
+|---------|---------------|
+| `handleEditWeight` | "น้ำหนัก 65 กิโล" |
+| `handleEditHeight` | "ส่วนสูง 170 ซม." |
+| `handleEditPhone` | "เปลี่ยนเบอร์ 0891234567" |
+| `handleEditName` | "ชื่อใหม่คือ สมศรี มงคล" |
+| `handleEditAddress` | "ที่อยู่ใหม่คือ 123 ถ.สุขุมวิท" |
+| `handleEditBloodType` | "กรุ๊ปเลือด O+" |
+| `handleEditMedicalCondition` | "เพิ่มโรคเบาหวาน" |
+| `handleEditAllergies` | "แพ้ยาเพนนิซิลิน" |
+| `handleEditEmergencyContact` | "ผู้ติดต่อฉุกเฉิน 0812345678" |
+| `handleAddMedication` | "เพิ่มยาเมทฟอร์มิน 500mg เช้าเย็น" |
+| `handleEditMedication` | "แก้ยาเมทฟอร์มินเป็น 1000mg" |
+| `handleDeleteMedication` | "ลบยาพาราเซตามอล" |
+| `handleAddReminder` | "ตั้งเตือนกินยา 8 โมง" |
+| `handleEditReminder` | "เปลี่ยนเวลาเตือนกินยาเป็น 9 โมง" |
+| `handleDeleteReminder` | "ลบเตือนกินยาเช้า" |
+| `handleGenericEdit` | General edit with Claude extraction |
+
+#### 2. Intent Patterns (IntentAgent.ts)
+
+Added 17 new edit intent patterns:
+
+```typescript
+// Profile Edit Intents
+edit_profile: [/แก้ไข.*ข้อมูล/, /อัพเดต.*ข้อมูล/, ...],
+edit_name: [/เปลี่ยน.*ชื่อ/, /แก้.*ชื่อ/, ...],
+edit_weight: [/เปลี่ยน.*น้ำหนัก/, /น้ำหนัก\s*\d+/, ...],
+edit_height: [/เปลี่ยน.*ส่วนสูง/, /ส่วนสูง\s*\d+/, ...],
+edit_phone: [/เปลี่ยน.*เบอร์/, /เบอร์.*ใหม่/, ...],
+edit_address: [/เปลี่ยน.*ที่อยู่/, /แก้.*ที่อยู่/, ...],
+edit_blood_type: [/เปลี่ยน.*กรุ๊ปเลือด/, /กรุ๊ปเลือด.*เป็น/, ...],
+edit_medical_condition: [/เพิ่ม.*โรค/, /แก้.*โรค/, ...],
+edit_allergies: [/เพิ่ม.*แพ้/, /แก้.*แพ้/, ...],
+edit_emergency_contact: [/เปลี่ยน.*ผู้ติดต่อ.*ฉุกเฉิน/, ...],
+
+// Medication Intents
+add_medication: [/เพิ่ม.*ยา/, /ยา.*ใหม่/, ...],
+edit_medication: [/แก้.*ยา/, /เปลี่ยน.*ยา/, ...],
+delete_medication: [/ลบ.*ยา/, /หยุด.*ยา/, ...],
+
+// Reminder Intents
+add_reminder: [/เพิ่ม.*เตือน/, /ตั้ง.*เตือน/, ...],
+edit_reminder: [/แก้.*เตือน/, /เปลี่ยน.*เวลา.*เตือน/, ...],
+delete_reminder: [/ลบ.*เตือน/, /ยกเลิก.*เตือน/, ...]
+```
+
+**highConfidenceIntents updated:**
+```typescript
+const highConfidenceIntents = [
+  'emergency', 'report', 'report_menu', 'patient_info', 'greeting',
+  'log_medication', 'log_blood_pressure', 'log_water',
+  // NEW: Edit intents
+  'edit_profile', 'edit_name', 'edit_weight', 'edit_height',
+  'edit_phone', 'edit_address', 'edit_blood_type', 'edit_medical_condition',
+  'edit_allergies', 'edit_emergency_contact',
+  'add_medication', 'edit_medication', 'delete_medication',
+  'add_reminder', 'edit_reminder', 'delete_reminder'
+];
+```
+
+#### 3. OrchestratorAgent Routing
+
+Added routing for edit intents BEFORE confidence check:
+
+```typescript
+// Route edit intents to ProfileEditAgent
+const profileEditIntents = [
+  'edit_profile', 'edit_name', 'edit_weight', 'edit_height',
+  'edit_phone', 'edit_address', 'edit_blood_type',
+  'edit_medical_condition', 'edit_allergies', 'edit_emergency_contact'
+];
+const medicationEditIntents = ['add_medication', 'edit_medication', 'delete_medication'];
+const reminderEditIntents = ['add_reminder', 'edit_reminder', 'delete_reminder'];
+
+if (profileEditIntents.includes(intent) ||
+    medicationEditIntents.includes(intent) ||
+    reminderEditIntents.includes(intent)) {
+  plan.agents = ['profile_edit'];
+  plan.requiresPatientData = true;
+  return plan;
+}
+```
+
+#### 4. DialogAgent Suggestions
+
+Added edit suggestions to guide users:
+
+```typescript
+// Profile edit suggestions
+{ pattern: /อยาก.*เปลี่ยน.*ข้อมูล|อยาก.*แก้.*ข้อมูล/i,
+  intent: 'edit_profile',
+  suggestion: 'แก้ไขข้อมูล',
+  action: 'พิมพ์สิ่งที่ต้องการแก้ไขได้เลยค่ะ เช่น "น้ำหนัก 65 กิโล" หรือ "เปลี่ยนเบอร์ 0891234567"' },
+
+// Medication suggestions
+{ pattern: /อยาก.*เพิ่ม.*ยา|จะ.*เพิ่ม.*ยา/i,
+  intent: 'add_medication',
+  suggestion: 'เพิ่มยา',
+  action: 'พิมพ์ "เพิ่มยา [ชื่อยา] [ขนาด] [เวลา]" เช่น "เพิ่มยาเมทฟอร์มิน 500mg เช้าเย็น"' },
+
+// Reminder suggestions
+{ pattern: /อยาก.*ลบ.*เตือน|จะ.*ยกเลิก.*เตือน/i,
+  intent: 'delete_reminder',
+  suggestion: 'ลบการเตือน',
+  action: 'พิมพ์ "ลบเตือน [ชื่อเตือน]" เช่น "ลบเตือนกินยาเช้า"' },
+```
+
+### TypeScript Error Fixed
+
+**Error:** `Property 'drug_allergies' does not exist on type 'PatientProfile'. Did you mean 'drugAllergies'?`
+
+**Fix:** Used type assertion to handle both snake_case (database) and camelCase (TypeScript):
+
+```typescript
+const currentDrugAllergies = (currentProfile as any)?.drug_allergies || currentProfile?.drugAllergies || [];
+const currentFoodAllergies = (currentProfile as any)?.food_allergies || currentProfile?.foodAllergies || [];
+```
+
+### Files Modified/Created
+
+| File | Action | Description |
+|------|--------|-------------|
+| `src/agents/specialized/ProfileEditAgent.ts` | NEW | Main edit agent (~700 lines) |
+| `src/agents/specialized/IntentAgent.ts` | MODIFIED | Added 17 edit intent patterns |
+| `src/agents/core/OrchestratorAgent.ts` | MODIFIED | Import, init, routing for ProfileEditAgent |
+| `src/agents/specialized/DialogAgent.ts` | MODIFIED | Added edit suggestions |
+| `CHANGELOG.md` | MODIFIED | Added 2025-12-20 section |
+| `TODO.md` | MODIFIED | Added Chat-based Profile Editing section |
+| `CLAUDE.md` | MODIFIED | Added this session log |
+
+### Build Status
+
+```bash
+$ npm run build
+# ✅ Build succeeded with no errors
+```
+
+### Example Conversations
+
+```
+# Simple profile edit
+User: "น้ำหนัก 65 กิโล"
+Bot: "✅ บันทึกน้ำหนัก 65 กก. เรียบร้อยแล้วค่ะ"
+
+# Phone update
+User: "เปลี่ยนเบอร์ 0891234567"
+Bot: "✅ เปลี่ยนเบอร์โทรเป็น 089-123-4567 เรียบร้อยแล้วค่ะ"
+
+# Add medication (smart extraction)
+User: "เพิ่มยาเมทฟอร์มิน 500mg เช้าเย็น หลังอาหาร"
+Bot: "✅ เพิ่มยา เมทฟอร์มิน 500mg เช้า-เย็น หลังอาหาร เรียบร้อยแล้วค่ะ"
+
+# Delete medication
+User: "ลบยาพาราเซตามอล"
+Bot: "✅ ลบยา พาราเซตามอล เรียบร้อยแล้วค่ะ"
+
+# Set reminder
+User: "ตั้งเตือนกินยา 8 โมง"
+Bot: "✅ ตั้งการเตือนกินยา 08:00 เรียบร้อยแล้วค่ะ"
+```
+
+---
+*Session: 2025-12-20 (Afternoon)*
+*Feature: Chat-based Profile Editing System - COMPLETE*
+
+---
+
+## Session: 2025-12-21 - Natural Conversation Architecture (Claude-First NLU)
+
+### Goal
+เปลี่ยนระบบจาก **Command-Based** (Pattern Matching) → **Natural Conversation** (Claude-First NLU)
+ให้ AI เข้าใจการสนทนาแบบธรรมชาติ ไม่ต้องสอน user พิมพ์ command
+
+### Problem Statement
+
+**Before (Command-Based):**
+```
+User: "ยายกินยาเสร็จแล้วค่ะหลังอาหารเช้า"
+Bot:  "ได้รับข้อความแล้วค่ะ"  ← ไม่เข้าใจ (ไม่ตรง pattern)
+
+User: "อยากบันทึกยา"
+Bot:  "💡 พิมพ์ 'กินยาแล้ว' ได้เลยค่ะ"  ← สอน command
+```
+
+**After (Natural Conversation):**
+```
+User: "ยายกินยาเสร็จแล้วค่ะหลังอาหารเช้า"
+Bot:  "บันทึกให้ยายเรียบร้อยแล้วค่ะ กินยาหลังอาหารเช้า 🌅"
+
+User: "วัดความดันได้ 140 กับ 90 ค่ะ"
+Bot:  "บันทึกความดัน 140/90 แล้วค่ะ สูงกว่าปกตินิดหน่อย ดื่มน้ำเยอะๆ นะคะ 💧"
+```
+
+### Implementation Summary
+
+#### Phase 1: Create unified-nlu.ts prompt ✅
+**File:** `src/lib/ai/prompts/unified-nlu.ts` (NEW)
+
+- `UNIFIED_NLU_SYSTEM_PROMPT` - Comprehensive prompt for Thai health conversations
+- Intent Categories: health_log, profile_update, medication_manage, reminder_manage, query, emergency, greeting, general_chat
+- SubIntents for each category
+- Entity extraction patterns (patient name, time, values)
+- Response guidelines (natural, not command-like)
+- Output format: JSON with intent, entities, healthData, action, response
+
+Helper functions:
+- `buildUnifiedNLUPrompt()` - Combines message with context
+- `buildPatientContextString()` - Formats patient data for Claude
+- `buildRecentActivitiesString()` - Formats today's activities
+- `buildConversationHistoryString()` - Formats conversation history
+
+#### Phase 2: Create nlu.types.ts ✅
+**File:** `src/types/nlu.types.ts` (NEW)
+
+Type definitions:
+- `MainIntent`, `SubIntent` - Intent type unions
+- `NLUEntities` - Extracted entities interface
+- `NLUHealthData` - Health data with sub-types (MedicationHealthData, VitalsHealthData, etc.)
+- `NLUAction` - Action to be executed
+- `NLUResult` - Complete NLU result from Claude
+- `NLUContext` - Context passed to NLU
+- `ActionResult` - Result of action execution
+- `AbnormalAlert` - Alert for abnormal vital values
+
+#### Phase 3: Create UnifiedNLUAgent.ts ✅
+**File:** `src/agents/core/UnifiedNLUAgent.ts` (NEW)
+
+```typescript
+export class UnifiedNLUAgent extends BaseAgent {
+  // Single Claude call for intent + extraction + response
+  async processNLU(input: NLUInput): Promise<NLUResult>
+
+  // Parse Claude's JSON response
+  private parseNLUResponse(response: string, originalMessage: string): NLUResult
+
+  // Normalize intent and health data
+  private normalizeIntent(intent: string): MainIntent
+  private normalizeHealthData(healthData: any): NLUHealthData | null
+
+  // Fallback for unparseable responses
+  private inferFromFreeText(response: string, originalMessage: string): NLUResult
+
+  // Static helpers
+  static requiresAction(nluResult: NLUResult): boolean
+  static hasHealthData(nluResult: NLUResult): boolean
+  static getExtractionSummary(nluResult: NLUResult): string
+}
+```
+
+#### Phase 4: Create action-router.ts ✅
+**File:** `src/lib/actions/action-router.ts` (NEW)
+
+```typescript
+// Main entry point
+export async function executeAction(nluResult: NLUResult, context: NLUContext): Promise<ActionResult>
+
+// Action handlers
+async function handleSaveAction(nluResult, context): Promise<ActionResult>
+async function handleUpdateAction(nluResult, context): Promise<ActionResult>
+async function handleDeleteAction(nluResult, context): Promise<ActionResult>
+async function handleQueryAction(nluResult, context): Promise<ActionResult>
+
+// Health data saving
+async function saveHealthData(healthData, context, rawText): Promise<ActionResult>
+function convertToExtractedData(healthData: NLUHealthData): AIExtractedData
+function checkForAbnormalVitals(vitals): AbnormalAlert[]
+
+// Profile/Medication/Reminder operations
+async function saveProfileUpdate(data, context): Promise<ActionResult>
+async function saveMedication(data, context): Promise<ActionResult>
+async function updateMedication(data, context): Promise<ActionResult>
+async function deleteMedication(data, context): Promise<ActionResult>
+async function saveReminder(data, context): Promise<ActionResult>
+async function updateReminder(data, context): Promise<ActionResult>
+async function deleteReminder(data, context): Promise<ActionResult>
+```
+
+#### Phase 5: Update OrchestratorAgent.ts ✅
+**File:** `src/agents/core/OrchestratorAgent.ts` (MODIFIED)
+
+Changes:
+- Added `USE_NATURAL_CONVERSATION_MODE = true` flag
+- Added `UnifiedNLUAgent` to agent registry
+- New method `processWithNaturalConversation()` for Claude-first flow
+- New method `handleReportQuery()` for report delegation
+- Renamed original process to `processWithIntentRouting()` as legacy fallback
+- Automatic fallback to legacy mode if NLU fails
+
+```typescript
+async process(message: Message): Promise<Response> {
+  if (USE_NATURAL_CONVERSATION_MODE) {
+    return this.processWithNaturalConversation(message, startTime);
+  }
+  return this.processWithIntentRouting(message, startTime);
+}
+```
+
+#### Phase 6: Update DialogAgent.ts ✅
+**File:** `src/agents/specialized/DialogAgent.ts` (MODIFIED)
+
+Changes:
+- Added `USE_NATURAL_CONVERSATION_MODE = true` flag
+- Disabled command suggestions when in natural mode
+- Updated system prompt to not teach commands
+- Natural conversation guidelines for group chat
+
+```typescript
+// Before: "พิมพ์ 'กินยาแล้ว' ได้เลยค่ะ"
+// After: Understands naturally and responds naturally
+```
+
+### Architecture Diagram
+
+```
+User Message
+      ↓
+┌─────────────────────────────────────────────────────────────┐
+│                 UnifiedNLUAgent (NEW)                       │
+│                                                             │
+│  SINGLE Claude API Call:                                    │
+│  ┌───────────────────────────────────────────────────────┐  │
+│  │ Input: message + patientContext + conversationHistory │  │
+│  │                                                       │  │
+│  │ Output: {                                             │  │
+│  │   intent: "health_log",                               │  │
+│  │   subIntent: "medication",                            │  │
+│  │   confidence: 0.95,                                   │  │
+│  │   entities: { patientName, time, values... },         │  │
+│  │   healthData: { ... },                                │  │
+│  │   action: { type: "save", target: "activity_logs" },  │  │
+│  │   response: "บันทึกให้ยายเรียบร้อยแล้วค่ะ..."         │  │
+│  │ }                                                     │  │
+│  └───────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────┘
+      ↓
+┌─────────────────────────────────────────────────────────────┐
+│              ActionRouter (Simplified)                       │
+│  - Execute action based on NLU result                       │
+│  - Save to database                                         │
+│  - Return Claude-generated response                         │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Files Created
+| File | Description |
+|------|-------------|
+| `src/lib/ai/prompts/unified-nlu.ts` | Unified NLU prompt + helpers |
+| `src/types/nlu.types.ts` | Type definitions for NLU system |
+| `src/agents/core/UnifiedNLUAgent.ts` | Claude-first NLU agent |
+| `src/lib/actions/action-router.ts` | Action execution router |
+
+### Files Modified
+| File | Changes |
+|------|---------|
+| `src/agents/core/OrchestratorAgent.ts` | Added natural conversation mode |
+| `src/agents/specialized/DialogAgent.ts` | Disabled command suggestions |
+| `TODO.md` | Added Natural Conversation Architecture section |
+
+### Build Status
+```bash
+$ npm run build
+# ✅ Build succeeded with no TypeScript errors
+```
+
+### Configuration
+
+To switch between modes:
+```typescript
+// In OrchestratorAgent.ts and DialogAgent.ts
+const USE_NATURAL_CONVERSATION_MODE = true;  // Claude-first NLU
+const USE_NATURAL_CONVERSATION_MODE = false; // Legacy IntentAgent + Routing
+```
+
+### Response Style Guidelines
+
+**DO (Natural):**
+- "บันทึกให้แล้วค่ะ" ✅
+- "ได้เลยค่ะ อัพเดตให้แล้ว" ✅
+- ใช้ emoji พอประมาณ 💊💧🌅
+- ถามกลับถ้าไม่ชัดเจน
+
+**DON'T (Command-like):**
+- "พิมพ์ 'กินยาแล้ว'" ❌
+- "กรุณาระบุ..." ❌
+- "คำสั่งไม่ถูกต้อง" ❌
+
+### Key Benefits
+1. **Natural Input Recognition**: Understands Thai health messages without exact pattern matching
+2. **No Command Training**: Bot never says "พิมพ์ '...'"
+3. **Context Awareness**: Correctly identifies patient from context
+4. **Response Quality**: Natural, warm, helpful responses
+5. **Action Accuracy**: Correct database operations based on semantic understanding
+6. **Fallback Safety**: Legacy mode fallback if NLU fails
+
+---
+*Session: 2025-12-21*
+*Feature: Natural Conversation Architecture - COMPLETE*

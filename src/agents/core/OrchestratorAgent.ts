@@ -5,7 +5,14 @@ import { HealthAgent } from '../specialized/HealthAgent';
 import { ReportAgent } from '../specialized/ReportAgent';
 import { AlertAgent } from '../specialized/AlertAgent';
 import { DialogAgent } from '../specialized/DialogAgent';
+import { ProfileEditAgent } from '../specialized/ProfileEditAgent';
+import { UnifiedNLUAgent } from './UnifiedNLUAgent';
+import { executeAction } from '../../lib/actions/action-router';
+import { NLUResult, NLUContext } from '../../types/nlu.types';
 import { v4 as uuidv4 } from 'uuid';
+
+// Enable/disable natural conversation mode (Claude-first NLU)
+const USE_NATURAL_CONVERSATION_MODE = true;
 
 interface AgentRegistry {
   [key: string]: BaseAgent;
@@ -39,7 +46,9 @@ export class OrchestratorAgent extends BaseAgent {
         { name: 'health', class: HealthAgent },
         { name: 'report', class: ReportAgent },
         { name: 'alert', class: AlertAgent },
-        { name: 'dialog', class: DialogAgent }
+        { name: 'dialog', class: DialogAgent },
+        { name: 'profile_edit', class: ProfileEditAgent },
+        { name: 'unified_nlu', class: UnifiedNLUAgent }
       ];
 
       for (const { name, class: AgentClass } of agentConfigs) {
@@ -69,6 +78,190 @@ export class OrchestratorAgent extends BaseAgent {
     const startTime = Date.now();
     this.log('info', 'Processing message', { messageId: message.id });
 
+    // Use natural conversation mode if enabled
+    if (USE_NATURAL_CONVERSATION_MODE) {
+      return this.processWithNaturalConversation(message, startTime);
+    }
+
+    // Legacy mode: Use IntentAgent + routing
+    return this.processWithIntentRouting(message, startTime);
+  }
+
+  /**
+   * Natural Conversation Mode - Claude-first NLU
+   * Single Claude call for understanding + extraction + response
+   */
+  private async processWithNaturalConversation(message: Message, startTime: number): Promise<Response> {
+    try {
+      // Fetch patient data for context
+      const isGroupChat = message.context.source === 'group' || !!message.context.groupId;
+      let patientData = null;
+
+      if (message.context.patientId) {
+        patientData = await this.fetchPatientDataForQuery(message.context.patientId, '');
+      }
+
+      // Build NLU context
+      const nluContext: NLUContext = {
+        userId: message.context.userId || '',
+        patientId: message.context.patientId,
+        groupId: message.context.groupId,
+        isGroupChat,
+        patientData: patientData ? {
+          profile: patientData,
+          medications: patientData.medications,
+          reminders: patientData.reminders,
+          recentActivities: patientData.recentActivities
+        } : undefined,
+        conversationHistory: message.metadata?.conversationHistory
+      };
+
+      // Process through UnifiedNLU
+      const nluResponse = await this.agents.unified_nlu.process({
+        ...message,
+        metadata: {
+          ...message.metadata,
+          patientData: nluContext.patientData,
+          conversationHistory: nluContext.conversationHistory
+        }
+      });
+
+      if (!nluResponse.success || !nluResponse.data) {
+        throw new Error('NLU processing failed');
+      }
+
+      const nluResult: NLUResult = nluResponse.data;
+      this.log('info', `NLU: ${nluResult.intent}/${nluResult.subIntent} (${(nluResult.confidence * 100).toFixed(0)}%)`);
+
+      // Special case: emergency - also notify alert agent
+      if (nluResult.intent === 'emergency') {
+        await this.checkAlerts(message, { combined: { emergency: true } });
+      }
+
+      // Special case: report - delegate to ReportAgent for Flex Message
+      if (nluResult.intent === 'query' && nluResult.subIntent === 'report') {
+        return this.handleReportQuery(message, nluResult, patientData, startTime);
+      }
+
+      // Execute database action if needed
+      let actionResult = null;
+      if (UnifiedNLUAgent.requiresAction(nluResult)) {
+        actionResult = await executeAction(nluResult, nluContext);
+
+        if (!actionResult.success && actionResult.errors?.length) {
+          this.log('warn', 'Action execution failed', actionResult.errors);
+        }
+      }
+
+      // Build final response
+      let finalResponse = nluResult.response;
+
+      // Append alerts if any
+      if (actionResult?.alerts?.length) {
+        finalResponse += '\n\n' + actionResult.alerts.join('\n');
+      }
+
+      // Save processing log
+      await this.saveProcessingLog(message, {
+        combined: {
+          response: finalResponse,
+          intent: nluResult.intent,
+          subIntent: nluResult.subIntent
+        }
+      });
+
+      return {
+        success: true,
+        data: {
+          response: finalResponse,
+          intent: nluResult.intent,
+          subIntent: nluResult.subIntent,
+          confidence: nluResult.confidence,
+          healthData: nluResult.healthData,
+          actionResult,
+          nluResult
+        },
+        agentName: this.config.name,
+        processingTime: Date.now() - startTime,
+        metadata: {
+          intent: nluResult.intent,
+          confidence: nluResult.confidence,
+          mode: 'natural_conversation',
+          hasHealthData: !!nluResult.healthData,
+          savedRecords: actionResult?.savedRecords || 0
+        }
+      };
+
+    } catch (error) {
+      this.log('error', 'Natural conversation processing failed, falling back to legacy mode', error);
+      // Fallback to legacy routing
+      return this.processWithIntentRouting(message, startTime);
+    }
+  }
+
+  /**
+   * Handle report queries - delegate to ReportAgent for proper Flex Messages
+   */
+  private async handleReportQuery(
+    message: Message,
+    nluResult: NLUResult,
+    patientData: any,
+    startTime: number
+  ): Promise<Response> {
+    // Determine report type from message
+    const msgLower = message.content.toLowerCase();
+    let reportType = 'daily';
+    if (msgLower.includes('สัปดาห์') || msgLower.includes('weekly') || msgLower.includes('7 วัน')) {
+      reportType = 'weekly';
+    } else if (msgLower.includes('เดือน') || msgLower.includes('monthly') || msgLower.includes('30 วัน')) {
+      reportType = 'monthly';
+    } else if (msgLower.includes('เมนู') || msgLower.match(/^ดู?รายงาน$/)) {
+      // Just "ดูรายงาน" or "รายงาน" - show menu
+      const reportResponse = await this.agents.report.process({
+        ...message,
+        metadata: { ...message.metadata, intent: 'report_menu', patientData }
+      });
+      return {
+        success: true,
+        data: reportResponse.data,
+        agentName: this.config.name,
+        processingTime: Date.now() - startTime,
+        metadata: {
+          intent: 'report_menu',
+          flexMessageType: 'report_menu',
+          mode: 'natural_conversation'
+        }
+      };
+    }
+
+    // Get actual report
+    const reportResponse = await this.agents.report.process({
+      ...message,
+      metadata: {
+        ...message.metadata,
+        intent: 'report',
+        reportType,
+        patientData
+      }
+    });
+
+    return {
+      success: true,
+      data: reportResponse.data,
+      agentName: this.config.name,
+      processingTime: Date.now() - startTime,
+      metadata: {
+        intent: 'report',
+        reportType,
+        mode: 'natural_conversation'
+      }
+    };
+  }
+
+  /**
+   * Legacy Mode - IntentAgent + Routing Plan
+   */
+  private async processWithIntentRouting(message: Message, startTime: number): Promise<Response> {
     try {
       // Step 1: Intent Classification
       const intentResponse = await this.agents.intent.process(message);
@@ -275,6 +468,27 @@ export class OrchestratorAgent extends BaseAgent {
       plan.requiresPatientData = true;
       // Store reportType to pass to ReportAgent
       (plan as any).reportType = reportType;
+      return plan;
+    }
+
+    // ========================================
+    // Profile/Medication/Reminder Edit Intents
+    // Route to profile_edit agent (works with any confidence)
+    // ========================================
+    const profileEditIntents = [
+      'edit_profile', 'edit_name', 'edit_weight', 'edit_height',
+      'edit_phone', 'edit_address', 'edit_blood_type',
+      'edit_medical_condition', 'edit_allergies', 'edit_emergency_contact'
+    ];
+
+    const medicationEditIntents = ['add_medication', 'edit_medication', 'delete_medication'];
+    const reminderEditIntents = ['add_reminder', 'edit_reminder', 'delete_reminder'];
+
+    if (profileEditIntents.includes(intent) ||
+        medicationEditIntents.includes(intent) ||
+        reminderEditIntents.includes(intent)) {
+      plan.agents = ['profile_edit'];
+      plan.requiresPatientData = true;
       return plan;
     }
 

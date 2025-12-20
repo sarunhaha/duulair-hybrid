@@ -1,8 +1,12 @@
 // src/agents/specialized/DialogAgent.ts
 import { BaseAgent, Message, Response, Config } from '../core/BaseAgent';
 
+// Natural conversation mode flag - when true, don't teach commands
+const USE_NATURAL_CONVERSATION_MODE = true;
+
 export class DialogAgent extends BaseAgent {
   // Smart intent suggestions - map similar phrases to actions
+  // DEPRECATED: Only used in legacy mode when USE_NATURAL_CONVERSATION_MODE = false
   private intentSuggestions: { pattern: RegExp; intent: string; suggestion: string; action?: string }[] = [
     // Medication-related
     { pattern: /อยาก.*บันทึก.*ยา|จะ.*บันทึก.*ยา|บันทึก.*ยา.*ยังไง/i, intent: 'medication', suggestion: 'บันทึกยา', action: 'พิมพ์ "กินยาแล้ว" หรือ "ทานยาเช้าแล้ว" ได้เลยค่ะ' },
@@ -27,7 +31,30 @@ export class DialogAgent extends BaseAgent {
     { pattern: /วันนี้.*ทำ.*อะไร|กิจกรรม.*วันนี้|สรุป.*วันนี้/i, intent: 'report', suggestion: 'สรุปวันนี้', action: 'พิมพ์ "รายงานวันนี้" ค่ะ' },
 
     // Reminders
-    { pattern: /อยาก.*ตั้ง.*เตือน|จะ.*ตั้ง.*เวลา|เตือน.*ยังไง/i, intent: 'reminder', suggestion: 'ตั้งเตือน', action: 'พิมพ์ "วิธีใช้" เพื่อดูคำสั่งทั้งหมดค่ะ' },
+    { pattern: /อยาก.*ตั้ง.*เตือน|จะ.*ตั้ง.*เวลา|เตือน.*ยังไง/i, intent: 'reminder', suggestion: 'ตั้งเตือน', action: 'พิมพ์ "ตั้งเตือนกินยา 8 โมง" หรือ "เพิ่มเตือนวัดความดัน 09:00" ได้เลยค่ะ' },
+
+    // ========================================
+    // Profile Edit Suggestions (Chat-based Editing)
+    // ========================================
+    // Profile edits
+    { pattern: /อยาก.*เปลี่ยน.*ข้อมูล|จะ.*แก้ไข.*ข้อมูล|อัพเดต.*ข้อมูล.*ยังไง/i, intent: 'edit_profile', suggestion: 'แก้ไขข้อมูล', action: 'พิมพ์สิ่งที่ต้องการแก้ไขได้เลยค่ะ เช่น "น้ำหนัก 65 กก." หรือ "เปลี่ยนเบอร์ 0891234567"' },
+    { pattern: /อยาก.*เปลี่ยน.*น้ำหนัก|จะ.*แก้.*น้ำหนัก|น้ำหนัก.*เปลี่ยน/i, intent: 'edit_weight', suggestion: 'แก้ไขน้ำหนัก', action: 'พิมพ์ "น้ำหนัก 65 กิโล" หรือ "เปลี่ยนน้ำหนักเป็น 65 กก." ได้เลยค่ะ' },
+    { pattern: /อยาก.*เปลี่ยน.*ส่วนสูง|จะ.*แก้.*สูง|ส่วนสูง.*เปลี่ยน/i, intent: 'edit_height', suggestion: 'แก้ไขส่วนสูง', action: 'พิมพ์ "สูง 165 ซม." หรือ "เปลี่ยนส่วนสูงเป็น 165" ได้เลยค่ะ' },
+    { pattern: /อยาก.*เปลี่ยน.*เบอร์|จะ.*แก้.*เบอร์|เบอร์.*เปลี่ยน/i, intent: 'edit_phone', suggestion: 'แก้ไขเบอร์โทร', action: 'พิมพ์ "เบอร์ใหม่ 0891234567" หรือ "เปลี่ยนเบอร์เป็น 0891234567" ได้เลยค่ะ' },
+    { pattern: /อยาก.*เปลี่ยน.*ชื่อ|จะ.*แก้.*ชื่อ|ชื่อ.*เปลี่ยน/i, intent: 'edit_name', suggestion: 'แก้ไขชื่อ', action: 'พิมพ์ "ชื่อใหม่คือ สมศรี มงคล" หรือ "เปลี่ยนชื่อเล่นเป็น แม่" ได้เลยค่ะ' },
+
+    // Medication management
+    { pattern: /อยาก.*เพิ่ม.*ยา|จะ.*เพิ่ม.*ยา|ยา.*ใหม่.*ยังไง/i, intent: 'add_medication', suggestion: 'เพิ่มยา', action: 'พิมพ์ "เพิ่มยา [ชื่อยา] [ขนาด] [เวลา]" เช่น "เพิ่มยาเมทฟอร์มิน 500mg เช้าเย็น"' },
+    { pattern: /อยาก.*ลบ.*ยา|จะ.*ลบ.*ยา|เอา.*ยา.*ออก|หยุด.*ยา/i, intent: 'delete_medication', suggestion: 'ลบยา', action: 'พิมพ์ "ลบยา [ชื่อยา]" หรือ "หยุดกินยา [ชื่อยา]" ได้เลยค่ะ' },
+    { pattern: /อยาก.*แก้.*ยา|จะ.*เปลี่ยน.*ยา|ยา.*แก้ไข/i, intent: 'edit_medication', suggestion: 'แก้ไขยา', action: 'พิมพ์ "แก้ยา [ชื่อยา] เป็น [ข้อมูลใหม่]" ได้เลยค่ะ' },
+
+    // Reminder management (new)
+    { pattern: /อยาก.*ลบ.*เตือน|จะ.*ลบ.*เตือน|ยกเลิก.*เตือน/i, intent: 'delete_reminder', suggestion: 'ลบการเตือน', action: 'พิมพ์ "ลบเตือน [ชื่อเตือน]" หรือ "ยกเลิกเตือนกินยาเช้า" ได้เลยค่ะ' },
+    { pattern: /อยาก.*แก้.*เตือน|จะ.*เปลี่ยน.*เตือน|เตือน.*แก้ไข/i, intent: 'edit_reminder', suggestion: 'แก้ไขการเตือน', action: 'พิมพ์ "แก้เตือนกินยา เป็น 9 โมง" ได้เลยค่ะ' },
+
+    // Allergies & Medical conditions
+    { pattern: /อยาก.*เพิ่ม.*แพ้|จะ.*บันทึก.*แพ้|แพ้.*ใหม่/i, intent: 'edit_allergies', suggestion: 'เพิ่มการแพ้', action: 'พิมพ์ "แพ้ยา [ชื่อยา]" หรือ "แพ้อาหาร [ชนิดอาหาร]" ได้เลยค่ะ' },
+    { pattern: /อยาก.*เพิ่ม.*โรค|จะ.*บันทึก.*โรค|โรค.*ใหม่/i, intent: 'edit_medical_condition', suggestion: 'เพิ่มโรคประจำตัว', action: 'พิมพ์ "เพิ่มโรค [ชื่อโรค]" หรือ "โรคประจำตัวคือ [รายละเอียด]" ได้เลยค่ะ' },
 
     // Help-related
     { pattern: /ทำ.*อะไร.*ได้|ช่วย.*อะไร.*ได้|มี.*ฟีเจอร์.*อะไร|ใช้.*งาน.*ยังไง/i, intent: 'help', suggestion: 'วิธีใช้งาน', action: 'พิมพ์ "ช่วยเหลือ" หรือ "วิธีใช้" เพื่อดูคำแนะนำทั้งหมดค่ะ' },
@@ -78,26 +105,30 @@ export class DialogAgent extends BaseAgent {
     const startTime = Date.now();
 
     try {
-      // IMPORTANT: Check if this is a patient data query first (has patientData metadata)
-      // This takes priority over smart intent suggestions
-      if (message.metadata?.patientData) {
-        // Skip smart suggestions - let Claude handle with patient context
-        // This will be processed in the main Claude call below
-      } else {
-        // Check for smart intent suggestion only if NOT a patient data query
-        const intentSuggestion = this.checkIntentSuggestion(message.content);
-        if (intentSuggestion && intentSuggestion.action) {
-          // Return helpful guidance instead of generic response
-          return {
-            success: true,
-            data: {
-              response: `💡 ${intentSuggestion.action}`,
-              intent: intentSuggestion.intent,
-              suggestedAction: intentSuggestion.suggestion
-            },
-            agentName: this.config.name,
-            processingTime: Date.now() - startTime
-          };
+      // Skip command suggestions in natural conversation mode
+      // In natural mode, the UnifiedNLUAgent handles everything naturally
+      if (!USE_NATURAL_CONVERSATION_MODE) {
+        // LEGACY MODE: Check if this is a patient data query first (has patientData metadata)
+        // This takes priority over smart intent suggestions
+        if (message.metadata?.patientData) {
+          // Skip smart suggestions - let Claude handle with patient context
+          // This will be processed in the main Claude call below
+        } else {
+          // Check for smart intent suggestion only if NOT a patient data query
+          const intentSuggestion = this.checkIntentSuggestion(message.content);
+          if (intentSuggestion && intentSuggestion.action) {
+            // Return helpful guidance instead of generic response
+            return {
+              success: true,
+              data: {
+                response: `💡 ${intentSuggestion.action}`,
+                intent: intentSuggestion.intent,
+                suggestedAction: intentSuggestion.suggestion
+              },
+              agentName: this.config.name,
+              processingTime: Date.now() - startTime
+            };
+          }
         }
       }
 
@@ -371,27 +402,14 @@ TONE & STYLE:
 - Be emotionally aware but not overly formal
 
 ${isGroupChat ? `
-GROUP CHAT COMMANDS (suggest these instead of buttons):
-📝 บันทึกกิจกรรม:
-- "กินยาแล้ว" หรือ "ทานยาเช้าแล้ว"
-- "ความดัน 120/80" หรือส่งรูปเครื่องวัด
-- "ดื่มน้ำ 500ml" หรือ "ดื่มน้ำแล้ว"
-- "เดิน 30 นาที" หรือ "ออกกำลังกายแล้ว"
-- "กินข้าวแล้ว"
-
-📊 ดูรายงาน:
-- "รายงานวันนี้"
-- "รายงานสัปดาห์"
-
-❓ ข้อมูลผู้ป่วย:
-- "ชื่อผู้ป่วย" / "อายุผู้ป่วย" / "โรคประจำตัว"
-- "ยาที่กิน" / "แพ้อะไร"
-
-🆘 ฉุกเฉิน:
-- "ฉุกเฉิน" - แจ้งผู้ดูแลทุกคนทันที
-
-💡 ช่วยเหลือ:
-- "วิธีใช้" หรือ "ช่วยเหลือ"
+GROUP CHAT NATURAL CONVERSATION:
+- Users can speak naturally in Thai - no need to teach specific commands
+- Example: "ยายกินยาเสร็จแล้วค่ะ" → understand and log medication
+- Example: "วัดความดันได้ 140 กับ 90" → understand and log vitals
+- Example: "ดื่มน้ำไป 2 แก้วแล้ว" → understand and log water intake
+- Respond naturally and confirm what was understood/recorded
+- NEVER say "พิมพ์..." or "กรุณาระบุ..."
+- NEVER teach command formats - just understand and respond naturally
 ` : `
 RICH MENU FEATURES:
 - 👤 ข้อมูลผู้ป่วย - จัดการข้อมูลผู้ป่วย

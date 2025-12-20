@@ -1,10 +1,132 @@
 # OONJ.AI - Task List
 
-> Last Updated: 2025-12-20
+> Last Updated: 2025-12-21
 
 ---
 
-## Current Focus: OpenRouter Migration + Phase 3 Webhook Integration
+## Current Focus: Natural Conversation Architecture (Claude-First NLU)
+
+---
+
+## Natural Conversation Architecture ✅ COMPLETE
+
+> Added: 2025-12-21
+
+### Overview
+เปลี่ยนระบบจาก **Command-Based** (Pattern Matching) → **Natural Conversation** (Claude-First NLU)
+ให้ AI เข้าใจการสนทนาแบบธรรมชาติ ไม่ต้องสอน user พิมพ์ command
+
+### Before (Command-Based)
+```
+User: "ยายกินยาเสร็จแล้วค่ะหลังอาหารเช้า"
+Bot:  "ได้รับข้อความแล้วค่ะ"  ← ไม่เข้าใจ (ไม่ตรง pattern)
+```
+
+### After (Natural Conversation)
+```
+User: "ยายกินยาเสร็จแล้วค่ะหลังอาหารเช้า"
+Bot:  "บันทึกให้ยายเรียบร้อยแล้วค่ะ กินยาหลังอาหารเช้า 🌅"
+```
+
+### Implementation
+
+- [x] Phase 1: Create unified-nlu.ts prompt
+  - `src/lib/ai/prompts/unified-nlu.ts`
+  - UNIFIED_NLU_SYSTEM_PROMPT with intent categories
+  - buildUnifiedNLUPrompt(), buildPatientContextString()
+  - buildRecentActivitiesString(), buildConversationHistoryString()
+
+- [x] Phase 2: Create nlu.types.ts
+  - `src/types/nlu.types.ts`
+  - MainIntent, SubIntent types
+  - NLUResult, NLUContext, NLUInput interfaces
+  - NLUHealthData with sub-types (MedicationHealthData, VitalsHealthData, etc.)
+  - ActionType, ActionTarget, ActionResult
+
+- [x] Phase 3: Create UnifiedNLUAgent.ts
+  - `src/agents/core/UnifiedNLUAgent.ts`
+  - Single Claude call for intent + extraction + response
+  - processNLU() - main processing method
+  - parseNLUResponse() - JSON parsing with fallback
+  - normalizeIntent(), normalizeHealthData()
+  - Static helpers: requiresAction(), hasHealthData(), getExtractionSummary()
+
+- [x] Phase 4: Create action-router.ts
+  - `src/lib/actions/action-router.ts`
+  - executeAction() - routes NLU results to database actions
+  - handleSaveAction(), handleUpdateAction(), handleDeleteAction()
+  - saveHealthData() - converts NLU data to AIExtractedData
+  - checkForAbnormalVitals() - vital value alerts
+  - Profile, Medication, Reminder CRUD operations
+
+- [x] Phase 5: Update OrchestratorAgent.ts
+  - `src/agents/core/OrchestratorAgent.ts`
+  - Added USE_NATURAL_CONVERSATION_MODE flag
+  - processWithNaturalConversation() - new Claude-first flow
+  - handleReportQuery() - report delegation
+  - processWithIntentRouting() - legacy fallback
+
+- [x] Phase 6: Update DialogAgent.ts
+  - `src/agents/specialized/DialogAgent.ts`
+  - Disabled command suggestions in natural mode
+  - Updated system prompt to not teach commands
+  - Natural conversation guidelines
+
+- [x] Phase 7: Test build
+  - Build successful with no TypeScript errors
+
+### Architecture
+
+```
+User Message
+      ↓
+┌─────────────────────────────────────────────────────────────┐
+│                 UnifiedNLUAgent (NEW)                       │
+│                                                             │
+│  SINGLE Claude API Call:                                    │
+│  ┌───────────────────────────────────────────────────────┐  │
+│  │ Input: message + patientContext + conversationHistory │  │
+│  │                                                       │  │
+│  │ Output: {                                             │  │
+│  │   intent: "health_log",                               │  │
+│  │   subIntent: "medication",                            │  │
+│  │   confidence: 0.95,                                   │  │
+│  │   entities: { patientName, time, values... },         │  │
+│  │   healthData: { ... },                                │  │
+│  │   action: { type: "save", target: "activity_logs" },  │  │
+│  │   response: "บันทึกให้ยายเรียบร้อยแล้วค่ะ..."         │  │
+│  │ }                                                     │  │
+│  └───────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────┘
+      ↓
+┌─────────────────────────────────────────────────────────────┐
+│              ActionRouter (Simplified)                       │
+│  - Execute action based on NLU result                       │
+│  - Save to database                                         │
+│  - Return Claude-generated response                         │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Response Style
+
+**DO (Natural):**
+- "บันทึกให้แล้วค่ะ" ✅
+- "ได้เลยค่ะ อัพเดตให้แล้ว" ✅
+- ใช้ emoji พอประมาณ 💊💧🌅
+- ถามกลับถ้าไม่ชัดเจน
+
+**DON'T (Command-like):**
+- "พิมพ์ 'กินยาแล้ว'" ❌
+- "กรุณาระบุ..." ❌
+- "คำสั่งไม่ถูกต้อง" ❌
+
+### Configuration
+
+To switch between modes, edit the flag in `OrchestratorAgent.ts` and `DialogAgent.ts`:
+```typescript
+const USE_NATURAL_CONVERSATION_MODE = true;  // Claude-first NLU
+const USE_NATURAL_CONVERSATION_MODE = false; // Legacy IntentAgent + Routing
+```
 
 ---
 
@@ -156,6 +278,80 @@
 
 ---
 
+## Voice Command Support (Groq Whisper) ✅ COMPLETE
+
+> Added: 2025-12-20
+
+- [x] Add GROQ_API_KEY to .env
+- [x] Install groq-sdk package
+- [x] Create Groq Whisper service (`src/services/groq.service.ts`)
+  - [x] `transcribeAudio()` - Buffer to text
+  - [x] `transcribeStream()` - Stream to text
+  - [x] Thai language support with health prompt
+- [x] Add `handleAudioMessage()` to webhook
+  - [x] Download audio from LINE
+  - [x] Transcribe with Groq Whisper
+  - [x] Process transcribed text (extraction or orchestrator)
+  - [x] Show "🎤 ได้ยินว่า: ..." feedback
+- [x] Build successfully
+
+**Usage:**
+- User sends voice message in LINE
+- Bot transcribes → processes → responds
+- Example: 🎤 "กินยาแล้ว" → ✅ บันทึกการกินยาเรียบร้อยแล้ว
+
+**Rate Limits (Free):** 20 req/min, 2000 req/day, 8 hrs audio/day
+
+---
+
+## Chat-based Profile Editing System ✅ COMPLETE
+
+> Added: 2025-12-20
+
+- [x] สร้าง ProfileEditAgent (`src/agents/specialized/ProfileEditAgent.ts`)
+  - [x] Handle profile edits via LINE Chat (no LIFF required)
+  - [x] Claude-based entity extraction for Thai natural language
+  - [x] Validation rules (weight 20-200kg, height 50-250cm, phone format, blood type)
+
+- [x] Profile Edit Features
+  - [x] Edit weight - `น้ำหนัก 65 กิโล`
+  - [x] Edit height - `ส่วนสูง 170 ซม.`
+  - [x] Edit phone - `เปลี่ยนเบอร์ 0891234567`
+  - [x] Edit name - `ชื่อใหม่คือ สมศรี มงคล`
+  - [x] Edit address - `ที่อยู่ใหม่คือ 123 ถ.สุขุมวิท`
+  - [x] Edit blood type - `กรุ๊ปเลือด O+`
+  - [x] Edit medical conditions - `เพิ่มโรคเบาหวาน`
+  - [x] Edit allergies - `แพ้ยาเพนนิซิลิน`
+  - [x] Edit emergency contact - `ผู้ติดต่อฉุกเฉิน 0812345678`
+
+- [x] Medication CRUD
+  - [x] Add medication - `เพิ่มยาเมทฟอร์มิน 500mg เช้าเย็น`
+  - [x] Edit medication - `แก้ยาเมทฟอร์มินเป็น 1000mg`
+  - [x] Delete medication - `ลบยาพาราเซตามอล`
+
+- [x] Reminder CRUD
+  - [x] Add reminder - `ตั้งเตือนกินยา 8 โมง`
+  - [x] Edit reminder - `เปลี่ยนเวลาเตือนกินยาเป็น 9 โมง`
+  - [x] Delete reminder - `ลบเตือนกินยาเช้า`
+
+- [x] Intent Patterns (`src/agents/specialized/IntentAgent.ts`)
+  - [x] 10 profile edit intents (edit_profile, edit_name, edit_weight, etc.)
+  - [x] 3 medication intents (add/edit/delete_medication)
+  - [x] 3 reminder intents (add/edit/delete_reminder)
+  - [x] Added to highConfidenceIntents for reliable detection
+  - [x] Updated Claude classifier prompt
+
+- [x] OrchestratorAgent Routing (`src/agents/core/OrchestratorAgent.ts`)
+  - [x] Import and initialize ProfileEditAgent
+  - [x] Route edit intents before confidence check
+  - [x] Pass patientData to ProfileEditAgent
+
+- [x] DialogAgent Suggestions (`src/agents/specialized/DialogAgent.ts`)
+  - [x] Smart suggestions for edit commands
+  - [x] Guide users on chat-based editing
+
+---
+
 ## Phase 4: Testing & Polish ⏳ PENDING
 
 - [ ] End-to-End Testing
@@ -218,7 +414,23 @@
 
 ## Files Reference
 
-### AI Extraction Pipeline
+### Natural Conversation (Claude-First NLU)
+```
+src/lib/ai/prompts/
+└── unified-nlu.ts        # UNIFIED_NLU_SYSTEM_PROMPT + helpers
+
+src/lib/actions/
+└── action-router.ts      # executeAction() - NLU to database
+
+src/types/
+└── nlu.types.ts          # NLUResult, NLUContext, etc.
+
+src/agents/core/
+├── UnifiedNLUAgent.ts    # Claude-first NLU processing
+└── OrchestratorAgent.ts  # USE_NATURAL_CONVERSATION_MODE
+```
+
+### AI Extraction Pipeline (Legacy)
 ```
 src/lib/ai/
 ├── index.ts              # runHealthExtractionPipeline()
@@ -230,15 +442,32 @@ src/lib/health/
 └── event-creator.ts      # createHealthEvent()
 ```
 
+### Agents
+```
+src/agents/
+├── core/
+│   ├── BaseAgent.ts          # Base agent class
+│   └── OrchestratorAgent.ts  # Routes to specialized agents
+├── specialized/
+│   ├── IntentAgent.ts        # Intent classification + patterns
+│   ├── DialogAgent.ts        # Conversational responses
+│   ├── HealthAgent.ts        # Health data processing
+│   ├── ReportAgent.ts        # Report generation
+│   ├── AlertAgent.ts         # Emergency alerts
+│   └── ProfileEditAgent.ts   # Chat-based profile editing (NEW)
+```
+
 ### Types & Services
 ```
-src/types/health.types.ts    # All health types
+src/types/health.types.ts         # All health types
 src/services/supabase.service.ts  # All CRUD methods
+src/services/groq.service.ts      # Groq Whisper transcription (NEW)
+src/services/openrouter.service.ts # OpenRouter LLM API
 ```
 
 ### Webhook
 ```
-src/index.ts              # handleTextMessage() - NEEDS INTEGRATION
+src/index.ts              # handleTextMessage()
 ```
 
 ### Documentation

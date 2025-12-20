@@ -17,6 +17,7 @@ import crypto from 'crypto';
 import multer from 'multer';
 import { openRouterService, OPENROUTER_MODELS } from './services/openrouter.service';
 import { runHealthExtractionPipeline, hasHealthData } from './lib/ai';
+import { groqService } from './services/groq.service';
 
 dotenv.config();
 
@@ -1102,6 +1103,8 @@ app.post('/webhook', async (req, res) => {
               return handleTextMessage(event);
             } else if (event.message.type === 'image') {
               return handleImageMessage(event);
+            } else if (event.message.type === 'audio') {
+              return handleAudioMessage(event);
             }
             break;
           case 'follow':
@@ -1683,6 +1686,217 @@ async function handleImageMessage(event: any) {
 
   } catch (error) {
     console.error('Error handling image message:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+}
+
+// Handle audio message (voice command via Groq Whisper)
+async function handleAudioMessage(event: any) {
+  try {
+    const replyToken = event.replyToken;
+    const messageId = event.message.id;
+    const userId = event.source?.userId || '';
+    const isGroupContext = event.source?.type === 'group' || event.source?.type === 'room';
+    const groupId = event.source?.groupId || event.source?.roomId || null;
+    const isRedelivery = event.deliveryContext?.isRedelivery || false;
+
+    console.log(`🎤 Audio message received from ${userId} (group: ${isGroupContext})`);
+
+    // Skip redelivery events
+    if (isRedelivery) {
+      console.log('⏭️ Skipping redelivery event for audio');
+      return { success: true, skipped: true, reason: 'redelivery' };
+    }
+
+    // Check user registration
+    const userCheck = await userService.checkUserExists(userId);
+    if (!userCheck.exists || userCheck.role !== 'caregiver') {
+      const replyMessage: TextMessage = {
+        type: 'text',
+        text: 'กรุณาลงทะเบียนก่อนใช้งานค่ะ พิมพ์ "ลงทะเบียน" เพื่อเริ่มต้น'
+      };
+      await lineClient.replyMessage(replyToken, replyMessage);
+      return { success: true, skipped: true, reason: 'not_registered' };
+    }
+
+    // Get patient ID
+    let patientId = (userCheck.profile as any)?.linkedPatientId;
+
+    // If in group, try to get patient from group context
+    if (isGroupContext && groupId) {
+      const groupContext = await groupWebhookService.getGroupContext(groupId);
+      if (groupContext?.patientId) {
+        patientId = groupContext.patientId;
+      }
+    }
+
+    if (!patientId) {
+      const replyMessage: TextMessage = {
+        type: 'text',
+        text: 'ไม่พบข้อมูลผู้ป่วยที่เชื่อมต่อ กรุณาลงทะเบียนผู้ป่วยก่อนค่ะ'
+      };
+      await lineClient.replyMessage(replyToken, replyMessage);
+      return { success: true, skipped: true, reason: 'no_patient' };
+    }
+
+    // Get audio content from LINE
+    console.log('📥 Downloading audio from LINE...');
+    const stream = await lineClient.getMessageContent(messageId);
+    const chunks: Buffer[] = [];
+
+    for await (const chunk of stream) {
+      chunks.push(chunk as Buffer);
+    }
+
+    const audioBuffer = Buffer.concat(chunks);
+    console.log(`🎤 Audio size: ${audioBuffer.length} bytes`);
+
+    // Check file size (max 25MB for free tier)
+    if (audioBuffer.length > 25 * 1024 * 1024) {
+      const replyMessage: TextMessage = {
+        type: 'text',
+        text: '❌ ไฟล์เสียงใหญ่เกินไปค่ะ กรุณาส่งเสียงที่สั้นกว่านี้ (ไม่เกิน 2 นาที)'
+      };
+      await lineClient.replyMessage(replyToken, replyMessage);
+      return { success: true, skipped: true, reason: 'file_too_large' };
+    }
+
+    // Transcribe audio using Groq Whisper
+    console.log('🧠 Transcribing with Groq Whisper...');
+    const transcriptionResult = await groqService.transcribeAudio(
+      audioBuffer,
+      'audio.m4a',  // LINE audio is typically M4A
+      {
+        language: 'th',
+        prompt: 'บันทึกสุขภาพ ยา ความดัน น้ำหนัก กินยา ดื่มน้ำ ออกกำลังกาย เตือน แจ้งเตือน'
+      }
+    );
+
+    if (!transcriptionResult.success || !transcriptionResult.text) {
+      console.error('❌ Transcription failed:', transcriptionResult.error);
+      const replyMessage: TextMessage = {
+        type: 'text',
+        text: '❌ ไม่สามารถแปลงเสียงเป็นข้อความได้ค่ะ\n\nกรุณาลองใหม่อีกครั้ง หรือพิมพ์ข้อความแทนค่ะ'
+      };
+      await lineClient.replyMessage(replyToken, replyMessage);
+      return { success: false, error: 'transcription_failed' };
+    }
+
+    const transcribedText = transcriptionResult.text.trim();
+    console.log(`✅ Transcribed: "${transcribedText}" (${transcriptionResult.duration}ms)`);
+
+    // If transcribed text is empty or too short
+    if (transcribedText.length < 2) {
+      const replyMessage: TextMessage = {
+        type: 'text',
+        text: '❌ ไม่สามารถเข้าใจเสียงได้ค่ะ กรุณาพูดชัดๆ อีกครั้ง หรือพิมพ์ข้อความแทน'
+      };
+      await lineClient.replyMessage(replyToken, replyMessage);
+      return { success: true, skipped: true, reason: 'empty_transcription' };
+    }
+
+    // Now process the transcribed text as a regular text message
+    // We need to create a fake text event and call handleTextMessage
+    // But we can't use replyToken twice, so we process inline
+
+    console.log(`🔄 Processing transcribed text as command: "${transcribedText}"`);
+
+    // Build context
+    let context: any = {
+      userId,
+      patientId,
+      source: isGroupContext ? 'group' : 'voice',
+      timestamp: new Date(),
+      isVoiceCommand: true,
+      originalAudioId: messageId
+    };
+
+    if (isGroupContext && groupId) {
+      context.groupId = groupId;
+
+      // Get actor info
+      const groupMessageResult = await groupWebhookService.handleGroupMessage(event, null);
+      if (groupMessageResult.success && groupMessageResult.actorInfo) {
+        context.actorLineUserId = groupMessageResult.actorInfo.userId;
+        context.actorDisplayName = groupMessageResult.actorInfo.displayName;
+      }
+    }
+
+    // Try health extraction first (like handleTextMessage does)
+    let responseText = '';
+    let handled = false;
+
+    if (patientId) {
+      try {
+        console.log('🧠 Running health extraction on transcribed text...');
+        const extractionResult = await runHealthExtractionPipeline(transcribedText, {
+          patientId,
+          groupId: context.groupId,
+          lineUserId: context.actorLineUserId || userId,
+          displayName: context.actorDisplayName
+        });
+
+        if (extractionResult.success && extractionResult.hasHealthData) {
+          responseText = `🎤 ได้ยินว่า: "${transcribedText}"\n\n`;
+          responseText += extractionResult.responseMessage || 'บันทึกข้อมูลสุขภาพแล้วค่ะ';
+
+          if (extractionResult.alerts && extractionResult.alerts.length > 0) {
+            responseText += `\n\n⚠️ ${extractionResult.alerts.join('\n')}`;
+          }
+
+          handled = true;
+        }
+      } catch (extractionError) {
+        console.error('❌ Extraction error for voice:', extractionError);
+      }
+    }
+
+    // If not handled by extraction, use orchestrator
+    if (!handled) {
+      const result = await orchestrator.process({
+        id: messageId,
+        content: transcribedText,
+        context
+      });
+
+      if (result.success && result.data?.combined?.response) {
+        responseText = `🎤 ได้ยินว่า: "${transcribedText}"\n\n`;
+        responseText += result.data.combined.response;
+        handled = true;
+      }
+    }
+
+    // Send response
+    if (handled && responseText) {
+      const replyMessage: TextMessage = {
+        type: 'text',
+        text: responseText
+      };
+
+      try {
+        await lineClient.replyMessage(replyToken, replyMessage);
+        console.log('✅ Voice command response sent');
+      } catch (sendError) {
+        console.error('❌ Failed to send voice response:', sendError);
+      }
+    } else {
+      // Fallback response
+      const replyMessage: TextMessage = {
+        type: 'text',
+        text: `🎤 ได้ยินว่า: "${transcribedText}"\n\nแต่ไม่เข้าใจคำสั่งค่ะ ลองพูดใหม่ หรือพิมพ์ "วิธีใช้" เพื่อดูคำสั่งทั้งหมด`
+      };
+      await lineClient.replyMessage(replyToken, replyMessage);
+    }
+
+    return {
+      success: true,
+      type: 'voice_command',
+      transcribedText,
+      duration: transcriptionResult.duration
+    };
+
+  } catch (error) {
+    console.error('Error handling audio message:', error);
     return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
   }
 }

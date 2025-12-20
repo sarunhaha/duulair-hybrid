@@ -1,6 +1,185 @@
 
 # OONJAI Changelog
 
+## [2025-12-21] - Natural Conversation Architecture (Claude-First NLU)
+
+### Major Change
+เปลี่ยนระบบจาก **Command-Based** (Pattern Matching) → **Natural Conversation** (Claude-First NLU)
+
+**Before:**
+```
+User: "ยายกินยาเสร็จแล้วค่ะหลังอาหารเช้า"
+Bot:  "ได้รับข้อความแล้วค่ะ"  ← ไม่เข้าใจ
+```
+
+**After:**
+```
+User: "ยายกินยาเสร็จแล้วค่ะหลังอาหารเช้า"
+Bot:  "บันทึกให้ยายเรียบร้อยแล้วค่ะ กินยาหลังอาหารเช้า 🌅"
+```
+
+### Added
+
+- **UnifiedNLUAgent** (`src/agents/core/UnifiedNLUAgent.ts`) - NEW
+  - Single Claude API call for intent classification + entity extraction + response generation
+  - Natural Thai language understanding without pattern matching
+  - JSON output with intent, entities, healthData, action, response
+  - Automatic fallback for unparseable responses
+
+- **Unified NLU Prompt** (`src/lib/ai/prompts/unified-nlu.ts`) - NEW
+  - `UNIFIED_NLU_SYSTEM_PROMPT` - Comprehensive Thai health conversation prompt
+  - Intent categories: health_log, profile_update, medication_manage, reminder_manage, query, emergency, greeting, general_chat
+  - Helper functions: `buildPatientContextString()`, `buildRecentActivitiesString()`, `buildConversationHistoryString()`
+
+- **Action Router** (`src/lib/actions/action-router.ts`) - NEW
+  - `executeAction()` - Routes NLU results to database actions
+  - Handles save, update, delete, query actions
+  - Converts NLU health data to AIExtractedData format
+  - Abnormal vital value detection and alerts
+
+- **NLU Types** (`src/types/nlu.types.ts`) - NEW
+  - `MainIntent`, `SubIntent` type unions
+  - `NLUResult`, `NLUContext`, `NLUInput` interfaces
+  - `NLUHealthData` with sub-types for each health category
+  - `ActionResult`, `AbnormalAlert` interfaces
+
+### Changed
+
+- **OrchestratorAgent** (`src/agents/core/OrchestratorAgent.ts`)
+  - Added `USE_NATURAL_CONVERSATION_MODE = true` flag
+  - New `processWithNaturalConversation()` method for Claude-first flow
+  - Legacy flow renamed to `processWithIntentRouting()` as fallback
+  - Automatic fallback to legacy mode if NLU processing fails
+
+- **DialogAgent** (`src/agents/specialized/DialogAgent.ts`)
+  - Added `USE_NATURAL_CONVERSATION_MODE = true` flag
+  - Disabled command suggestions in natural mode
+  - Updated system prompt to not teach commands
+  - Natural conversation guidelines for group chat
+
+### Response Style
+
+**DO (Natural):**
+- "บันทึกให้แล้วค่ะ" ✅
+- "ได้เลยค่ะ อัพเดตให้แล้ว" ✅
+- Use emoji sparingly 💊💧🌅
+
+**DON'T (Command-like):**
+- "พิมพ์ 'กินยาแล้ว'" ❌
+- "กรุณาระบุ..." ❌
+
+### Configuration
+
+Toggle between modes in `OrchestratorAgent.ts` and `DialogAgent.ts`:
+```typescript
+const USE_NATURAL_CONVERSATION_MODE = true;  // Claude-first NLU (default)
+const USE_NATURAL_CONVERSATION_MODE = false; // Legacy IntentAgent + Routing
+```
+
+---
+
+## [2025-12-20] - Voice Command Support (Groq Whisper)
+
+### Added
+- **Voice Command via LINE Audio Message**
+  - Users can send voice messages instead of typing
+  - Uses Groq Whisper API for Thai speech-to-text
+  - Transcribed text processed same as text messages
+  - Shows "🎤 ได้ยินว่า: ..." feedback to user
+
+- **Groq Service** (`src/services/groq.service.ts`) - NEW
+  - `transcribeAudio()` - Transcribe audio buffer to text
+  - `transcribeStream()` - Transcribe from readable stream
+  - Uses `whisper-large-v3-turbo` model (fast, $0.04/hr)
+  - Thai language optimized with health-related prompt
+
+- **Audio Message Handler** (`src/index.ts`)
+  - `handleAudioMessage()` - Process voice messages
+  - Downloads audio from LINE, sends to Groq Whisper
+  - Runs health extraction or orchestrator on transcribed text
+  - Handles errors gracefully (file too large, transcription failed)
+
+### Usage Examples
+```
+User: 🎤 "กินยาแล้ว"
+Bot: 🎤 ได้ยินว่า: "กินยาแล้ว"
+     ✅ บันทึกการกินยาเรียบร้อยแล้วค่ะ
+
+User: 🎤 "ความดัน หนึ่งร้อยยี่สิบ แปดสิบ"
+Bot: 🎤 ได้ยินว่า: "ความดัน 120 80"
+     ✅ บันทึกความดัน 120/80 เรียบร้อยแล้วค่ะ
+```
+
+### Rate Limits (Groq Free Tier)
+- 20 requests/minute
+- 2,000 requests/day
+- 8 hours of audio/day
+
+### Files Created
+- `src/services/groq.service.ts` - Groq Whisper service
+
+### Files Modified
+- `src/index.ts` - Added handleAudioMessage, import groqService
+- `.env` - Added GROQ_API_KEY
+- `package.json` - Added groq-sdk dependency
+
+---
+
+## [2025-12-20] - Chat-based Profile Editing System
+
+### Added
+- **ProfileEditAgent** (`src/agents/specialized/ProfileEditAgent.ts`) - NEW
+  - Handle profile edits via LINE Chat (no LIFF required)
+  - Support weight, height, phone, name, address, blood type, medical conditions, allergies, emergency contact
+  - Medication CRUD: add, edit, delete medications via chat
+  - Reminder CRUD: add, edit, delete reminders via chat
+  - Claude-based entity extraction for natural language understanding
+  - Validation rules for all fields (weight 20-200kg, height 50-250cm, phone format, etc.)
+
+- **Edit Intent Patterns** (`src/agents/specialized/IntentAgent.ts`)
+  - Profile edit intents: `edit_profile`, `edit_name`, `edit_weight`, `edit_height`, `edit_phone`, `edit_address`, `edit_blood_type`, `edit_medical_condition`, `edit_allergies`, `edit_emergency_contact`
+  - Medication intents: `add_medication`, `edit_medication`, `delete_medication`
+  - Reminder intents: `add_reminder`, `edit_reminder`, `delete_reminder`
+  - All edit intents added to `highConfidenceIntents` for reliable detection
+  - Updated Claude classifier prompt with new intents
+
+- **Edit Suggestions** (`src/agents/specialized/DialogAgent.ts`)
+  - Smart suggestions for profile editing commands
+  - Guides users on how to edit data via chat
+  - Examples: "อยากเปลี่ยนน้ำหนัก" → "พิมพ์ 'น้ำหนัก 65 กิโล' ได้เลยค่ะ"
+
+- **Agent Routing** (`src/agents/core/OrchestratorAgent.ts`)
+  - Added ProfileEditAgent to agent registry
+  - Routing for edit intents before confidence check (works with any confidence)
+  - Passes patientData to ProfileEditAgent for context
+
+### Usage Examples
+```
+# Profile edits
+"น้ำหนัก 65 กิโล" → ✅ บันทึกน้ำหนัก 65 กก.
+"เปลี่ยนเบอร์ 0891234567" → ✅ เปลี่ยนเบอร์โทร
+"ชื่อใหม่คือ สมศรี มงคล" → ✅ เปลี่ยนชื่อ
+"กรุ๊ปเลือด O+" → ✅ บันทึกกรุ๊ปเลือด
+
+# Medications
+"เพิ่มยาเมทฟอร์มิน 500mg เช้าเย็น" → ✅ เพิ่มยา
+"ลบยาพาราเซตามอล" → ✅ ลบยา
+
+# Reminders
+"ตั้งเตือนกินยา 8 โมง" → ✅ ตั้งเตือน
+"ลบเตือนกินยาเช้า" → ✅ ลบการเตือน
+```
+
+### Files Modified
+- `src/agents/specialized/IntentAgent.ts` - Added edit patterns
+- `src/agents/specialized/DialogAgent.ts` - Added edit suggestions
+- `src/agents/core/OrchestratorAgent.ts` - Import & routing for ProfileEditAgent
+
+### Files Created
+- `src/agents/specialized/ProfileEditAgent.ts` - Main edit agent
+
+---
+
 ## [2025-11-30] - Supabase Edge Functions + pg_cron for Reminders
 
 ### Added
