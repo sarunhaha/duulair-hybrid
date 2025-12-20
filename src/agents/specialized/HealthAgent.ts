@@ -17,7 +17,7 @@ export class HealthAgent extends BaseAgent {
     super({
       name: 'health',
       role: 'Process and log health data',
-      model: 'claude-3-haiku-20240307',
+      model: 'anthropic/claude-sonnet-4.5',  // OpenRouter: Claude Sonnet 4.5
       temperature: 0.3,
       maxTokens: 1000,
       ...config

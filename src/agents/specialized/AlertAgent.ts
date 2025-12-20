@@ -17,7 +17,7 @@ export class AlertAgent extends BaseAgent {
     super({
       name: 'alert',
       role: 'Monitor and send alerts',
-      model: 'claude-3-haiku-20240307',
+      model: 'anthropic/claude-sonnet-4.5',  // OpenRouter: Claude Sonnet 4.5
       temperature: 0.1,
       maxTokens: 500,
       ...config
