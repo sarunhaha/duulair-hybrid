@@ -102,8 +102,10 @@ export class ReportAgent extends BaseAgent {
 
     // Get planned activities
     const medications = await this.supabase.getPatientMedications(patientId);
-    const waterGoal = await this.supabase.getWaterIntakeGoal(patientId);
-    const waterLogs = await this.supabase.getWaterIntakeLogs(patientId, startDate, endDate);
+    // Get water goal from health_goals table
+    const healthGoals = await this.supabase.getHealthGoals(patientId);
+    // Get water logs from activity_logs (task_type = 'water')
+    const waterLogs = logs.filter((l: any) => l.task_type === 'water');
 
     // Calculate detailed stats
     const medicationLogs = logs.filter((l: any) => l.task_type === 'medication');
@@ -112,8 +114,8 @@ export class ReportAgent extends BaseAgent {
     // Build medication status
     const medicationStatus = this.buildMedicationStatus(medications, medicationLogs);
 
-    // Build water status
-    const waterStatus = this.buildWaterStatus(waterGoal, waterLogs);
+    // Build water status (using health_goals for target)
+    const waterStatus = this.buildWaterStatus(healthGoals, waterLogs);
 
     // Build vitals status
     const vitalsStatus = this.buildVitalsStatus(vitalsLogs);
@@ -138,7 +140,7 @@ export class ReportAgent extends BaseAgent {
       waterStatus,
       vitalsStatus,
       medications,
-      waterGoal
+      healthGoals
     };
   }
 
@@ -183,14 +185,18 @@ export class ReportAgent extends BaseAgent {
     return status;
   }
 
-  private buildWaterStatus(goal: any, logs: any[]) {
-    const targetMl = goal?.daily_goal_ml || 2000;
-    const totalDrunk = logs.reduce((sum: number, log: any) => sum + (log.amount_ml || 0), 0);
+  private buildWaterStatus(healthGoals: any, logs: any[]) {
+    const targetMl = healthGoals?.target_water_ml || 2000;
+    // Water logs from activity_logs have amount in metadata or value
+    const totalDrunk = logs.reduce((sum: number, log: any) => {
+      const amount = log.metadata?.amount_ml || parseInt(log.value) || 0;
+      return sum + amount;
+    }, 0);
 
     const details = logs.map((log: any) => ({
-      amount: log.amount_ml,
-      time: new Date(log.logged_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
-      loggedBy: log.logged_by_display_name || 'ไม่ระบุ'
+      amount: log.metadata?.amount_ml || parseInt(log.value) || 0,
+      time: new Date(log.timestamp).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
+      loggedBy: log.actor_display_name || 'ไม่ระบุ'
     }));
 
     return {

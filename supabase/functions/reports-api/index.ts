@@ -725,6 +725,8 @@ async function handleGetPatients(
   supabase: SupabaseClient,
   lineUserId: string
 ): Promise<Response> {
+  console.log(`[Patients] Getting patients for LINE user: ${lineUserId}`)
+
   const patients: Array<{
     id: string
     name: string
@@ -734,6 +736,7 @@ async function handleGetPatients(
   }> = []
 
   // Route 1: Get patients via group membership
+  console.log('[Patients] Route 1: Checking group_members...')
   const { data: memberships, error: groupError } = await supabase
     .from('group_members')
     .select(`
@@ -757,6 +760,8 @@ async function handleGetPatients(
 
   if (groupError) {
     console.error('[Patients] Group query error:', groupError)
+  } else {
+    console.log(`[Patients] Route 1: Found ${memberships?.length || 0} group memberships`)
   }
 
   for (const membership of memberships || []) {
@@ -765,6 +770,7 @@ async function handleGetPatients(
       for (const gp of groups.group_patients) {
         if (gp.patient_profiles) {
           const p = gp.patient_profiles
+          console.log(`[Patients] Route 1: Adding patient ${p.id} from group ${groups.group_name}`)
           patients.push({
             id: p.id,
             name: p.nickname || `${p.first_name} ${p.last_name}`,
@@ -779,10 +785,12 @@ async function handleGetPatients(
 
   // Route 2: Get patients via caregiver link (for LINE OA / single caregiver)
   // Path: line_user_id -> users -> caregiver_profiles -> patient_caregivers -> patient_profiles
+  console.log('[Patients] Route 2: Checking users -> caregiver_profiles -> patient_caregivers...')
   const { data: caregiverData, error: caregiverError } = await supabase
     .from('users')
     .select(`
       id,
+      role,
       caregiver_profiles (
         id,
         first_name,
@@ -800,21 +808,29 @@ async function handleGetPatients(
       )
     `)
     .eq('line_user_id', lineUserId)
-    .eq('role', 'caregiver')
     .single()
 
-  if (caregiverError && caregiverError.code !== 'PGRST116') {
-    // PGRST116 = no rows returned (user is not a caregiver)
-    console.error('[Patients] Caregiver query error:', caregiverError)
+  if (caregiverError) {
+    if (caregiverError.code === 'PGRST116') {
+      console.log('[Patients] Route 2: User not found in users table')
+    } else {
+      console.error('[Patients] Route 2: Caregiver query error:', caregiverError)
+    }
+  } else {
+    console.log(`[Patients] Route 2: Found user, role=${caregiverData?.role}, has caregiver_profiles=${!!caregiverData?.caregiver_profiles}`)
   }
 
   if (caregiverData?.caregiver_profiles) {
     const caregiverProfile = caregiverData.caregiver_profiles as any
+    console.log(`[Patients] Route 2: Caregiver has ${caregiverProfile?.patient_caregivers?.length || 0} patient links`)
+
     if (caregiverProfile?.patient_caregivers) {
       for (const pc of caregiverProfile.patient_caregivers) {
+        console.log(`[Patients] Route 2: Patient link - patient_id=${pc.patient_id}, status=${pc.status}`)
         // Only include active patient-caregiver relationships
         if (pc.status === 'active' && pc.patient_profiles) {
           const p = pc.patient_profiles
+          console.log(`[Patients] Route 2: Adding patient ${p.id} via caregiver link`)
           patients.push({
             id: p.id,
             name: p.nickname || `${p.first_name} ${p.last_name}`,
@@ -827,12 +843,15 @@ async function handleGetPatients(
     }
   }
 
+  console.log(`[Patients] Total patients before dedup: ${patients.length}`)
+
   // Remove duplicates (same patient from multiple sources)
   const uniquePatients = patients.filter(
     (p, index, self) => index === self.findIndex(t => t.id === p.id)
   )
 
-  console.log(`[Patients] Found ${uniquePatients.length} patients for user ${lineUserId}`)
+  console.log(`[Patients] Final unique patients: ${uniquePatients.length}`)
+  console.log(`[Patients] Patient list:`, JSON.stringify(uniquePatients.map(p => ({ id: p.id, name: p.name, source: p.source }))))
 
   return new Response(JSON.stringify({ patients: uniquePatients }), {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },

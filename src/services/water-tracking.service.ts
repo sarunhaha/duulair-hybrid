@@ -1,15 +1,14 @@
 /**
- * Water Tracking Service
+ * Water Tracking Service (Refactored)
  *
- * Handles water intake logging and tracking separate from medications
- * Addresses Oonjai feedback: "ต้อง track ปริมาณน้ำทั้งวัน ใช้ในกรณีคนไข้ต้องคุมน้ำ"
+ * Now uses activity_logs for water intake data (water_intake_logs was removed)
+ * Uses health_goals for daily goals (water_intake_goals was removed)
  *
  * Features:
- * - Log water intake (ml)
- * - Track daily total
- * - Set daily goals
+ * - Log water intake via activity_logs
+ * - Track daily total from activity_logs
+ * - Get goals from health_goals table
  * - Calculate progress percentage
- * - Send reminders (separate from medication reminders)
  */
 
 import { supabase } from './supabase.service';
@@ -25,14 +24,6 @@ export interface WaterIntakeLog {
   notes?: string;
 }
 
-export interface WaterIntakeGoal {
-  id?: string;
-  patient_id: string;
-  daily_goal_ml: number;
-  reminder_enabled: boolean;
-  reminder_times?: string[]; // ['08:00', '12:00', '16:00', '20:00']
-}
-
 export interface DailyWaterSummary {
   total_ml: number;
   goal_ml: number;
@@ -43,7 +34,7 @@ export interface DailyWaterSummary {
 
 export class WaterTrackingService {
   /**
-   * Log water intake
+   * Log water intake (saves to activity_logs)
    */
   async logWaterIntake(data: WaterIntakeLog): Promise<{ success: boolean; data?: any; error?: string }> {
     try {
@@ -55,40 +46,30 @@ export class WaterTrackingService {
         };
       }
 
-      const { data: result, error } = await supabase
-        .from('water_intake_logs')
-        .insert([{
-          patient_id: data.patient_id,
-          group_id: data.group_id,
+      const logEntry = {
+        patient_id: data.patient_id,
+        group_id: data.group_id,
+        task_type: 'water',
+        value: data.amount_ml.toString(),
+        metadata: {
           amount_ml: data.amount_ml,
-          logged_at: data.logged_at || new Date().toISOString(),
-          logged_by_line_user_id: data.logged_by_line_user_id,
-          logged_by_display_name: data.logged_by_display_name,
-          notes: data.notes
-        }])
+          unit: 'ml',
+          notes: data.notes,
+          logged_by: data.logged_by_display_name
+        },
+        actor_line_user_id: data.logged_by_line_user_id,
+        actor_display_name: data.logged_by_display_name,
+        source: data.group_id ? 'group' : '1:1',
+        timestamp: data.logged_at ? new Date(data.logged_at).toISOString() : new Date().toISOString()
+      };
+
+      const { data: result, error } = await supabase
+        .from('activity_logs')
+        .insert([logEntry])
         .select()
         .single();
 
       if (error) throw error;
-
-      // Also log to activity_logs for unified tracking
-      await supabase
-        .from('activity_logs')
-        .insert([{
-          patient_id: data.patient_id,
-          group_id: data.group_id,
-          task_type: 'water',
-          value: data.amount_ml.toString(),
-          metadata: {
-            amount_ml: data.amount_ml,
-            unit: 'ml',
-            logged_by: data.logged_by_display_name
-          },
-          actor_line_user_id: data.logged_by_line_user_id,
-          actor_display_name: data.logged_by_display_name,
-          source: data.group_id ? 'group' : '1:1',
-          timestamp: data.logged_at || new Date().toISOString()
-        }]);
 
       return {
         success: true,
@@ -104,41 +85,60 @@ export class WaterTrackingService {
   }
 
   /**
-   * Get daily water intake summary
+   * Get daily water intake summary from activity_logs
    */
   async getDailySummary(patientId: string, date: Date = new Date()): Promise<DailyWaterSummary> {
     try {
       const dateStr = date.toISOString().split('T')[0]; // YYYY-MM-DD
 
-      // Get logs for the day
+      // Get water logs from activity_logs for the day
       const { data: logs, error: logsError } = await supabase
-        .from('water_intake_logs')
+        .from('activity_logs')
         .select('*')
         .eq('patient_id', patientId)
-        .gte('logged_at', `${dateStr}T00:00:00`)
-        .lt('logged_at', `${dateStr}T23:59:59`)
-        .order('logged_at', { ascending: true });
+        .eq('task_type', 'water')
+        .gte('timestamp', `${dateStr}T00:00:00`)
+        .lt('timestamp', `${dateStr}T23:59:59`)
+        .order('timestamp', { ascending: true });
 
       if (logsError) throw logsError;
 
-      // Get daily goal
-      const { data: goal } = await supabase
-        .from('water_intake_goals')
-        .select('*')
+      // Get daily goal from health_goals
+      const { data: goals } = await supabase
+        .from('health_goals')
+        .select('target_water_ml')
         .eq('patient_id', patientId)
         .single();
 
-      const goalMl = goal?.daily_goal_ml || 2000; // Default 2000ml
-      const totalMl = (logs || []).reduce((sum, log) => sum + log.amount_ml, 0);
+      const goalMl = goals?.target_water_ml || 2000; // Default 2000ml
+
+      // Calculate total from metadata or value
+      const totalMl = (logs || []).reduce((sum, log) => {
+        const amount = log.metadata?.amount_ml || parseInt(log.value) || 0;
+        return sum + amount;
+      }, 0);
+
       const progressPercentage = Math.round((totalMl / goalMl) * 100);
       const remainingMl = Math.max(0, goalMl - totalMl);
+
+      // Convert activity_logs to WaterIntakeLog format
+      const waterLogs: WaterIntakeLog[] = (logs || []).map(log => ({
+        id: log.id,
+        patient_id: log.patient_id,
+        group_id: log.group_id,
+        amount_ml: log.metadata?.amount_ml || parseInt(log.value) || 0,
+        logged_at: new Date(log.timestamp),
+        logged_by_line_user_id: log.actor_line_user_id,
+        logged_by_display_name: log.actor_display_name,
+        notes: log.metadata?.notes
+      }));
 
       return {
         total_ml: totalMl,
         goal_ml: goalMl,
         progress_percentage: Math.min(100, progressPercentage),
         remaining_ml: remainingMl,
-        logs: logs || []
+        logs: waterLogs
       };
     } catch (error: any) {
       console.error('Error getting daily water summary:', error);
@@ -153,19 +153,17 @@ export class WaterTrackingService {
   }
 
   /**
-   * Set or update daily water goal
+   * Set or update daily water goal (in health_goals table)
    */
-  async setDailyGoal(patientId: string, goalData: Partial<WaterIntakeGoal>): Promise<{ success: boolean; error?: string }> {
+  async setDailyGoal(patientId: string, goalMl: number): Promise<{ success: boolean; error?: string }> {
     try {
       const { error } = await supabase
-        .from('water_intake_goals')
-        .upsert([{
+        .from('health_goals')
+        .upsert({
           patient_id: patientId,
-          daily_goal_ml: goalData.daily_goal_ml || 2000,
-          reminder_enabled: goalData.reminder_enabled !== undefined ? goalData.reminder_enabled : true,
-          reminder_times: goalData.reminder_times || ['08:00', '12:00', '16:00', '20:00'],
+          target_water_ml: goalMl || 2000,
           updated_at: new Date().toISOString()
-        }], {
+        }, {
           onConflict: 'patient_id'
         });
 
@@ -182,29 +180,29 @@ export class WaterTrackingService {
   }
 
   /**
-   * Get water intake goal
+   * Get water intake goal from health_goals
    */
-  async getGoal(patientId: string): Promise<WaterIntakeGoal | null> {
+  async getGoal(patientId: string): Promise<number> {
     try {
       const { data, error } = await supabase
-        .from('water_intake_goals')
-        .select('*')
+        .from('health_goals')
+        .select('target_water_ml')
         .eq('patient_id', patientId)
         .single();
 
-      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows
+      if (error && error.code !== 'PGRST116') {
         throw error;
       }
 
-      return data || null;
+      return data?.target_water_ml || 2000;
     } catch (error: any) {
       console.error('Error getting water goal:', error);
-      return null;
+      return 2000;
     }
   }
 
   /**
-   * Get weekly water intake trend
+   * Get weekly water intake trend from activity_logs
    */
   async getWeeklyTrend(patientId: string): Promise<Array<{ date: string; total_ml: number }>> {
     try {
@@ -213,11 +211,12 @@ export class WaterTrackingService {
       sevenDaysAgo.setDate(today.getDate() - 7);
 
       const { data: logs, error } = await supabase
-        .from('water_intake_logs')
-        .select('logged_at, amount_ml')
+        .from('activity_logs')
+        .select('timestamp, value, metadata')
         .eq('patient_id', patientId)
-        .gte('logged_at', sevenDaysAgo.toISOString())
-        .order('logged_at', { ascending: true });
+        .eq('task_type', 'water')
+        .gte('timestamp', sevenDaysAgo.toISOString())
+        .order('timestamp', { ascending: true });
 
       if (error) throw error;
 
@@ -225,9 +224,10 @@ export class WaterTrackingService {
       const dailyTotals = new Map<string, number>();
 
       (logs || []).forEach(log => {
-        const date = new Date(log.logged_at).toISOString().split('T')[0];
+        const date = new Date(log.timestamp).toISOString().split('T')[0];
+        const amount = log.metadata?.amount_ml || parseInt(log.value) || 0;
         const current = dailyTotals.get(date) || 0;
-        dailyTotals.set(date, current + log.amount_ml);
+        dailyTotals.set(date, current + amount);
       });
 
       // Convert to array
@@ -244,14 +244,15 @@ export class WaterTrackingService {
   }
 
   /**
-   * Delete water intake log
+   * Delete water intake log from activity_logs
    */
   async deleteLog(logId: string): Promise<{ success: boolean; error?: string }> {
     try {
       const { error } = await supabase
-        .from('water_intake_logs')
+        .from('activity_logs')
         .delete()
-        .eq('id', logId);
+        .eq('id', logId)
+        .eq('task_type', 'water'); // Safety: only delete water logs
 
       if (error) throw error;
 
@@ -271,18 +272,6 @@ export class WaterTrackingService {
   formatAmount(ml: number): string {
     const glasses = Math.round(ml / 250); // 1 glass ≈ 250ml
     return `${ml} ml (${glasses} แก้ว)`;
-  }
-
-  /**
-   * Get reminder times for patient
-   */
-  async getReminderTimes(patientId: string): Promise<string[]> {
-    try {
-      const goal = await this.getGoal(patientId);
-      return goal?.reminder_times || ['08:00', '12:00', '16:00', '20:00'];
-    } catch (error) {
-      return ['08:00', '12:00', '16:00', '20:00'];
-    }
   }
 }
 
