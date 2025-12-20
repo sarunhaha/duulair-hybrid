@@ -2,141 +2,14 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#FAF9F6">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#10B981">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-  <meta http-equiv="Pragma" content="no-cache">
-  <meta http-equiv="Expires" content="0">
-  <title>ข้อมูลผู้ป่วย - OONJAI</title>
+  <title>ข้อมูลของคุณ - OONJAI</title>
   <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="stylesheet" href="css/minimal-theme.css">
-  <style>
-    /* Patient Profile View Mode Styles */
-    .tabs {
-      display: flex;
-      border-bottom: 2px solid rgba(0, 0, 0, 0.1);
-      margin-bottom: var(--spacing-lg);
-      gap: var(--spacing-sm);
-    }
-
-    .tab {
-      flex: 1;
-      padding: 14px 12px;
-      text-align: center;
-      cursor: pointer;
-      border-bottom: 3px solid transparent;
-      transition: all 0.2s ease;
-      font-weight: 500;
-      color: var(--text-secondary);
-      font-size: 14px;
-    }
-
-    .tab.active {
-      color: var(--accent-primary);
-      border-bottom-color: var(--accent-primary);
-    }
-
-    .tab-content {
-      display: none;
-      animation: fadeIn 0.3s;
-    }
-
-    .tab-content.active {
-      display: block;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    .card {
-      background: var(--bg-secondary);
-      padding: var(--spacing-md);
-      border-radius: var(--radius-sm);
-      margin-bottom: var(--spacing-md);
-    }
-
-    .card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: var(--spacing-sm);
-    }
-
-    .card-header h3 {
-      font-size: 16px;
-      color: var(--accent-primary);
-      margin: 0;
-      font-weight: 600;
-    }
-
-    .edit-btn {
-      background: var(--accent-primary);
-      color: white;
-      border: none;
-      padding: 6px 12px;
-      border-radius: var(--radius-sm);
-      cursor: pointer;
-      font-size: 12px;
-      transition: all 0.2s ease;
-    }
-
-    .edit-btn:active {
-      transform: scale(0.97);
-    }
-
-    .info-row {
-      display: flex;
-      justify-content: space-between;
-      padding: var(--spacing-xs) 0;
-      border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-    }
-
-    .info-row:last-child {
-      border-bottom: none;
-    }
-
-    .info-label {
-      color: var(--text-secondary);
-      font-size: 14px;
-    }
-
-    .info-value {
-      color: var(--text-primary);
-      font-weight: 500;
-      font-size: 14px;
-      text-align: right;
-      max-width: 60%;
-      word-break: break-word;
-    }
-
-    .condition-tags {
-      display: flex;
-      flex-wrap: wrap;
-      gap: var(--spacing-xs);
-      margin-top: var(--spacing-xs);
-    }
-
-    .condition-tag {
-      background: rgba(232, 180, 168, 0.2);
-      color: var(--accent-primary);
-      padding: 4px 10px;
-      border-radius: var(--radius-full);
-      font-size: 12px;
-    }
-
-    @media (max-width: 480px) {
-      .tabs {
-        gap: 0;
-      }
-
-      .tab {
-        padding: 12px 8px;
-        font-size: 12px;
-      }
-    }
-  </style>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
   <div class="container">
@@ -151,109 +24,293 @@
 
     <!-- Main Content -->
     <div id="main-content" class="hidden">
-      <!-- Header -->
+      <!-- Header with Back Button -->
       <div class="header">
-        <h1>ข้อมูลผู้ป่วย</h1>
+        <button class="header-back" onclick="closeLiff()">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+        </button>
+        <div class="header-content">
+          <h1>ข้อมูลของคุณ</h1>
+        </div>
       </div>
 
-      <!-- Tabs -->
-      <div class="tabs">
-        <div class="tab active" data-tab="profile">ข้อมูลทั่วไป</div>
-        <div class="tab" data-tab="medical">การแพทย์</div>
-        <div class="tab" data-tab="emergency">ฉุกเฉิน</div>
+      <!-- Profile Header Card -->
+      <div class="profile-header">
+        <div class="profile-avatar" id="profileAvatar">👤</div>
+        <div class="profile-name" id="profileName">กำลังโหลด...</div>
+        <div class="profile-info" id="profileInfo">-</div>
       </div>
 
-      <!-- Profile Tab -->
-      <div id="profile-tab" class="tab-content active">
+      <!-- Section Navigation -->
+      <div class="section-nav">
+        <div class="nav-item active" data-tab="personal">
+          <span class="nav-icon">📝</span>
+          <span class="nav-label">ข้อมูลส่วนตัว</span>
+        </div>
+        <div class="nav-item" data-tab="medical">
+          <span class="nav-icon">🏥</span>
+          <span class="nav-label">การแพทย์</span>
+        </div>
+        <div class="nav-item" data-tab="medications">
+          <span class="nav-icon">💊</span>
+          <span class="nav-label">ยาประจำ</span>
+        </div>
+        <div class="nav-item" data-tab="hospital">
+          <span class="nav-icon">🏨</span>
+          <span class="nav-label">โรงพยาบาล</span>
+        </div>
+        <div class="nav-item" data-tab="emergency">
+          <span class="nav-icon">📞</span>
+          <span class="nav-label">ฉุกเฉิน</span>
+        </div>
+      </div>
+
+      <!-- Tab Contents -->
+
+      <!-- Personal Info Tab -->
+      <div id="personal-tab" class="tab-content active">
         <div class="card">
           <div class="card-header">
-            <h3>ข้อมูลพื้นฐาน</h3>
-            <button class="edit-btn" onclick="editSection('basic')">แก้ไข</button>
+            <div class="card-title">
+              <span class="icon">📝</span>
+              ข้อมูลส่วนตัว
+            </div>
+            <button class="edit-btn" onclick="editSection('personal')">
+              <span>แก้ไข</span>
+            </button>
           </div>
           <div class="info-row">
-            <span class="info-label">ชื่อ-นามสกุล:</span>
+            <span class="info-label">ชื่อ-นามสกุล</span>
             <span class="info-value" id="patientName">-</span>
           </div>
           <div class="info-row">
-            <span class="info-label">ชื่อเล่น:</span>
+            <span class="info-label">ชื่อเล่น</span>
             <span class="info-value" id="patientNickname">-</span>
           </div>
           <div class="info-row">
-            <span class="info-label">วันเกิด:</span>
+            <span class="info-label">วันเกิด</span>
             <span class="info-value" id="patientBirthDate">-</span>
           </div>
           <div class="info-row">
-            <span class="info-label">เพศ:</span>
+            <span class="info-label">อายุ</span>
+            <span class="info-value" id="patientAge">-</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">เพศ</span>
             <span class="info-value" id="patientGender">-</span>
           </div>
           <div class="info-row">
-            <span class="info-label">เบอร์โทร:</span>
+            <span class="info-label">เบอร์โทร</span>
             <span class="info-value" id="patientPhone">-</span>
           </div>
           <div class="info-row">
-            <span class="info-label">ที่อยู่:</span>
+            <span class="info-label">ที่อยู่</span>
             <span class="info-value" id="patientAddress">-</span>
           </div>
         </div>
-      </div>
 
-      <!-- Medical Tab -->
-      <div id="medical-tab" class="tab-content">
         <div class="card">
           <div class="card-header">
-            <h3>ข้อมูลทางการแพทย์</h3>
-            <button class="edit-btn" onclick="editSection('medical')">แก้ไข</button>
+            <div class="card-title">
+              <span class="icon">📏</span>
+              ข้อมูลร่างกาย
+            </div>
+            <button class="edit-btn" onclick="editSection('body')">
+              <span>แก้ไข</span>
+            </button>
           </div>
           <div class="info-row">
-            <span class="info-label">กรุ๊ปเลือด:</span>
-            <span class="info-value" id="patientBloodType">-</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">น้ำหนัก:</span>
+            <span class="info-label">น้ำหนัก</span>
             <span class="info-value" id="patientWeight">-</span>
           </div>
           <div class="info-row">
-            <span class="info-label">ส่วนสูง:</span>
+            <span class="info-label">ส่วนสูง</span>
             <span class="info-value" id="patientHeight">-</span>
           </div>
           <div class="info-row">
-            <span class="info-label">โรคประจำตัว:</span>
-            <span class="info-value" id="patientMedicalCondition">-</span>
-          </div>
-          <div id="chronicDiseasesRow" class="info-row" style="flex-direction: column; align-items: flex-start;">
-            <span class="info-label">โรคเรื้อรัง:</span>
-            <div class="condition-tags" id="patientChronicDiseases"></div>
-          </div>
-          <div class="info-row">
-            <span class="info-label">แพ้ยา:</span>
-            <span class="info-value" id="patientDrugAllergies">-</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">แพ้อาหาร:</span>
-            <span class="info-value" id="patientFoodAllergies">-</span>
+            <span class="info-label">กรุ๊ปเลือด</span>
+            <span class="info-value" id="patientBloodType">-</span>
           </div>
         </div>
       </div>
 
-      <!-- Emergency Tab -->
+      <!-- Medical Info Tab -->
+      <div id="medical-tab" class="tab-content">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <span class="icon">🏥</span>
+              ข้อมูลทางการแพทย์
+            </div>
+            <button class="edit-btn" onclick="editSection('medical')">
+              <span>แก้ไข</span>
+            </button>
+          </div>
+          <div class="info-row" style="flex-direction: column; align-items: flex-start; gap: 8px;">
+            <span class="info-label">โรคประจำตัว</span>
+            <div class="tags" id="patientConditions">
+              <span class="tag">-</span>
+            </div>
+          </div>
+          <div class="info-row" style="flex-direction: column; align-items: flex-start; gap: 8px;">
+            <span class="info-label">โรคเรื้อรัง</span>
+            <div class="tags" id="patientChronicDiseases">
+              <span class="tag">-</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <span class="icon">⚠️</span>
+              การแพ้
+            </div>
+            <button class="edit-btn" onclick="editSection('allergies')">
+              <span>แก้ไข</span>
+            </button>
+          </div>
+          <div class="info-row" style="flex-direction: column; align-items: flex-start; gap: 8px;">
+            <span class="info-label">แพ้ยา</span>
+            <div class="tags" id="patientDrugAllergies">
+              <span class="tag warning">-</span>
+            </div>
+          </div>
+          <div class="info-row" style="flex-direction: column; align-items: flex-start; gap: 8px;">
+            <span class="info-label">แพ้อาหาร</span>
+            <div class="tags" id="patientFoodAllergies">
+              <span class="tag warning">-</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <span class="icon">📋</span>
+              หมายเหตุทางการแพทย์
+            </div>
+            <button class="edit-btn" onclick="editSection('notes')">
+              <span>แก้ไข</span>
+            </button>
+          </div>
+          <p id="patientMedicalNotes" style="color: var(--text-secondary); font-size: 14px;">-</p>
+        </div>
+      </div>
+
+      <!-- Medications Tab -->
+      <div id="medications-tab" class="tab-content">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <span class="icon">💊</span>
+              รายการยาประจำ
+            </div>
+            <button class="edit-btn" onclick="goToMedications()">
+              <span>จัดการ</span>
+            </button>
+          </div>
+          <div id="medicationsList">
+            <!-- Medications will be loaded here -->
+            <div class="empty-state">
+              <div class="icon">💊</div>
+              <p>กำลังโหลดรายการยา...</p>
+            </div>
+          </div>
+        </div>
+
+        <button class="add-btn" onclick="goToMedications()">
+          <span>➕</span>
+          <span>เพิ่มยาใหม่</span>
+        </button>
+      </div>
+
+      <!-- Hospital Info Tab -->
+      <div id="hospital-tab" class="tab-content">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <span class="icon">🏨</span>
+              โรงพยาบาลประจำ
+            </div>
+            <button class="edit-btn" onclick="editSection('hospital')">
+              <span>แก้ไข</span>
+            </button>
+          </div>
+          <div class="info-row">
+            <span class="info-label">ชื่อโรงพยาบาล</span>
+            <span class="info-value" id="hospitalName">-</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">แผนก</span>
+            <span class="info-value" id="hospitalDepartment">-</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">เบอร์โทร</span>
+            <span class="info-value" id="hospitalPhone">-</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">ที่อยู่</span>
+            <span class="info-value" id="hospitalAddress">-</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <span class="icon">👨‍⚕️</span>
+              แพทย์ประจำตัว
+            </div>
+            <button class="edit-btn" onclick="editSection('doctor')">
+              <span>แก้ไข</span>
+            </button>
+          </div>
+          <div class="info-row">
+            <span class="info-label">ชื่อแพทย์</span>
+            <span class="info-value" id="doctorName">-</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">เบอร์โทร</span>
+            <span class="info-value" id="doctorPhone">-</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">หมายเหตุ</span>
+            <span class="info-value" id="doctorNotes">-</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Emergency Contact Tab -->
       <div id="emergency-tab" class="tab-content">
         <div class="card">
           <div class="card-header">
-            <h3>ผู้ติดต่อฉุกเฉิน</h3>
-            <button class="edit-btn" onclick="editSection('emergency')">แก้ไข</button>
+            <div class="card-title">
+              <span class="icon">📞</span>
+              ผู้ติดต่อฉุกเฉิน
+            </div>
+            <button class="edit-btn" onclick="editSection('emergency')">
+              <span>แก้ไข</span>
+            </button>
           </div>
           <div class="info-row">
-            <span class="info-label">ชื่อ:</span>
+            <span class="info-label">ชื่อ</span>
             <span class="info-value" id="emergencyName">-</span>
           </div>
           <div class="info-row">
-            <span class="info-label">ความสัมพันธ์:</span>
+            <span class="info-label">ความสัมพันธ์</span>
             <span class="info-value" id="emergencyRelation">-</span>
           </div>
           <div class="info-row">
-            <span class="info-label">เบอร์โทร:</span>
+            <span class="info-label">เบอร์โทร</span>
             <span class="info-value" id="emergencyPhone">-</span>
           </div>
+        </div>
+
+        <div class="alert alert-info">
+          <span class="alert-icon">ℹ️</span>
+          <span>ข้อมูลนี้จะใช้ในกรณีฉุกเฉิน ระบบจะส่งการแจ้งเตือนไปยังเบอร์โทรนี้โดยอัตโนมัติ</span>
         </div>
       </div>
     </div>
@@ -263,17 +320,30 @@
   <script src="js/api.js"></script>
 
   <script>
-    // LIFF ID
+    // Configuration
     const LIFF_ID = '2008278683-5k69jxNq';
+    const SUPABASE_URL = 'https://mqxklnzxfrupwwkwlwwc.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1xeGtsbnp4ZnJ1cHd3a3dsd3djIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNjcxMjYsImV4cCI6MjA3MjY0MzEyNn0.vPBkIGHdvrfotD3QMnFGrNRMTP3fFzn715XGwqKG-6Y';
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     // Thai month names
     const thaiMonths = [
-      'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
-      'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
+      'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.',
+      'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'
     ];
 
     // Global state
     let patientId = null;
+    let patientData = null;
+
+    // Close LIFF
+    function closeLiff() {
+      if (liff.isInClient()) {
+        liff.closeWindow();
+      } else {
+        window.history.back();
+      }
+    }
 
     // Format date to Thai format
     function formatThaiDate(dateStr) {
@@ -285,14 +355,23 @@
       return `${day} ${month} ${year}`;
     }
 
+    // Calculate age from birth date
+    function calculateAge(birthDate) {
+      if (!birthDate) return '-';
+      const today = new Date();
+      const birth = new Date(birthDate);
+      let age = today.getFullYear() - birth.getFullYear();
+      const monthDiff = today.getMonth() - birth.getMonth();
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+        age--;
+      }
+      return `${age} ปี`;
+    }
+
     // Format gender to Thai
     function formatGender(gender) {
       if (!gender) return '-';
-      const genderMap = {
-        'male': 'ชาย',
-        'female': 'หญิง',
-        'other': 'อื่นๆ'
-      };
+      const genderMap = { 'male': 'ชาย', 'female': 'หญิง', 'other': 'อื่นๆ' };
       return genderMap[gender] || gender;
     }
 
@@ -305,14 +384,23 @@
       window.location.href = `edit-profile.html?patient_id=${patientId}&section=${section}`;
     }
 
-    // Tab switching
-    document.querySelectorAll('.tab').forEach(tab => {
-      tab.addEventListener('click', () => {
-        const tabName = tab.dataset.tab;
+    // Go to medications page
+    function goToMedications() {
+      if (!patientId) {
+        alert('กรุณารอโหลดข้อมูลก่อน');
+        return;
+      }
+      window.location.href = `medications.html?patient_id=${patientId}`;
+    }
 
-        // Update tabs
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        tab.classList.add('active');
+    // Tab switching
+    document.querySelectorAll('.nav-item').forEach(navItem => {
+      navItem.addEventListener('click', () => {
+        const tabName = navItem.dataset.tab;
+
+        // Update nav items
+        document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+        navItem.classList.add('active');
 
         // Update content
         document.querySelectorAll('.tab-content').forEach(content => {
@@ -327,11 +415,8 @@
       try {
         const response = await fetch(`${API_BASE_URL}/check-user/${lineUserId}`);
         const result = await response.json();
-
         if (!result.exists) {
-          setTimeout(() => {
-            window.location.href = '/liff/index.html';
-          }, 1000);
+          setTimeout(() => { window.location.href = '/liff/index.html'; }, 1000);
           return false;
         }
         return true;
@@ -374,105 +459,100 @@
     // Load user data
     async function loadUserData() {
       try {
-        console.log('📋 loadUserData: Starting...');
         const profile = await liff.getProfile();
         const lineUserId = profile.userId;
-        console.log('📋 LINE User ID:', lineUserId);
 
         // Get user info
-        console.log('📋 Calling check-user API...');
         const checkUserResponse = await fetch(`${API_BASE_URL}/check-user/${lineUserId}`);
-        console.log('📋 check-user response status:', checkUserResponse.status);
-
-        if (!checkUserResponse.ok) {
-          throw new Error(`check-user API failed: ${checkUserResponse.status}`);
-        }
+        if (!checkUserResponse.ok) throw new Error(`check-user API failed: ${checkUserResponse.status}`);
 
         const checkUserResult = await checkUserResponse.json();
-        console.log('📋 check-user result:', checkUserResult);
-
         if (!checkUserResult.exists) {
           showError('ไม่พบข้อมูลผู้ใช้');
           return;
         }
 
         // Get patient ID based on role
-        console.log('📋 User role:', checkUserResult.role);
         if (checkUserResult.role === 'patient') {
-          // Patient - use own profile
           patientId = checkUserResult.profile.profile_id;
-          console.log('📋 Patient ID (own profile):', patientId);
         } else if (checkUserResult.role === 'caregiver') {
-          // Caregiver - check if linked_patient_id exists in the response
           if (checkUserResult.profile.linked_patient_id) {
             patientId = checkUserResult.profile.linked_patient_id;
-            console.log('📋 Patient ID (linked):', patientId);
           } else {
-            // No patient linked yet
-            showError('คุณยังไม่ได้ลิงก์กับผู้ป่วย กรุณาลิงก์ผู้ป่วยก่อน');
+            showError('คุณยังไม่ได้ลิงก์กับผู้ป่วย');
             return;
           }
-        } else {
-          showError('ไม่สามารถระบุประเภทผู้ใช้ได้');
-          return;
         }
 
         // Load patient profile
-        console.log('📋 Calling patient API:', patientId);
         const response = await fetch(`${API_BASE_URL}/patient/${patientId}`);
-        console.log('📋 patient response status:', response.status);
-
-        if (!response.ok) {
-          throw new Error(`patient API failed: ${response.status}`);
-        }
+        if (!response.ok) throw new Error(`patient API failed: ${response.status}`);
 
         const result = await response.json();
-        console.log('📋 patient result:', result);
-
         if (!result.success || !result.profile) {
           showError('ไม่พบข้อมูลผู้ป่วย');
           return;
         }
 
+        patientData = result.profile;
         displayPatientData(result.profile);
-        console.log('✅ Data loaded successfully');
+
+        // Load medications
+        await loadMedications();
 
       } catch (error) {
-        console.error('❌ Error loading data:', error);
+        console.error('Error loading data:', error);
         showError('ไม่สามารถโหลดข้อมูลได้: ' + error.message);
       }
     }
 
     // Display patient data
     function displayPatientData(patient) {
-      // Basic Info
-      document.getElementById('patientName').textContent =
-        `${patient.first_name || ''} ${patient.last_name || ''}`.trim() || '-';
-      document.getElementById('patientNickname').textContent = patient.nickname || '-';
+      // Profile Header
+      const fullName = `${patient.first_name || ''} ${patient.last_name || ''}`.trim() || 'ไม่ระบุชื่อ';
+      const nickname = patient.nickname || '';
+      const age = calculateAge(patient.birth_date);
+      const gender = formatGender(patient.gender);
+
+      document.getElementById('profileName').textContent = nickname || fullName;
+      document.getElementById('profileInfo').textContent = `${age} • ${gender}`;
+      document.getElementById('profileAvatar').textContent = patient.gender === 'male' ? '👨' : patient.gender === 'female' ? '👩' : '👤';
+
+      // Personal Info
+      document.getElementById('patientName').textContent = fullName;
+      document.getElementById('patientNickname').textContent = nickname || '-';
       document.getElementById('patientBirthDate').textContent = formatThaiDate(patient.birth_date);
-      document.getElementById('patientGender').textContent = formatGender(patient.gender);
+      document.getElementById('patientAge').textContent = age;
+      document.getElementById('patientGender').textContent = gender;
       document.getElementById('patientPhone').textContent = patient.phone_number || '-';
       document.getElementById('patientAddress').textContent = patient.address || '-';
 
-      // Medical Info
-      document.getElementById('patientBloodType').textContent = patient.blood_type || '-';
+      // Body Info
       document.getElementById('patientWeight').textContent = patient.weight_kg ? `${patient.weight_kg} กก.` : '-';
       document.getElementById('patientHeight').textContent = patient.height_cm ? `${patient.height_cm} ซม.` : '-';
-      document.getElementById('patientMedicalCondition').textContent = patient.medical_condition || '-';
-      document.getElementById('patientDrugAllergies').textContent = patient.drug_allergies || '-';
-      document.getElementById('patientFoodAllergies').textContent = patient.food_allergies || '-';
+      document.getElementById('patientBloodType').textContent = patient.blood_type || '-';
 
-      // Chronic diseases as tags
-      const chronicContainer = document.getElementById('patientChronicDiseases');
-      if (patient.chronic_diseases && Array.isArray(patient.chronic_diseases) && patient.chronic_diseases.length > 0) {
-        chronicContainer.innerHTML = patient.chronic_diseases.map(disease =>
-          `<span class="condition-tag">${disease}</span>`
-        ).join('');
-      } else {
-        chronicContainer.innerHTML = '<span style="color: var(--text-secondary);">-</span>';
-      }
+      // Medical Info - Conditions
+      displayTags('patientConditions', patient.medical_condition, 'tag');
+      displayTags('patientChronicDiseases', patient.chronic_diseases, 'tag');
 
-      // Hospital Info - removed (fields not in database)
+      // Allergies
+      displayTags('patientDrugAllergies', patient.drug_allergies, 'tag warning');
+      displayTags('patientFoodAllergies', patient.food_allergies, 'tag warning');
+
+      // Medical Notes
+      document.getElementById('patientMedicalNotes').textContent = patient.medical_notes || 'ไม่มีหมายเหตุ';
+
+      // Hospital Info (if available)
+      document.getElementById('hospitalName').textContent = patient.hospital_name || '-';
+      document.getElementById('hospitalDepartment').textContent = patient.hospital_department || '-';
+      document.getElementById('hospitalPhone').textContent = patient.hospital_phone || '-';
+      document.getElementById('hospitalAddress').textContent = patient.hospital_address || '-';
+
+      // Doctor Info (if available)
+      document.getElementById('doctorName').textContent = patient.doctor_name || '-';
+      document.getElementById('doctorPhone').textContent = patient.doctor_phone || '-';
+      document.getElementById('doctorNotes').textContent = patient.doctor_notes || '-';
 
       // Emergency Contact
       document.getElementById('emergencyName').textContent = patient.emergency_contact_name || '-';
@@ -480,11 +560,81 @@
       document.getElementById('emergencyPhone').textContent = patient.emergency_contact_phone || '-';
     }
 
+    // Display tags helper
+    function displayTags(elementId, data, tagClass) {
+      const container = document.getElementById(elementId);
+      let items = [];
+
+      if (Array.isArray(data)) {
+        items = data;
+      } else if (typeof data === 'string' && data.trim()) {
+        items = data.split(',').map(s => s.trim()).filter(s => s);
+      }
+
+      if (items.length > 0) {
+        container.innerHTML = items.map(item => `<span class="${tagClass}">${item}</span>`).join('');
+      } else {
+        container.innerHTML = `<span class="${tagClass}" style="opacity: 0.5;">ไม่มีข้อมูล</span>`;
+      }
+    }
+
+    // Load medications (using Supabase directly)
+    async function loadMedications() {
+      const container = document.getElementById('medicationsList');
+      try {
+        const { data, error } = await supabaseClient
+          .from('medications')
+          .select('*')
+          .eq('patient_id', patientId)
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        const medications = (data || []).map(med => ({
+          ...med,
+          times: med.times ? (typeof med.times === 'string' ? JSON.parse(med.times) : med.times) : []
+        }));
+
+        if (medications.length === 0) {
+          container.innerHTML = '<div class="empty-state"><div class="icon">💊</div><p>ยังไม่มีรายการยา</p><button class="btn btn-outline btn-sm" onclick="goToMedications()">เพิ่มยา</button></div>';
+          return;
+        }
+
+        const timeLabels = {
+          morning: '🌅 เช้า',
+          afternoon: '☀️ กลางวัน',
+          evening: '🌆 เย็น',
+          night: '🌙 ก่อนนอน'
+        };
+
+        container.innerHTML = medications.map(med => {
+          const times = med.times || [];
+          const timesHtml = times.map(t => `<span class="med-time">${timeLabels[t] || t}</span>`).join('');
+
+          return `
+            <div class="med-item">
+              <div class="med-icon">💊</div>
+              <div class="med-info">
+                <div class="med-name">${med.name}</div>
+                <div class="med-dosage">${med.dosage_amount || ''} ${med.dosage_unit || ''}</div>
+                ${times.length > 0 ? `<div class="med-times">${timesHtml}</div>` : ''}
+                ${med.instructions ? `<div class="med-instructions">${med.instructions}</div>` : ''}
+              </div>
+            </div>
+          `;
+        }).join('');
+
+      } catch (error) {
+        console.error('Error loading medications:', error);
+        container.innerHTML = '<div class="empty-state"><div class="icon">💊</div><p>ไม่สามารถโหลดรายการยาได้</p></div>';
+      }
+    }
+
     // Show error
     function showError(message) {
       const errorEl = document.getElementById('error');
       errorEl.textContent = message;
-      errorEl.style.display = 'block';
+      errorEl.style.display = 'flex';
     }
 
     // Activate tab from URL parameter
@@ -492,12 +642,10 @@
       const urlParams = new URLSearchParams(window.location.search);
       const tab = urlParams.get('tab');
 
-      if (tab && ['profile', 'medical', 'emergency'].includes(tab)) {
-        // Update tabs
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        document.querySelector(`.tab[data-tab="${tab}"]`).classList.add('active');
+      if (tab && ['personal', 'medical', 'medications', 'hospital', 'emergency'].includes(tab)) {
+        document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+        document.querySelector(`.nav-item[data-tab="${tab}"]`).classList.add('active');
 
-        // Update content
         document.querySelectorAll('.tab-content').forEach(content => {
           content.classList.remove('active');
         });

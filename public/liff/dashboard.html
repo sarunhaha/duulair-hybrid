@@ -7,6 +7,42 @@
   <title>บันทึกสุขภาพ - OONJAI</title>
   <link rel="stylesheet" href="css/minimal-theme.css">
   <style>
+    /* Header styles */
+    .page-header {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-md);
+      margin-bottom: var(--spacing-lg);
+      padding-bottom: var(--spacing-md);
+      border-bottom: 1px solid rgba(0,0,0,0.08);
+    }
+
+    .back-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-full);
+      border: none;
+      background: var(--bg-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      color: var(--text-primary);
+    }
+
+    .back-btn:active {
+      transform: scale(0.95);
+      background: rgba(0,0,0,0.1);
+    }
+
+    .page-title {
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin: 0;
+    }
+
     /* Dashboard-specific styles */
     .welcome-section {
       margin-bottom: var(--spacing-xl);
@@ -125,9 +161,13 @@
     <!-- Main Content -->
     <div id="mainContent" class="hidden">
       <!-- Header -->
-      <div class="header">
-        <h1>📝 บันทึกสุขภาพ</h1>
-        <p>เลือกกิจกรรมที่ต้องการบันทึก</p>
+      <div class="page-header">
+        <button class="back-btn" onclick="closeLiff()">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+        </button>
+        <h1 class="page-title">📝 บันทึกสุขภาพ</h1>
       </div>
 
       <!-- Welcome Section -->
