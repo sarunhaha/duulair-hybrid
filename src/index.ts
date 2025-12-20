@@ -1538,7 +1538,8 @@ async function handleTextMessage(event: any) {
     }
 
     // Send normal text reply
-    const responseText = result.data?.combined?.response;
+    // Support both Natural Conversation mode (result.data.response) and legacy mode (result.data.combined.response)
+    const responseText = result.data?.response || result.data?.combined?.response;
     if (result.success && responseText) {
       const replyMessage: TextMessage = {
         type: 'text',
