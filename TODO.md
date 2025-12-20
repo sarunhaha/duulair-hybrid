@@ -121,32 +121,34 @@
 
 ---
 
-## Phase 3: Webhook Integration ⏳ IN PROGRESS
+## Phase 3: Webhook Integration ✅ COMPLETE
 
-- [ ] Integrate extraction pipeline into webhook
-  - [ ] Import `runHealthExtractionPipeline` in `src/index.ts`
-  - [ ] Add extraction call in `handleTextMessage()`
-  - [ ] Decide integration strategy:
-    - [ ] Option A: Hybrid (extraction first, fallback to orchestrator)
-    - [ ] Option B: Replace orchestrator for health messages
-    - [ ] Option C: Parallel (run both, merge results)
+- [x] Integrate extraction pipeline into webhook
+  - [x] Import `runHealthExtractionPipeline` in `src/index.ts`
+  - [x] Add extraction call in `handleTextMessage()`
+  - [x] Decide integration strategy:
+    - [x] Option A: Hybrid (extraction first, fallback to orchestrator) ✅ IMPLEMENTED
+    - [ ] ~~Option B: Replace orchestrator for health messages~~
+    - [ ] ~~Option C: Parallel (run both, merge results)~~
 
-- [ ] Error Handling
-  - [ ] Add try/catch around extraction
-  - [ ] Fallback to orchestrator if extraction fails
-  - [ ] Log extraction errors
+- [x] Error Handling
+  - [x] Add try/catch around extraction
+  - [x] Fallback to orchestrator if extraction fails
+  - [x] Log extraction errors
 
-- [ ] Response Handling
-  - [ ] Use extraction response if hasHealthData
-  - [ ] Combine with orchestrator for dialog
-  - [ ] Handle followup questions
+- [x] Response Handling
+  - [x] Use extraction response if hasHealthData
+  - [x] Fallback to orchestrator for dialog when no health data
+  - [x] Handle followup questions
+  - [x] Handle alerts for abnormal values
 
-- [ ] Logging & Monitoring
-  - [ ] Log extraction results
-  - [ ] Log AI confidence scores
-  - [ ] Log saved records
+- [x] Logging & Monitoring
+  - [x] Log extraction results
+  - [x] Log hasHealthData status
+  - [x] Log saved records count
+  - [x] Log alerts
 
-- [ ] Test Integration
+- [ ] Test Integration (Pending Production Testing)
   - [ ] Test with simple health message ("ความดัน 120/80")
   - [ ] Test with complex message ("ปวดหัว นอน 5 ชม. ความดัน 130/85")
   - [ ] Test with non-health message
