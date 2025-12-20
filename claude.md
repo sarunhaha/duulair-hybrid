@@ -253,3 +253,183 @@ if (patientId && (requiresPatientData || isGroupChat)) {
 ---
 *Session: 2025-11-29*
 *Issues fixed: 8 major improvements*
+
+---
+
+## Session: 2025-12-20
+
+### Project Status: AI Extraction Pipeline (Schema Restructure)
+
+**Goal:** ยกระดับจาก "ระบบบันทึกแบบกรอก" → "ระบบบันทึกสุขภาพผ่านบทสนทนาธรรมชาติ" (AI Extract)
+
+### Database Migration Status: ✅ COMPLETE
+
+All 4 phases have been migrated successfully:
+
+| Phase | File | Status |
+|-------|------|--------|
+| Phase 1 | `001_restructure_phase1_new_tables.sql` | ✅ Done |
+| Phase 2 | `002_restructure_phase2_alter_tables.sql` | ✅ Done |
+| Phase 3 | `003_restructure_phase3_migrate_data.sql` | ✅ Done |
+| Phase 4 | `004_restructure_phase4_cleanup.sql` | ✅ Done |
+
+**New Tables Created:**
+- `symptoms` - เก็บอาการที่ extract จากบทสนทนา
+- `sleep_logs` - ข้อมูลการนอน
+- `exercise_logs` - ข้อมูลการออกกำลังกาย
+- `health_events` - Linking table เชื่อม conversation → health data
+
+**Altered Tables:**
+- `conversation_logs` - +patient_id, +group_id, +media_url, +ai_extracted_data, +ai_confidence
+- `vitals_logs` - +patient_id, +conversation_log_id, +source, +ai_confidence
+- `mood_logs` - +patient_id, +stress_level, +energy_level, +ai_confidence
+- `activity_logs` - +conversation_log_id, +ai_confidence, +raw_text, +health_event_id
+- `health_goals` - +target_sleep_hours, +target_water_glasses, +target_steps
+
+**Backup Tables:** 11 tables backed up with `_backup_` prefix
+
+---
+
+### AI Extraction Pipeline Status: ✅ CODE COMPLETE
+
+All code files have been created:
+
+#### 1. Core Extraction (`src/lib/ai/extraction.ts`)
+- `extractHealthData()` - Main extraction function using Claude Haiku
+- `parseExtractionResponse()` - Parse JSON from Claude response
+- `normalizeExtractedData()` - Normalize snake_case/camelCase
+- `hasHealthData()` - Check if extracted data contains health info
+- `getExtractionSummary()` - Get summary string for logging
+
+#### 2. Prompts (`src/lib/ai/prompts/extraction.ts`)
+- `EXTRACTION_SYSTEM_PROMPT` - Thai health data extraction prompt
+- `RESPONSE_GENERATION_PROMPT` - Response generation prompt
+- `buildPatientContext()` - Build patient context string
+- `buildExtractionPrompt()` - Build full prompt with patient context
+
+#### 3. Processors (`src/lib/ai/processors/index.ts`)
+- `processExtractedData()` - Main processor for all data types
+- Individual processors:
+  - `processSymptom()` → saves to `symptoms` table
+  - `processVitals()` → saves to `vitals_logs` table
+  - `processMood()` → saves to `mood_logs` table
+  - `processSleep()` → saves to `sleep_logs` table
+  - `processExercise()` → saves to `exercise_logs` table
+  - `processMedication()` → saves to `activity_logs` table
+  - `processWater()` → saves to `activity_logs` table
+- All processors create `health_events` records for linking
+
+#### 4. Pipeline Entry Point (`src/lib/ai/index.ts`)
+- `runHealthExtractionPipeline()` - Main pipeline function
+  1. Save conversation log
+  2. Extract health data using AI
+  3. Update conversation log with extracted data
+  4. Process and save health data
+  5. Check for abnormal values
+  6. Generate response message
+
+#### 5. Event Creator (`src/lib/health/event-creator.ts`)
+- `createHealthEvent()` - Create single health event
+- `createHealthEventsBatch()` - Create multiple events
+- `getHealthEventsSummary()` - Get summary by type
+- `checkForAbnormalValues()` - Check for abnormal BP, HR, temp, SpO2, glucose
+
+#### 6. Types (`src/types/health.types.ts`)
+- All types defined:
+  - `Symptom`, `SleepLog`, `ExerciseLog`, `HealthEvent`
+  - `VitalsLog`, `MoodLog`, `ConversationLog`
+  - `AIExtractedData`, `ExtractedSymptom`, `ExtractedVitals`, etc.
+  - Insert types: `SymptomInsert`, `SleepLogInsert`, etc.
+
+#### 7. Supabase Service (`src/services/supabase.service.ts`)
+All CRUD methods implemented:
+- `saveSymptom()`, `getSymptoms()`, `getRecentSymptoms()`
+- `saveSleepLog()`, `getSleepLogs()`, `getRecentSleepLogs()`
+- `saveExerciseLog()`, `getExerciseLogs()`, `getRecentExerciseLogs()`
+- `saveHealthEvent()`, `getHealthEvents()`, `getHealthEventsByType()`
+- `saveVitalsLog()`, `getVitalsLogs()`, `getRecentVitalsLogs()`
+- `saveMoodLog()`, `getMoodLogs()`, `getRecentMoodLogs()`
+- `saveConversationLog()`, `updateConversationLog()`, `getConversationLogs()`
+- `getHealthGoals()`, `updateHealthGoals()`
+
+---
+
+### ⚠️ PENDING: Webhook Integration (Phase 3)
+
+**Current State:**
+- `runHealthExtractionPipeline()` exists but is **NOT USED** in webhook
+- Webhook (`src/index.ts`) still uses `orchestrator.process()` without AI extraction
+
+**To Complete:**
+
+```typescript
+// In src/index.ts - handleTextMessage()
+// Add this before or alongside orchestrator.process()
+
+import { runHealthExtractionPipeline } from './lib/ai';
+
+// Run extraction pipeline
+const extractionResult = await runHealthExtractionPipeline(message.text, {
+  patientId: context.patientId,
+  patient: patientData,
+  groupId: context.groupId,
+  lineUserId: userId,
+  displayName: displayName
+});
+
+if (extractionResult.hasHealthData) {
+  // Use extracted data response
+  // Or combine with orchestrator response
+}
+```
+
+**Integration Options:**
+1. **Replace**: Use extraction pipeline instead of orchestrator for health messages
+2. **Hybrid**: Run extraction pipeline first, then orchestrator for dialog
+3. **Parallel**: Run both and merge results
+
+---
+
+### Next Steps
+
+1. **Integrate AI Extraction into Webhook**
+   - Add `runHealthExtractionPipeline()` call in `handleTextMessage()`
+   - Decide on integration strategy (replace/hybrid/parallel)
+   - Handle errors gracefully (fallback to orchestrator)
+
+2. **Test End-to-End Flow**
+   - Test with Thai health messages
+   - Verify data saved correctly to new tables
+   - Test abnormal value alerts
+
+3. **Polish & Monitoring**
+   - Add logging for extraction results
+   - Monitor AI confidence scores
+   - Adjust prompts based on real usage
+
+---
+
+### Files Structure
+
+```
+src/lib/
+├── ai/
+│   ├── index.ts              # runHealthExtractionPipeline() ✅
+│   ├── extraction.ts         # extractHealthData() ✅
+│   ├── processors/
+│   │   └── index.ts          # processExtractedData() ✅
+│   └── prompts/
+│       └── extraction.ts     # EXTRACTION_SYSTEM_PROMPT ✅
+└── health/
+    └── event-creator.ts      # createHealthEvent() ✅
+
+src/types/
+└── health.types.ts           # All types ✅
+
+src/services/
+└── supabase.service.ts       # All CRUD methods ✅
+```
+
+---
+*Session: 2025-12-20*
+*Status: AI Extraction Pipeline code complete, pending webhook integration*
