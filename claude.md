@@ -867,3 +867,41 @@ const USE_NATURAL_CONVERSATION_MODE = false; // Legacy IntentAgent + Routing
 ---
 *Session: 2025-12-21*
 *Feature: Natural Conversation Architecture - COMPLETE*
+
+---
+
+## Session: 2025-12-21 (Bugfix)
+
+### Issue: Natural Conversation Response Not Sent to LINE
+
+**Problem:** NLU correctly detected intent and generated response, but LINE message wasn't sent.
+
+**Logs Showed:**
+```
+NLU: profile_update/null (75%)
+response: 'ได้เลยค่ะ อยากเปลี่ยนข้อมูลอะไรคะ?...'
+⚠️ No response to send: { success: true, hasResponse: false }
+```
+
+**Root Cause:**
+- `src/index.ts` line 1541 looked for `result.data?.combined?.response` (legacy path)
+- Natural Conversation mode returns `result.data.response` (different path)
+- Response existed but wasn't found → `hasResponse: false`
+
+**Solution:**
+Updated `src/index.ts` to check both locations:
+```typescript
+// Before (legacy only)
+const responseText = result.data?.combined?.response;
+
+// After (supports both modes)
+const responseText = result.data?.response || result.data?.combined?.response;
+```
+
+**Commits:**
+- `39de607` - Fix: Natural Conversation mode response not sent to LINE
+- `951026a` - Docs: Add fixed entry for Natural Conversation response bug
+
+---
+*Session: 2025-12-21 (Bugfix)*
+*Issue: Response path mismatch - FIXED*
