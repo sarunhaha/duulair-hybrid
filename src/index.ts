@@ -15,7 +15,7 @@ import { supabaseService } from './services/supabase.service';
 import { schedulerService } from './services/scheduler.service';
 import crypto from 'crypto';
 import multer from 'multer';
-import Anthropic from '@anthropic-ai/sdk';
+import { openRouterService, OPENROUTER_MODELS } from './services/openrouter.service';
 
 dotenv.config();
 
@@ -30,11 +30,6 @@ const LIFF_ID = process.env.LIFF_ID || '';
 
 const app = express();
 const orchestrator = new OrchestratorAgent();
-
-// Anthropic Claude for OCR
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY || '',
-});
 
 // Multer for file uploads (in-memory storage)
 const upload = multer({
@@ -987,25 +982,8 @@ app.post('/api/ocr/vitals', upload.single('image'), async (req, res) => {
     const base64Image = req.file.buffer.toString('base64');
     const mimeType = req.file.mimetype;
 
-    // Use Claude Vision to read blood pressure from image
-    const visionResponse = await anthropic.messages.create({
-      model: 'claude-3-haiku-20240307',
-      max_tokens: 500,
-      messages: [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'image',
-              source: {
-                type: 'base64',
-                media_type: mimeType as any,
-                data: base64Image,
-              },
-            },
-            {
-              type: 'text',
-              text: `กรุณาอ่านค่าความดันโลหิตจากรูปภาพนี้
+    // Use Claude Vision via OpenRouter to read blood pressure from image
+    const visionPrompt = `กรุณาอ่านค่าความดันโลหิตจากรูปภาพนี้
 
 หากเป็นเครื่องวัดความดันที่มีตัวเลขชัดเจน ให้อ่านค่า systolic (ตัวบน) และ diastolic (ตัวล่าง) และชีพจร (pulse) ถ้ามี
 
@@ -1020,14 +998,14 @@ app.post('/api/ocr/vitals', upload.single('image'), async (req, res) => {
 หากอ่านไม่ได้หรือไม่ใช่รูปเครื่องวัดความดัน ให้ตอบ:
 {
   "error": "ไม่สามารถอ่านค่าความดันจากรูปภาพนี้ได้"
-}`
-            }
-          ]
-        }
-      ]
-    });
+}`;
 
-    const visionResult = visionResponse.content[0].text;
+    const visionResult = await openRouterService.analyzeBase64Image(
+      base64Image,
+      mimeType,
+      visionPrompt,
+      { model: OPENROUTER_MODELS.CLAUDE_SONNET_4_5 }
+    );
     console.log('📷 Vision result:', visionResult);
 
     try {
@@ -1562,28 +1540,8 @@ async function handleImageMessage(event: any) {
 
     console.log(`📷 Image size: ${imageBuffer.length} bytes`);
 
-    // Use Claude Vision to read blood pressure from image
-    const Anthropic = require('@anthropic-ai/sdk').default;
-    const anthropic = new Anthropic();
-
-    const visionResponse = await anthropic.messages.create({
-      model: 'claude-3-haiku-20240307',
-      max_tokens: 500,
-      messages: [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'image',
-              source: {
-                type: 'base64',
-                media_type: mimeType,
-                data: base64Image
-              }
-            },
-            {
-              type: 'text',
-              text: `อ่านค่าความดันโลหิตจากรูปนี้
+    // Use Claude Vision via OpenRouter to read blood pressure from image
+    const ocrPrompt = `อ่านค่าความดันโลหิตจากรูปนี้
 
 ถ้าเห็นค่าความดัน ให้ตอบในรูปแบบ JSON:
 {"systolic": 120, "diastolic": 80, "pulse": 70}
@@ -1591,14 +1549,14 @@ async function handleImageMessage(event: any) {
 ถ้าไม่เห็นค่าความดัน หรือรูปไม่ใช่เครื่องวัดความดัน ให้ตอบ:
 {"error": "ไม่พบค่าความดันในรูป"}
 
-ตอบเฉพาะ JSON เท่านั้น`
-            }
-          ]
-        }
-      ]
-    });
+ตอบเฉพาะ JSON เท่านั้น`;
 
-    const visionResult = visionResponse.content[0].text;
+    const visionResult = await openRouterService.analyzeBase64Image(
+      base64Image,
+      mimeType,
+      ocrPrompt,
+      { model: OPENROUTER_MODELS.CLAUDE_SONNET_4_5 }
+    );
     console.log('📷 Vision result:', visionResult);
 
     let responseText = '';

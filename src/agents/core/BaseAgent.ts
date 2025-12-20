@@ -1,15 +1,15 @@
 // src/agents/core/BaseAgent.ts
-import { Anthropic } from '@anthropic-ai/sdk';
 import { EventEmitter } from 'events';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 import { SupabaseService } from '../../services/supabase.service';
+import { OpenRouterService, OPENROUTER_MODELS } from '../../services/openrouter.service';
 
 // Schema definitions using Zod
 const ConfigSchema = z.object({
   name: z.string(),
   role: z.string(),
-  model: z.string().default('claude-3-haiku-20240307'),
+  model: z.string().default(OPENROUTER_MODELS.CLAUDE_SONNET_4_5),
   temperature: z.number().default(0.7),
   maxTokens: z.number().default(1000),
   capabilities: z.array(z.string()).optional()
@@ -67,7 +67,7 @@ interface Collaborative {
 // Base Agent Class
 export abstract class BaseAgent extends EventEmitter implements Observable, Stateful, Collaborative {
   protected config: Config;
-  protected anthropic: Anthropic;
+  protected openRouter: OpenRouterService;
   protected supabase: SupabaseService;
   protected state: Map<string, any>;
   protected metrics: {
@@ -89,10 +89,10 @@ export abstract class BaseAgent extends EventEmitter implements Observable, Stat
     };
 
     // Initialize services
-    this.anthropic = new Anthropic({
-      apiKey: process.env.ANTHROPIC_API_KEY!
+    this.openRouter = new OpenRouterService({
+      defaultModel: this.config.model
     });
-    
+
     this.supabase = new SupabaseService();
   }
 
@@ -194,23 +194,27 @@ export abstract class BaseAgent extends EventEmitter implements Observable, Stat
   // Helper methods
   protected async askClaude(prompt: string, system?: string): Promise<string> {
     const startTime = Date.now();
-    
+
     try {
-      const response = await this.anthropic.messages.create({
+      const messages: { role: 'system' | 'user' | 'assistant'; content: string }[] = [];
+
+      if (system) {
+        messages.push({ role: 'system', content: system });
+      }
+
+      messages.push({ role: 'user', content: prompt });
+
+      const response = await this.openRouter.createChatCompletion({
         model: this.config.model,
+        messages,
         max_tokens: this.config.maxTokens,
-        temperature: this.config.temperature,
-        system: system,
-        messages: [{ role: 'user', content: prompt }]
+        temperature: this.config.temperature
       });
 
       const processingTime = Date.now() - startTime;
       this.updateMetrics(true, processingTime);
 
-      if (response.content[0].type === 'text') {
-        return response.content[0].text;
-      }
-      return '';
+      return response.choices[0]?.message?.content || '';
     } catch (error) {
       this.updateMetrics(false, Date.now() - startTime);
       throw error;
