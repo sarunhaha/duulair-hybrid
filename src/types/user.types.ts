@@ -40,7 +40,8 @@ export interface PatientProfile {
   heightCm?: number;
   bmi?: number; // calculated
   bloodType?: string; // 'A+', 'B-', etc.
-  chronicDiseases: string[]; // ['hypertension', 'diabetes', ...]
+  medicalCondition?: string; // โรคประจำตัว (free text)
+  chronicDiseases: string[]; // โรคเรื้อรัง ['hypertension', 'diabetes', ...]
   drugAllergies: string[];
   foodAllergies: string[];
 
@@ -193,7 +194,8 @@ export interface PatientRegistrationForm {
   weightKg?: number;
   heightCm?: number;
   bloodType?: string;
-  chronicDiseases: string[];
+  medicalCondition?: string; // โรคประจำตัว
+  chronicDiseases: string[]; // โรคเรื้อรัง
   drugAllergies?: string[];
   foodAllergies?: string[];
 
@@ -363,7 +365,8 @@ export interface GroupRegistrationForm {
     weightKg?: number;
     heightCm?: number;
     bloodType?: string;
-    chronicDiseases: string[];
+    medicalCondition?: string; // โรคประจำตัว
+    chronicDiseases: string[]; // โรคเรื้อรัง
     drugAllergies?: string[];
     foodAllergies?: string[];
     address?: string;

@@ -192,6 +192,7 @@ export class UserService {
         weight_kg: form.weightKg,
         height_cm: form.heightCm,
         blood_type: form.bloodType,
+        medical_condition: form.medicalCondition || null,
         chronic_diseases: form.chronicDiseases || [],
         drug_allergies: form.drugAllergies || [],
         food_allergies: form.foodAllergies || [],
@@ -911,8 +912,8 @@ export class UserService {
           first_name: data.firstName,
           last_name: data.lastName,
           birth_date: data.birthDate,
-          // Convert conditions string to array for chronic_diseases field
-          chronic_diseases: data.conditions ? [data.conditions] : [],
+          // Save conditions to medical_condition field
+          medical_condition: data.conditions || null,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
           // Note: user_id is now NULLABLE (Migration 002) to support patients without LINE accounts

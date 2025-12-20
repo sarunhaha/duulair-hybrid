@@ -925,7 +925,7 @@ app.post('/api/quick-register', async (req, res) => {
       firstName: patient.firstName,
       lastName: patient.lastName,
       birthDate: patient.birthDate,
-      conditions: patient.conditions || null,
+      conditions: patient.medicalCondition || null,
       groupId: contextType === 'group' ? groupId : null
     });
 

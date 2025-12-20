@@ -154,6 +154,7 @@ export class GroupService {
           weight_kg: form.patient.weightKg,
           height_cm: form.patient.heightCm,
           blood_type: form.patient.bloodType,
+          medical_condition: form.patient.medicalCondition || null,
           chronic_diseases: form.patient.chronicDiseases || [],
           drug_allergies: form.patient.drugAllergies || [],
           food_allergies: form.patient.foodAllergies || [],
