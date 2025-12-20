@@ -116,6 +116,14 @@
       border-bottom: 2px solid var(--accent-primary);
       color: var(--text-primary);
     }
+    .section-divider {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-primary);
+      padding: 12px 0 8px 0;
+      margin-top: 8px;
+      border-top: 1px solid var(--bg-secondary);
+    }
     .success-message {
       background: #D1FAE5;
       border: 1px solid #A7F3D0;
@@ -153,9 +161,9 @@
         <h1 class="page-title" id="page-title">แก้ไขข้อมูล</h1>
       </div>
 
-      <!-- Basic Info Section -->
-      <div id="section-basic" class="card" style="display: none;">
-        <div class="section-title">📝 ข้อมูลพื้นฐาน</div>
+      <!-- Personal Info Section -->
+      <div id="section-personal" class="card" style="display: none;">
+        <div class="section-title">📝 ข้อมูลส่วนตัว</div>
         <div class="form-group">
           <label>ชื่อ</label>
           <input type="text" id="first_name" placeholder="ชื่อ">
@@ -187,13 +195,17 @@
         </div>
         <div class="form-group">
           <label>ที่อยู่</label>
-          <textarea id="address" rows="3" placeholder="บ้านเลขที่ ถนน ตำบล อำเภอ จังหวัด รหัสไปรษณีย์"></textarea>
+          <textarea id="address" rows="2" placeholder="บ้านเลขที่ ถนน ตำบล อำเภอ จังหวัด"></textarea>
         </div>
-      </div>
-
-      <!-- Medical Info Section -->
-      <div id="section-medical" class="card" style="display: none;">
-        <div class="section-title">🏥 ข้อมูลทางการแพทย์</div>
+        <div class="section-divider">📏 ข้อมูลร่างกาย</div>
+        <div class="form-group">
+          <label>น้ำหนัก (กก.)</label>
+          <input type="number" id="weight_kg" placeholder="60" step="0.1">
+        </div>
+        <div class="form-group">
+          <label>ส่วนสูง (ซม.)</label>
+          <input type="number" id="height_cm" placeholder="160">
+        </div>
         <div class="form-group">
           <label>กรุ๊ปเลือด</label>
           <select id="blood_type">
@@ -204,29 +216,32 @@
             <option value="AB">AB</option>
           </select>
         </div>
-        <div class="form-group">
-          <label>น้ำหนัก (kg)</label>
-          <input type="number" id="weight_kg" placeholder="60" step="0.1">
-        </div>
-        <div class="form-group">
-          <label>ส่วนสูง (cm)</label>
-          <input type="number" id="height_cm" placeholder="170">
-        </div>
+      </div>
+
+      <!-- Medical Info Section -->
+      <div id="section-medical" class="card" style="display: none;">
+        <div class="section-title">🏥 ข้อมูลทางการแพทย์</div>
         <div class="form-group">
           <label>โรคประจำตัว</label>
-          <textarea id="medical_condition" rows="3" placeholder="โรคประจำตัว..."></textarea>
+          <textarea id="medical_condition" rows="2" placeholder="โรคประจำตัว..."></textarea>
         </div>
         <div class="form-group">
-          <label>โรคเรื้อรัง (คั่นด้วยเครื่องหมายจุลภาค)</label>
-          <textarea id="chronic_diseases" rows="3" placeholder="ความดันสูง, เบาหวาน..."></textarea>
+          <label>โรคเรื้อรัง (คั่นด้วยจุลภาค)</label>
+          <textarea id="chronic_diseases" rows="2" placeholder="ความดันสูง, เบาหวาน..."></textarea>
+        </div>
+        <div class="section-divider">⚠️ การแพ้</div>
+        <div class="form-group">
+          <label>แพ้ยา (คั่นด้วยจุลภาค)</label>
+          <textarea id="drug_allergies" rows="2" placeholder="Penicillin, Aspirin..."></textarea>
         </div>
         <div class="form-group">
-          <label>แพ้ยา</label>
-          <textarea id="drug_allergies" rows="2" placeholder="ยาที่แพ้..."></textarea>
+          <label>แพ้อาหาร (คั่นด้วยจุลภาค)</label>
+          <textarea id="food_allergies" rows="2" placeholder="อาหารทะเล, ถั่ว..."></textarea>
         </div>
+        <div class="section-divider">📋 หมายเหตุ</div>
         <div class="form-group">
-          <label>แพ้อาหาร</label>
-          <textarea id="food_allergies" rows="2" placeholder="อาหารที่แพ้..."></textarea>
+          <label>หมายเหตุทางการแพทย์</label>
+          <textarea id="medical_notes" rows="3" placeholder="ข้อมูลเพิ่มเติม..."></textarea>
         </div>
       </div>
 
@@ -261,7 +276,7 @@
 
       <!-- Hospital Section -->
       <div id="section-hospital" class="card" style="display: none;">
-        <div class="section-title">🏨 โรงพยาบาลและแพทย์</div>
+        <div class="section-title">🏨 โรงพยาบาลประจำ</div>
         <div class="form-group">
           <label>ชื่อโรงพยาบาล</label>
           <input type="text" id="hospital_name" placeholder="โรงพยาบาล...">
@@ -269,10 +284,6 @@
         <div class="form-group">
           <label>เบอร์โทรโรงพยาบาล</label>
           <input type="tel" id="hospital_phone" placeholder="02-xxx-xxxx">
-        </div>
-        <div class="form-group">
-          <label>หมายเหตุทางการแพทย์</label>
-          <textarea id="medical_notes" rows="3" placeholder="หมายเหตุเพิ่มเติม..."></textarea>
         </div>
       </div>
 
@@ -294,7 +305,7 @@
     // Get params from URL
     const urlParams = new URLSearchParams(window.location.search);
     currentPatientId = urlParams.get('patient_id');
-    currentSection = urlParams.get('section') || 'basic';
+    currentSection = urlParams.get('section') || 'personal';
 
     // Initialize page
     async function init() {
@@ -305,7 +316,7 @@
 
       // Set page title
       const sectionTitles = {
-        basic: 'แก้ไขข้อมูลพื้นฐาน',
+        personal: 'แก้ไขข้อมูลส่วนตัว',
         medical: 'แก้ไขข้อมูลทางการแพทย์',
         emergency: 'แก้ไขผู้ติดต่อฉุกเฉิน',
         hospital: 'แก้ไขข้อมูลโรงพยาบาล'
@@ -341,8 +352,8 @@
     }
 
     function populateForm(patient) {
-      // Basic Info
-      if (currentSection === 'basic') {
+      // Personal Info (includes body info)
+      if (currentSection === 'personal') {
         document.getElementById('first_name').value = patient.first_name || '';
         document.getElementById('last_name').value = patient.last_name || '';
         document.getElementById('nickname').value = patient.nickname || '';
@@ -350,18 +361,22 @@
         document.getElementById('gender').value = patient.gender || '';
         document.getElementById('phone_number').value = patient.phone_number || '';
         document.getElementById('address').value = patient.address || '';
-      }
-
-      // Medical Info
-      if (currentSection === 'medical') {
-        document.getElementById('blood_type').value = patient.blood_type || '';
+        // Body info
         document.getElementById('weight_kg').value = patient.weight_kg || '';
         document.getElementById('height_cm').value = patient.height_cm || '';
+        document.getElementById('blood_type').value = patient.blood_type || '';
+      }
+
+      // Medical Info (conditions, allergies, notes)
+      if (currentSection === 'medical') {
         document.getElementById('medical_condition').value = patient.medical_condition || '';
         document.getElementById('chronic_diseases').value =
           Array.isArray(patient.chronic_diseases) ? patient.chronic_diseases.join(', ') : (patient.chronic_diseases || '');
-        document.getElementById('drug_allergies').value = patient.drug_allergies || '';
-        document.getElementById('food_allergies').value = patient.food_allergies || '';
+        document.getElementById('drug_allergies').value =
+          Array.isArray(patient.drug_allergies) ? patient.drug_allergies.join(', ') : (patient.drug_allergies || '');
+        document.getElementById('food_allergies').value =
+          Array.isArray(patient.food_allergies) ? patient.food_allergies.join(', ') : (patient.food_allergies || '');
+        document.getElementById('medical_notes').value = patient.medical_notes || '';
       }
 
       // Emergency Contact
@@ -375,14 +390,13 @@
       if (currentSection === 'hospital') {
         document.getElementById('hospital_name').value = patient.hospital_name || '';
         document.getElementById('hospital_phone').value = patient.hospital_phone || '';
-        document.getElementById('medical_notes').value = patient.medical_notes || '';
       }
     }
 
     function getFormData() {
       const data = {};
 
-      if (currentSection === 'basic') {
+      if (currentSection === 'personal') {
         data.first_name = document.getElementById('first_name').value.trim();
         data.last_name = document.getElementById('last_name').value.trim();
         data.nickname = document.getElementById('nickname').value.trim() || null;
@@ -390,14 +404,15 @@
         data.gender = document.getElementById('gender').value || null;
         data.phone_number = document.getElementById('phone_number').value.trim() || null;
         data.address = document.getElementById('address').value.trim() || null;
-      }
-
-      if (currentSection === 'medical') {
-        data.blood_type = document.getElementById('blood_type').value || null;
+        // Body info
         const weight = document.getElementById('weight_kg').value;
         data.weight_kg = weight ? parseFloat(weight) : null;
         const height = document.getElementById('height_cm').value;
         data.height_cm = height ? parseFloat(height) : null;
+        data.blood_type = document.getElementById('blood_type').value || null;
+      }
+
+      if (currentSection === 'medical') {
         data.medical_condition = document.getElementById('medical_condition').value.trim() || null;
         const chronicStr = document.getElementById('chronic_diseases').value.trim();
         data.chronic_diseases = chronicStr ? chronicStr.split(',').map(s => s.trim()).filter(s => s) : null;
@@ -405,6 +420,7 @@
         data.drug_allergies = drugStr ? drugStr.split(',').map(s => s.trim()).filter(s => s) : null;
         const foodStr = document.getElementById('food_allergies').value.trim();
         data.food_allergies = foodStr ? foodStr.split(',').map(s => s.trim()).filter(s => s) : null;
+        data.medical_notes = document.getElementById('medical_notes').value.trim() || null;
       }
 
       if (currentSection === 'emergency') {
@@ -416,7 +432,6 @@
       if (currentSection === 'hospital') {
         data.hospital_name = document.getElementById('hospital_name').value.trim() || null;
         data.hospital_phone = document.getElementById('hospital_phone').value.trim() || null;
-        data.medical_notes = document.getElementById('medical_notes').value.trim() || null;
       }
 
       return data;
@@ -471,15 +486,8 @@
     }
 
     function goBack() {
-      // Map section to tab name for patient-profile.html
-      const tabMap = {
-        basic: 'personal',
-        medical: 'medical',
-        emergency: 'emergency',
-        hospital: 'hospital'
-      };
-      const tab = tabMap[currentSection] || 'personal';
-      window.location.href = `patient-profile.html?tab=${tab}`;
+      // Section names match directly with patient-profile.html tabs
+      window.location.href = `patient-profile.html?tab=${currentSection}`;
     }
 
     // Initialize on load

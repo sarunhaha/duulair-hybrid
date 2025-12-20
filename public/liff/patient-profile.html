@@ -109,18 +109,8 @@
             <span class="info-label">ที่อยู่</span>
             <span class="info-value" id="patientAddress">-</span>
           </div>
-        </div>
-
-        <div class="card">
-          <div class="card-header">
-            <div class="card-title">
-              <span class="icon">📏</span>
-              ข้อมูลร่างกาย
-            </div>
-            <button class="edit-btn" onclick="editSection('body')">
-              <span>แก้ไข</span>
-            </button>
-          </div>
+          <div class="divider"></div>
+          <div class="card-subtitle">📏 ข้อมูลร่างกาย</div>
           <div class="info-row">
             <span class="info-label">น้ำหนัก</span>
             <span class="info-value" id="patientWeight">-</span>
@@ -160,18 +150,8 @@
               <span class="tag">-</span>
             </div>
           </div>
-        </div>
-
-        <div class="card">
-          <div class="card-header">
-            <div class="card-title">
-              <span class="icon">⚠️</span>
-              การแพ้
-            </div>
-            <button class="edit-btn" onclick="editSection('allergies')">
-              <span>แก้ไข</span>
-            </button>
-          </div>
+          <div class="divider"></div>
+          <div class="card-subtitle">⚠️ การแพ้</div>
           <div class="info-row" style="flex-direction: column; align-items: flex-start; gap: 8px;">
             <span class="info-label">แพ้ยา</span>
             <div class="tags" id="patientDrugAllergies">
@@ -184,19 +164,9 @@
               <span class="tag warning">-</span>
             </div>
           </div>
-        </div>
-
-        <div class="card">
-          <div class="card-header">
-            <div class="card-title">
-              <span class="icon">📋</span>
-              หมายเหตุทางการแพทย์
-            </div>
-            <button class="edit-btn" onclick="editSection('notes')">
-              <span>แก้ไข</span>
-            </button>
-          </div>
-          <p id="patientMedicalNotes" style="color: var(--text-secondary); font-size: 14px;">-</p>
+          <div class="divider"></div>
+          <div class="card-subtitle">📋 หมายเหตุ</div>
+          <p id="patientMedicalNotes" style="color: var(--text-secondary); font-size: 14px; margin: 0;">-</p>
         </div>
       </div>
 
@@ -244,40 +214,8 @@
             <span class="info-value" id="hospitalName">-</span>
           </div>
           <div class="info-row">
-            <span class="info-label">แผนก</span>
-            <span class="info-value" id="hospitalDepartment">-</span>
-          </div>
-          <div class="info-row">
             <span class="info-label">เบอร์โทร</span>
             <span class="info-value" id="hospitalPhone">-</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">ที่อยู่</span>
-            <span class="info-value" id="hospitalAddress">-</span>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="card-header">
-            <div class="card-title">
-              <span class="icon">👨‍⚕️</span>
-              แพทย์ประจำตัว
-            </div>
-            <button class="edit-btn" onclick="editSection('doctor')">
-              <span>แก้ไข</span>
-            </button>
-          </div>
-          <div class="info-row">
-            <span class="info-label">ชื่อแพทย์</span>
-            <span class="info-value" id="doctorName">-</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">เบอร์โทร</span>
-            <span class="info-value" id="doctorPhone">-</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">หมายเหตุ</span>
-            <span class="info-value" id="doctorNotes">-</span>
           </div>
         </div>
       </div>
@@ -375,25 +313,14 @@
       return genderMap[gender] || gender;
     }
 
-    // Edit section handler
+    // Edit section handler - direct mapping to edit-profile.html sections
     function editSection(section) {
       if (!patientId) {
         alert('กรุณารอโหลดข้อมูลก่อน');
         return;
       }
-      // Map section names to edit-profile.html sections
-      const sectionMap = {
-        'personal': 'basic',
-        'body': 'medical',
-        'medical': 'medical',
-        'allergies': 'medical',
-        'notes': 'medical',
-        'hospital': 'hospital',
-        'doctor': 'hospital',
-        'emergency': 'emergency'
-      };
-      const targetSection = sectionMap[section] || section;
-      window.location.href = `edit-profile.html?patient_id=${patientId}&section=${targetSection}`;
+      // Section names now match directly: personal, medical, hospital, emergency
+      window.location.href = `edit-profile.html?patient_id=${patientId}&section=${section}`;
     }
 
     // Go to medications page
@@ -555,16 +482,9 @@
       // Medical Notes
       document.getElementById('patientMedicalNotes').textContent = patient.medical_notes || 'ไม่มีหมายเหตุ';
 
-      // Hospital Info (if available)
+      // Hospital Info
       document.getElementById('hospitalName').textContent = patient.hospital_name || '-';
-      document.getElementById('hospitalDepartment').textContent = patient.hospital_department || '-';
       document.getElementById('hospitalPhone').textContent = patient.hospital_phone || '-';
-      document.getElementById('hospitalAddress').textContent = patient.hospital_address || '-';
-
-      // Doctor Info (if available)
-      document.getElementById('doctorName').textContent = patient.doctor_name || '-';
-      document.getElementById('doctorPhone').textContent = patient.doctor_phone || '-';
-      document.getElementById('doctorNotes').textContent = patient.doctor_notes || '-';
 
       // Emergency Contact
       document.getElementById('emergencyName').textContent = patient.emergency_contact_name || '-';

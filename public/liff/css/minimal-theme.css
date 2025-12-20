@@ -280,6 +280,20 @@ body {
   color: var(--text-muted);
 }
 
+/* ===== Divider & Subtitle ===== */
+.divider {
+  height: 1px;
+  background: var(--bg-secondary);
+  margin: var(--spacing-md) 0;
+}
+
+.card-subtitle {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-sm);
+}
+
 /* ===== Tags ===== */
 .tags {
   display: flex;
