@@ -1586,8 +1586,8 @@ async function handleImageMessage(event: any) {
       return { success: true, skipped: true, reason: 'not_registered' };
     }
 
-    // Get patient ID
-    let patientId = (userCheck.profile as any)?.linkedPatientId;
+    // Get patient ID (snake_case from user.service.ts)
+    let patientId = (userCheck.profile as any)?.linked_patient_id;
     if (!patientId) {
       const replyMessage: TextMessage = {
         type: 'text',
@@ -1720,8 +1720,8 @@ async function handleAudioMessage(event: any) {
       return { success: true, skipped: true, reason: 'not_registered' };
     }
 
-    // Get patient ID
-    let patientId = (userCheck.profile as any)?.linkedPatientId;
+    // Get patient ID (snake_case from user.service.ts)
+    let patientId = (userCheck.profile as any)?.linked_patient_id;
 
     // If in group, try to get patient from group context
     if (isGroupContext && groupId) {
