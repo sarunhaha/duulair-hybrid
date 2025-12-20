@@ -76,6 +76,15 @@ const USE_NATURAL_CONVERSATION_MODE = true;  // Claude-first NLU (default)
 const USE_NATURAL_CONVERSATION_MODE = false; // Legacy IntentAgent + Routing
 ```
 
+### Fixed
+
+- **Response not sent to LINE in Natural Conversation mode** (`src/index.ts`)
+  - Issue: NLU correctly detected intent and generated response, but LINE message wasn't sent
+  - Cause: `index.ts` looked for `result.data.combined.response` (legacy path)
+  - Natural Conversation mode returns `result.data.response`
+  - Fix: Updated to check both locations for backward compatibility
+  - Commit: 39de607
+
 ---
 
 ## [2025-12-20] - Voice Command Support (Groq Whisper)
