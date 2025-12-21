@@ -23,11 +23,14 @@ const MessageSchema = z.object({
     patientId: z.string().optional(),
     sessionId: z.string().optional(),
     timestamp: z.date().default(() => new Date()),
-    source: z.enum(['line', 'api', 'n8n', 'system', 'group']),
+    source: z.enum(['line', 'api', 'n8n', 'system', 'group', 'voice']),
     // Group-specific fields (TASK-002)
     groupId: z.string().optional(),
     actorLineUserId: z.string().optional(),
-    actorDisplayName: z.string().optional()
+    actorDisplayName: z.string().optional(),
+    // Voice command fields
+    isVoiceCommand: z.boolean().optional(),
+    confirmedVoice: z.boolean().optional() // Voice transcription already confirmed
   }),
   metadata: z.record(z.any()).optional()
 });

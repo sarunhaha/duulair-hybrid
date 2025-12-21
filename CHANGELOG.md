@@ -1,6 +1,66 @@
 
 # OONJAI Changelog
 
+## [2025-12-21] - Voice Confirmation & Conversation Flow Improvements
+
+### Added
+
+- **Voice Confirmation Service** (`src/services/voice-confirmation.service.ts`) - NEW
+  - State management for pending voice confirmations
+  - `savePending()`, `getPending()`, `confirm()`, `reject()`
+  - 5 minute expiry for pending confirmations
+
+- **Voice Confirmation Migration** (`docs/migrations/012_voice_confirmation.sql`) - NEW
+  - `pending_voice_confirmations` table
+  - Store transcribed text and context while waiting for confirmation
+
+- **Voice Confirmation Flow**
+  ```
+  User: 🎤 ส่งเสียง
+  Bot:  "ได้ยินว่า: '...' ถูกต้องไหมคะ?" [✅ ถูกต้อง] [❌ ไม่ถูก]
+  User: กด "ถูกต้อง"
+  Bot:  ทำคำสั่งเลย ไม่ถามซ้ำอีก!
+  ```
+
+### Changed
+
+- **NLU Prompt** (`src/lib/ai/prompts/unified-nlu.ts`)
+  - เพิ่มตัวอย่าง JSON ครบทุก feature (health_log, profile_update, medication_manage, reminder_manage)
+  - เพิ่ม subIntent `name` สำหรับเปลี่ยนชื่อ-นามสกุล
+  - เพิ่ม instruction: "ถ้าข้อมูลครบแล้ว ทำเลย ไม่ต้องถาม 'ใช่ไหมคะ?'"
+
+- **Action Router** (`src/lib/actions/action-router.ts`)
+  - Profile: เพิ่ม `firstName`, `lastName`, `nickname`, `dateOfBirth`, `gender`
+  - Medication: รองรับ update/delete by `medicationName` (ไม่ต้องมี ID)
+  - Reminder: รองรับ update/delete by `type`/`time`
+
+- **UnifiedNLUAgent** (`src/agents/core/UnifiedNLUAgent.ts`)
+  - Pass `voiceConfirmed` flag จาก context
+  - ถ้า `voiceConfirmed=true` → เพิ่ม instruction ให้ NLU ทำเลยไม่ถามซ้ำ
+
+- **BaseAgent** (`src/agents/core/BaseAgent.ts`)
+  - MessageSchema: เพิ่ม `confirmedVoice`, `isVoiceCommand`
+  - Source enum: เพิ่ม `'voice'`
+
+- **NLU Types** (`src/types/nlu.types.ts`)
+  - เพิ่ม `voiceConfirmed?: boolean` ใน NLUContext
+
+- **Index.ts** (`src/index.ts`)
+  - `handleAudioMessage`: Save pending → Send Quick Reply confirmation
+  - `handlePostback`: Handle voice_confirm action (yes/no)
+
+### Fixed
+
+- **Response path สำหรับ Natural Conversation mode**
+  - Text message: `result.data.response` || `result.data.combined.response`
+  - Audio message: Same fix applied
+  - Postback handler: Same fix applied
+
+- **Patient ID สำหรับ Audio/Image handlers**
+  - เปลี่ยนจาก `linkedPatientId` (camelCase) → `linked_patient_id` (snake_case)
+
+---
+
 ## [2025-12-21] - Natural Conversation Architecture (Claude-First NLU)
 
 ### Major Change

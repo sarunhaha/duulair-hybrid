@@ -262,6 +262,7 @@ export interface NLUContext {
   patientId?: string;
   groupId?: string;
   isGroupChat: boolean;
+  voiceConfirmed?: boolean; // Voice transcription already confirmed by user - execute immediately
   patientData?: {
     profile?: any;
     medications?: any[];

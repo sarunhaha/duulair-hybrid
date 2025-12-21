@@ -490,11 +490,21 @@ async function saveProfileUpdate(
     // Build update object from data
     const updateData: Record<string, any> = {};
 
+    // Name fields
+    if (data.firstName) updateData.first_name = data.firstName;
+    if (data.lastName) updateData.last_name = data.lastName;
+    if (data.nickname) updateData.nickname = data.nickname;
+
+    // Basic info
     if (data.weight) updateData.weight_kg = data.weight;
     if (data.height) updateData.height_cm = data.height;
     if (data.phone) updateData.phone = data.phone;
     if (data.address) updateData.address = data.address;
     if (data.bloodType) updateData.blood_type = data.bloodType;
+    if (data.dateOfBirth) updateData.date_of_birth = data.dateOfBirth;
+    if (data.gender) updateData.gender = data.gender;
+
+    // Medical info
     if (data.medicalCondition) updateData.medical_condition = data.medicalCondition;
     if (data.drugAllergies) updateData.drug_allergies = data.drugAllergies;
     if (data.foodAllergies) updateData.food_allergies = data.foodAllergies;
@@ -567,8 +577,13 @@ async function updateMedication(
   data: Record<string, any>,
   context: NLUContext
 ): Promise<ActionResult> {
-  if (!context.patientId || !data.medicationId) {
-    return { success: false, savedRecords: 0, errors: ['Missing medication ID'] };
+  if (!context.patientId) {
+    return { success: false, savedRecords: 0, errors: ['No patient ID'] };
+  }
+
+  // Need either medicationId or medicationName to find the medication
+  if (!data.medicationId && !data.medicationName) {
+    return { success: false, savedRecords: 0, errors: ['ไม่ทราบว่าจะแก้ยาตัวไหนค่ะ'] };
   }
 
   try {
@@ -581,11 +596,25 @@ async function updateMedication(
     if (data.frequency) updateData.frequency = data.frequency;
     if (data.times) updateData.times = data.times;
 
-    const { error } = await client
+    if (Object.keys(updateData).length === 1) {
+      // Only updated_at, nothing to update
+      return { success: true, savedRecords: 0 };
+    }
+
+    // Update by ID or by name
+    let query = client
       .from('medications')
       .update(updateData)
-      .eq('id', data.medicationId)
-      .eq('patient_id', context.patientId);
+      .eq('patient_id', context.patientId)
+      .eq('is_active', true);
+
+    if (data.medicationId) {
+      query = query.eq('id', data.medicationId);
+    } else if (data.medicationName) {
+      query = query.ilike('medication_name', `%${data.medicationName}%`);
+    }
+
+    const { error } = await query;
 
     if (error) throw error;
 
@@ -681,23 +710,42 @@ async function updateReminder(
   data: Record<string, any>,
   context: NLUContext
 ): Promise<ActionResult> {
-  if (!context.patientId || !data.reminderId) {
-    return { success: false, savedRecords: 0, errors: ['Missing reminder ID'] };
+  if (!context.patientId) {
+    return { success: false, savedRecords: 0, errors: ['No patient ID'] };
+  }
+
+  // Need either reminderId or type to find the reminder
+  if (!data.reminderId && !data.type && !data.oldTime) {
+    return { success: false, savedRecords: 0, errors: ['ไม่ทราบว่าจะแก้เตือนตัวไหนค่ะ'] };
   }
 
   try {
     const client = supabaseService.getClient();
 
     const updateData: Record<string, any> = { updated_at: new Date().toISOString() };
-    if (data.time) updateData.custom_time = data.time;
+    if (data.newTime || data.time) updateData.custom_time = data.newTime || data.time;
     if (data.message) updateData.message = data.message;
-    if (data.type) updateData.reminder_type = data.type;
+    if (data.newType) updateData.reminder_type = data.newType;
 
-    const { error } = await client
+    if (Object.keys(updateData).length === 1) {
+      return { success: true, savedRecords: 0 };
+    }
+
+    // Build query
+    let query = client
       .from('reminders')
       .update(updateData)
-      .eq('id', data.reminderId)
-      .eq('patient_id', context.patientId);
+      .eq('patient_id', context.patientId)
+      .eq('is_active', true);
+
+    if (data.reminderId) {
+      query = query.eq('id', data.reminderId);
+    } else {
+      if (data.type) query = query.eq('reminder_type', data.type);
+      if (data.oldTime) query = query.eq('custom_time', data.oldTime);
+    }
+
+    const { error } = await query;
 
     if (error) throw error;
 
@@ -722,15 +770,25 @@ async function deleteReminder(
   try {
     const client = supabaseService.getClient();
 
-    if (data.reminderId) {
-      const { error } = await client
-        .from('reminders')
-        .update({ is_active: false, updated_at: new Date().toISOString() })
-        .eq('id', data.reminderId)
-        .eq('patient_id', context.patientId);
+    // Build query for deactivating reminder
+    let query = client
+      .from('reminders')
+      .update({ is_active: false, updated_at: new Date().toISOString() })
+      .eq('patient_id', context.patientId)
+      .eq('is_active', true);
 
-      if (error) throw error;
+    if (data.reminderId) {
+      query = query.eq('id', data.reminderId);
+    } else if (data.type || data.time) {
+      if (data.type) query = query.eq('reminder_type', data.type);
+      if (data.time) query = query.eq('custom_time', data.time);
+    } else {
+      return { success: false, savedRecords: 0, errors: ['ไม่ทราบว่าจะลบเตือนตัวไหนค่ะ'] };
     }
+
+    const { error } = await query;
+
+    if (error) throw error;
 
     return { success: true, savedRecords: 1 };
   } catch (error) {

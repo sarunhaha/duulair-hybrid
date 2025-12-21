@@ -130,6 +130,67 @@ const USE_NATURAL_CONVERSATION_MODE = false; // Legacy IntentAgent + Routing
 
 ---
 
+## Voice Confirmation & Conversation Flow ✅ COMPLETE
+
+> Added: 2025-12-21
+
+### Overview
+ปรับปรุง Voice Command Flow และ Conversation Flow ให้ไหลลื่นเหมือนคุยกับคน
+
+### Voice Confirmation Flow
+```
+User: 🎤 (ส่งเสียง "เปลี่ยนชื่อเป็น ศรัณย์ แสงสม")
+          ↓
+Bot:  🎤 ได้ยินว่า: "เปลี่ยนชื่อเป็น สรัน แสงสม"
+      ถูกต้องไหมคะ?
+      [✅ ถูกต้อง] [❌ ไม่ถูก]  ← ถามยืนยัน 1 ครั้ง
+          ↓
+User: กด "ถูกต้อง"
+          ↓
+Bot:  เปลี่ยนชื่อเป็น สรัน แสงสม แล้วค่ะ ✏️  ← ทำเลย! ไม่ถามอีก
+```
+
+### Implementation
+
+- [x] Voice Confirmation Service
+  - `src/services/voice-confirmation.service.ts` - State management
+  - `docs/migrations/012_voice_confirmation.sql` - Pending confirmations table
+  - savePending(), getPending(), confirm(), reject()
+
+- [x] Voice Postback Handler
+  - `handlePostback()` - Handle voice confirmation Quick Reply
+  - `voiceConfirmed` flag ส่งไป NLU ให้ทำเลยไม่ต้องถาม
+
+- [x] NLU Prompt Improvements
+  - เพิ่มตัวอย่าง JSON ครบทุก feature:
+    - health_log (medication, vitals, water, exercise, sleep, symptom)
+    - profile_update (name, weight, height, phone, etc.)
+    - medication_manage (add, edit, delete)
+    - reminder_manage (add, edit, delete)
+  - เพิ่ม instruction: ถ้าข้อมูลครบ ทำเลย ไม่ต้องถาม "ใช่ไหมคะ?"
+
+- [x] Action Router Improvements
+  - Profile: เพิ่ม firstName, lastName, nickname, dateOfBirth, gender
+  - Medication: รองรับ update/delete by name (ไม่ต้องมี ID)
+  - Reminder: รองรับ update/delete by type/time
+
+- [x] Type Updates
+  - `NLUContext.voiceConfirmed` - Flag ว่า voice ยืนยันแล้ว
+  - `MessageSchema.confirmedVoice` - Pass flag ผ่าน Message context
+  - `MessageSchema.source` - เพิ่ม 'voice' enum
+
+### Files Modified
+- `src/services/voice-confirmation.service.ts` (NEW)
+- `docs/migrations/012_voice_confirmation.sql` (NEW)
+- `src/index.ts` - handleAudioMessage, handlePostback
+- `src/lib/ai/prompts/unified-nlu.ts` - เพิ่ม examples
+- `src/lib/actions/action-router.ts` - Profile/Medication/Reminder fixes
+- `src/agents/core/UnifiedNLUAgent.ts` - voiceConfirmed handling
+- `src/agents/core/BaseAgent.ts` - MessageSchema updates
+- `src/types/nlu.types.ts` - NLUContext.voiceConfirmed
+
+---
+
 ## OpenRouter Migration ✅ COMPLETE
 
 - [x] สร้าง OpenRouter Service (`src/services/openrouter.service.ts`)

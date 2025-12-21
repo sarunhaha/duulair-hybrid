@@ -80,6 +80,7 @@ export class UnifiedNLUAgent extends BaseAgent {
         patientId: message.context.patientId,
         groupId: message.context.groupId,
         isGroupChat: message.context.source === 'group' || !!message.context.groupId,
+        voiceConfirmed: message.context.confirmedVoice === true, // Voice already confirmed - execute immediately
         patientData: message.metadata?.patientData,
         conversationHistory: message.metadata?.conversationHistory
       };
@@ -135,12 +136,21 @@ export class UnifiedNLUAgent extends BaseAgent {
       : 'ไม่มีประวัติการสนทนา';
 
     // Build the user prompt
-    const userPrompt = buildUnifiedNLUPrompt(
+    let userPrompt = buildUnifiedNLUPrompt(
       message,
       patientContext,
       recentActivities,
       conversationHistory
     );
+
+    // If voice was already confirmed, add instruction to execute immediately
+    if (context.voiceConfirmed) {
+      userPrompt = `⚡ VOICE CONFIRMED: ผู้ใช้ยืนยันคำพูดแล้ว ให้ทำคำสั่งเลยทันที ห้ามถามยืนยันซ้ำ!
+ใช้ action.type: "save" หรือ "update" (ไม่ใช่ "confirm" หรือ "clarify")
+ตอบว่า "ทำให้แล้วค่ะ" ไม่ใช่ "ใช่ไหมคะ?"
+
+${userPrompt}`;
+    }
 
     // Call Claude with unified NLU prompt
     const response = await this.askClaude(userPrompt, UNIFIED_NLU_SYSTEM_PROMPT);
