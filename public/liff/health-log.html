@@ -482,28 +482,45 @@
         }
 
         const profile = await liff.getProfile();
+        console.log('LIFF Profile:', profile.displayName);
 
-        const isRegistered = await checkUserRegistration(profile.userId);
-        if (!isRegistered) return;
+        // Check registration (but don't block if it fails)
+        try {
+          const isRegistered = await checkUserRegistration(profile.userId);
+          if (!isRegistered) {
+            // Will redirect, but show content anyway briefly
+            console.log('User not registered, redirecting...');
+          }
+        } catch (regError) {
+          console.warn('Registration check failed, continuing anyway:', regError);
+        }
 
-        // Get context
+        // Get context from localStorage
         const context = JSON.parse(localStorage.getItem('oonjai_context') || '{}');
         patientId = context.patientId;
         groupId = context.groupId;
+        console.log('Context:', { patientId, groupId });
 
         // Set current date
         document.getElementById('currentDate').textContent = formatThaiDate(new Date());
 
-        // Load data
-        await loadTodaySummary();
+        // Load data (don't fail if no patientId)
+        try {
+          await loadTodaySummary();
+        } catch (loadError) {
+          console.warn('Failed to load summary:', loadError);
+        }
 
-        // Show content
+        // Always show content
         document.getElementById('loadingState').classList.add('hidden');
         document.getElementById('mainContent').classList.remove('hidden');
 
       } catch (error) {
         console.error('LIFF initialization failed:', error);
         showToast('เกิดข้อผิดพลาดในการเชื่อมต่อ', 'error');
+        // Still hide loading and show content with error state
+        document.getElementById('loadingState').classList.add('hidden');
+        document.getElementById('mainContent').classList.remove('hidden');
       }
     }
 
