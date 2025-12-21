@@ -1646,13 +1646,30 @@ async function handleTextMessage(event: any) {
     }
 
     // ============================================
-    // Phase 3: AI Health Extraction Pipeline
+    // Phase 3: Check for Menu Requests (Flex Message triggers)
+    // ============================================
+    // Skip extraction pipeline for menu requests - go directly to orchestrator
+    const menuPatterns = [
+      /^บันทึกสุขภาพ$/i,
+      /^รายงานสุขภาพ$/i,
+      /^ดูรายงาน$/i,
+      /^รายงาน$/i
+    ];
+    const isMenuRequest = menuPatterns.some(pattern => pattern.test(originalMessage.trim()));
+
+    if (isMenuRequest) {
+      console.log('📋 Menu request detected, skipping extraction pipeline');
+      // Fall through to orchestrator
+    }
+
+    // ============================================
+    // Phase 4: AI Health Extraction Pipeline
     // ============================================
     // Try to extract health data from message first
     // If extraction succeeds with health data, use extraction response
     // Otherwise, fall back to orchestrator for general dialog
 
-    if (context.patientId) {
+    if (context.patientId && !isMenuRequest) {
       try {
         console.log('🧠 Running health extraction pipeline...');
 
