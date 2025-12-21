@@ -1769,13 +1769,15 @@ async function handleTextMessage(event: any) {
       let flexMessage;
 
       // Check if ReportAgent already created the Flex Message
-      // Note: flexMessage is in result.data.combined because OrchestratorAgent aggregates responses
-      if (flexMessageType === 'report_menu' && result.data?.combined?.flexMessage) {
+      // Note: flexMessage can be in result.data.flexMessage (Natural Conversation mode)
+      // or result.data.combined.flexMessage (Legacy mode)
+      const reportFlexMessage = result.data?.flexMessage || result.data?.combined?.flexMessage;
+      if (flexMessageType === 'report_menu' && reportFlexMessage) {
         // Use Flex Message from ReportAgent
         flexMessage = {
           type: 'flex' as const,
           altText: '📊 เลือกประเภทรายงาน',
-          contents: result.data.combined.flexMessage
+          contents: reportFlexMessage
         };
       } else if (flexMessageType === 'registration') {
         // Check if user is already registered before showing registration flex

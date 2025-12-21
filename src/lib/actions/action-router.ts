@@ -186,7 +186,7 @@ async function saveMultipleHealthData(
     }
   }
 
-  const totalSaved = results.reduce((sum, r) => sum + r.savedRecords, 0);
+  const totalSaved = results.reduce((sum, r) => sum + (r.savedRecords || 0), 0);
   const errors = results.flatMap(r => r.errors || []);
   const allSuccess = results.every(r => r.success);
 
