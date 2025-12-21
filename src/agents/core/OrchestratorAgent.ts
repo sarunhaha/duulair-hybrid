@@ -255,13 +255,22 @@ export class OrchestratorAgent extends BaseAgent {
       }
     });
 
+    // Check if ReportAgent returned a flex message (e.g., report menu when no patientId)
+    const flexMessageType = reportResponse.data?.flexMessageType;
+
     return {
       success: true,
-      data: reportResponse.data,
+      data: {
+        response: reportResponse.data?.response || reportResponse.data?.reportText,
+        flexMessage: reportResponse.data?.flexMessage,
+        report: reportResponse.data?.report,
+        reportType
+      },
       agentName: this.config.name,
       processingTime: Date.now() - startTime,
       metadata: {
-        intent: 'report',
+        intent: flexMessageType ? 'report_menu' : 'report',
+        flexMessageType: flexMessageType,
         reportType,
         mode: 'natural_conversation'
       }

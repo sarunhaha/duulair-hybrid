@@ -39,9 +39,21 @@ export class ReportAgent extends BaseAgent {
       }
 
       // For actual report generation, patientId is required
-      const patientId = message.context.patientId;
+      const patientId = message.context.patientId || message.metadata?.patientData?.id;
       if (!patientId) {
-        throw new Error('Patient ID required for report generation');
+        // No patientId - show report menu instead
+        this.log('warn', 'No patientId available, showing report menu');
+        const menuFlexMessage = this.createReportMenuFlexMessage();
+        return {
+          success: true,
+          data: {
+            response: 'กรุณาเลือกประเภทรายงานที่ต้องการดูค่ะ',
+            flexMessage: menuFlexMessage,
+            flexMessageType: 'report_menu'
+          },
+          agentName: this.config.name,
+          processingTime: Date.now() - startTime
+        };
       }
 
       const reportType = message.metadata?.reportType || 'daily';
