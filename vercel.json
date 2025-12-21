@@ -56,6 +56,22 @@
       "dest": "/public/liff/dashboard.html"
     },
     {
+      "src": "/liff/health-log/?$",
+      "dest": "/public/liff/health-log.html"
+    },
+    {
+      "src": "/liff/log-medication/?$",
+      "dest": "/public/liff/log-medication.html"
+    },
+    {
+      "src": "/liff/log-symptom/?$",
+      "dest": "/public/liff/log-symptom.html"
+    },
+    {
+      "src": "/liff/vitals-tracking/?$",
+      "dest": "/public/liff/vitals-tracking.html"
+    },
+    {
       "src": "/liff/(.*\\.(html|css|js|png|jpg|jpeg|gif|svg|ico))",
       "dest": "/public/liff/$1"
     },

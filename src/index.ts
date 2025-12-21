@@ -1,5 +1,6 @@
 // src/index.ts
 import express from 'express';
+import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
 import { Client, WebhookEvent, TextMessage, FlexMessage, validateSignature } from '@line/bot-sdk';
@@ -994,6 +995,17 @@ async function initializeIfNeeded() {
 if (process.env.NODE_ENV !== 'production') {
   app.use(express.static(path.join(__dirname, '..', 'public')));
 }
+
+// CORS middleware for LIFF pages (loaded from liff.line.me)
+app.use(cors({
+  origin: [
+    'https://liff.line.me',
+    /\.line\.me$/,
+    /localhost/,
+    /duulair-hybrid\.vercel\.app$/
+  ],
+  credentials: true
+}));
 
 // Use express.json() with verify to capture raw body
 app.use(express.json({
