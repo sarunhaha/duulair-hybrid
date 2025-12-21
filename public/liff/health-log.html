@@ -299,6 +299,7 @@
     <div id="loadingState" class="loading">
       <div class="loading-spinner"></div>
       <p>กำลังโหลด...</p>
+      <p id="debugStatus" style="font-size: 12px; color: #666; margin-top: 10px;">Initializing...</p>
     </div>
 
     <!-- Main Content -->
@@ -472,52 +473,68 @@
       }
     }
 
+    function updateDebug(msg) {
+      const el = document.getElementById('debugStatus');
+      if (el) el.textContent = msg;
+      console.log('[DEBUG]', msg);
+    }
+
     async function initializeLIFF() {
       try {
+        updateDebug('1. LIFF init...');
         await liff.init({ liffId: LIFF_ID });
+        updateDebug('2. LIFF ready, checking login...');
 
         if (!liff.isLoggedIn()) {
+          updateDebug('3. Not logged in, redirecting to login...');
           liff.login();
           return;
         }
 
+        updateDebug('3. Logged in, getting profile...');
         const profile = await liff.getProfile();
-        console.log('LIFF Profile:', profile.displayName);
+        updateDebug(`4. Profile: ${profile.displayName}`);
 
         // Check registration (but don't block if it fails)
         try {
+          updateDebug('5. Checking registration...');
           const isRegistered = await checkUserRegistration(profile.userId);
           if (!isRegistered) {
-            // Will redirect, but show content anyway briefly
-            console.log('User not registered, redirecting...');
+            updateDebug('5b. Not registered, will redirect...');
+          } else {
+            updateDebug('5b. Registered OK');
           }
         } catch (regError) {
-          console.warn('Registration check failed, continuing anyway:', regError);
+          updateDebug(`5b. Reg check error: ${regError.message}`);
         }
 
         // Get context from localStorage
+        updateDebug('6. Getting context from localStorage...');
         const context = JSON.parse(localStorage.getItem('oonjai_context') || '{}');
         patientId = context.patientId;
         groupId = context.groupId;
-        console.log('Context:', { patientId, groupId });
+        updateDebug(`6b. Context: patientId=${patientId || 'none'}, groupId=${groupId || 'none'}`);
 
         // Set current date
         document.getElementById('currentDate').textContent = formatThaiDate(new Date());
 
         // Load data (don't fail if no patientId)
         try {
+          updateDebug('7. Loading summary...');
           await loadTodaySummary();
+          updateDebug('7b. Summary loaded');
         } catch (loadError) {
-          console.warn('Failed to load summary:', loadError);
+          updateDebug(`7b. Summary error: ${loadError.message}`);
         }
 
         // Always show content
+        updateDebug('8. Showing content...');
         document.getElementById('loadingState').classList.add('hidden');
         document.getElementById('mainContent').classList.remove('hidden');
 
       } catch (error) {
-        console.error('LIFF initialization failed:', error);
-        showToast('เกิดข้อผิดพลาดในการเชื่อมต่อ', 'error');
+        updateDebug(`ERROR: ${error.message}`);
+        showToast('เกิดข้อผิดพลาด: ' + error.message, 'error');
         // Still hide loading and show content with error state
         document.getElementById('loadingState').classList.add('hidden');
         document.getElementById('mainContent').classList.remove('hidden');
