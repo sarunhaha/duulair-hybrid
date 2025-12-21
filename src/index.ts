@@ -1002,6 +1002,7 @@ app.use(cors({
     'https://liff.line.me',
     /\.line\.me$/,
     /localhost/,
+    /duulair\.vercel\.app$/,
     /duulair-hybrid\.vercel\.app$/
   ],
   credentials: true
