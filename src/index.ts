@@ -18,6 +18,7 @@ import multer from 'multer';
 import { openRouterService, OPENROUTER_MODELS } from './services/openrouter.service';
 import { runHealthExtractionPipeline, hasHealthData } from './lib/ai';
 import { groqService } from './services/groq.service';
+import { voiceConfirmationService } from './services/voice-confirmation.service';
 
 dotenv.config();
 
@@ -1796,13 +1797,70 @@ async function handleAudioMessage(event: any) {
       return { success: true, skipped: true, reason: 'empty_transcription' };
     }
 
-    // Now process the transcribed text as a regular text message
-    // We need to create a fake text event and call handleTextMessage
-    // But we can't use replyToken twice, so we process inline
+    // Save to pending confirmations and ask user to confirm
+    console.log(`💾 Saving transcription for confirmation: "${transcribedText}"`);
 
-    console.log(`🔄 Processing transcribed text as command: "${transcribedText}"`);
+    // Build context for later processing
+    const voiceContext = {
+      userId,
+      patientId,
+      groupId: groupId || undefined,
+      isGroupContext,
+      originalAudioId: messageId
+    };
 
-    // Build context
+    // Save pending confirmation
+    const saveResult = await voiceConfirmationService.savePending(userId, transcribedText, voiceContext);
+
+    if (!saveResult.success) {
+      console.error('❌ Failed to save pending confirmation:', saveResult.error);
+      // Fallback: process directly without confirmation
+      console.log('⚠️ Fallback: processing directly without confirmation');
+    } else {
+      // Send confirmation Quick Reply
+      const confirmMessage: any = {
+        type: 'text',
+        text: `🎤 ได้ยินว่า:\n"${transcribedText}"\n\nถูกต้องไหมคะ?`,
+        quickReply: {
+          items: [
+            {
+              type: 'action',
+              action: {
+                type: 'postback',
+                label: '✅ ถูกต้อง',
+                data: 'action=voice_confirm&confirm=yes',
+                displayText: 'ถูกต้องค่ะ'
+              }
+            },
+            {
+              type: 'action',
+              action: {
+                type: 'postback',
+                label: '❌ ไม่ถูก พิมพ์ใหม่',
+                data: 'action=voice_confirm&confirm=no',
+                displayText: 'ไม่ถูกต้อง'
+              }
+            }
+          ]
+        }
+      };
+
+      try {
+        await lineClient.replyMessage(replyToken, confirmMessage);
+        console.log('✅ Sent voice confirmation request');
+        return {
+          success: true,
+          type: 'voice_pending_confirmation',
+          transcribedText,
+          pendingId: saveResult.id
+        };
+      } catch (sendError) {
+        console.error('❌ Failed to send confirmation request:', sendError);
+        // Continue to process directly as fallback
+      }
+    }
+
+    // Fallback: process directly (if saving or sending confirmation failed)
     let context: any = {
       userId,
       patientId,
@@ -1860,9 +1918,11 @@ async function handleAudioMessage(event: any) {
         context
       });
 
-      if (result.success && result.data?.combined?.response) {
+      // Support both Natural Conversation mode (result.data.response) and legacy mode (result.data.combined.response)
+      const orchestratorResponse = result.data?.response || result.data?.combined?.response;
+      if (result.success && orchestratorResponse) {
         responseText = `🎤 ได้ยินว่า: "${transcribedText}"\n\n`;
-        responseText += result.data.combined.response;
+        responseText += orchestratorResponse;
         handled = true;
       }
     }
@@ -2139,7 +2199,123 @@ async function handleMemberLeave(event: any) {
 
 async function handlePostback(event: any) {
   try {
-    console.log('🔘 Postback event');
+    const replyToken = event.replyToken;
+    const userId = event.source?.userId || '';
+    const postbackData = event.postback?.data || '';
+
+    console.log('🔘 Postback event:', postbackData);
+
+    // Parse postback data
+    const params = new URLSearchParams(postbackData);
+    const action = params.get('action');
+
+    // Handle voice confirmation
+    if (action === 'voice_confirm') {
+      const confirm = params.get('confirm');
+      console.log(`🎤 Voice confirmation: ${confirm} from ${userId}`);
+
+      if (confirm === 'yes') {
+        // User confirmed - process the transcribed text
+        const pending = await voiceConfirmationService.confirm(userId);
+
+        if (!pending) {
+          const replyMessage: TextMessage = {
+            type: 'text',
+            text: '⏱️ หมดเวลายืนยันแล้วค่ะ กรุณาส่งเสียงใหม่อีกครั้ง'
+          };
+          await lineClient.replyMessage(replyToken, replyMessage);
+          return { success: true, expired: true };
+        }
+
+        // Process the confirmed text
+        console.log(`✅ Processing confirmed text: "${pending.transcribed_text}"`);
+
+        const context: any = {
+          userId: pending.context?.userId || userId,
+          patientId: pending.patient_id,
+          source: pending.context?.isGroupContext ? 'group' : 'voice',
+          timestamp: new Date(),
+          isVoiceCommand: true,
+          confirmedVoice: true
+        };
+
+        if (pending.context?.groupId) {
+          context.groupId = pending.context.groupId;
+        }
+
+        // Try health extraction first
+        let responseText = '';
+        let handled = false;
+
+        if (pending.patient_id) {
+          try {
+            const extractionResult = await runHealthExtractionPipeline(pending.transcribed_text, {
+              patientId: pending.patient_id,
+              groupId: context.groupId,
+              lineUserId: userId,
+              displayName: undefined
+            });
+
+            if (extractionResult.success && extractionResult.hasHealthData) {
+              responseText = extractionResult.responseMessage || 'บันทึกข้อมูลสุขภาพแล้วค่ะ';
+              if (extractionResult.alerts && extractionResult.alerts.length > 0) {
+                responseText += `\n\n⚠️ ${extractionResult.alerts.join('\n')}`;
+              }
+              handled = true;
+            }
+          } catch (extractionError) {
+            console.error('❌ Extraction error:', extractionError);
+          }
+        }
+
+        // If not handled by extraction, use orchestrator
+        if (!handled) {
+          const result = await orchestrator.process({
+            id: `voice-${Date.now()}`,
+            content: pending.transcribed_text,
+            context
+          });
+
+          // Support both Natural Conversation mode and legacy mode
+          const orchestratorResponse = result.data?.response || result.data?.combined?.response;
+          if (result.success && orchestratorResponse) {
+            responseText = orchestratorResponse;
+            handled = true;
+          }
+        }
+
+        // Send response
+        if (handled && responseText) {
+          const replyMessage: TextMessage = {
+            type: 'text',
+            text: responseText
+          };
+          await lineClient.replyMessage(replyToken, replyMessage);
+          console.log('✅ Voice command processed after confirmation');
+        } else {
+          const replyMessage: TextMessage = {
+            type: 'text',
+            text: 'ไม่เข้าใจคำสั่งค่ะ กรุณาลองใหม่หรือพิมพ์ข้อความแทน'
+          };
+          await lineClient.replyMessage(replyToken, replyMessage);
+        }
+
+        return { success: true, type: 'voice_confirmed', handled };
+      } else if (confirm === 'no') {
+        // User rejected - ask them to type instead
+        await voiceConfirmationService.reject(userId);
+
+        const replyMessage: TextMessage = {
+          type: 'text',
+          text: '📝 ได้ค่ะ กรุณาพิมพ์ข้อความที่ถูกต้องแทนนะคะ'
+        };
+        await lineClient.replyMessage(replyToken, replyMessage);
+
+        return { success: true, type: 'voice_rejected' };
+      }
+    }
+
+    // Delegate to group webhook service for other postbacks
     return await groupWebhookService.handlePostback(event);
   } catch (error) {
     console.error('❌ Error in handlePostback:', error);
