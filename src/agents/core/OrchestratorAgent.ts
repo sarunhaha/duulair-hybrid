@@ -138,6 +138,16 @@ export class OrchestratorAgent extends BaseAgent {
         await this.checkAlerts(message, { combined: { emergency: true } });
       }
 
+      // Special case: health_log_menu - show health logging menu
+      if (this.isHealthLogMenuRequest(message.content)) {
+        return this.handleHealthLogMenuRequest(message, startTime);
+      }
+
+      // Special case: report_menu - show report menu (Rich Menu trigger)
+      if (this.isReportMenuRequest(message.content)) {
+        return this.handleReportQuery(message, nluResult, patientData, startTime);
+      }
+
       // Special case: report - delegate to ReportAgent for Flex Message
       if (nluResult.intent === 'query' && nluResult.subIntent === 'report') {
         return this.handleReportQuery(message, nluResult, patientData, startTime);
@@ -215,8 +225,8 @@ export class OrchestratorAgent extends BaseAgent {
       reportType = 'weekly';
     } else if (msgLower.includes('เดือน') || msgLower.includes('monthly') || msgLower.includes('30 วัน')) {
       reportType = 'monthly';
-    } else if (msgLower.includes('เมนู') || msgLower.match(/^ดู?รายงาน$/)) {
-      // Just "ดูรายงาน" or "รายงาน" - show menu
+    } else if (msgLower.includes('เมนู') || msgLower.match(/^ดู?รายงาน$/) || msgLower.match(/^รายงานสุขภาพ$/)) {
+      // Just "ดูรายงาน" or "รายงาน" or "รายงานสุขภาพ" - show menu
       const reportResponse = await this.agents.report.process({
         ...message,
         metadata: { ...message.metadata, intent: 'report_menu', patientData }
@@ -253,6 +263,59 @@ export class OrchestratorAgent extends BaseAgent {
       metadata: {
         intent: 'report',
         reportType,
+        mode: 'natural_conversation'
+      }
+    };
+  }
+
+  /**
+   * Check if message is a health log menu request
+   */
+  private isHealthLogMenuRequest(content: string): boolean {
+    const msgLower = content.toLowerCase().trim();
+    // Match "บันทึกสุขภาพ" or similar phrases
+    const healthLogMenuPatterns = [
+      /^บันทึกสุขภาพ$/,
+      /^บันทึก สุขภาพ$/,
+      /^เมนูบันทึกสุขภาพ$/,
+      /^เมนู บันทึกสุขภาพ$/,
+      /^บันทึกกิจกรรมสุขภาพ$/
+    ];
+    return healthLogMenuPatterns.some(pattern => pattern.test(msgLower));
+  }
+
+  /**
+   * Check if message is a report menu request
+   */
+  private isReportMenuRequest(content: string): boolean {
+    const msgLower = content.toLowerCase().trim();
+    // Match "รายงานสุขภาพ", "ดูรายงาน", "รายงาน" - Rich Menu triggers
+    const reportMenuPatterns = [
+      /^รายงานสุขภาพ$/,
+      /^รายงาน สุขภาพ$/,
+      /^ดูรายงาน$/,
+      /^ดู รายงาน$/,
+      /^รายงาน$/
+    ];
+    return reportMenuPatterns.some(pattern => pattern.test(msgLower));
+  }
+
+  /**
+   * Handle health log menu request - return Flex Message menu
+   */
+  private handleHealthLogMenuRequest(message: Message, startTime: number): Response {
+    this.log('info', 'Handling health log menu request');
+    return {
+      success: true,
+      data: {
+        response: 'เลือกสิ่งที่ต้องการบันทึก หรือพิมพ์บอกได้เลยค่ะ',
+        intent: 'health_log_menu'
+      },
+      agentName: this.config.name,
+      processingTime: Date.now() - startTime,
+      metadata: {
+        intent: 'health_log_menu',
+        flexMessageType: 'health_log_menu',
         mode: 'natural_conversation'
       }
     };
@@ -449,6 +512,14 @@ export class OrchestratorAgent extends BaseAgent {
       plan.agents = ['report'];
       plan.requiresFlexMessage = true;
       plan.flexMessageType = 'report_menu';
+      return plan;
+    }
+
+    // Special case: health_log_menu should work even with low confidence
+    if (intent === 'health_log_menu') {
+      plan.agents = ['dialog'];
+      plan.requiresFlexMessage = true;
+      plan.flexMessageType = 'health_log_menu';
       return plan;
     }
 

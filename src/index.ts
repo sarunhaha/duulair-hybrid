@@ -653,6 +653,328 @@ function createReportMenuFlexMessage(): FlexMessage {
   };
 }
 
+// Flex Message for Health Logging Menu (บันทึกสุขภาพ)
+function createHealthLogMenuFlexMessage(): FlexMessage {
+  return {
+    type: 'flex',
+    altText: '🩺 บันทึกสุขภาพวันนี้',
+    contents: {
+      type: 'bubble',
+      size: 'mega',
+      header: {
+        type: 'box',
+        layout: 'vertical',
+        backgroundColor: '#E74C3C',
+        paddingAll: 'xl',
+        contents: [
+          {
+            type: 'text',
+            text: '🩺 บันทึกสุขภาพวันนี้',
+            weight: 'bold',
+            size: 'xl',
+            color: '#ffffff'
+          },
+          {
+            type: 'text',
+            text: 'เลือกสิ่งที่ต้องการบันทึก หรือพิมพ์บอกได้เลย',
+            size: 'sm',
+            color: '#ffffff',
+            margin: 'sm',
+            wrap: true
+          }
+        ]
+      },
+      body: {
+        type: 'box',
+        layout: 'vertical',
+        paddingAll: 'lg',
+        spacing: 'md',
+        contents: [
+          // Row 1: Medication & Vitals
+          {
+            type: 'box',
+            layout: 'horizontal',
+            spacing: 'md',
+            contents: [
+              {
+                type: 'box',
+                layout: 'vertical',
+                backgroundColor: '#FEF3C7',
+                cornerRadius: 'lg',
+                paddingAll: 'lg',
+                flex: 1,
+                action: {
+                  type: 'message',
+                  label: 'กินยา',
+                  text: 'กินยาแล้ว'
+                },
+                contents: [
+                  {
+                    type: 'text',
+                    text: '💊',
+                    size: 'xxl',
+                    align: 'center'
+                  },
+                  {
+                    type: 'text',
+                    text: 'กินยา',
+                    size: 'sm',
+                    align: 'center',
+                    weight: 'bold',
+                    margin: 'sm'
+                  }
+                ]
+              },
+              {
+                type: 'box',
+                layout: 'vertical',
+                backgroundColor: '#DBEAFE',
+                cornerRadius: 'lg',
+                paddingAll: 'lg',
+                flex: 1,
+                action: {
+                  type: 'message',
+                  label: 'ความดัน',
+                  text: 'บันทึกความดัน'
+                },
+                contents: [
+                  {
+                    type: 'text',
+                    text: '💉',
+                    size: 'xxl',
+                    align: 'center'
+                  },
+                  {
+                    type: 'text',
+                    text: 'ความดัน',
+                    size: 'sm',
+                    align: 'center',
+                    weight: 'bold',
+                    margin: 'sm'
+                  }
+                ]
+              }
+            ]
+          },
+          // Row 2: Water & Exercise
+          {
+            type: 'box',
+            layout: 'horizontal',
+            spacing: 'md',
+            contents: [
+              {
+                type: 'box',
+                layout: 'vertical',
+                backgroundColor: '#D1FAE5',
+                cornerRadius: 'lg',
+                paddingAll: 'lg',
+                flex: 1,
+                action: {
+                  type: 'message',
+                  label: 'ดื่มน้ำ',
+                  text: 'ดื่มน้ำ 1 แก้ว'
+                },
+                contents: [
+                  {
+                    type: 'text',
+                    text: '💧',
+                    size: 'xxl',
+                    align: 'center'
+                  },
+                  {
+                    type: 'text',
+                    text: 'ดื่มน้ำ',
+                    size: 'sm',
+                    align: 'center',
+                    weight: 'bold',
+                    margin: 'sm'
+                  }
+                ]
+              },
+              {
+                type: 'box',
+                layout: 'vertical',
+                backgroundColor: '#FCE7F3',
+                cornerRadius: 'lg',
+                paddingAll: 'lg',
+                flex: 1,
+                action: {
+                  type: 'message',
+                  label: 'ออกกำลังกาย',
+                  text: 'ออกกำลังกายแล้ว'
+                },
+                contents: [
+                  {
+                    type: 'text',
+                    text: '🏃',
+                    size: 'xxl',
+                    align: 'center'
+                  },
+                  {
+                    type: 'text',
+                    text: 'ออกกำลังกาย',
+                    size: 'sm',
+                    align: 'center',
+                    weight: 'bold',
+                    margin: 'sm'
+                  }
+                ]
+              }
+            ]
+          },
+          // Row 3: Sleep & Symptom
+          {
+            type: 'box',
+            layout: 'horizontal',
+            spacing: 'md',
+            contents: [
+              {
+                type: 'box',
+                layout: 'vertical',
+                backgroundColor: '#E0E7FF',
+                cornerRadius: 'lg',
+                paddingAll: 'lg',
+                flex: 1,
+                action: {
+                  type: 'message',
+                  label: 'การนอน',
+                  text: 'บันทึกการนอน'
+                },
+                contents: [
+                  {
+                    type: 'text',
+                    text: '😴',
+                    size: 'xxl',
+                    align: 'center'
+                  },
+                  {
+                    type: 'text',
+                    text: 'การนอน',
+                    size: 'sm',
+                    align: 'center',
+                    weight: 'bold',
+                    margin: 'sm'
+                  }
+                ]
+              },
+              {
+                type: 'box',
+                layout: 'vertical',
+                backgroundColor: '#FEE2E2',
+                cornerRadius: 'lg',
+                paddingAll: 'lg',
+                flex: 1,
+                action: {
+                  type: 'message',
+                  label: 'อาการป่วย',
+                  text: 'บันทึกอาการ'
+                },
+                contents: [
+                  {
+                    type: 'text',
+                    text: '🤒',
+                    size: 'xxl',
+                    align: 'center'
+                  },
+                  {
+                    type: 'text',
+                    text: 'อาการป่วย',
+                    size: 'sm',
+                    align: 'center',
+                    weight: 'bold',
+                    margin: 'sm'
+                  }
+                ]
+              }
+            ]
+          },
+          // Row 4: Mood & Custom
+          {
+            type: 'box',
+            layout: 'horizontal',
+            spacing: 'md',
+            contents: [
+              {
+                type: 'box',
+                layout: 'vertical',
+                backgroundColor: '#FEF9C3',
+                cornerRadius: 'lg',
+                paddingAll: 'lg',
+                flex: 1,
+                action: {
+                  type: 'message',
+                  label: 'อารมณ์',
+                  text: 'บันทึกอารมณ์'
+                },
+                contents: [
+                  {
+                    type: 'text',
+                    text: '😊',
+                    size: 'xxl',
+                    align: 'center'
+                  },
+                  {
+                    type: 'text',
+                    text: 'อารมณ์',
+                    size: 'sm',
+                    align: 'center',
+                    weight: 'bold',
+                    margin: 'sm'
+                  }
+                ]
+              },
+              {
+                type: 'box',
+                layout: 'vertical',
+                backgroundColor: '#F3F4F6',
+                cornerRadius: 'lg',
+                paddingAll: 'lg',
+                flex: 1,
+                action: {
+                  type: 'message',
+                  label: 'พิมพ์เอง',
+                  text: 'บันทึกอื่นๆ'
+                },
+                contents: [
+                  {
+                    type: 'text',
+                    text: '✏️',
+                    size: 'xxl',
+                    align: 'center'
+                  },
+                  {
+                    type: 'text',
+                    text: 'พิมพ์เอง',
+                    size: 'sm',
+                    align: 'center',
+                    weight: 'bold',
+                    margin: 'sm'
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      footer: {
+        type: 'box',
+        layout: 'vertical',
+        paddingAll: 'md',
+        contents: [
+          {
+            type: 'text',
+            text: '💡 หรือพิมพ์ตรงๆ ได้เลย เช่น "ความดัน 120/80"',
+            size: 'xs',
+            color: '#9CA3AF',
+            align: 'center',
+            wrap: true
+          }
+        ]
+      }
+    }
+  };
+}
+
 // Initialize orchestrator (once)
 let initialized = false;
 async function initializeIfNeeded() {
@@ -1500,6 +1822,8 @@ async function handleTextMessage(event: any) {
         flexMessage = createPackageFlexMessage();
       } else if (flexMessageType === 'help') {
         flexMessage = createHelpFlexMessage();
+      } else if (flexMessageType === 'health_log_menu') {
+        flexMessage = createHealthLogMenuFlexMessage();
       } else if (flexMessageType === 'report_menu') {
         // Fallback to old function if ReportAgent didn't provide one
         flexMessage = createReportMenuFlexMessage();

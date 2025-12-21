@@ -905,3 +905,119 @@ const responseText = result.data?.response || result.data?.combined?.response;
 ---
 *Session: 2025-12-21 (Bugfix)*
 *Issue: Response path mismatch - FIXED*
+
+---
+
+## Session: 2025-12-21 (Evening) - LIFF Health Logging Pages
+
+### Goal
+สร้าง LIFF Pages สำหรับ "บันทึกสุขภาพ" แทนการใช้ Chat-based flow ที่ UX ไม่ดี
+
+### Problem Statement
+
+**Before (Chat-based):**
+```
+User กด "💊 กินยา" → ส่ง "กินยาแล้ว"
+Bot: "กินยาอะไรคะ?"  ← ต้องถามต่อ
+User: "ยาความดัน"    ← ต้องพิมพ์เอง
+```
+
+**After (LIFF Pages):**
+```
+User กด "💊 กินยา" → เปิด LIFF Page
+┌─────────────────────────────────────┐
+│  ☑️ Metformin 500mg     (เช้า)      │
+│  ☑️ Lisinopril 10mg     (เช้า)      │
+│  ☐ Aspirin 81mg         (เช้า)      │
+│         [ ✅ บันทึก ]                │
+└─────────────────────────────────────┘
+```
+
+### Implementation Summary
+
+#### 1. LIFF Pages Created
+
+| Page | Purpose | Features |
+|------|---------|----------|
+| `health-log.html` | Main Dashboard | 4 categories, today's summary, quick navigation |
+| `log-medication.html` | บันทึกยา | Checklist from DB, time period filter, already-taken disabled |
+| `log-symptom.html` | บันทึกอาการ | 9 preset symptoms, severity slider, location picker |
+
+#### 2. Flex Message Added (`src/index.ts`)
+- `createHealthLogMenuFlexMessage()` - Interactive menu for "บันทึกสุขภาพ"
+- Red header (#E74C3C), 4 colorful category buttons
+- Each button sends message action (กินยาแล้ว, บันทึกความดัน, etc.)
+
+#### 3. OrchestratorAgent Updates
+- `isHealthLogMenuRequest()` - Detect "บันทึกสุขภาพ" request
+- `handleHealthLogMenuRequest()` - Return health log menu
+- Works alongside report menu handler
+
+#### 4. AI NLU Enhancement (`unified-nlu.ts`)
+Added Multi-Data Extraction:
+```typescript
+// Single message → Multiple health data
+"วันนี้กินยาแล้ว ความดัน 130/85 รู้สึกเหนื่อย"
+→ healthDataArray: [
+    { type: "medication", ... },
+    { type: "vitals", ... },
+    { type: "symptom", ... }
+  ]
+```
+
+Added CRUD Detection:
+```
+"เพิ่มยา paracetamol" → action.type = "save"
+"เปลี่ยนยา paracetamol เป็น 2 เม็ด" → action.type = "update"
+"ลบยา paracetamol" → action.type = "delete"
+```
+
+#### 5. Action Router Updates (`action-router.ts`)
+- `saveMultipleHealthData()` - Handle healthDataArray
+- Loops through each health data and saves individually
+- Aggregates results and alerts
+
+#### 6. Rich Menu Update (`OONJAI_RichMenu_Implementation.md`)
+Changed action type:
+```json
+// Before (message)
+{ "type": "message", "text": "บันทึกสุขภาพ" }
+
+// After (uri)
+{ "type": "uri", "uri": "https://liff.line.me/{LIFF_ID}/health-log.html" }
+```
+
+### Files Created
+| File | Description |
+|------|-------------|
+| `public/liff/health-log.html` | Main health logging dashboard |
+| `public/liff/log-medication.html` | Medication logging with checklist |
+| `public/liff/log-symptom.html` | Symptom logging with presets |
+
+### Files Modified
+| File | Changes |
+|------|---------|
+| `src/index.ts` | Added health log Flex Message |
+| `src/agents/core/OrchestratorAgent.ts` | Added health log menu handler |
+| `src/lib/ai/prompts/unified-nlu.ts` | Multi-data extraction, CRUD detection |
+| `src/lib/actions/action-router.ts` | Handle healthDataArray |
+| `docs/OONJAI_RichMenu_Implementation.md` | Updated action type to URI |
+
+### LIFF URLs
+| Page | URL |
+|------|-----|
+| Dashboard | `https://liff.line.me/2008278683-5k69jxNq/health-log.html` |
+| บันทึกยา | `https://liff.line.me/2008278683-5k69jxNq/log-medication.html` |
+| ความดัน | `https://liff.line.me/2008278683-5k69jxNq/vitals-tracking.html` |
+| น้ำ | `https://liff.line.me/2008278683-5k69jxNq/water-tracking.html` |
+| อาการ | `https://liff.line.me/2008278683-5k69jxNq/log-symptom.html` |
+
+### Build Status
+```bash
+$ npm run build
+# ✅ Build succeeded
+```
+
+---
+*Session: 2025-12-21 (Evening)*
+*Feature: LIFF Health Logging Pages - COMPLETE*

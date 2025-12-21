@@ -41,6 +41,8 @@ export class IntentAgent extends BaseAgent {
 
     // Reports (Message command) - Rich Menu sends "รายงานสุขภาพ"
     report_menu: [/^ดูรายงาน$/, /^รายงาน$/, /^รายงานสุขภาพ$/],
+    // Health Log Menu - Rich Menu sends "บันทึกสุขภาพ"
+    health_log_menu: [/^บันทึกสุขภาพ$/, /^บันทึก สุขภาพ$/, /^เมนูบันทึกสุขภาพ$/, /^บันทึกกิจกรรมสุขภาพ$/],
     report: [
       /รายงานวันนี้/, /รายงานสัปดาห์/, /รายงานเดือน/, /สรุปวันนี้/, /สรุปสัปดาห์/, /📊.*รายงาน/,
       /สรุป/, /รายงาน.*ประจำ/,
@@ -269,7 +271,7 @@ export class IntentAgent extends BaseAgent {
     // Intents that should get high confidence on ANY pattern match
     // These are specific action intents where a single match is definitive
     const highConfidenceIntents = [
-      'report', 'report_menu', 'emergency', 'registration',
+      'report', 'report_menu', 'health_log_menu', 'emergency', 'registration',
       'switch_patient', 'list_patients', 'set_default_patient', 'remove_default_patient',
       'group_help', 'help', 'package',
       // Profile edit intents

@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#FAF9F6">
+  <title>💊 บันทึกกินยา - OONJAI</title>
+  <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="css/minimal-theme.css">
+  <style>
+    /* Page Header */
+    .page-header {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-md);
+      margin-bottom: var(--spacing-lg);
+      padding-bottom: var(--spacing-md);
+      border-bottom: 1px solid rgba(0,0,0,0.08);
+    }
+
+    .back-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-full);
+      border: none;
+      background: var(--bg-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      color: var(--text-primary);
+    }
+
+    .back-btn:active {
+      transform: scale(0.95);
+      background: rgba(0,0,0,0.1);
+    }
+
+    .page-title {
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin: 0;
+    }
+
+    /* Time Period Selector */
+    .time-period-section {
+      margin-bottom: var(--spacing-lg);
+    }
+
+    .section-label {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: var(--spacing-sm);
+    }
+
+    .time-selector {
+      display: flex;
+      gap: var(--spacing-xs);
+      overflow-x: auto;
+      padding-bottom: var(--spacing-xs);
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .time-option {
+      flex: 1;
+      min-width: 70px;
+      padding: var(--spacing-sm) var(--spacing-md);
+      background: var(--bg-card);
+      border: 2px solid transparent;
+      border-radius: var(--radius-md);
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .time-option:active {
+      transform: scale(0.97);
+    }
+
+    .time-option.selected {
+      background: var(--accent-light);
+      border-color: var(--accent-primary);
+    }
+
+    .time-option .icon {
+      font-size: 20px;
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .time-option .label {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-secondary);
+    }
+
+    .time-option.selected .label {
+      color: var(--accent-secondary);
+    }
+
+    /* Current Time Display */
+    .current-time {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--spacing-sm);
+      padding: var(--spacing-md);
+      background: var(--bg-card);
+      border-radius: var(--radius-md);
+      margin-bottom: var(--spacing-lg);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .current-time .icon {
+      font-size: 20px;
+    }
+
+    .current-time .time {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    /* Medication List */
+    .medication-list-section {
+      margin-bottom: var(--spacing-lg);
+    }
+
+    .medication-list {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-sm);
+    }
+
+    .medication-item {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-md);
+      padding: var(--spacing-md);
+      background: var(--bg-card);
+      border: 2px solid transparent;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .medication-item:active {
+      transform: scale(0.98);
+    }
+
+    .medication-item.selected {
+      border-color: var(--accent-primary);
+      background: var(--accent-light);
+    }
+
+    .medication-item.taken {
+      opacity: 0.6;
+      background: var(--bg-secondary);
+    }
+
+    .medication-checkbox {
+      width: 28px;
+      height: 28px;
+      border: 2px solid var(--text-muted);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.2s ease;
+      font-size: 16px;
+      color: transparent;
+    }
+
+    .medication-item.selected .medication-checkbox {
+      background: var(--accent-primary);
+      border-color: var(--accent-primary);
+      color: white;
+    }
+
+    .medication-item.taken .medication-checkbox {
+      background: var(--text-muted);
+      border-color: var(--text-muted);
+      color: white;
+    }
+
+    .medication-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .medication-name {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+
+    .medication-dosage {
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+
+    .medication-time-badge {
+      font-size: 12px;
+      color: var(--accent-secondary);
+      background: var(--accent-light);
+      padding: 4px 8px;
+      border-radius: var(--radius-sm);
+    }
+
+    .medication-item.taken .medication-time-badge {
+      background: var(--bg-secondary);
+      color: var(--text-muted);
+    }
+
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: var(--spacing-xl);
+      color: var(--text-secondary);
+    }
+
+    .empty-state .icon {
+      font-size: 48px;
+      margin-bottom: var(--spacing-md);
+      opacity: 0.5;
+    }
+
+    .empty-state p {
+      margin-bottom: var(--spacing-md);
+    }
+
+    /* Note Section */
+    .note-section {
+      margin-bottom: var(--spacing-lg);
+    }
+
+    .note-input {
+      width: 100%;
+      padding: 14px 16px;
+      border: 2px solid var(--bg-secondary);
+      border-radius: var(--radius-md);
+      font-size: 15px;
+      transition: all 0.2s ease;
+      resize: none;
+      min-height: 80px;
+    }
+
+    .note-input:focus {
+      outline: none;
+      border-color: var(--accent-primary);
+    }
+
+    /* Submit Button */
+    .submit-section {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: var(--spacing-md);
+      background: var(--bg-primary);
+      box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+      z-index: 100;
+    }
+
+    .submit-btn {
+      width: 100%;
+      padding: 16px;
+      background: var(--accent-primary);
+      color: white;
+      border: none;
+      border-radius: var(--radius-md);
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: var(--shadow-md);
+    }
+
+    .submit-btn:disabled {
+      background: var(--text-muted);
+      cursor: not-allowed;
+    }
+
+    .submit-btn:not(:disabled):active {
+      transform: scale(0.98);
+    }
+
+    .selected-count {
+      text-align: center;
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: var(--spacing-xs);
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 100px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      padding: 14px 24px;
+      border-radius: var(--radius-md);
+      color: white;
+      font-weight: 500;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      z-index: 10000;
+      opacity: 0;
+      transition: all 0.3s ease;
+      max-width: 90%;
+      text-align: center;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .toast.success {
+      background: linear-gradient(135deg, #51cf66 0%, #37b24d 100%);
+    }
+
+    .toast.error {
+      background: linear-gradient(135deg, #ff6b6b 0%, #fa5252 100%);
+    }
+
+    /* Add padding at bottom for fixed submit button */
+    .container {
+      padding-bottom: 120px;
+    }
+
+    @media (max-width: 380px) {
+      .time-option {
+        min-width: 60px;
+        padding: var(--spacing-xs) var(--spacing-sm);
+      }
+
+      .time-option .icon {
+        font-size: 18px;
+      }
+
+      .time-option .label {
+        font-size: 11px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Loading State -->
+    <div id="loadingState" class="loading">
+      <div class="loading-spinner"></div>
+      <p>กำลังโหลด...</p>
+    </div>
+
+    <!-- Main Content -->
+    <div id="mainContent" class="hidden">
+      <!-- Page Header -->
+      <div class="page-header">
+        <button class="back-btn" onclick="goBack()">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+        </button>
+        <h1 class="page-title">💊 บันทึกกินยา</h1>
+      </div>
+
+      <!-- Current Time Display -->
+      <div class="current-time">
+        <span class="icon">🕐</span>
+        <span class="time" id="currentTime"></span>
+      </div>
+
+      <!-- Time Period Selector -->
+      <div class="time-period-section">
+        <div class="section-label">ช่วงเวลา</div>
+        <div class="time-selector">
+          <div class="time-option" data-period="morning" onclick="selectPeriod('morning')">
+            <span class="icon">🌅</span>
+            <span class="label">เช้า</span>
+          </div>
+          <div class="time-option" data-period="afternoon" onclick="selectPeriod('afternoon')">
+            <span class="icon">☀️</span>
+            <span class="label">กลางวัน</span>
+          </div>
+          <div class="time-option" data-period="evening" onclick="selectPeriod('evening')">
+            <span class="icon">🌆</span>
+            <span class="label">เย็น</span>
+          </div>
+          <div class="time-option" data-period="night" onclick="selectPeriod('night')">
+            <span class="icon">🌙</span>
+            <span class="label">ก่อนนอน</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Medication List -->
+      <div class="medication-list-section">
+        <div class="section-label">เลือกยาที่กินแล้ว</div>
+        <div id="medicationList" class="medication-list">
+          <!-- Medications will be rendered here -->
+        </div>
+        <div id="emptyState" class="empty-state hidden">
+          <div class="icon">💊</div>
+          <p>ไม่มียาสำหรับช่วงเวลานี้</p>
+          <button class="btn btn-outline" onclick="openMedications()">จัดการรายการยา</button>
+        </div>
+      </div>
+
+      <!-- Note Section -->
+      <div class="note-section">
+        <div class="section-label">หมายเหตุ (ไม่บังคับ)</div>
+        <textarea id="noteInput" class="note-input" placeholder="เช่น ลืมกินยาตอนเช้า, กินยาช้ากว่าปกติ"></textarea>
+      </div>
+    </div>
+
+    <!-- Submit Section -->
+    <div id="submitSection" class="submit-section hidden">
+      <div class="selected-count" id="selectedCount">เลือกแล้ว 0 รายการ</div>
+      <button class="submit-btn" id="submitBtn" onclick="submitLog()" disabled>บันทึก</button>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast"></div>
+
+  <!-- API Client -->
+  <script src="js/api.js"></script>
+
+  <script>
+    const LIFF_ID = '2008278683-5k69jxNq';
+    const SUPABASE_URL = 'https://mqxklnzxfrupwwkwlwwc.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1xeGtsbnp4ZnJ1cHd3a3dsd3djIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNjcxMjYsImV4cCI6MjA3MjY0MzEyNn0.vPBkIGHdvrfotD3QMnFGrNRMTP3fFzn715XGwqKG-6Y';
+
+    const supabase = window.supabase?.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let patientId = null;
+    let medications = [];
+    let selectedMedications = new Set();
+    let currentPeriod = 'morning';
+    let todayLogs = [];
+
+    const timeLabels = {
+      morning: '🌅 เช้า',
+      afternoon: '☀️ กลางวัน',
+      evening: '🌆 เย็น',
+      night: '🌙 ก่อนนอน'
+    };
+
+    // Format dosage display
+    function formatDosage(med) {
+      const amount = parseFloat(med.dosage_amount) || 1;
+      const form = med.dosage_form || 'tablet';
+      const unit = med.dosage_unit || 'tablet';
+      const instructions = med.instructions || '';
+
+      let dosageText = '';
+
+      if (form === 'tablet' || form === 'capsule') {
+        if (amount === 0.25) dosageText = '¼ เม็ด';
+        else if (amount === 0.5) dosageText = '½ เม็ด';
+        else if (amount === 0.75) dosageText = '¾ เม็ด';
+        else if (amount === 1) dosageText = '1 เม็ด';
+        else if (amount === 1.5) dosageText = '1½ เม็ด';
+        else dosageText = `${amount} เม็ด`;
+      } else if (form === 'liquid' && unit === 'ml') {
+        dosageText = `${amount} ml`;
+      } else {
+        dosageText = `${amount} ${unit}`;
+      }
+
+      if (instructions) {
+        dosageText += ` · ${instructions}`;
+      }
+
+      return dosageText;
+    }
+
+    // Determine current time period
+    function getCurrentPeriod() {
+      const hour = new Date().getHours();
+      if (hour >= 5 && hour < 11) return 'morning';
+      if (hour >= 11 && hour < 14) return 'afternoon';
+      if (hour >= 14 && hour < 20) return 'evening';
+      return 'night';
+    }
+
+    async function checkUserRegistration(lineUserId) {
+      try {
+        const response = await fetch(`${API_BASE_URL}/check-user/${lineUserId}`);
+        const result = await response.json();
+
+        if (!result.exists) {
+          setTimeout(() => {
+            window.location.href = '/liff/index.html';
+          }, 1000);
+          return false;
+        }
+
+        return true;
+      } catch (error) {
+        console.error('Error checking registration:', error);
+        return true;
+      }
+    }
+
+    async function initializeLIFF() {
+      try {
+        await liff.init({ liffId: LIFF_ID });
+
+        if (!liff.isLoggedIn()) {
+          liff.login();
+          return;
+        }
+
+        const profile = await liff.getProfile();
+
+        const isRegistered = await checkUserRegistration(profile.userId);
+        if (!isRegistered) return;
+
+        // Get context
+        const context = JSON.parse(localStorage.getItem('oonjai_context') || '{}');
+        patientId = context.patientId;
+
+        if (!patientId) {
+          showToast('กรุณาลงทะเบียนก่อน', 'error');
+          setTimeout(() => {
+            window.location.href = '/liff/index.html';
+          }, 2000);
+          return;
+        }
+
+        // Set current time
+        updateCurrentTime();
+        setInterval(updateCurrentTime, 60000);
+
+        // Set current period
+        currentPeriod = getCurrentPeriod();
+        selectPeriod(currentPeriod);
+
+        // Load data
+        await loadMedications();
+        await loadTodayLogs();
+
+        // Show content
+        document.getElementById('loadingState').classList.add('hidden');
+        document.getElementById('mainContent').classList.remove('hidden');
+        document.getElementById('submitSection').classList.remove('hidden');
+
+      } catch (error) {
+        console.error('LIFF initialization failed:', error);
+        showToast('เกิดข้อผิดพลาดในการเชื่อมต่อ', 'error');
+      }
+    }
+
+    function updateCurrentTime() {
+      const now = new Date();
+      const time = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+      document.getElementById('currentTime').textContent = time;
+    }
+
+    async function loadMedications() {
+      if (!supabase || !patientId) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('medications')
+          .select('*')
+          .eq('patient_id', patientId)
+          .eq('is_active', true)
+          .order('name');
+
+        if (error) throw error;
+
+        medications = (data || []).map(med => ({
+          ...med,
+          times: med.times ? (typeof med.times === 'string' ? JSON.parse(med.times) : med.times) : []
+        }));
+
+      } catch (error) {
+        console.error('Error loading medications:', error);
+        showToast('ไม่สามารถโหลดรายการยาได้', 'error');
+      }
+    }
+
+    async function loadTodayLogs() {
+      if (!supabase || !patientId) return;
+
+      const today = new Date().toISOString().split('T')[0];
+
+      try {
+        const { data, error } = await supabase
+          .from('activity_logs')
+          .select('*')
+          .eq('patient_id', patientId)
+          .eq('task_type', 'medication')
+          .gte('created_at', today + 'T00:00:00')
+          .lt('created_at', today + 'T23:59:59');
+
+        if (error) throw error;
+
+        todayLogs = data || [];
+
+      } catch (error) {
+        console.error('Error loading logs:', error);
+      }
+    }
+
+    function selectPeriod(period) {
+      currentPeriod = period;
+
+      // Update UI
+      document.querySelectorAll('.time-option').forEach(el => {
+        el.classList.toggle('selected', el.dataset.period === period);
+      });
+
+      // Clear selections
+      selectedMedications.clear();
+
+      // Render medications for this period
+      renderMedications();
+      updateSubmitButton();
+    }
+
+    function renderMedications() {
+      const container = document.getElementById('medicationList');
+      const emptyState = document.getElementById('emptyState');
+
+      // Filter medications for current period
+      const medsForPeriod = medications.filter(med => {
+        const times = med.times || [];
+        return times.includes(currentPeriod);
+      });
+
+      if (medsForPeriod.length === 0) {
+        container.innerHTML = '';
+        emptyState.classList.remove('hidden');
+        return;
+      }
+
+      emptyState.classList.add('hidden');
+
+      container.innerHTML = medsForPeriod.map(med => {
+        // Check if already logged today for this period
+        const isLogged = todayLogs.some(log => {
+          const metadata = log.metadata || {};
+          return metadata.medication_id === med.id && metadata.time_period === currentPeriod;
+        });
+
+        const isSelected = selectedMedications.has(med.id);
+        const itemClass = isLogged ? 'medication-item taken' : (isSelected ? 'medication-item selected' : 'medication-item');
+
+        return `
+          <div class="${itemClass}" data-id="${med.id}" onclick="${isLogged ? '' : `toggleMedication('${med.id}')`}">
+            <div class="medication-checkbox">${isLogged ? '✓' : (isSelected ? '✓' : '')}</div>
+            <div class="medication-info">
+              <div class="medication-name">${med.name}</div>
+              <div class="medication-dosage">${formatDosage(med)}</div>
+            </div>
+            <div class="medication-time-badge">${isLogged ? 'บันทึกแล้ว' : timeLabels[currentPeriod]}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function toggleMedication(medId) {
+      if (selectedMedications.has(medId)) {
+        selectedMedications.delete(medId);
+      } else {
+        selectedMedications.add(medId);
+      }
+
+      renderMedications();
+      updateSubmitButton();
+    }
+
+    function updateSubmitButton() {
+      const count = selectedMedications.size;
+      const btn = document.getElementById('submitBtn');
+      const countEl = document.getElementById('selectedCount');
+
+      countEl.textContent = `เลือกแล้ว ${count} รายการ`;
+      btn.disabled = count === 0;
+    }
+
+    async function submitLog() {
+      if (selectedMedications.size === 0) return;
+
+      const btn = document.getElementById('submitBtn');
+      btn.disabled = true;
+      btn.textContent = 'กำลังบันทึก...';
+
+      try {
+        const note = document.getElementById('noteInput').value.trim();
+        const logs = [];
+
+        selectedMedications.forEach(medId => {
+          logs.push({
+            patient_id: patientId,
+            task_type: 'medication',
+            metadata: {
+              medication_id: medId,
+              time_period: currentPeriod,
+              note: note || null,
+              logged_at: new Date().toISOString()
+            }
+          });
+        });
+
+        const { error } = await supabase
+          .from('activity_logs')
+          .insert(logs);
+
+        if (error) throw error;
+
+        showToast(`บันทึกกินยา ${logs.length} รายการเรียบร้อย`, 'success');
+
+        // Reload logs and re-render
+        await loadTodayLogs();
+        selectedMedications.clear();
+        renderMedications();
+        updateSubmitButton();
+
+        // Clear note
+        document.getElementById('noteInput').value = '';
+
+      } catch (error) {
+        console.error('Error submitting log:', error);
+        showToast('เกิดข้อผิดพลาดในการบันทึก', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'บันทึก';
+      }
+    }
+
+    function openMedications() {
+      window.location.href = 'medications.html';
+    }
+
+    function goBack() {
+      window.location.href = 'health-log.html';
+    }
+
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.className = `toast ${type}`;
+
+      setTimeout(() => toast.classList.add('show'), 10);
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    // Initialize
+    initializeLIFF();
+  </script>
+</body>
+</html>

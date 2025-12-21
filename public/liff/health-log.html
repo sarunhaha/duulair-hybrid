@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#FAF9F6">
+  <title>🩺 บันทึกสุขภาพ - OONJAI</title>
+  <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="css/minimal-theme.css">
+  <style>
+    /* Dashboard Header */
+    .dashboard-header {
+      background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+      border-radius: var(--radius-lg);
+      padding: var(--spacing-lg);
+      margin-bottom: var(--spacing-lg);
+      color: white;
+      text-align: center;
+      box-shadow: var(--shadow-md);
+    }
+
+    .dashboard-header h1 {
+      font-size: 24px;
+      font-weight: 600;
+      margin-bottom: var(--spacing-xs);
+    }
+
+    .dashboard-date {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+
+    /* Today's Summary */
+    .summary-section {
+      margin-bottom: var(--spacing-lg);
+    }
+
+    .summary-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: var(--spacing-md);
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-xs);
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: var(--spacing-sm);
+    }
+
+    .summary-card {
+      background: var(--bg-card);
+      border-radius: var(--radius-md);
+      padding: var(--spacing-md);
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-sm);
+    }
+
+    .summary-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .summary-icon.medication {
+      background: #FEE2E2;
+    }
+
+    .summary-icon.water {
+      background: #DBEAFE;
+    }
+
+    .summary-icon.vitals {
+      background: #D1FAE5;
+    }
+
+    .summary-icon.symptom {
+      background: #FEF3C7;
+    }
+
+    .summary-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .summary-label {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .summary-value {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .summary-value.incomplete {
+      color: var(--warning);
+    }
+
+    .summary-value.complete {
+      color: var(--success);
+    }
+
+    /* Category Grid */
+    .category-section {
+      margin-bottom: var(--spacing-lg);
+    }
+
+    .category-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: var(--spacing-md);
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-xs);
+    }
+
+    .category-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: var(--spacing-sm);
+    }
+
+    .category-btn {
+      background: var(--bg-card);
+      border: 2px solid transparent;
+      border-radius: var(--radius-lg);
+      padding: var(--spacing-lg);
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: var(--shadow-sm);
+      text-decoration: none;
+      display: block;
+    }
+
+    .category-btn:active {
+      transform: scale(0.97);
+      border-color: var(--accent-primary);
+      box-shadow: var(--shadow-md);
+    }
+
+    .category-icon {
+      font-size: 36px;
+      margin-bottom: var(--spacing-sm);
+      display: block;
+    }
+
+    .category-label {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-primary);
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .category-desc {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    /* Quick Actions */
+    .quick-actions {
+      background: var(--bg-card);
+      border-radius: var(--radius-lg);
+      padding: var(--spacing-lg);
+      margin-bottom: var(--spacing-lg);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .quick-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: var(--spacing-md);
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-xs);
+    }
+
+    .quick-btn-group {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-sm);
+    }
+
+    .quick-btn {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-md);
+      padding: var(--spacing-md);
+      background: var(--bg-secondary);
+      border: none;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: left;
+    }
+
+    .quick-btn:active {
+      background: var(--accent-light);
+    }
+
+    .quick-btn-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+      background: var(--bg-card);
+    }
+
+    .quick-btn-text {
+      flex: 1;
+    }
+
+    .quick-btn-text .label {
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--text-primary);
+      display: block;
+    }
+
+    .quick-btn-text .desc {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .quick-btn-arrow {
+      color: var(--text-muted);
+      font-size: 18px;
+    }
+
+    /* Toast Notification */
+    .toast {
+      position: fixed;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      padding: 14px 24px;
+      border-radius: var(--radius-md);
+      color: white;
+      font-weight: 500;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      z-index: 10000;
+      opacity: 0;
+      transition: all 0.3s ease;
+      max-width: 90%;
+      text-align: center;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .toast.success {
+      background: linear-gradient(135deg, #51cf66 0%, #37b24d 100%);
+    }
+
+    .toast.error {
+      background: linear-gradient(135deg, #ff6b6b 0%, #fa5252 100%);
+    }
+
+    @media (max-width: 380px) {
+      .category-icon {
+        font-size: 28px;
+      }
+
+      .category-label {
+        font-size: 14px;
+      }
+
+      .summary-value {
+        font-size: 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Loading State -->
+    <div id="loadingState" class="loading">
+      <div class="loading-spinner"></div>
+      <p>กำลังโหลด...</p>
+    </div>
+
+    <!-- Main Content -->
+    <div id="mainContent" class="hidden">
+      <!-- Dashboard Header -->
+      <div class="dashboard-header">
+        <h1>🩺 บันทึกสุขภาพวันนี้</h1>
+        <div class="dashboard-date" id="currentDate"></div>
+      </div>
+
+      <!-- Today's Summary -->
+      <div class="summary-section">
+        <div class="summary-title">
+          📊 สรุปกิจกรรมวันนี้
+        </div>
+        <div class="summary-grid">
+          <div class="summary-card">
+            <div class="summary-icon medication">💊</div>
+            <div class="summary-info">
+              <div class="summary-label">กินยา</div>
+              <div class="summary-value" id="medSummary">-/-</div>
+            </div>
+          </div>
+          <div class="summary-card">
+            <div class="summary-icon water">💧</div>
+            <div class="summary-info">
+              <div class="summary-label">ดื่มน้ำ</div>
+              <div class="summary-value" id="waterSummary">0 ml</div>
+            </div>
+          </div>
+          <div class="summary-card">
+            <div class="summary-icon vitals">💉</div>
+            <div class="summary-info">
+              <div class="summary-label">วัดความดัน</div>
+              <div class="summary-value" id="vitalsSummary">-</div>
+            </div>
+          </div>
+          <div class="summary-card">
+            <div class="summary-icon symptom">🤒</div>
+            <div class="summary-info">
+              <div class="summary-label">อาการ</div>
+              <div class="summary-value" id="symptomSummary">ปกติ</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Category Grid -->
+      <div class="category-section">
+        <div class="category-title">
+          📝 เลือกหมวดที่ต้องการบันทึก
+        </div>
+        <div class="category-grid">
+          <a href="log-medication.html" class="category-btn">
+            <span class="category-icon">💊</span>
+            <span class="category-label">กินยา</span>
+            <span class="category-desc">บันทึกการกินยา</span>
+          </a>
+          <a href="vitals-tracking.html" class="category-btn">
+            <span class="category-icon">💉</span>
+            <span class="category-label">ความดัน</span>
+            <span class="category-desc">วัดค่าความดันโลหิต</span>
+          </a>
+          <a href="water-tracking.html" class="category-btn">
+            <span class="category-icon">💧</span>
+            <span class="category-label">ดื่มน้ำ</span>
+            <span class="category-desc">ติดตามการดื่มน้ำ</span>
+          </a>
+          <a href="log-symptom.html" class="category-btn">
+            <span class="category-icon">🤒</span>
+            <span class="category-label">อาการ</span>
+            <span class="category-desc">บันทึกอาการผิดปกติ</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="quick-actions">
+        <div class="quick-title">
+          ⚡ ทางลัด
+        </div>
+        <div class="quick-btn-group">
+          <button class="quick-btn" onclick="quickLogMedication()">
+            <div class="quick-btn-icon">✅</div>
+            <div class="quick-btn-text">
+              <span class="label">กินยาครบแล้ว</span>
+              <span class="desc">บันทึกว่ากินยาตามที่กำหนดทั้งหมดแล้ว</span>
+            </div>
+            <span class="quick-btn-arrow">›</span>
+          </button>
+          <button class="quick-btn" onclick="openMedications()">
+            <div class="quick-btn-icon">📋</div>
+            <div class="quick-btn-text">
+              <span class="label">จัดการรายการยา</span>
+              <span class="desc">เพิ่ม แก้ไข หรือลบรายการยา</span>
+            </div>
+            <span class="quick-btn-arrow">›</span>
+          </button>
+          <button class="quick-btn" onclick="viewReports()">
+            <div class="quick-btn-icon">📊</div>
+            <div class="quick-btn-text">
+              <span class="label">ดูรายงานสุขภาพ</span>
+              <span class="desc">สรุปข้อมูลสุขภาพของคุณ</span>
+            </div>
+            <span class="quick-btn-arrow">›</span>
+          </button>
+        </div>
+      </div>
+
+      <button class="btn btn-secondary btn-block" onclick="closeLiff()">ปิด</button>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast"></div>
+
+  <!-- API Client -->
+  <script src="js/api.js"></script>
+
+  <script>
+    const LIFF_ID = '2008278683-5k69jxNq';
+    const SUPABASE_URL = 'https://mqxklnzxfrupwwkwlwwc.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1xeGtsbnp4ZnJ1cHd3a3dsd3djIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNjcxMjYsImV4cCI6MjA3MjY0MzEyNn0.vPBkIGHdvrfotD3QMnFGrNRMTP3fFzn715XGwqKG-6Y';
+
+    const supabase = window.supabase?.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let patientId = null;
+    let groupId = null;
+    let medications = [];
+    let todaySummary = {
+      medicationsTaken: 0,
+      medicationsTotal: 0,
+      waterAmount: 0,
+      latestVitals: null,
+      symptoms: []
+    };
+
+    // Format Thai date
+    function formatThaiDate(date) {
+      const thaiMonths = [
+        'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+        'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
+      ];
+      const thaiDays = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'];
+
+      const day = date.getDate();
+      const month = thaiMonths[date.getMonth()];
+      const year = date.getFullYear() + 543; // Buddhist year
+      const dayName = thaiDays[date.getDay()];
+
+      return `วัน${dayName}ที่ ${day} ${month} ${year}`;
+    }
+
+    // Check user registration
+    async function checkUserRegistration(lineUserId) {
+      try {
+        const response = await fetch(`${API_BASE_URL}/check-user/${lineUserId}`);
+        const result = await response.json();
+
+        if (!result.exists) {
+          setTimeout(() => {
+            window.location.href = '/liff/index.html';
+          }, 1000);
+          return false;
+        }
+
+        return true;
+      } catch (error) {
+        console.error('Error checking registration:', error);
+        return true;
+      }
+    }
+
+    async function initializeLIFF() {
+      try {
+        await liff.init({ liffId: LIFF_ID });
+
+        if (!liff.isLoggedIn()) {
+          liff.login();
+          return;
+        }
+
+        const profile = await liff.getProfile();
+
+        const isRegistered = await checkUserRegistration(profile.userId);
+        if (!isRegistered) return;
+
+        // Get context
+        const context = JSON.parse(localStorage.getItem('oonjai_context') || '{}');
+        patientId = context.patientId;
+        groupId = context.groupId;
+
+        // Set current date
+        document.getElementById('currentDate').textContent = formatThaiDate(new Date());
+
+        // Load data
+        await loadTodaySummary();
+
+        // Show content
+        document.getElementById('loadingState').classList.add('hidden');
+        document.getElementById('mainContent').classList.remove('hidden');
+
+      } catch (error) {
+        console.error('LIFF initialization failed:', error);
+        showToast('เกิดข้อผิดพลาดในการเชื่อมต่อ', 'error');
+      }
+    }
+
+    async function loadTodaySummary() {
+      const today = new Date().toISOString().split('T')[0];
+
+      // Load medications count
+      if (patientId && supabase) {
+        try {
+          const { data: meds, error } = await supabase
+            .from('medications')
+            .select('id, times')
+            .eq('patient_id', patientId)
+            .eq('is_active', true);
+
+          if (!error && meds) {
+            // Count total expected medication doses for today
+            let totalDoses = 0;
+            meds.forEach(med => {
+              const times = med.times || [];
+              totalDoses += times.length;
+            });
+            todaySummary.medicationsTotal = totalDoses;
+            medications = meds;
+          }
+
+          // Get today's medication logs
+          const { data: logs, error: logsError } = await supabase
+            .from('activity_logs')
+            .select('*')
+            .eq('patient_id', patientId)
+            .eq('task_type', 'medication')
+            .gte('created_at', today + 'T00:00:00')
+            .lt('created_at', today + 'T23:59:59');
+
+          if (!logsError && logs) {
+            todaySummary.medicationsTaken = logs.length;
+          }
+
+        } catch (error) {
+          console.error('Error loading medications:', error);
+        }
+      }
+
+      // Load water data from localStorage
+      const waterData = JSON.parse(localStorage.getItem(`water_${today}`) || '{"total": 0}');
+      todaySummary.waterAmount = waterData.total || 0;
+
+      // Load vitals data from localStorage
+      const vitalsData = JSON.parse(localStorage.getItem(`vitals_${today}`) || '{"readings": []}');
+      if (vitalsData.readings && vitalsData.readings.length > 0) {
+        const latest = vitalsData.readings[0];
+        todaySummary.latestVitals = `${latest.systolic}/${latest.diastolic}`;
+      }
+
+      // Update UI
+      updateSummaryUI();
+    }
+
+    function updateSummaryUI() {
+      // Medication summary
+      const medEl = document.getElementById('medSummary');
+      if (todaySummary.medicationsTotal > 0) {
+        medEl.textContent = `${todaySummary.medicationsTaken}/${todaySummary.medicationsTotal}`;
+        if (todaySummary.medicationsTaken >= todaySummary.medicationsTotal) {
+          medEl.classList.add('complete');
+          medEl.classList.remove('incomplete');
+        } else {
+          medEl.classList.add('incomplete');
+          medEl.classList.remove('complete');
+        }
+      } else {
+        medEl.textContent = 'ไม่มียา';
+        medEl.style.fontSize = '14px';
+      }
+
+      // Water summary
+      const waterEl = document.getElementById('waterSummary');
+      waterEl.textContent = `${todaySummary.waterAmount} ml`;
+      if (todaySummary.waterAmount >= 2000) {
+        waterEl.classList.add('complete');
+      }
+
+      // Vitals summary
+      const vitalsEl = document.getElementById('vitalsSummary');
+      if (todaySummary.latestVitals) {
+        vitalsEl.textContent = todaySummary.latestVitals;
+      } else {
+        vitalsEl.textContent = 'ยังไม่วัด';
+        vitalsEl.style.fontSize = '14px';
+      }
+
+      // Symptom summary
+      const symptomEl = document.getElementById('symptomSummary');
+      if (todaySummary.symptoms && todaySummary.symptoms.length > 0) {
+        symptomEl.textContent = `${todaySummary.symptoms.length} อาการ`;
+        symptomEl.classList.add('incomplete');
+      } else {
+        symptomEl.textContent = 'ปกติ';
+        symptomEl.classList.add('complete');
+      }
+    }
+
+    // Quick log all medications
+    async function quickLogMedication() {
+      if (!patientId) {
+        showToast('กรุณาลงทะเบียนก่อน', 'error');
+        return;
+      }
+
+      if (medications.length === 0) {
+        showToast('คุณยังไม่มีรายการยา', 'error');
+        return;
+      }
+
+      // Determine current time period
+      const hour = new Date().getHours();
+      let currentPeriod = 'morning';
+      if (hour >= 11 && hour < 14) currentPeriod = 'afternoon';
+      else if (hour >= 16 && hour < 20) currentPeriod = 'evening';
+      else if (hour >= 20 || hour < 6) currentPeriod = 'night';
+
+      try {
+        const medsForPeriod = medications.filter(med => {
+          const times = med.times || [];
+          return times.includes(currentPeriod);
+        });
+
+        if (medsForPeriod.length === 0) {
+          showToast('ไม่มียาที่ต้องกินในช่วงนี้', 'error');
+          return;
+        }
+
+        // Log each medication
+        const logs = medsForPeriod.map(med => ({
+          patient_id: patientId,
+          task_type: 'medication',
+          metadata: {
+            medication_id: med.id,
+            time_period: currentPeriod,
+            logged_at: new Date().toISOString()
+          }
+        }));
+
+        const { error } = await supabase
+          .from('activity_logs')
+          .insert(logs);
+
+        if (error) throw error;
+
+        showToast(`บันทึกกินยา ${medsForPeriod.length} รายการเรียบร้อย`, 'success');
+        todaySummary.medicationsTaken += medsForPeriod.length;
+        updateSummaryUI();
+
+      } catch (error) {
+        console.error('Error logging medications:', error);
+        showToast('เกิดข้อผิดพลาด', 'error');
+      }
+    }
+
+    function openMedications() {
+      window.location.href = 'medications.html';
+    }
+
+    function viewReports() {
+      // Send message to LINE chat to request report
+      if (liff.isInClient()) {
+        liff.sendMessages([{
+          type: 'text',
+          text: 'ดูรายงาน'
+        }]).then(() => {
+          liff.closeWindow();
+        }).catch(err => {
+          console.error('Error sending message:', err);
+          showToast('ไม่สามารถส่งคำขอได้', 'error');
+        });
+      } else {
+        showToast('กรุณาเปิดใน LINE', 'error');
+      }
+    }
+
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.className = `toast ${type}`;
+
+      setTimeout(() => toast.classList.add('show'), 10);
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    function closeLiff() {
+      liff.closeWindow();
+    }
+
+    // Initialize
+    initializeLIFF();
+  </script>
+</body>
+</html>

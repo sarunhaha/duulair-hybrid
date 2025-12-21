@@ -88,7 +88,13 @@ async function handleSaveAction(
 ): Promise<ActionResult> {
   const { healthData, action, entities } = nluResult;
 
-  // Health log saves
+  // Check for healthDataArray (multiple health data in one message)
+  const healthDataArray = (nluResult as any).healthDataArray;
+  if (nluResult.intent === 'health_log' && healthDataArray && Array.isArray(healthDataArray) && healthDataArray.length > 0) {
+    return await saveMultipleHealthData(healthDataArray, context, nluResult.response);
+  }
+
+  // Health log saves (single healthData)
   if (nluResult.intent === 'health_log' && healthData) {
     return await saveHealthData(healthData, context, nluResult.response);
   }
@@ -153,6 +159,46 @@ async function saveHealthData(
     },
     alerts,
     errors: result.error ? [result.error] : undefined
+  };
+}
+
+/**
+ * Save multiple health data items (from healthDataArray)
+ */
+async function saveMultipleHealthData(
+  healthDataArray: NLUHealthData[],
+  context: NLUContext,
+  rawText: string
+): Promise<ActionResult> {
+  if (!context.patientId) {
+    return { success: false, savedRecords: 0, errors: ['No patient ID'] };
+  }
+
+  const results: ActionResult[] = [];
+  const allAlerts: string[] = [];
+
+  for (const healthData of healthDataArray) {
+    const result = await saveHealthData(healthData, context, rawText);
+    results.push(result);
+
+    if (result.alerts) {
+      allAlerts.push(...result.alerts);
+    }
+  }
+
+  const totalSaved = results.reduce((sum, r) => sum + r.savedRecords, 0);
+  const errors = results.flatMap(r => r.errors || []);
+  const allSuccess = results.every(r => r.success);
+
+  return {
+    success: allSuccess,
+    savedRecords: totalSaved,
+    alerts: allAlerts.length > 0 ? allAlerts : undefined,
+    errors: errors.length > 0 ? errors : undefined,
+    data: {
+      multipleRecords: true,
+      recordCount: healthDataArray.length
+    }
   };
 }
 
