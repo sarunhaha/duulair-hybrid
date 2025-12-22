@@ -16,6 +16,18 @@
 </head>
 <body>
   <div class="container">
+    <!-- Loading State -->
+    <div id="loadingState" class="loading" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 200px;">
+      <div class="loading-spinner" style="width: 40px; height: 40px; border: 3px solid #e2e8f0; border-top-color: #4CAF50; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+      <p style="margin-top: 16px; color: #64748b;">กำลังโหลด...</p>
+    </div>
+    <style>
+      @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+
+    <!-- Main Content -->
+    <div id="mainContent" class="hidden">
+
     <!-- Header -->
     <div class="success-container">
       <div class="success-icon">👤</div>
@@ -159,6 +171,8 @@
     <p class="text-center text-small mt-2" style="color: #666;">
       ต้องการความช่วยเหลือ? พิมพ์ "ช่วยเหลือ" ใน LINE Chat
     </p>
+
+    </div><!-- End of mainContent -->
   </div>
 
   <!-- LIFF SDK -->
@@ -569,6 +583,24 @@
     } else {
       init();
     }
+  </script>
+
+  <script>
+    // Phase 2.1: Show UI immediately with IIFE
+    (function showUIImmediately() {
+      // Check if cached profile exists
+      const cached = sessionStorage.getItem('liff_profile');
+      if (cached) {
+        try {
+          const profile = JSON.parse(cached);
+          document.getElementById('welcomeMessage').textContent = `ยินดีต้อนรับ ${profile.displayName || ''}`;
+        } catch (e) {}
+      }
+
+      // Hide loading, show main content immediately
+      document.getElementById('loadingState').classList.add('hidden');
+      document.getElementById('mainContent').classList.remove('hidden');
+    })();
   </script>
 </body>
 </html>

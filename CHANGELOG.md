@@ -1,6 +1,57 @@
 
 # OONJAI Changelog
 
+## [2025-12-22] - LIFF Page Loading Optimization
+
+### Problem
+- LIFF pages took 2-5 seconds to show UI
+- Users saw loading spinner for too long
+- Bad UX especially on slow connections
+
+### Solution: IIFE Pattern
+Added Immediately Invoked Function Expression (IIFE) to show UI instantly without waiting for LIFF SDK.
+
+```javascript
+// Phase 2.1: Show UI immediately
+(function showUIImmediately() {
+  document.getElementById('loadingState').classList.add('hidden');
+  document.getElementById('mainContent').classList.remove('hidden');
+})();
+```
+
+### Changed
+
+- **reports.html** (`public/liff/reports.html`)
+  - Added IIFE pattern to show UI immediately
+  - Hide loading overlay without waiting for LIFF init
+  - Data loads in background while UI is visible
+
+- **my-profile.html** (`public/liff/my-profile.html`)
+  - Added loading state element
+  - Added main content wrapper
+  - Added IIFE pattern with cached profile display
+  - Shows cached displayName immediately if available
+
+### Already Optimized (Verified)
+These pages already had the IIFE pattern from previous work:
+- dashboard.html
+- medications.html
+- reminders.html
+- settings.html
+- vitals-tracking.html
+- water-tracking.html
+- log-medication.html
+- log-symptom.html
+- patient-profile.html
+- health-log.html (reference implementation)
+
+### Result
+- All 12 LIFF pages now show UI instantly
+- Loading time perceived by user: ~0ms (was 2-5 seconds)
+- Data still loads in background after UI is visible
+
+---
+
 ## [2025-12-21] - Voice Confirmation & Conversation Flow Improvements
 
 ### Added

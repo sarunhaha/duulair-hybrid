@@ -1,10 +1,68 @@
 # OONJ.AI - Task List
 
-> Last Updated: 2025-12-21
+> Last Updated: 2025-12-22
 
 ---
 
-## Current Focus: Natural Conversation Architecture (Claude-First NLU)
+## Current Focus: LIFF Page Loading Optimization
+
+---
+
+## LIFF Page Loading Optimization ✅ COMPLETE
+
+> Added: 2025-12-22
+
+### Overview
+ปรับปรุง UX ของ LIFF Pages ให้โหลดเร็วขึ้น ไม่ต้องรอ LIFF SDK initialize
+
+### Problem
+- LIFF pages took 2-5 seconds to show UI
+- Users saw loading spinner for too long
+- Bad UX especially on slow connections
+
+### Solution: IIFE Pattern (Immediately Invoked Function Expression)
+```javascript
+// Phase 2.1: Show UI immediately
+(function showUIImmediately() {
+  // Show cached name if available
+  const cached = sessionStorage.getItem('liff_profile');
+  if (cached) {
+    const profile = JSON.parse(cached);
+    document.getElementById('welcomeName').textContent = `สวัสดี ${profile.displayName}`;
+  }
+  // Show UI immediately!
+  document.getElementById('loadingState').classList.add('hidden');
+  document.getElementById('mainContent').classList.remove('hidden');
+})();
+```
+
+### Implementation Status
+
+| Page | Status | Notes |
+|------|--------|-------|
+| health-log.html | ✅ Done | Reference implementation |
+| dashboard.html | ✅ Done | Already had IIFE |
+| medications.html | ✅ Done | Already had IIFE |
+| reminders.html | ✅ Done | Already had IIFE |
+| settings.html | ✅ Done | Already had IIFE |
+| vitals-tracking.html | ✅ Done | Already had IIFE |
+| water-tracking.html | ✅ Done | Already had IIFE |
+| log-medication.html | ✅ Done | Already had IIFE |
+| log-symptom.html | ✅ Done | Already had IIFE |
+| patient-profile.html | ✅ Done | Already had IIFE |
+| reports.html | ✅ Done | Added IIFE (2025-12-22) |
+| my-profile.html | ✅ Done | Added IIFE (2025-12-22) |
+
+### Optimization Phases Applied
+1. **Phase 1.1**: Cache LIFF Profile in sessionStorage (1 hour)
+2. **Phase 1.2**: Skip Registration Check if Cached
+3. **Phase 1.3**: Parallel Loading (data fetched in background)
+4. **Phase 2.1-2.2**: Show UI First with IIFE (THE KEY!)
+5. **Phase 3.1**: Preconnect/Preload external resources
+
+---
+
+## Natural Conversation Architecture (Claude-First NLU) ✅ COMPLETE
 
 ---
 

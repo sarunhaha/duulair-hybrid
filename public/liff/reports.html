@@ -194,5 +194,23 @@
   <script src="js/liff-init.js"></script>
   <script src="js/utils.js"></script>
   <script src="js/reports.js"></script>
+
+  <script>
+    // Phase 2.1: Show UI immediately with IIFE
+    (function showUIImmediately() {
+      // Hide loading, show main content immediately
+      const loading = document.getElementById('loading');
+      const summarySection = document.getElementById('summary-section');
+      const chartsSection = document.getElementById('charts-section');
+      const activitiesSection = document.getElementById('activities-section');
+
+      if (loading) loading.classList.add('hidden');
+
+      // Show sections with placeholder data
+      if (summarySection) summarySection.style.opacity = '1';
+      if (chartsSection) chartsSection.style.opacity = '1';
+      if (activitiesSection) activitiesSection.style.opacity = '1';
+    })();
+  </script>
 </body>
 </html>
