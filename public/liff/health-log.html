@@ -294,16 +294,11 @@
   </style>
 </head>
 <body>
-  <!-- EARLY DEBUG SCRIPT - Runs as soon as body parses -->
-  <script>document.write('<p id="earlyDebug" style="position:fixed;top:0;left:0;background:yellow;padding:5px;z-index:99999;font-size:12px;">JS OK!</p>');</script>
-
   <div class="container">
     <!-- Loading State -->
     <div id="loadingState" class="loading">
       <div class="loading-spinner"></div>
       <p>กำลังโหลด...</p>
-      <p id="debugStatus" style="font-size: 12px; color: #666; margin-top: 10px;">Initializing...</p>
-      <p id="loadProgress" style="font-size: 11px; color: #999; margin-top: 5px;"></p>
     </div>
 
     <!-- Main Content -->
@@ -357,26 +352,26 @@
           📝 เลือกหมวดที่ต้องการบันทึก
         </div>
         <div class="category-grid">
-          <a href="log-medication.html" class="category-btn">
+          <button class="category-btn" onclick="navigateTo('log-medication.html')">
             <span class="category-icon">💊</span>
             <span class="category-label">กินยา</span>
             <span class="category-desc">บันทึกการกินยา</span>
-          </a>
-          <a href="vitals-tracking.html" class="category-btn">
+          </button>
+          <button class="category-btn" onclick="navigateTo('vitals-tracking.html')">
             <span class="category-icon">💉</span>
             <span class="category-label">ความดัน</span>
             <span class="category-desc">วัดค่าความดันโลหิต</span>
-          </a>
-          <a href="water-tracking.html" class="category-btn">
+          </button>
+          <button class="category-btn" onclick="navigateTo('water-tracking.html')">
             <span class="category-icon">💧</span>
             <span class="category-label">ดื่มน้ำ</span>
             <span class="category-desc">ติดตามการดื่มน้ำ</span>
-          </a>
-          <a href="log-symptom.html" class="category-btn">
+          </button>
+          <button class="category-btn" onclick="navigateTo('log-symptom.html')">
             <span class="category-icon">🤒</span>
             <span class="category-label">อาการ</span>
             <span class="category-desc">บันทึกอาการผิดปกติ</span>
-          </a>
+          </button>
         </div>
       </div>
 
@@ -402,14 +397,6 @@
             </div>
             <span class="quick-btn-arrow">›</span>
           </button>
-          <button class="quick-btn" onclick="viewReports()">
-            <div class="quick-btn-icon">📊</div>
-            <div class="quick-btn-text">
-              <span class="label">ดูรายงานสุขภาพ</span>
-              <span class="desc">สรุปข้อมูลสุขภาพของคุณ</span>
-            </div>
-            <span class="quick-btn-arrow">›</span>
-          </button>
         </div>
       </div>
 
@@ -421,54 +408,18 @@
   <div id="toast" class="toast"></div>
 
   <script>
-    // IMMEDIATE TEST - runs before anything else
-    (function() {
-      var el = document.getElementById('debugStatus');
-      var progress = document.getElementById('loadProgress');
-      if (el) {
-        el.textContent = '1. Script block started';
-        el.style.color = 'blue';
-      }
-      if (progress) {
-        var checks = [];
-        checks.push('liff: ' + (typeof liff !== 'undefined' ? '✓' : '✗'));
-        checks.push('supabase: ' + (typeof window.supabase !== 'undefined' ? '✓' : '✗'));
-        progress.textContent = checks.join(' | ');
-      }
-    })();
-  </script>
-
-  <!-- API Client - Use absolute URL for LIFF compatibility -->
-  <script>
-    // Inline API_BASE_URL to avoid loading issues in LIFF
+    // API Base URL - inline for LIFF compatibility
     const API_BASE_URL = window.location.hostname === 'localhost'
       ? 'http://localhost:3000/api'
       : 'https://duulair.vercel.app/api';
-
-    document.getElementById('loadProgress').textContent += ' | api: inline ✓';
-  </script>
-
-  <script>
-    // Wrap everything in try-catch for debugging
-    try {
-      document.getElementById('debugStatus').textContent = '2. Main script started';
-      document.getElementById('debugStatus').style.color = 'green';
-    } catch(e) {
-      alert('Error in main script start: ' + e.message);
-    }
 
     const LIFF_ID = '2008278683-5k69jxNq';
     const SUPABASE_URL = 'https://mqxklnzxfrupwwkwlwwc.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1xeGtsbnp4ZnJ1cHd3a3dsd3djIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNjcxMjYsImV4cCI6MjA3MjY0MzEyNn0.vPBkIGHdvrfotD3QMnFGrNRMTP3fFzn715XGwqKG-6Y';
 
     let supabaseClient = null;
-    try {
-      if (window.supabase && window.supabase.createClient) {
-        supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        document.getElementById('loadProgress').textContent += ' | sb-client: ✓';
-      }
-    } catch(e) {
-      document.getElementById('loadProgress').textContent += ' | sb-client: ✗ ' + e.message;
+    if (window.supabase && window.supabase.createClient) {
+      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     }
 
     let patientId = null;
@@ -518,67 +469,45 @@
       }
     }
 
-    function updateDebug(msg) {
-      const el = document.getElementById('debugStatus');
-      if (el) el.textContent = msg;
-      console.log('[DEBUG]', msg);
-    }
-
     async function initializeLIFF() {
       try {
-        updateDebug('1. LIFF init...');
         await liff.init({ liffId: LIFF_ID });
-        updateDebug('2. LIFF ready, checking login...');
 
         if (!liff.isLoggedIn()) {
-          updateDebug('3. Not logged in, redirecting to login...');
           liff.login();
           return;
         }
 
-        updateDebug('3. Logged in, getting profile...');
         const profile = await liff.getProfile();
-        updateDebug(`4. Profile: ${profile.displayName}`);
 
         // Check registration (but don't block if it fails)
         try {
-          updateDebug('5. Checking registration...');
-          const isRegistered = await checkUserRegistration(profile.userId);
-          if (!isRegistered) {
-            updateDebug('5b. Not registered, will redirect...');
-          } else {
-            updateDebug('5b. Registered OK');
-          }
+          await checkUserRegistration(profile.userId);
         } catch (regError) {
-          updateDebug(`5b. Reg check error: ${regError.message}`);
+          console.error('Registration check error:', regError);
         }
 
         // Get context from localStorage
-        updateDebug('6. Getting context from localStorage...');
         const context = JSON.parse(localStorage.getItem('oonjai_context') || '{}');
         patientId = context.patientId;
         groupId = context.groupId;
-        updateDebug(`6b. Context: patientId=${patientId || 'none'}, groupId=${groupId || 'none'}`);
 
         // Set current date
         document.getElementById('currentDate').textContent = formatThaiDate(new Date());
 
         // Load data (don't fail if no patientId)
         try {
-          updateDebug('7. Loading summary...');
           await loadTodaySummary();
-          updateDebug('7b. Summary loaded');
         } catch (loadError) {
-          updateDebug(`7b. Summary error: ${loadError.message}`);
+          console.error('Summary load error:', loadError);
         }
 
-        // Always show content
-        updateDebug('8. Showing content...');
+        // Show content
         document.getElementById('loadingState').classList.add('hidden');
         document.getElementById('mainContent').classList.remove('hidden');
 
       } catch (error) {
-        updateDebug(`ERROR: ${error.message}`);
+        console.error('LIFF init error:', error);
         showToast('เกิดข้อผิดพลาด: ' + error.message, 'error');
         // Still hide loading and show content with error state
         document.getElementById('loadingState').classList.add('hidden');
@@ -743,25 +672,17 @@
       }
     }
 
-    function openMedications() {
-      window.location.href = 'medications.html';
+    // Navigate to sub-page within LIFF
+    function navigateTo(page) {
+      // Store current page as return destination
+      sessionStorage.setItem('liff_return_to', 'health-log.html');
+      // Navigate using proper path
+      const basePath = window.location.pathname.replace(/[^/]*$/, '');
+      window.location.href = basePath + page;
     }
 
-    function viewReports() {
-      // Send message to LINE chat to request report
-      if (liff.isInClient()) {
-        liff.sendMessages([{
-          type: 'text',
-          text: 'ดูรายงาน'
-        }]).then(() => {
-          liff.closeWindow();
-        }).catch(err => {
-          console.error('Error sending message:', err);
-          showToast('ไม่สามารถส่งคำขอได้', 'error');
-        });
-      } else {
-        showToast('กรุณาเปิดใน LINE', 'error');
-      }
+    function openMedications() {
+      navigateTo('medications.html');
     }
 
     function showToast(message, type = 'success') {
