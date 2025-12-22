@@ -5,6 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#FAF9F6">
   <title>🩺 วัดความดัน - OONJAI</title>
+
+  <!-- Preconnect to speed up external resources -->
+  <link rel="preconnect" href="https://static.line-scdn.net">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <link rel="preconnect" href="https://mqxklnzxfrupwwkwlwwc.supabase.co">
+  <link rel="dns-prefetch" href="https://static.line-scdn.net">
+  <link rel="preload" href="https://static.line-scdn.net/liff/edge/2/sdk.js" as="script">
+
   <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="stylesheet" href="css/minimal-theme.css">
@@ -331,14 +339,34 @@
       supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     }
 
-    // Check if we should show back button
-    const returnTo = sessionStorage.getItem('liff_return_to');
-    if (returnTo) {
-      document.getElementById('backBtn').style.display = 'flex';
-      document.getElementById('closeBtnText').textContent = 'กลับ';
-    }
+    let patientId = null;
+    let groupId = null;
+    let todayReadings = [];
+
+    // Phase 2.1: Show UI immediately with cached data
+    (function showUIImmediately() {
+      // Check if we should show back button
+      const returnTo = sessionStorage.getItem('liff_return_to');
+      if (returnTo) {
+        document.getElementById('backBtn').style.display = 'flex';
+        document.getElementById('closeBtnText').textContent = 'กลับ';
+      }
+
+      // Load cached vitals data from localStorage
+      const today = new Date().toISOString().split('T')[0];
+      const savedData = JSON.parse(localStorage.getItem(`vitals_${today}`) || '{"readings": []}');
+      todayReadings = savedData.readings || [];
+
+      // Show UI immediately!
+      document.getElementById('loadingState').classList.add('hidden');
+      document.getElementById('mainContent').classList.remove('hidden');
+
+      // Update UI with cached data
+      updateUI();
+    })();
 
     function goBack() {
+      const returnTo = sessionStorage.getItem('liff_return_to');
       if (returnTo) {
         sessionStorage.removeItem('liff_return_to');
         const basePath = window.location.pathname.replace(/[^/]*$/, '');
@@ -348,32 +376,48 @@
       }
     }
 
-    // Check user registration
+    // Phase 1.1: Cache LIFF profile in sessionStorage
+    async function getCachedProfile() {
+      const cached = sessionStorage.getItem('liff_profile');
+      const cacheTime = sessionStorage.getItem('liff_profile_time');
+      const ONE_HOUR = 60 * 60 * 1000;
+
+      if (cached && cacheTime && (Date.now() - parseInt(cacheTime)) < ONE_HOUR) {
+        return JSON.parse(cached);
+      }
+
+      const profile = await liff.getProfile();
+      sessionStorage.setItem('liff_profile', JSON.stringify(profile));
+      sessionStorage.setItem('liff_profile_time', Date.now().toString());
+      return profile;
+    }
+
+    // Phase 1.2: Check user registration with cache
     async function checkUserRegistration(lineUserId) {
+      // Skip if already verified this session
+      if (sessionStorage.getItem('user_registered') === 'true') {
+        return true;
+      }
+
       try {
         const response = await fetch(`${API_BASE_URL}/check-user/${lineUserId}`);
         const result = await response.json();
 
-        console.log('📋 Registration check:', result);
-
         if (!result.exists) {
-          console.log('❌ Not registered, redirecting to registration...');
           setTimeout(() => {
             window.location.href = '/liff/index.html';
           }, 1000);
           return false;
         }
 
+        // Cache registration status
+        sessionStorage.setItem('user_registered', 'true');
         return true;
       } catch (error) {
-        console.error('❌ Error checking registration:', error);
+        console.error('Error checking registration:', error);
         return true;
       }
     }
-
-    let patientId = null;
-    let groupId = null;
-    let todayReadings = [];
 
     async function initializeLIFF() {
       try {
@@ -384,37 +428,23 @@
           return;
         }
 
-        const profile = await liff.getProfile();
+        // Phase 1.1 & 1.2: Get cached profile and check registration in background
+        const profile = await getCachedProfile();
 
-        // Check registration (but don't block if it fails)
-        try {
-          await checkUserRegistration(profile.userId);
-        } catch (regError) {
-          console.error('Registration check error:', regError);
-        }
+        // Check registration in background (don't block UI)
+        checkUserRegistration(profile.userId).catch(err => console.error('Registration check error:', err));
 
         // Get user context
         const context = JSON.parse(localStorage.getItem('oonjai_context') || '{}');
         patientId = context.patientId;
         groupId = context.groupId;
 
-        // Load data (don't fail if error)
-        try {
-          await loadTodayData();
-        } catch (loadError) {
-          console.error('Load data error:', loadError);
-        }
-
-        // Show content
-        document.getElementById('loadingState').classList.add('hidden');
-        document.getElementById('mainContent').classList.remove('hidden');
+        // Load fresh data in background
+        loadTodayData().catch(err => console.error('Load data error:', err));
 
       } catch (error) {
         console.error('LIFF init error:', error);
         showToast('เกิดข้อผิดพลาด: ' + error.message, 'error');
-        // Still hide loading and show content with error state
-        document.getElementById('loadingState').classList.add('hidden');
-        document.getElementById('mainContent').classList.remove('hidden');
       }
     }
 

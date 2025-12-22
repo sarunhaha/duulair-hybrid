@@ -5,6 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#FAF9F6">
   <title>🩺 บันทึกสุขภาพ - OONJAI</title>
+
+  <!-- Phase 3.1: Preconnect to speed up external resources -->
+  <link rel="preconnect" href="https://static.line-scdn.net">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <link rel="preconnect" href="https://mqxklnzxfrupwwkwlwwc.supabase.co">
+  <link rel="dns-prefetch" href="https://static.line-scdn.net">
+  <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
+
+  <!-- Preload critical scripts -->
+  <link rel="preload" href="https://static.line-scdn.net/liff/edge/2/sdk.js" as="script">
+
   <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="stylesheet" href="css/minimal-theme.css">
@@ -408,6 +419,10 @@
   <div id="toast" class="toast"></div>
 
   <script>
+    // ============================================
+    // OPTIMIZED LIFF LOADING - All Phases
+    // ============================================
+
     // API Base URL - inline for LIFF compatibility
     const API_BASE_URL = window.location.hostname === 'localhost'
       ? 'http://localhost:3000/api'
@@ -433,6 +448,40 @@
       symptoms: []
     };
 
+    // ============================================
+    // Phase 2.1 & 2.2: Show UI First with Cached Data
+    // ============================================
+    (function showUIImmediately() {
+      // Set date immediately (no async needed)
+      document.getElementById('currentDate').textContent = formatThaiDate(new Date());
+
+      // Load cached summary from localStorage
+      const today = new Date().toISOString().split('T')[0];
+      const cachedSummary = localStorage.getItem(`health_summary_${today}`);
+      if (cachedSummary) {
+        try {
+          todaySummary = JSON.parse(cachedSummary);
+          updateSummaryUI();
+        } catch (e) {}
+      }
+
+      // Load water & vitals from localStorage immediately
+      const waterData = JSON.parse(localStorage.getItem(`water_${today}`) || '{"total": 0}');
+      todaySummary.waterAmount = waterData.total || 0;
+
+      const vitalsData = JSON.parse(localStorage.getItem(`vitals_${today}`) || '{"readings": []}');
+      if (vitalsData.readings && vitalsData.readings.length > 0) {
+        const latest = vitalsData.readings[0];
+        todaySummary.latestVitals = `${latest.systolic}/${latest.diastolic}`;
+      }
+
+      updateSummaryUI();
+
+      // Show UI immediately! Don't wait for LIFF
+      document.getElementById('loadingState').classList.add('hidden');
+      document.getElementById('mainContent').classList.remove('hidden');
+    })();
+
     // Format Thai date
     function formatThaiDate(date) {
       const thaiMonths = [
@@ -443,32 +492,62 @@
 
       const day = date.getDate();
       const month = thaiMonths[date.getMonth()];
-      const year = date.getFullYear() + 543; // Buddhist year
+      const year = date.getFullYear() + 543;
       const dayName = thaiDays[date.getDay()];
 
       return `วัน${dayName}ที่ ${day} ${month} ${year}`;
     }
 
-    // Check user registration
+    // ============================================
+    // Phase 1.1: Cache LIFF Profile
+    // ============================================
+    async function getCachedProfile() {
+      // Check cache first (valid for 1 hour)
+      const cached = sessionStorage.getItem('liff_profile');
+      const cacheTime = sessionStorage.getItem('liff_profile_time');
+      const ONE_HOUR = 60 * 60 * 1000;
+
+      if (cached && cacheTime && (Date.now() - parseInt(cacheTime)) < ONE_HOUR) {
+        return JSON.parse(cached);
+      }
+
+      // Fetch fresh profile
+      const profile = await liff.getProfile();
+      sessionStorage.setItem('liff_profile', JSON.stringify(profile));
+      sessionStorage.setItem('liff_profile_time', Date.now().toString());
+      return profile;
+    }
+
+    // ============================================
+    // Phase 1.2: Skip Registration Check if Cached
+    // ============================================
     async function checkUserRegistration(lineUserId) {
+      // Check cache first
+      const cached = sessionStorage.getItem('user_registered');
+      if (cached === 'true') {
+        return true; // Skip API call!
+      }
+
       try {
         const response = await fetch(`${API_BASE_URL}/check-user/${lineUserId}`);
         const result = await response.json();
 
-        if (!result.exists) {
-          setTimeout(() => {
-            window.location.href = '/liff/index.html';
-          }, 1000);
+        if (result.exists) {
+          sessionStorage.setItem('user_registered', 'true');
+          return true;
+        } else {
+          window.location.href = '/liff/index.html';
           return false;
         }
-
-        return true;
       } catch (error) {
         console.error('Error checking registration:', error);
-        return true;
+        return true; // Don't block on error
       }
     }
 
+    // ============================================
+    // Phase 1.3: Parallel Loading with LIFF Init
+    // ============================================
     async function initializeLIFF() {
       try {
         await liff.init({ liffId: LIFF_ID });
@@ -478,40 +557,27 @@
           return;
         }
 
-        const profile = await liff.getProfile();
-
-        // Check registration (but don't block if it fails)
-        try {
-          await checkUserRegistration(profile.userId);
-        } catch (regError) {
-          console.error('Registration check error:', regError);
-        }
-
-        // Get context from localStorage
+        // Get context immediately (sync, no wait)
         const context = JSON.parse(localStorage.getItem('oonjai_context') || '{}');
         patientId = context.patientId;
         groupId = context.groupId;
 
-        // Set current date
-        document.getElementById('currentDate').textContent = formatThaiDate(new Date());
+        // Phase 1.3: Run profile fetch and data loading in parallel
+        const [profile] = await Promise.all([
+          getCachedProfile(),
+          loadTodaySummary() // Load real data in parallel
+        ]);
 
-        // Load data (don't fail if no patientId)
-        try {
-          await loadTodaySummary();
-        } catch (loadError) {
-          console.error('Summary load error:', loadError);
-        }
+        // Check registration in background (don't await)
+        checkUserRegistration(profile.userId).catch(e => console.error('Reg check:', e));
 
-        // Show content
-        document.getElementById('loadingState').classList.add('hidden');
-        document.getElementById('mainContent').classList.remove('hidden');
+        // Cache summary for next visit
+        const today = new Date().toISOString().split('T')[0];
+        localStorage.setItem(`health_summary_${today}`, JSON.stringify(todaySummary));
 
       } catch (error) {
         console.error('LIFF init error:', error);
-        showToast('เกิดข้อผิดพลาด: ' + error.message, 'error');
-        // Still hide loading and show content with error state
-        document.getElementById('loadingState').classList.add('hidden');
-        document.getElementById('mainContent').classList.remove('hidden');
+        // UI is already shown, just log the error
       }
     }
 

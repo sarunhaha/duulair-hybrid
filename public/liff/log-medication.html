@@ -5,6 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#FAF9F6">
   <title>💊 บันทึกกินยา - OONJAI</title>
+
+  <!-- Preconnect to speed up external resources -->
+  <link rel="preconnect" href="https://static.line-scdn.net">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <link rel="preconnect" href="https://mqxklnzxfrupwwkwlwwc.supabase.co">
+  <link rel="dns-prefetch" href="https://static.line-scdn.net">
+  <link rel="preload" href="https://static.line-scdn.net/liff/edge/2/sdk.js" as="script">
+
   <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="stylesheet" href="css/minimal-theme.css">
@@ -459,6 +467,34 @@
       night: '🌙 ก่อนนอน'
     };
 
+    // Determine current time period
+    function getCurrentPeriod() {
+      const hour = new Date().getHours();
+      if (hour >= 5 && hour < 11) return 'morning';
+      if (hour >= 11 && hour < 14) return 'afternoon';
+      if (hour >= 14 && hour < 20) return 'evening';
+      return 'night';
+    }
+
+    // Phase 2.1: Show UI immediately with cached data
+    (function showUIImmediately() {
+      // Set current time
+      const now = new Date();
+      const time = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+      document.getElementById('currentTime').textContent = time;
+
+      // Set current period based on time
+      currentPeriod = getCurrentPeriod();
+      document.querySelectorAll('.time-option').forEach(el => {
+        el.classList.toggle('selected', el.dataset.period === currentPeriod);
+      });
+
+      // Show UI immediately!
+      document.getElementById('loadingState').classList.add('hidden');
+      document.getElementById('mainContent').classList.remove('hidden');
+      document.getElementById('submitSection').classList.remove('hidden');
+    })();
+
     // Format dosage display
     function formatDosage(med) {
       const amount = parseFloat(med.dosage_amount) || 1;
@@ -488,16 +524,29 @@
       return dosageText;
     }
 
-    // Determine current time period
-    function getCurrentPeriod() {
-      const hour = new Date().getHours();
-      if (hour >= 5 && hour < 11) return 'morning';
-      if (hour >= 11 && hour < 14) return 'afternoon';
-      if (hour >= 14 && hour < 20) return 'evening';
-      return 'night';
+    // Phase 1.1: Cache LIFF profile in sessionStorage
+    async function getCachedProfile() {
+      const cached = sessionStorage.getItem('liff_profile');
+      const cacheTime = sessionStorage.getItem('liff_profile_time');
+      const ONE_HOUR = 60 * 60 * 1000;
+
+      if (cached && cacheTime && (Date.now() - parseInt(cacheTime)) < ONE_HOUR) {
+        return JSON.parse(cached);
+      }
+
+      const profile = await liff.getProfile();
+      sessionStorage.setItem('liff_profile', JSON.stringify(profile));
+      sessionStorage.setItem('liff_profile_time', Date.now().toString());
+      return profile;
     }
 
+    // Phase 1.2: Check user registration with cache
     async function checkUserRegistration(lineUserId) {
+      // Skip if already verified this session
+      if (sessionStorage.getItem('user_registered') === 'true') {
+        return true;
+      }
+
       try {
         const response = await fetch(`${API_BASE_URL}/check-user/${lineUserId}`);
         const result = await response.json();
@@ -509,6 +558,8 @@
           return false;
         }
 
+        // Cache registration status
+        sessionStorage.setItem('user_registered', 'true');
         return true;
       } catch (error) {
         console.error('Error checking registration:', error);
@@ -525,47 +576,28 @@
           return;
         }
 
-        const profile = await liff.getProfile();
+        // Phase 1.1 & 1.2: Get cached profile and check registration in background
+        const profile = await getCachedProfile();
 
-        // Check registration (but don't block if it fails)
-        try {
-          await checkUserRegistration(profile.userId);
-        } catch (regError) {
-          console.error('Registration check error:', regError);
-        }
+        // Check registration in background (don't block UI)
+        checkUserRegistration(profile.userId).catch(err => console.error('Registration check error:', err));
 
         // Get context
         const context = JSON.parse(localStorage.getItem('oonjai_context') || '{}');
         patientId = context.patientId;
 
-        // Set current time
-        updateCurrentTime();
+        // Start time updater
         setInterval(updateCurrentTime, 60000);
 
-        // Set current period
-        currentPeriod = getCurrentPeriod();
-        selectPeriod(currentPeriod);
-
-        // Load data (don't fail if error)
-        try {
-          await loadMedications();
-          await loadTodayLogs();
-        } catch (loadError) {
-          console.error('Load data error:', loadError);
-        }
-
-        // Show content
-        document.getElementById('loadingState').classList.add('hidden');
-        document.getElementById('mainContent').classList.remove('hidden');
-        document.getElementById('submitSection').classList.remove('hidden');
+        // Phase 1.3: Load data in parallel (background, don't block)
+        Promise.all([
+          loadMedications(),
+          loadTodayLogs()
+        ]).catch(err => console.error('Load data error:', err));
 
       } catch (error) {
         console.error('LIFF init error:', error);
         showToast('เกิดข้อผิดพลาด: ' + error.message, 'error');
-        // Still hide loading and show content with error state
-        document.getElementById('loadingState').classList.add('hidden');
-        document.getElementById('mainContent').classList.remove('hidden');
-        document.getElementById('submitSection').classList.remove('hidden');
       }
     }
 
