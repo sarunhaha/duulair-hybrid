@@ -432,7 +432,7 @@
       if (progress) {
         var checks = [];
         checks.push('liff: ' + (typeof liff !== 'undefined' ? '✓' : '✗'));
-        checks.push('supabase: ' + (typeof supabase !== 'undefined' ? '✓' : '✗'));
+        checks.push('supabase: ' + (typeof window.supabase !== 'undefined' ? '✓' : '✗'));
         progress.textContent = checks.join(' | ');
       }
     })();
@@ -449,26 +449,27 @@
   </script>
 
   <script>
-    // TEST: Check if we get here after api.js
-    (function() {
-      var el = document.getElementById('debugStatus');
-      if (el) {
-        el.textContent = '2. After api.js loaded';
-        el.style.color = 'green';
-      }
-    })();
-
-    // Check if API_BASE_URL exists
-    if (typeof API_BASE_URL === 'undefined') {
-      document.getElementById('debugStatus').textContent = 'ERROR: API_BASE_URL not defined!';
-      document.getElementById('debugStatus').style.color = 'red';
+    // Wrap everything in try-catch for debugging
+    try {
+      document.getElementById('debugStatus').textContent = '2. Main script started';
+      document.getElementById('debugStatus').style.color = 'green';
+    } catch(e) {
+      alert('Error in main script start: ' + e.message);
     }
 
     const LIFF_ID = '2008278683-5k69jxNq';
     const SUPABASE_URL = 'https://mqxklnzxfrupwwkwlwwc.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1xeGtsbnp4ZnJ1cHd3a3dsd3djIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNjcxMjYsImV4cCI6MjA3MjY0MzEyNn0.vPBkIGHdvrfotD3QMnFGrNRMTP3fFzn715XGwqKG-6Y';
 
-    const supabase = window.supabase?.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    let supabaseClient = null;
+    try {
+      if (window.supabase && window.supabase.createClient) {
+        supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        document.getElementById('loadProgress').textContent += ' | sb-client: ✓';
+      }
+    } catch(e) {
+      document.getElementById('loadProgress').textContent += ' | sb-client: ✗ ' + e.message;
+    }
 
     let patientId = null;
     let groupId = null;
@@ -589,9 +590,9 @@
       const today = new Date().toISOString().split('T')[0];
 
       // Load medications count
-      if (patientId && supabase) {
+      if (patientId && supabaseClient) {
         try {
-          const { data: meds, error } = await supabase
+          const { data: meds, error } = await supabaseClient
             .from('medications')
             .select('id, times')
             .eq('patient_id', patientId)
@@ -609,7 +610,7 @@
           }
 
           // Get today's medication logs
-          const { data: logs, error: logsError } = await supabase
+          const { data: logs, error: logsError } = await supabaseClient
             .from('activity_logs')
             .select('*')
             .eq('patient_id', patientId)
@@ -726,7 +727,7 @@
           }
         }));
 
-        const { error } = await supabase
+        const { error } = await supabaseClient
           .from('activity_logs')
           .insert(logs);
 
