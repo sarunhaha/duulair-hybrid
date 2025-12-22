@@ -5,6 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#FAF9F6">
   <title>⚙️ ตั้งค่า - OONJAI</title>
+
+  <!-- Preconnect to speed up external resources -->
+  <link rel="preconnect" href="https://static.line-scdn.net">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <link rel="preconnect" href="https://mqxklnzxfrupwwkwlwwc.supabase.co">
+  <link rel="dns-prefetch" href="https://static.line-scdn.net">
+  <link rel="preload" href="https://static.line-scdn.net/liff/edge/2/sdk.js" as="script">
+
   <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="stylesheet" href="css/minimal-theme.css">
@@ -653,37 +661,61 @@
     const LIFF_ID = '2008278683-5k69jxNq';
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // Check user registration (first-time detection)
-    async function checkUserRegistration(lineUserId) {
-      try {
-        const response = await fetch(`${API_BASE_URL}/check-user/${lineUserId}`);
-        const result = await response.json();
-
-        console.log('📋 Registration check:', result);
-
-        if (!result.exists) {
-          console.log('❌ Not registered, redirecting to registration...');
-          setTimeout(() => {
-            window.location.href = '/liff/index.html';
-          }, 1000);
-          return false;
-        }
-
-        return true;
-      } catch (error) {
-        console.error('❌ Error checking registration:', error);
-        return true; // Allow through on error to avoid blocking
-      }
-    }
-
     let liffId = null;
     let groupId = null;
     let groupData = null;
     let userData = null;
     let settings = {};
     let isGroupContext = false;
-    let currentPackage = 'free'; // 'free' or 'plus'
+    let currentPackage = 'free';
     let reportSettings = null;
+
+    // Phase 2.1: Show UI immediately
+    (function showUIImmediately() {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('main-content').classList.remove('hidden');
+    })();
+
+    // Phase 1.1: Cache LIFF profile in sessionStorage
+    async function getCachedProfile() {
+      const cached = sessionStorage.getItem('liff_profile');
+      const cacheTime = sessionStorage.getItem('liff_profile_time');
+      const ONE_HOUR = 60 * 60 * 1000;
+
+      if (cached && cacheTime && (Date.now() - parseInt(cacheTime)) < ONE_HOUR) {
+        return JSON.parse(cached);
+      }
+
+      const profile = await liff.getProfile();
+      sessionStorage.setItem('liff_profile', JSON.stringify(profile));
+      sessionStorage.setItem('liff_profile_time', Date.now().toString());
+      return profile;
+    }
+
+    // Phase 1.2: Check user registration with cache
+    async function checkUserRegistration(lineUserId) {
+      if (sessionStorage.getItem('user_registered') === 'true') {
+        return true;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/check-user/${lineUserId}`);
+        const result = await response.json();
+
+        if (!result.exists) {
+          setTimeout(() => {
+            window.location.href = '/liff/index.html';
+          }, 1000);
+          return false;
+        }
+
+        sessionStorage.setItem('user_registered', 'true');
+        return true;
+      } catch (error) {
+        console.error('Error checking registration:', error);
+        return true;
+      }
+    }
 
     // Initialize LIFF
     async function initializeLiff() {
@@ -695,40 +727,25 @@
           return;
         }
 
-        // Get user profile
-        const profile = await liff.getProfile();
+        // Phase 1.1: Get cached profile
+        const profile = await getCachedProfile();
 
-        // Check if user is registered (first-time detection)
-        const isRegistered = await checkUserRegistration(profile.userId);
-
-        // If not registered, checkUserRegistration will redirect automatically
-        if (!isRegistered) {
-          return;
-        }
+        // Phase 1.2: Check registration in background
+        checkUserRegistration(profile.userId).catch(err => console.error('Registration check error:', err));
 
         const context = liff.getContext();
         isGroupContext = context && context.type === 'group';
 
-        // Show UI first, then load data
-        document.getElementById('loading').classList.add('hidden');
-        document.getElementById('main-content').classList.remove('hidden');
-
-        // Load data separately with its own error handling
-        try {
-          if (isGroupContext) {
-            groupId = context.groupId;
-            await loadGroupData();
-          } else {
-            await loadUserData();
-          }
-        } catch (dataError) {
-          console.error('❌ Data loading failed:', dataError);
-          showError('ไม่สามารถโหลดข้อมูลได้: ' + dataError.message);
+        // Load data in background
+        if (isGroupContext) {
+          groupId = context.groupId;
+          loadGroupData().catch(err => console.error('Load group data error:', err));
+        } else {
+          loadUserData().catch(err => console.error('Load user data error:', err));
         }
       } catch (error) {
         console.error('LIFF initialization failed:', error);
         showError('ไม่สามารถเชื่อมต่อ LINE ได้: ' + error.message);
-        document.getElementById('loading').classList.add('hidden');
       }
     }
 

@@ -5,6 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#FAF9F6">
   <title>🔔 ตั้งเวลาเตือน - OONJAI</title>
+
+  <!-- Preconnect to speed up external resources -->
+  <link rel="preconnect" href="https://static.line-scdn.net">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <link rel="preconnect" href="https://mqxklnzxfrupwwkwlwwc.supabase.co">
+  <link rel="dns-prefetch" href="https://static.line-scdn.net">
+  <link rel="preload" href="https://static.line-scdn.net/liff/edge/2/sdk.js" as="script">
+
   <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="stylesheet" href="css/minimal-theme.css">
@@ -555,12 +563,6 @@
     const LIFF_ID = '2008278683-5k69jxNq';
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // Check user registration (DISABLED - checking via patientId instead)
-    async function checkUserRegistration(lineUserId) {
-      console.log('⚠️ Skipping registration check - will validate via patientId');
-      return true; // Always return true, validation happens in loadUserData()
-    }
-
     let liffId = null;
     let groupId = null;
     let patientId = null;
@@ -570,6 +572,53 @@
     let selectedFrequency = 'daily';
     let currentReminderType = null;
     let isGroupContext = false;
+
+    // Phase 2.1: Show UI immediately
+    (function showUIImmediately() {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('main-content').classList.remove('hidden');
+    })();
+
+    // Phase 1.1: Cache LIFF profile in sessionStorage
+    async function getCachedProfile() {
+      const cached = sessionStorage.getItem('liff_profile');
+      const cacheTime = sessionStorage.getItem('liff_profile_time');
+      const ONE_HOUR = 60 * 60 * 1000;
+
+      if (cached && cacheTime && (Date.now() - parseInt(cacheTime)) < ONE_HOUR) {
+        return JSON.parse(cached);
+      }
+
+      const profile = await liff.getProfile();
+      sessionStorage.setItem('liff_profile', JSON.stringify(profile));
+      sessionStorage.setItem('liff_profile_time', Date.now().toString());
+      return profile;
+    }
+
+    // Phase 1.2: Check user registration with cache
+    async function checkUserRegistration(lineUserId) {
+      if (sessionStorage.getItem('user_registered') === 'true') {
+        return true;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/check-user/${lineUserId}`);
+        const result = await response.json();
+
+        if (!result.exists) {
+          setTimeout(() => {
+            window.location.href = '/liff/index.html';
+          }, 1000);
+          return false;
+        }
+
+        sessionStorage.setItem('user_registered', 'true');
+        return true;
+      } catch (error) {
+        console.error('Error checking registration:', error);
+        return true;
+      }
+    }
 
     const dayNames = {
       monday: 'จ',
@@ -599,18 +648,20 @@
           return;
         }
 
-        // Get user profile
-        const profile = await liff.getProfile();
-        console.log('👤 LINE Profile:', profile);
+        // Phase 1.1: Get cached profile
+        const profile = await getCachedProfile();
+
+        // Phase 1.2: Check registration in background
+        checkUserRegistration(profile.userId).catch(err => console.error('Registration check error:', err));
 
         const context = liff.getContext();
         isGroupContext = context && context.type === 'group';
 
         if (isGroupContext) {
           groupId = context.groupId;
-          await loadGroupData();
+          loadGroupData().catch(err => console.error('Load group data error:', err));
         } else {
-          await loadUserData();
+          loadUserData().catch(err => console.error('Load user data error:', err));
         }
       } catch (error) {
         console.error('LIFF initialization failed:', error);
