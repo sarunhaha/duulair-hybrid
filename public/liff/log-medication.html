@@ -431,15 +431,20 @@
   <!-- Toast Notification -->
   <div id="toast" class="toast"></div>
 
-  <!-- API Client -->
-  <script src="js/api.js"></script>
-
   <script>
+    // API Base URL - inline for LIFF compatibility
+    const API_BASE_URL = window.location.hostname === 'localhost'
+      ? 'http://localhost:3000/api'
+      : 'https://duulair.vercel.app/api';
+
     const LIFF_ID = '2008278683-5k69jxNq';
     const SUPABASE_URL = 'https://mqxklnzxfrupwwkwlwwc.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1xeGtsbnp4ZnJ1cHd3a3dsd3djIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNjcxMjYsImV4cCI6MjA3MjY0MzEyNn0.vPBkIGHdvrfotD3QMnFGrNRMTP3fFzn715XGwqKG-6Y';
 
-    const supabase = window.supabase?.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    let supabaseClient = null;
+    if (window.supabase && window.supabase.createClient) {
+      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    }
 
     let patientId = null;
     let medications = [];
@@ -567,10 +572,10 @@
     }
 
     async function loadMedications() {
-      if (!supabase || !patientId) return;
+      if (!supabaseClient || !patientId) return;
 
       try {
-        const { data, error } = await supabase
+        const { data, error } = await supabaseClient
           .from('medications')
           .select('*')
           .eq('patient_id', patientId)
@@ -591,12 +596,12 @@
     }
 
     async function loadTodayLogs() {
-      if (!supabase || !patientId) return;
+      if (!supabaseClient || !patientId) return;
 
       const today = new Date().toISOString().split('T')[0];
 
       try {
-        const { data, error } = await supabase
+        const { data, error } = await supabaseClient
           .from('activity_logs')
           .select('*')
           .eq('patient_id', patientId)
@@ -714,7 +719,7 @@
           });
         });
 
-        const { error } = await supabase
+        const { error } = await supabaseClient
           .from('activity_logs')
           .insert(logs);
 
@@ -745,7 +750,14 @@
     }
 
     function goBack() {
-      window.location.href = 'health-log.html';
+      const returnTo = sessionStorage.getItem('liff_return_to');
+      if (returnTo) {
+        sessionStorage.removeItem('liff_return_to');
+        const basePath = window.location.pathname.replace(/[^/]*$/, '');
+        window.location.href = basePath + returnTo;
+      } else {
+        window.location.href = 'health-log.html';
+      }
     }
 
     function showToast(message, type = 'success') {

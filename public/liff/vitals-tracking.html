@@ -228,10 +228,17 @@
 
     <!-- Main Content -->
     <div id="mainContent" class="hidden">
-      <!-- Header -->
+      <!-- Header with Back Button -->
       <div class="header">
-        <h1>🩺 วัดความดัน</h1>
-        <p>บันทึกค่าความดันโลหิต</p>
+        <button class="header-back" onclick="goBack()" id="backBtn" style="display:none;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M15 18l-6-6 6-6"/>
+          </svg>
+        </button>
+        <div class="header-content">
+          <h1>🩺 วัดความดัน</h1>
+          <p>บันทึกค่าความดันโลหิต</p>
+        </div>
       </div>
 
       <!-- Latest Reading Summary -->
@@ -300,22 +307,46 @@
         </div>
       </div>
 
-      <button class="btn btn-secondary btn-block mt-3" onclick="closeLiff()">ปิด</button>
+      <button class="btn btn-secondary btn-block mt-3" onclick="goBack()">
+        <span id="closeBtnText">ปิด</span>
+      </button>
     </div>
   </div>
 
   <!-- Toast Notification -->
   <div id="toast" class="toast"></div>
 
-  <!-- API Client -->
-  <script src="js/api.js"></script>
-
   <script>
+    // API Base URL - inline for LIFF compatibility
+    const API_BASE_URL = window.location.hostname === 'localhost'
+      ? 'http://localhost:3000/api'
+      : 'https://duulair.vercel.app/api';
+
     const LIFF_ID = '2008278683-5k69jxNq';
     const SUPABASE_URL = 'https://mqxklnzxfrupwwkwlwwc.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1xeGtsbnp4ZnJ1cHd3a3dsd3djIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNjcxMjYsImV4cCI6MjA3MjY0MzEyNn0.vPBkIGHdvrfotD3QMnFGrNRMTP3fFzn715XGwqKG-6Y';
 
-    const supabase = window.supabase?.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    let supabaseClient = null;
+    if (window.supabase && window.supabase.createClient) {
+      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    }
+
+    // Check if we should show back button
+    const returnTo = sessionStorage.getItem('liff_return_to');
+    if (returnTo) {
+      document.getElementById('backBtn').style.display = 'flex';
+      document.getElementById('closeBtnText').textContent = 'กลับ';
+    }
+
+    function goBack() {
+      if (returnTo) {
+        sessionStorage.removeItem('liff_return_to');
+        const basePath = window.location.pathname.replace(/[^/]*$/, '');
+        window.location.href = basePath + returnTo;
+      } else {
+        liff.closeWindow();
+      }
+    }
 
     // Check user registration
     async function checkUserRegistration(lineUserId) {
@@ -586,10 +617,6 @@
 
       // Clear file input
       event.target.value = '';
-    }
-
-    function closeLiff() {
-      liff.closeWindow();
     }
 
     // Initialize
