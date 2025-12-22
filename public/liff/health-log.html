@@ -294,12 +294,16 @@
   </style>
 </head>
 <body>
+  <!-- EARLY DEBUG SCRIPT - Runs as soon as body parses -->
+  <script>document.write('<p id="earlyDebug" style="position:fixed;top:0;left:0;background:yellow;padding:5px;z-index:99999;font-size:12px;">JS OK!</p>');</script>
+
   <div class="container">
     <!-- Loading State -->
     <div id="loadingState" class="loading">
       <div class="loading-spinner"></div>
       <p>กำลังโหลด...</p>
       <p id="debugStatus" style="font-size: 12px; color: #666; margin-top: 10px;">Initializing...</p>
+      <p id="loadProgress" style="font-size: 11px; color: #999; margin-top: 5px;"></p>
     </div>
 
     <!-- Main Content -->
@@ -416,12 +420,42 @@
   <!-- Toast Notification -->
   <div id="toast" class="toast"></div>
 
+  <script>
+    // IMMEDIATE TEST - runs before anything else
+    (function() {
+      var el = document.getElementById('debugStatus');
+      var progress = document.getElementById('loadProgress');
+      if (el) {
+        el.textContent = '1. Script block started';
+        el.style.color = 'blue';
+      }
+      if (progress) {
+        var checks = [];
+        checks.push('liff: ' + (typeof liff !== 'undefined' ? '✓' : '✗'));
+        checks.push('supabase: ' + (typeof supabase !== 'undefined' ? '✓' : '✗'));
+        progress.textContent = checks.join(' | ');
+      }
+    })();
+  </script>
+
   <!-- API Client -->
   <script src="js/api.js"></script>
 
   <script>
-    // TEST: ทดสอบว่า script รันหรือไม่
-    document.getElementById('debugStatus').textContent = 'Script started!';
+    // TEST: Check if we get here after api.js
+    (function() {
+      var el = document.getElementById('debugStatus');
+      if (el) {
+        el.textContent = '2. After api.js loaded';
+        el.style.color = 'green';
+      }
+    })();
+
+    // Check if API_BASE_URL exists
+    if (typeof API_BASE_URL === 'undefined') {
+      document.getElementById('debugStatus').textContent = 'ERROR: API_BASE_URL not defined!';
+      document.getElementById('debugStatus').style.color = 'red';
+    }
 
     const LIFF_ID = '2008278683-5k69jxNq';
     const SUPABASE_URL = 'https://mqxklnzxfrupwwkwlwwc.supabase.co';
