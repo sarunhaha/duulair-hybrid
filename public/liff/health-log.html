@@ -438,8 +438,15 @@
     })();
   </script>
 
-  <!-- API Client -->
-  <script src="js/api.js"></script>
+  <!-- API Client - Use absolute URL for LIFF compatibility -->
+  <script>
+    // Inline API_BASE_URL to avoid loading issues in LIFF
+    const API_BASE_URL = window.location.hostname === 'localhost'
+      ? 'http://localhost:3000/api'
+      : 'https://duulair.vercel.app/api';
+
+    document.getElementById('loadProgress').textContent += ' | api: inline ✓';
+  </script>
 
   <script>
     // TEST: Check if we get here after api.js
