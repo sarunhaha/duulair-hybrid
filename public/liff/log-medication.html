@@ -527,20 +527,16 @@
 
         const profile = await liff.getProfile();
 
-        const isRegistered = await checkUserRegistration(profile.userId);
-        if (!isRegistered) return;
+        // Check registration (but don't block if it fails)
+        try {
+          await checkUserRegistration(profile.userId);
+        } catch (regError) {
+          console.error('Registration check error:', regError);
+        }
 
         // Get context
         const context = JSON.parse(localStorage.getItem('oonjai_context') || '{}');
         patientId = context.patientId;
-
-        if (!patientId) {
-          showToast('กรุณาลงทะเบียนก่อน', 'error');
-          setTimeout(() => {
-            window.location.href = '/liff/index.html';
-          }, 2000);
-          return;
-        }
 
         // Set current time
         updateCurrentTime();
@@ -550,9 +546,13 @@
         currentPeriod = getCurrentPeriod();
         selectPeriod(currentPeriod);
 
-        // Load data
-        await loadMedications();
-        await loadTodayLogs();
+        // Load data (don't fail if error)
+        try {
+          await loadMedications();
+          await loadTodayLogs();
+        } catch (loadError) {
+          console.error('Load data error:', loadError);
+        }
 
         // Show content
         document.getElementById('loadingState').classList.add('hidden');
@@ -560,8 +560,12 @@
         document.getElementById('submitSection').classList.remove('hidden');
 
       } catch (error) {
-        console.error('LIFF initialization failed:', error);
-        showToast('เกิดข้อผิดพลาดในการเชื่อมต่อ', 'error');
+        console.error('LIFF init error:', error);
+        showToast('เกิดข้อผิดพลาด: ' + error.message, 'error');
+        // Still hide loading and show content with error state
+        document.getElementById('loadingState').classList.add('hidden');
+        document.getElementById('mainContent').classList.remove('hidden');
+        document.getElementById('submitSection').classList.remove('hidden');
       }
     }
 

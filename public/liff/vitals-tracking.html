@@ -384,14 +384,13 @@
           return;
         }
 
-        // Get user profile
         const profile = await liff.getProfile();
 
-        // Check if user is registered
-        const isRegistered = await checkUserRegistration(profile.userId);
-
-        if (!isRegistered) {
-          return;
+        // Check registration (but don't block if it fails)
+        try {
+          await checkUserRegistration(profile.userId);
+        } catch (regError) {
+          console.error('Registration check error:', regError);
         }
 
         // Get user context
@@ -399,20 +398,23 @@
         patientId = context.patientId;
         groupId = context.groupId;
 
-        if (!patientId) {
-          console.warn('No patient ID found in context');
+        // Load data (don't fail if error)
+        try {
+          await loadTodayData();
+        } catch (loadError) {
+          console.error('Load data error:', loadError);
         }
-
-        // Load data
-        await loadTodayData();
 
         // Show content
         document.getElementById('loadingState').classList.add('hidden');
         document.getElementById('mainContent').classList.remove('hidden');
 
       } catch (error) {
-        console.error('LIFF initialization failed:', error);
-        showToast('เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่อีกครั้ง', 'error');
+        console.error('LIFF init error:', error);
+        showToast('เกิดข้อผิดพลาด: ' + error.message, 'error');
+        // Still hide loading and show content with error state
+        document.getElementById('loadingState').classList.add('hidden');
+        document.getElementById('mainContent').classList.remove('hidden');
       }
     }
 
