@@ -1991,16 +1991,27 @@ async function handleImageMessage(event: any) {
 
     console.log(`📷 Image size: ${imageBuffer.length} bytes`);
 
-    // Use Claude Vision via OpenRouter to read blood pressure from image
-    const ocrPrompt = `อ่านค่าความดันโลหิตจากรูปนี้
+    // Use Claude Vision via OpenRouter to read health data from image
+    const ocrPrompt = `วิเคราะห์รูปนี้และอ่านค่าสุขภาพที่เห็น
 
-ถ้าเห็นค่าความดัน ให้ตอบในรูปแบบ JSON:
-{"systolic": 120, "diastolic": 80, "pulse": 70}
+รูปอาจเป็น:
+1. เครื่องวัดความดัน (Blood Pressure Monitor) - มีค่า SYS, DIA, PULSE
+2. เครื่องวัดน้ำตาล (Glucose Meter) - มีค่า mg/dL
+3. เครื่องชั่งน้ำหนัก (Weight Scale) - มีค่า kg
+4. เทอร์โมมิเตอร์ (Thermometer) - มีค่า °C หรือ °F
+5. ซองยา/กล่องยา (Medication) - มีชื่อยา
 
-ถ้าไม่เห็นค่าความดัน หรือรูปไม่ใช่เครื่องวัดความดัน ให้ตอบ:
-{"error": "ไม่พบค่าความดันในรูป"}
+ตอบเป็น JSON รูปแบบใดรูปแบบหนึ่ง:
 
-ตอบเฉพาะ JSON เท่านั้น`;
+ความดัน: {"type": "blood_pressure", "systolic": 120, "diastolic": 80, "pulse": 70}
+น้ำตาล: {"type": "glucose", "value": 100, "unit": "mg/dL"}
+น้ำหนัก: {"type": "weight", "value": 65.5, "unit": "kg"}
+อุณหภูมิ: {"type": "temperature", "value": 36.5, "unit": "C"}
+ยา: {"type": "medication", "name": "ชื่อยา", "dosage": "ขนาดยา"}
+
+ถ้าไม่พบข้อมูลสุขภาพในรูป: {"type": "unknown", "description": "อธิบายสิ่งที่เห็นในรูป"}
+
+ตอบเฉพาะ JSON เท่านั้น ไม่ต้องอธิบายเพิ่มเติม`;
 
     const visionResult = await openRouterService.analyzeBase64Image(
       base64Image,
@@ -2011,50 +2022,190 @@ async function handleImageMessage(event: any) {
     console.log('📷 Vision result:', visionResult);
 
     let responseText = '';
+    let parsed: any = null;
 
+    // Try multiple parsing strategies
     try {
-      const parsed = JSON.parse(visionResult);
+      // Strategy 1: Direct JSON parse
+      parsed = JSON.parse(visionResult);
+    } catch (e1) {
+      // Strategy 2: Extract JSON from text (Claude may add explanation text)
+      const jsonMatch = visionResult.match(/\{[\s\S]*?\}/);
+      if (jsonMatch) {
+        try {
+          parsed = JSON.parse(jsonMatch[0]);
+        } catch (e2) {
+          console.log('📷 Failed to parse extracted JSON:', jsonMatch[0]);
+        }
+      }
 
-      if (parsed.error) {
-        responseText = `❌ ${parsed.error}\n\nกรุณาส่งรูปเครื่องวัดความดันที่เห็นตัวเลขชัดเจนค่ะ`;
-      } else if (parsed.systolic && parsed.diastolic) {
-        // Save to database
-        const logData: any = {
-          patient_id: patientId,
-          task_type: 'vitals',
-          value: `${parsed.systolic}/${parsed.diastolic}`,
-          metadata: {
-            systolic: parsed.systolic,
-            diastolic: parsed.diastolic,
-            pulse: parsed.pulse || null,
-            source: 'image_ocr',
-            valid: true
-          },
-          timestamp: new Date(),
-          source: isGroupContext ? 'group' : '1:1',
-          group_id: groupId,
-          actor_line_user_id: userId
-        };
+      // Strategy 3: Extract numbers from text patterns for blood pressure
+      if (!parsed) {
+        const sysMatch = visionResult.match(/(?:SYS|systolic|ค่าบน)[:\s]*(\d{2,3})/i);
+        const diaMatch = visionResult.match(/(?:DIA|diastolic|ค่าล่าง)[:\s]*(\d{2,3})/i);
+        const pulseMatch = visionResult.match(/(?:PULSE|pulse|ชีพจร)[:\s]*(\d{2,3})/i);
+        const bpMatch = visionResult.match(/(\d{2,3})\s*[\/]\s*(\d{2,3})/);
 
-        await supabaseService.saveActivityLog(logData);
-
-        responseText = `✅ บันทึกความดัน ${parsed.systolic}/${parsed.diastolic} เรียบร้อยแล้วค่ะ`;
-
-        if (parsed.pulse) {
-          responseText += `\nชีพจร: ${parsed.pulse} ครั้ง/นาที`;
+        if (sysMatch && diaMatch) {
+          parsed = {
+            type: 'blood_pressure',
+            systolic: parseInt(sysMatch[1]),
+            diastolic: parseInt(diaMatch[1]),
+            pulse: pulseMatch ? parseInt(pulseMatch[1]) : null
+          };
+        } else if (bpMatch) {
+          parsed = {
+            type: 'blood_pressure',
+            systolic: parseInt(bpMatch[1]),
+            diastolic: parseInt(bpMatch[2]),
+            pulse: pulseMatch ? parseInt(pulseMatch[1]) : null
+          };
         }
 
-        // Check for alerts
+        // Try glucose pattern
+        const glucoseMatch = visionResult.match(/(\d{2,3})\s*(?:mg\/dL|mg\/dl)/i);
+        if (glucoseMatch && !parsed) {
+          parsed = { type: 'glucose', value: parseInt(glucoseMatch[1]), unit: 'mg/dL' };
+        }
+
+        // Try weight pattern
+        const weightMatch = visionResult.match(/(\d{2,3}(?:\.\d)?)\s*(?:kg|กก|กิโล)/i);
+        if (weightMatch && !parsed) {
+          parsed = { type: 'weight', value: parseFloat(weightMatch[1]), unit: 'kg' };
+        }
+
+        // Try temperature pattern
+        const tempMatch = visionResult.match(/(\d{2}(?:\.\d)?)\s*(?:°?C|องศา)/i);
+        if (tempMatch && !parsed) {
+          parsed = { type: 'temperature', value: parseFloat(tempMatch[1]), unit: 'C' };
+        }
+      }
+    }
+
+    console.log('📷 Parsed result:', parsed);
+
+    // Process based on data type
+    if (!parsed || parsed.type === 'unknown') {
+      const desc = parsed?.description || 'ไม่พบข้อมูลสุขภาพในรูป';
+      responseText = `📷 ${desc}\n\nส่งรูปเครื่องวัดความดัน น้ำตาล น้ำหนัก หรืออุณหภูมิได้ค่ะ`;
+
+    } else if (parsed.type === 'blood_pressure') {
+      // Validate BP values
+      if (parsed.systolic < 60 || parsed.systolic > 250 || parsed.diastolic < 40 || parsed.diastolic > 150) {
+        responseText = `❌ ค่าความดันที่อ่านได้ (${parsed.systolic}/${parsed.diastolic}) ดูไม่ถูกต้อง\n\nกรุณาส่งรูปใหม่ค่ะ`;
+      } else {
+        const vitalsData: any = {
+          patient_id: patientId,
+          bp_systolic: parsed.systolic,
+          bp_diastolic: parsed.diastolic,
+          heart_rate: parsed.pulse || null,
+          source: 'image_ocr',
+          ai_confidence: 0.9,
+          notes: `อ่านจากรูป${parsed.pulse ? ` ชีพจร ${parsed.pulse}` : ''}`,
+          measured_at: new Date().toISOString()
+        };
+        await supabaseService.saveVitalsLog(vitalsData);
+
+        responseText = `✅ บันทึกความดัน ${parsed.systolic}/${parsed.diastolic} mmHg`;
+        if (parsed.pulse) responseText += `\n❤️ ชีพจร: ${parsed.pulse} ครั้ง/นาที`;
+
         if (parsed.systolic > 140 || parsed.diastolic > 90) {
-          responseText += '\n\n⚠️ ความดันสูงกว่าปกติ กรุณาติดตามอาการและปรึกษาแพทย์';
+          responseText += '\n\n⚠️ ความดันสูงกว่าปกติ กรุณาติดตามอาการ';
         } else if (parsed.systolic < 90 || parsed.diastolic < 60) {
           responseText += '\n\n⚠️ ความดันต่ำกว่าปกติ กรุณาติดตามอาการ';
         }
-      } else {
-        responseText = '❌ ไม่สามารถอ่านค่าความดันจากรูปได้\n\nกรุณาส่งรูปที่เห็นตัวเลขชัดเจนค่ะ';
       }
-    } catch (e) {
-      responseText = '❌ ไม่สามารถอ่านค่าความดันจากรูปได้\n\nกรุณาส่งรูปเครื่องวัดความดันที่เห็นตัวเลขชัดเจนค่ะ';
+
+    } else if (parsed.type === 'glucose') {
+      // Validate glucose (normal 70-140 mg/dL)
+      if (parsed.value < 20 || parsed.value > 600) {
+        responseText = `❌ ค่าน้ำตาลที่อ่านได้ (${parsed.value}) ดูไม่ถูกต้อง\n\nกรุณาส่งรูปใหม่ค่ะ`;
+      } else {
+        const vitalsData: any = {
+          patient_id: patientId,
+          glucose: parsed.value,
+          source: 'image_ocr',
+          ai_confidence: 0.9,
+          notes: 'อ่านจากรูปเครื่องวัดน้ำตาล',
+          measured_at: new Date().toISOString()
+        };
+        await supabaseService.saveVitalsLog(vitalsData);
+
+        responseText = `✅ บันทึกน้ำตาล ${parsed.value} mg/dL`;
+
+        if (parsed.value > 180) {
+          responseText += '\n\n⚠️ น้ำตาลสูงมาก กรุณาปรึกษาแพทย์';
+        } else if (parsed.value > 140) {
+          responseText += '\n\n⚠️ น้ำตาลสูงกว่าปกติ';
+        } else if (parsed.value < 70) {
+          responseText += '\n\n⚠️ น้ำตาลต่ำ ควรทานอาหาร/ของหวาน';
+        }
+      }
+
+    } else if (parsed.type === 'weight') {
+      // Validate weight (20-300 kg)
+      if (parsed.value < 20 || parsed.value > 300) {
+        responseText = `❌ ค่าน้ำหนักที่อ่านได้ (${parsed.value}) ดูไม่ถูกต้อง\n\nกรุณาส่งรูปใหม่ค่ะ`;
+      } else {
+        const vitalsData: any = {
+          patient_id: patientId,
+          weight: parsed.value,
+          source: 'image_ocr',
+          ai_confidence: 0.9,
+          notes: 'อ่านจากรูปเครื่องชั่ง',
+          measured_at: new Date().toISOString()
+        };
+        await supabaseService.saveVitalsLog(vitalsData);
+
+        responseText = `✅ บันทึกน้ำหนัก ${parsed.value} kg เรียบร้อยแล้วค่ะ`;
+      }
+
+    } else if (parsed.type === 'temperature') {
+      // Validate temperature (34-42°C)
+      if (parsed.value < 34 || parsed.value > 42) {
+        responseText = `❌ ค่าอุณหภูมิที่อ่านได้ (${parsed.value}°C) ดูไม่ถูกต้อง\n\nกรุณาส่งรูปใหม่ค่ะ`;
+      } else {
+        const vitalsData: any = {
+          patient_id: patientId,
+          temperature: parsed.value,
+          source: 'image_ocr',
+          ai_confidence: 0.9,
+          notes: 'อ่านจากรูปเทอร์โมมิเตอร์',
+          measured_at: new Date().toISOString()
+        };
+        await supabaseService.saveVitalsLog(vitalsData);
+
+        responseText = `✅ บันทึกอุณหภูมิ ${parsed.value}°C เรียบร้อยแล้วค่ะ`;
+
+        if (parsed.value >= 38) {
+          responseText += '\n\n⚠️ มีไข้ กรุณาติดตามอาการและพักผ่อน';
+        } else if (parsed.value >= 37.5) {
+          responseText += '\n\n⚠️ อุณหภูมิสูงกว่าปกติเล็กน้อย';
+        }
+      }
+
+    } else if (parsed.type === 'medication') {
+      // Log medication info
+      const logData: any = {
+        patient_id: patientId,
+        task_type: 'medication_info',
+        value: parsed.name,
+        metadata: {
+          medication_name: parsed.name,
+          dosage: parsed.dosage,
+          source: 'image_ocr'
+        },
+        notes: `ยา: ${parsed.name}${parsed.dosage ? ` (${parsed.dosage})` : ''}`,
+        timestamp: new Date().toISOString()
+      };
+      await supabaseService.saveActivityLog(logData);
+
+      responseText = `📋 พบข้อมูลยา: ${parsed.name}`;
+      if (parsed.dosage) responseText += `\n💊 ขนาด: ${parsed.dosage}`;
+      responseText += '\n\nบันทึกข้อมูลยาเรียบร้อยแล้วค่ะ';
+
+    } else {
+      responseText = '❌ ไม่สามารถอ่านค่าจากรูปได้\n\nลองส่งรูปที่เห็นตัวเลขชัดเจนกว่านี้ค่ะ';
     }
 
     const replyMessage: TextMessage = {

@@ -92,20 +92,20 @@ export interface OpenRouterError {
 // ============================================
 
 export const OPENROUTER_MODELS = {
-  // Claude 4.5 Series (Latest)
-  CLAUDE_SONNET_4_5: 'anthropic/claude-sonnet-4.5',
-  CLAUDE_OPUS_4_5: 'anthropic/claude-opus-4.5',
-
-  // Claude 3.5 Series
+  // Claude 3.5 Series (Latest - use these for vision/OCR)
   CLAUDE_3_5_SONNET: 'anthropic/claude-3.5-sonnet',
   CLAUDE_3_5_HAIKU: 'anthropic/claude-3.5-haiku',
 
-  // Claude 3 Series (Legacy)
+  // Aliases for backward compatibility
+  CLAUDE_SONNET_4_5: 'anthropic/claude-3.5-sonnet',  // Map to 3.5 Sonnet (no 4.5 exists)
+  CLAUDE_OPUS_4_5: 'anthropic/claude-3-opus',         // Map to 3 Opus
+
+  // Claude 3 Series
   CLAUDE_3_OPUS: 'anthropic/claude-3-opus',
   CLAUDE_3_SONNET: 'anthropic/claude-3-sonnet',
   CLAUDE_3_HAIKU: 'anthropic/claude-3-haiku',
 
-  // Other providers (for future use)
+  // Other providers
   GPT_4O: 'openai/gpt-4o',
   GPT_4O_MINI: 'openai/gpt-4o-mini',
   GEMINI_PRO: 'google/gemini-pro-1.5',
@@ -184,6 +184,8 @@ export class OpenRouterService {
     if (tool_choice) body.tool_choice = tool_choice;
 
     try {
+      console.log(`🤖 OpenRouter API call - model: ${model}`);
+
       const response = await fetch(OPENROUTER_API_URL, {
         method: 'POST',
         headers: {
@@ -196,15 +198,24 @@ export class OpenRouterService {
       });
 
       if (!response.ok) {
-        const errorData = await response.json() as OpenRouterError;
-        throw new Error(`OpenRouter API error: ${errorData.error?.message || response.statusText}`);
+        const errorText = await response.text();
+        console.error(`❌ OpenRouter API error - status: ${response.status}, model: ${model}`);
+        console.error(`❌ Error details:`, errorText);
+
+        try {
+          const errorData = JSON.parse(errorText) as OpenRouterError;
+          throw new Error(`OpenRouter API error: ${errorData.error?.message || response.statusText}`);
+        } catch {
+          throw new Error(`OpenRouter API error: ${response.statusText} - ${errorText}`);
+        }
       }
 
       const data = await response.json() as ChatCompletionResponse;
+      console.log(`✅ OpenRouter API success - model: ${model}, tokens: ${data.usage?.total_tokens || 'N/A'}`);
       return data;
 
     } catch (error: any) {
-      console.error('OpenRouter API call failed:', error);
+      console.error(`❌ OpenRouter API call failed - model: ${model}:`, error.message);
       throw error;
     }
   }
