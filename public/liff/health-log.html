@@ -751,7 +751,7 @@
   <div id="editModal" class="modal-overlay" onclick="closeEditModal(event)">
     <div class="modal-content" onclick="event.stopPropagation()">
       <div class="modal-header">
-        <span>แก้ไขกิจกรรม</span>
+        <span id="editModalTitle">แก้ไขกิจกรรม</span>
         <button class="modal-close" onclick="closeEditModal()">×</button>
       </div>
       <div class="modal-body">
@@ -759,19 +759,115 @@
         <input type="hidden" id="editActivityTable">
         <input type="hidden" id="editActivityType">
 
-        <div class="form-group">
-          <label>ประเภท</label>
-          <input type="text" id="editTypeDisplay" readonly style="background: var(--bg-secondary);">
+        <!-- Medication Form -->
+        <div id="editFormMedication" class="edit-form-section" style="display: none;">
+          <div class="form-group">
+            <label>💊 ชื่อยา</label>
+            <input type="text" id="editMedName" placeholder="ชื่อยา">
+          </div>
+          <div class="form-group">
+            <label>เวลากิน</label>
+            <select id="editMedTime">
+              <option value="morning">เช้า</option>
+              <option value="noon">กลางวัน</option>
+              <option value="evening">เย็น</option>
+              <option value="night">ก่อนนอน</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>หมายเหตุ</label>
+            <textarea id="editMedNotes" rows="2" placeholder="หมายเหตุเพิ่มเติม"></textarea>
+          </div>
         </div>
 
-        <div class="form-group" id="editValueGroup">
-          <label id="editValueLabel">ค่า</label>
-          <input type="text" id="editValue" placeholder="กรอกค่า">
+        <!-- Vitals Form -->
+        <div id="editFormVitals" class="edit-form-section" style="display: none;">
+          <div id="editVitalsBP" style="display: none;">
+            <div style="display: flex; gap: 10px;">
+              <div class="form-group" style="flex: 1;">
+                <label>💉 ค่าบน (Systolic)</label>
+                <input type="number" id="editBpSystolic" placeholder="120">
+              </div>
+              <div class="form-group" style="flex: 1;">
+                <label>ค่าล่าง (Diastolic)</label>
+                <input type="number" id="editBpDiastolic" placeholder="80">
+              </div>
+            </div>
+            <div class="form-group">
+              <label>ชีพจร (ครั้ง/นาที)</label>
+              <input type="number" id="editPulse" placeholder="72">
+            </div>
+          </div>
+          <div id="editVitalsOther" style="display: none;">
+            <div class="form-group">
+              <label id="editVitalsOtherLabel">ค่า</label>
+              <input type="number" id="editVitalsOtherValue" step="0.1">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>หมายเหตุ</label>
+            <textarea id="editVitalsNotes" rows="2" placeholder="หมายเหตุเพิ่มเติม"></textarea>
+          </div>
         </div>
 
-        <div class="form-group" id="editNotesGroup">
-          <label>หมายเหตุ</label>
-          <textarea id="editNotes" rows="2" placeholder="หมายเหตุเพิ่มเติม (ถ้ามี)"></textarea>
+        <!-- Water Form -->
+        <div id="editFormWater" class="edit-form-section" style="display: none;">
+          <div class="form-group">
+            <label>💧 ปริมาณน้ำ</label>
+            <div style="display: flex; gap: 10px; align-items: center;">
+              <input type="number" id="editWaterAmount" placeholder="250" style="flex: 1;">
+              <select id="editWaterUnit" style="width: 80px;">
+                <option value="ml">ml</option>
+                <option value="glass">แก้ว</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>หมายเหตุ</label>
+            <textarea id="editWaterNotes" rows="2" placeholder="หมายเหตุเพิ่มเติม"></textarea>
+          </div>
+        </div>
+
+        <!-- Symptom Form -->
+        <div id="editFormSymptom" class="edit-form-section" style="display: none;">
+          <div class="form-group">
+            <label>🤒 อาการ</label>
+            <input type="text" id="editSymptomName" placeholder="ชื่ออาการ">
+          </div>
+          <div class="form-group">
+            <label>ระดับความรุนแรง</label>
+            <select id="editSymptomSeverity">
+              <option value="1">1 - เล็กน้อย</option>
+              <option value="2">2 - เล็กน้อย-ปานกลาง</option>
+              <option value="3">3 - ปานกลาง</option>
+              <option value="4">4 - ปานกลาง-รุนแรง</option>
+              <option value="5">5 - รุนแรง</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>ตำแหน่ง/บริเวณ</label>
+            <input type="text" id="editSymptomLocation" placeholder="เช่น ท้อง, หัว, หน้าอก">
+          </div>
+          <div class="form-group">
+            <label>หมายเหตุ</label>
+            <textarea id="editSymptomNotes" rows="2" placeholder="รายละเอียดเพิ่มเติม"></textarea>
+          </div>
+        </div>
+
+        <!-- Generic Form (for other types) -->
+        <div id="editFormGeneric" class="edit-form-section" style="display: none;">
+          <div class="form-group">
+            <label>ประเภท</label>
+            <input type="text" id="editTypeDisplay" readonly style="background: var(--bg-secondary);">
+          </div>
+          <div class="form-group">
+            <label id="editGenericLabel">ค่า</label>
+            <input type="text" id="editGenericValue" placeholder="กรอกค่า">
+          </div>
+          <div class="form-group">
+            <label>หมายเหตุ</label>
+            <textarea id="editGenericNotes" rows="2" placeholder="หมายเหตุเพิ่มเติม"></textarea>
+          </div>
         </div>
       </div>
       <div class="modal-footer">
@@ -1442,64 +1538,101 @@
       document.getElementById('editActivityTable').value = activity.table;
       document.getElementById('editActivityType').value = activity.type;
 
-      // Set type display
+      // Hide all form sections first
+      document.getElementById('editFormMedication').style.display = 'none';
+      document.getElementById('editFormVitals').style.display = 'none';
+      document.getElementById('editFormWater').style.display = 'none';
+      document.getElementById('editFormSymptom').style.display = 'none';
+      document.getElementById('editFormGeneric').style.display = 'none';
+
+      const raw = activity.rawData;
+
+      // Set modal title based on type
       const typeLabels = {
-        medication: '💊 กินยา',
-        water: '💧 ดื่มน้ำ',
-        vitals: '💉 วัดค่าสุขภาพ',
-        symptom: '🤒 อาการ',
-        exercise: '🚶 ออกกำลังกาย',
-        walk: '🚶 เดิน',
-        food: '🍽️ อาหาร'
+        medication: '💊 แก้ไขการกินยา',
+        water: '💧 แก้ไขการดื่มน้ำ',
+        vitals: '💉 แก้ไขค่าสุขภาพ',
+        symptom: '🤒 แก้ไขอาการ',
+        exercise: '🚶 แก้ไขการออกกำลังกาย',
+        walk: '🚶 แก้ไขการเดิน',
+        food: '🍽️ แก้ไขอาหาร'
       };
-      document.getElementById('editTypeDisplay').value = typeLabels[activity.type] || activity.type;
+      document.getElementById('editModalTitle').textContent = typeLabels[activity.type] || 'แก้ไขกิจกรรม';
 
-      // Set value based on type
-      const valueInput = document.getElementById('editValue');
-      const valueLabel = document.getElementById('editValueLabel');
-      const valueGroup = document.getElementById('editValueGroup');
-      const notesGroup = document.getElementById('editNotesGroup');
+      // Show appropriate form section and populate fields
+      if (activity.type === 'medication' || (activity.table === 'activity_logs' && raw.task_type === 'medication')) {
+        // Medication form
+        document.getElementById('editFormMedication').style.display = 'block';
+        document.getElementById('editMedName').value = raw.metadata?.medication_name || raw.value || '';
+        document.getElementById('editMedTime').value = raw.metadata?.time_period || 'morning';
+        document.getElementById('editMedNotes').value = raw.notes || '';
 
-      if (activity.table === 'vitals_logs') {
-        valueGroup.style.display = 'block';
-        notesGroup.style.display = 'block';
-        const raw = activity.rawData;
-        if (raw.systolic && raw.diastolic) {
-          valueLabel.textContent = 'ความดัน (systolic/diastolic)';
-          valueInput.value = `${raw.systolic}/${raw.diastolic}`;
-          if (raw.pulse) valueInput.value += ` ชีพจร ${raw.pulse}`;
-        } else if (raw.blood_sugar) {
-          valueLabel.textContent = 'น้ำตาล (mg/dL)';
-          valueInput.value = raw.blood_sugar;
-        } else if (raw.heart_rate) {
-          valueLabel.textContent = 'ชีพจร (bpm)';
-          valueInput.value = raw.heart_rate;
-        } else if (raw.temperature) {
-          valueLabel.textContent = 'อุณหภูมิ (°C)';
-          valueInput.value = raw.temperature;
+      } else if (activity.type === 'vitals' || activity.table === 'vitals_logs') {
+        // Vitals form
+        document.getElementById('editFormVitals').style.display = 'block';
+        // Support both snake_case (database) and camelCase column names
+        const systolic = raw.bp_systolic || raw.systolic;
+        const diastolic = raw.bp_diastolic || raw.diastolic;
+        const pulse = raw.heart_rate || raw.pulse;
+        const glucose = raw.glucose || raw.blood_sugar;
+        const temp = raw.temperature;
+
+        if (systolic && diastolic) {
+          // Blood pressure form
+          document.getElementById('editVitalsBP').style.display = 'block';
+          document.getElementById('editVitalsOther').style.display = 'none';
+          document.getElementById('editBpSystolic').value = systolic;
+          document.getElementById('editBpDiastolic').value = diastolic;
+          document.getElementById('editPulse').value = pulse || '';
+        } else if (glucose) {
+          // Blood sugar
+          document.getElementById('editVitalsBP').style.display = 'none';
+          document.getElementById('editVitalsOther').style.display = 'block';
+          document.getElementById('editVitalsOtherLabel').textContent = '🩸 น้ำตาลในเลือด (mg/dL)';
+          document.getElementById('editVitalsOtherValue').value = glucose;
+        } else if (temp) {
+          // Temperature
+          document.getElementById('editVitalsBP').style.display = 'none';
+          document.getElementById('editVitalsOther').style.display = 'block';
+          document.getElementById('editVitalsOtherLabel').textContent = '🌡️ อุณหภูมิ (°C)';
+          document.getElementById('editVitalsOtherValue').value = temp;
+        } else if (pulse && !systolic) {
+          // Heart rate only
+          document.getElementById('editVitalsBP').style.display = 'none';
+          document.getElementById('editVitalsOther').style.display = 'block';
+          document.getElementById('editVitalsOtherLabel').textContent = '❤️ ชีพจร (ครั้ง/นาที)';
+          document.getElementById('editVitalsOtherValue').value = pulse;
         }
-        document.getElementById('editNotes').value = raw.notes || '';
-      } else if (activity.table === 'symptoms') {
-        valueGroup.style.display = 'block';
-        notesGroup.style.display = 'block';
-        valueLabel.textContent = 'อาการ';
-        valueInput.value = activity.rawData.symptom || '';
-        document.getElementById('editNotes').value = activity.rawData.notes || '';
-      } else if (activity.table === 'activity_logs') {
-        const raw = activity.rawData;
-        if (activity.type === 'water') {
-          valueGroup.style.display = 'block';
-          valueLabel.textContent = 'ปริมาณ (ml)';
-          valueInput.value = raw.metadata?.amount || raw.value || '';
-        } else if (activity.type === 'medication') {
-          valueGroup.style.display = 'none';
-        } else {
-          valueGroup.style.display = 'block';
-          valueLabel.textContent = 'ค่า';
-          valueInput.value = raw.value || '';
-        }
-        notesGroup.style.display = 'block';
-        document.getElementById('editNotes').value = raw.notes || '';
+        document.getElementById('editVitalsNotes').value = raw.notes || '';
+
+      } else if (activity.type === 'water' || (activity.table === 'activity_logs' && raw.task_type === 'water')) {
+        // Water form
+        document.getElementById('editFormWater').style.display = 'block';
+        const amount = raw.metadata?.amount || raw.value || 0;
+        document.getElementById('editWaterAmount').value = amount;
+        document.getElementById('editWaterUnit').value = raw.metadata?.unit || 'ml';
+        document.getElementById('editWaterNotes').value = raw.notes || '';
+
+      } else if (activity.type === 'symptom' || activity.table === 'symptoms') {
+        // Symptom form
+        document.getElementById('editFormSymptom').style.display = 'block';
+        document.getElementById('editSymptomName').value = raw.symptom_name || raw.symptom || '';
+        document.getElementById('editSymptomSeverity').value = raw.severity_1to5 || raw.severity || 3;
+        document.getElementById('editSymptomLocation').value = raw.body_location || raw.location || '';
+        document.getElementById('editSymptomNotes').value = raw.notes || raw.duration_text || '';
+
+      } else {
+        // Generic form for other types
+        document.getElementById('editFormGeneric').style.display = 'block';
+        const typeDisplayLabels = {
+          exercise: '🚶 ออกกำลังกาย',
+          walk: '🚶 เดิน',
+          food: '🍽️ อาหาร'
+        };
+        document.getElementById('editTypeDisplay').value = typeDisplayLabels[activity.type] || activity.type;
+        document.getElementById('editGenericLabel').textContent = activity.type === 'exercise' || activity.type === 'walk' ? 'ระยะเวลา (นาที)' : 'ค่า';
+        document.getElementById('editGenericValue').value = raw.value || raw.metadata?.duration || '';
+        document.getElementById('editGenericNotes').value = raw.notes || '';
       }
 
       document.getElementById('editModal').classList.add('show');
@@ -1517,44 +1650,101 @@
       const activity = activityHistory[currentEditIndex];
       const id = document.getElementById('editActivityId').value;
       const table = document.getElementById('editActivityTable').value;
-      const value = document.getElementById('editValue').value;
-      const notes = document.getElementById('editNotes').value;
+      const activityType = document.getElementById('editActivityType').value;
+      const raw = activity.rawData;
 
       try {
         let updateData = {};
 
-        if (table === 'vitals_logs') {
-          // Parse vitals value
-          if (value.includes('/')) {
-            const parts = value.split(/[\/\s]+/);
-            updateData.bp_systolic = parseInt(parts[0]);
-            updateData.bp_diastolic = parseInt(parts[1]);
-            // Check for pulse
-            const pulseMatch = value.match(/ชีพจร\s*(\d+)/);
-            if (pulseMatch) updateData.heart_rate = parseInt(pulseMatch[1]);
+        // Build update data based on activity type and visible form
+        if (activityType === 'medication' || (table === 'activity_logs' && raw.task_type === 'medication')) {
+          // Medication form
+          const medName = document.getElementById('editMedName').value;
+          const medTime = document.getElementById('editMedTime').value;
+          const medNotes = document.getElementById('editMedNotes').value;
+
+          updateData.metadata = {
+            ...raw.metadata,
+            medication_name: medName,
+            time_period: medTime
+          };
+          updateData.value = medName;
+          if (medNotes) updateData.notes = medNotes;
+
+        } else if (activityType === 'vitals' || table === 'vitals_logs') {
+          // Vitals form - check which sub-form is visible
+          const bpFormVisible = document.getElementById('editVitalsBP').style.display !== 'none';
+
+          if (bpFormVisible) {
+            // Blood pressure form
+            const systolic = document.getElementById('editBpSystolic').value;
+            const diastolic = document.getElementById('editBpDiastolic').value;
+            const pulse = document.getElementById('editPulse').value;
+
+            if (systolic) updateData.bp_systolic = parseInt(systolic);
+            if (diastolic) updateData.bp_diastolic = parseInt(diastolic);
+            if (pulse) updateData.heart_rate = parseInt(pulse);
           } else {
-            // Single value - determine type from original data
-            const raw = activity.rawData;
-            if (raw.glucose !== undefined || raw.blood_sugar !== undefined) {
-              updateData.glucose = parseFloat(value);
-            } else if (raw.heart_rate !== undefined) {
-              updateData.heart_rate = parseInt(value);
-            } else if (raw.temperature !== undefined) {
-              updateData.temperature = parseFloat(value);
+            // Other vitals form (blood sugar, temp, heart rate only)
+            const otherValue = document.getElementById('editVitalsOtherValue').value;
+            const otherLabel = document.getElementById('editVitalsOtherLabel').textContent;
+
+            if (otherLabel.includes('น้ำตาล')) {
+              updateData.glucose = parseFloat(otherValue);
+            } else if (otherLabel.includes('อุณหภูมิ')) {
+              updateData.temperature = parseFloat(otherValue);
+            } else if (otherLabel.includes('ชีพจร')) {
+              updateData.heart_rate = parseInt(otherValue);
             }
           }
-          if (notes) updateData.notes = notes;
-        } else if (table === 'symptoms') {
-          updateData.symptom_name = value;
-          if (notes) updateData.notes = notes;
-        } else if (table === 'activity_logs') {
-          if (activity.type === 'water') {
-            updateData.metadata = { ...activity.rawData.metadata, amount: parseInt(value) };
-            updateData.value = parseInt(value);
+
+          const vitalsNotes = document.getElementById('editVitalsNotes').value;
+          if (vitalsNotes) updateData.notes = vitalsNotes;
+
+        } else if (activityType === 'water' || (table === 'activity_logs' && raw.task_type === 'water')) {
+          // Water form
+          const waterAmount = document.getElementById('editWaterAmount').value;
+          const waterUnit = document.getElementById('editWaterUnit').value;
+          const waterNotes = document.getElementById('editWaterNotes').value;
+
+          // Convert to ml if unit is glass (1 glass ≈ 250ml)
+          const amountMl = waterUnit === 'glass' ? parseInt(waterAmount) * 250 : parseInt(waterAmount);
+
+          updateData.metadata = {
+            ...raw.metadata,
+            amount: amountMl,
+            unit: waterUnit
+          };
+          updateData.value = amountMl.toString();
+          if (waterNotes) updateData.notes = waterNotes;
+
+        } else if (activityType === 'symptom' || table === 'symptoms') {
+          // Symptom form
+          const symptomName = document.getElementById('editSymptomName').value;
+          const symptomSeverity = document.getElementById('editSymptomSeverity').value;
+          const symptomLocation = document.getElementById('editSymptomLocation').value;
+          const symptomNotes = document.getElementById('editSymptomNotes').value;
+
+          updateData.symptom_name = symptomName;
+          updateData.severity_1to5 = parseInt(symptomSeverity);
+          if (symptomLocation) updateData.body_location = symptomLocation;
+          if (symptomNotes) updateData.notes = symptomNotes;
+
+        } else {
+          // Generic form for other types
+          const genericValue = document.getElementById('editGenericValue').value;
+          const genericNotes = document.getElementById('editGenericNotes').value;
+
+          if (activityType === 'exercise' || activityType === 'walk') {
+            updateData.metadata = {
+              ...raw.metadata,
+              duration: parseInt(genericValue)
+            };
+            updateData.value = genericValue;
           } else {
-            updateData.value = value;
+            updateData.value = genericValue;
           }
-          updateData.notes = notes;
+          if (genericNotes) updateData.notes = genericNotes;
         }
 
         const { error } = await supabaseClient
