@@ -1961,6 +1961,13 @@ async function handleImageMessage(event: any) {
 
     console.log(`📷 Image message received from ${userId} (group: ${isGroupContext})`);
 
+    // Skip redelivery events - replyToken is likely expired
+    const isRedelivery = event.deliveryContext?.isRedelivery || false;
+    if (isRedelivery) {
+      console.log('⏭️ Skipping redelivery event for image');
+      return { success: true, skipped: true, reason: 'redelivery' };
+    }
+
     // Check user registration
     const userCheck = await userService.checkUserExists(userId);
     if (!userCheck.exists || userCheck.role !== 'caregiver') {
@@ -2128,7 +2135,7 @@ async function handleImageMessage(event: any) {
           bp_systolic: parsed.systolic,
           bp_diastolic: parsed.diastolic,
           heart_rate: parsed.pulse || null,
-          source: 'image_ocr',
+          source: 'image',
           ai_confidence: 0.9,
           notes: `อ่านจากรูป${parsed.pulse ? ` ชีพจร ${parsed.pulse}` : ''}`,
           measured_at: new Date().toISOString()
@@ -2153,7 +2160,7 @@ async function handleImageMessage(event: any) {
         const vitalsData: any = {
           patient_id: patientId,
           glucose: parsed.value,
-          source: 'image_ocr',
+          source: 'image',
           ai_confidence: 0.9,
           notes: 'อ่านจากรูปเครื่องวัดน้ำตาล',
           measured_at: new Date().toISOString()
@@ -2179,7 +2186,7 @@ async function handleImageMessage(event: any) {
         const vitalsData: any = {
           patient_id: patientId,
           weight: parsed.value,
-          source: 'image_ocr',
+          source: 'image',
           ai_confidence: 0.9,
           notes: 'อ่านจากรูปเครื่องชั่ง',
           measured_at: new Date().toISOString()
@@ -2197,7 +2204,7 @@ async function handleImageMessage(event: any) {
         const vitalsData: any = {
           patient_id: patientId,
           temperature: parsed.value,
-          source: 'image_ocr',
+          source: 'image',
           ai_confidence: 0.9,
           notes: 'อ่านจากรูปเทอร์โมมิเตอร์',
           measured_at: new Date().toISOString()
@@ -2222,7 +2229,7 @@ async function handleImageMessage(event: any) {
         metadata: {
           medication_name: parsed.name,
           dosage: parsed.dosage,
-          source: 'image_ocr'
+          source: 'image'
         },
         notes: `ยา: ${parsed.name}${parsed.dosage ? ` (${parsed.dosage})` : ''}`,
         timestamp: new Date().toISOString()
