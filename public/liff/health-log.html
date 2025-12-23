@@ -1220,22 +1220,30 @@
           vitals.forEach(v => {
             let text = '';
             let valueDisplay = '';
-            if (v.systolic && v.diastolic) {
-              text = `วัดความดัน ${v.systolic}/${v.diastolic} mmHg`;
-              valueDisplay = `${v.systolic}/${v.diastolic}`;
-              if (v.pulse) {
-                text += ` ชีพจร ${v.pulse}`;
-                valueDisplay += ` ชีพจร ${v.pulse}`;
+            // Support both snake_case (database) and camelCase column names
+            const systolic = v.bp_systolic || v.systolic;
+            const diastolic = v.bp_diastolic || v.diastolic;
+            const pulse = v.heart_rate || v.pulse;
+            const bloodSugar = v.glucose || v.blood_sugar;
+            const temp = v.temperature;
+            const timestamp = v.created_at || v.measured_at;
+
+            if (systolic && diastolic) {
+              text = `วัดความดัน ${systolic}/${diastolic} mmHg`;
+              valueDisplay = `${systolic}/${diastolic}`;
+              if (pulse) {
+                text += ` ชีพจร ${pulse}`;
+                valueDisplay += ` ชีพจร ${pulse}`;
               }
-            } else if (v.heart_rate) {
-              text = `ชีพจร ${v.heart_rate} bpm`;
-              valueDisplay = v.heart_rate;
-            } else if (v.blood_sugar) {
-              text = `น้ำตาล ${v.blood_sugar} mg/dL`;
-              valueDisplay = v.blood_sugar;
-            } else if (v.temperature) {
-              text = `อุณหภูมิ ${v.temperature}°C`;
-              valueDisplay = v.temperature;
+            } else if (pulse && !systolic) {
+              text = `ชีพจร ${pulse} bpm`;
+              valueDisplay = pulse;
+            } else if (bloodSugar) {
+              text = `น้ำตาล ${bloodSugar} mg/dL`;
+              valueDisplay = bloodSugar;
+            } else if (temp) {
+              text = `อุณหภูมิ ${temp}°C`;
+              valueDisplay = temp;
             }
             if (text) {
               activityHistory.push({
@@ -1244,7 +1252,7 @@
                 type: 'vitals',
                 text,
                 valueDisplay,
-                timestamp: new Date(v.created_at),
+                timestamp: new Date(timestamp),
                 icon: '💉',
                 rawData: v
               });
@@ -1255,13 +1263,17 @@
         // Process symptoms
         if (symptoms) {
           symptoms.forEach(s => {
-            const severity = { mild: 'เล็กน้อย', moderate: 'ปานกลาง', severe: 'รุนแรง' };
+            // Map severity_1to5 to text
+            const severityText = s.severity_1to5 ?
+              (s.severity_1to5 <= 2 ? 'เล็กน้อย' : s.severity_1to5 <= 3 ? 'ปานกลาง' : 'รุนแรง') :
+              '';
+            const symptomName = s.symptom_name || s.symptom || 'อาการ';
             activityHistory.push({
               id: s.id,
               table: 'symptoms',
               type: 'symptom',
-              text: `${s.symptom} (${severity[s.severity] || s.severity})`,
-              valueDisplay: s.symptom,
+              text: severityText ? `${symptomName} (${severityText})` : symptomName,
+              valueDisplay: symptomName,
               timestamp: new Date(s.created_at),
               icon: '🤒',
               rawData: s
@@ -1515,26 +1527,26 @@
           // Parse vitals value
           if (value.includes('/')) {
             const parts = value.split(/[\/\s]+/);
-            updateData.systolic = parseInt(parts[0]);
-            updateData.diastolic = parseInt(parts[1]);
+            updateData.bp_systolic = parseInt(parts[0]);
+            updateData.bp_diastolic = parseInt(parts[1]);
             // Check for pulse
             const pulseMatch = value.match(/ชีพจร\s*(\d+)/);
-            if (pulseMatch) updateData.pulse = parseInt(pulseMatch[1]);
+            if (pulseMatch) updateData.heart_rate = parseInt(pulseMatch[1]);
           } else {
             // Single value - determine type from original data
             const raw = activity.rawData;
-            if (raw.blood_sugar !== undefined) {
-              updateData.blood_sugar = parseFloat(value);
+            if (raw.glucose !== undefined || raw.blood_sugar !== undefined) {
+              updateData.glucose = parseFloat(value);
             } else if (raw.heart_rate !== undefined) {
               updateData.heart_rate = parseInt(value);
             } else if (raw.temperature !== undefined) {
               updateData.temperature = parseFloat(value);
             }
           }
-          updateData.notes = notes;
+          if (notes) updateData.notes = notes;
         } else if (table === 'symptoms') {
-          updateData.symptom = value;
-          updateData.notes = notes;
+          updateData.symptom_name = value;
+          if (notes) updateData.notes = notes;
         } else if (table === 'activity_logs') {
           if (activity.type === 'water') {
             updateData.metadata = { ...activity.rawData.metadata, amount: parseInt(value) };

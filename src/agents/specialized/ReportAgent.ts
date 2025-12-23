@@ -41,15 +41,13 @@ export class ReportAgent extends BaseAgent {
       // For actual report generation, patientId is required
       const patientId = message.context.patientId || message.metadata?.patientData?.id;
       if (!patientId) {
-        // No patientId - show report menu instead
-        this.log('warn', 'No patientId available, showing report menu');
-        const menuFlexMessage = this.createReportMenuFlexMessage();
+        // No patientId - inform user to register first
+        this.log('warn', 'No patientId available');
         return {
           success: true,
           data: {
-            response: 'กรุณาเลือกประเภทรายงานที่ต้องการดูค่ะ',
-            flexMessage: menuFlexMessage,
-            flexMessageType: 'report_menu'
+            response: 'ไม่พบข้อมูลผู้ป่วย กรุณาลงทะเบียนก่อนใช้งานค่ะ 📝',
+            reportText: 'ไม่พบข้อมูลผู้ป่วย กรุณาลงทะเบียนก่อนใช้งานค่ะ 📝'
           },
           agentName: this.config.name,
           processingTime: Date.now() - startTime
@@ -62,32 +60,63 @@ export class ReportAgent extends BaseAgent {
       let reportText: string;
       let reportData: any;
 
-      if (reportType === 'daily') {
-        reportData = await reportService.generateDailyReport(patientId);
-        reportText = reportService.formatDailyReportText(reportData);
-      } else if (reportType === 'weekly') {
-        reportData = await reportService.generateWeeklyReport(patientId);
-        reportText = reportService.formatWeeklyReportText(reportData);
-      } else if (reportType === 'monthly') {
-        reportData = await reportService.generateMonthlyReport(patientId);
-        reportText = reportService.formatMonthlyReportText(reportData);
-      } else {
-        // Default to daily
-        reportData = await reportService.generateDailyReport(patientId);
-        reportText = reportService.formatDailyReportText(reportData);
-      }
+      try {
+        if (reportType === 'daily') {
+          reportData = await reportService.generateDailyReport(patientId);
+          reportText = reportService.formatDailyReportText(reportData);
+        } else if (reportType === 'weekly') {
+          reportData = await reportService.generateWeeklyReport(patientId);
+          reportText = reportService.formatWeeklyReportText(reportData);
+        } else if (reportType === 'monthly') {
+          reportData = await reportService.generateMonthlyReport(patientId);
+          reportText = reportService.formatMonthlyReportText(reportData);
+        } else {
+          // Default to daily
+          reportData = await reportService.generateDailyReport(patientId);
+          reportText = reportService.formatDailyReportText(reportData);
+        }
 
-      return {
-        success: true,
-        data: {
-          report: reportData,
-          reportText,
-          reportType,
-          responseMessage: reportText
-        },
-        agentName: this.config.name,
-        processingTime: Date.now() - startTime
-      };
+        // Check if report has any data
+        const hasData = this.checkReportHasData(reportData, reportType);
+        if (!hasData) {
+          const noDataText = this.getNoDataMessage(reportType);
+          return {
+            success: true,
+            data: {
+              response: noDataText,
+              reportText: noDataText,
+              reportType,
+              hasData: false
+            },
+            agentName: this.config.name,
+            processingTime: Date.now() - startTime
+          };
+        }
+
+        return {
+          success: true,
+          data: {
+            report: reportData,
+            reportText,
+            response: reportText,
+            reportType,
+            hasData: true
+          },
+          agentName: this.config.name,
+          processingTime: Date.now() - startTime
+        };
+      } catch (error) {
+        this.log('error', 'Error generating report', error);
+        return {
+          success: true,
+          data: {
+            response: 'ขออภัยค่ะ ไม่สามารถสร้างรายงานได้ในขณะนี้ กรุณาลองใหม่อีกครั้งค่ะ',
+            reportText: 'ขออภัยค่ะ ไม่สามารถสร้างรายงานได้ในขณะนี้ กรุณาลองใหม่อีกครั้งค่ะ'
+          },
+          agentName: this.config.name,
+          processingTime: Date.now() - startTime
+        };
+      }
 
     } catch (error) {
       return {
@@ -780,6 +809,72 @@ Example format:
         ]
       }
     };
+  }
+
+  /**
+   * Check if report has any actual data
+   */
+  private checkReportHasData(reportData: any, reportType: string): boolean {
+    if (!reportData) return false;
+
+    if (reportType === 'daily') {
+      const summary = reportData.summary;
+      if (!summary) return false;
+      // Check if any activity was recorded
+      return (
+        (summary.medication?.count || 0) > 0 ||
+        (summary.vitals?.count || 0) > 0 ||
+        (summary.water?.totalMl || 0) > 0 ||
+        (summary.food?.count || 0) > 0 ||
+        (summary.exercise?.count || 0) > 0 ||
+        (reportData.activities?.length || 0) > 0
+      );
+    } else if (reportType === 'weekly') {
+      const weekTotal = reportData.weekTotal;
+      if (!weekTotal) return false;
+      return (
+        (weekTotal.medication?.count || 0) > 0 ||
+        (weekTotal.vitals?.count || 0) > 0 ||
+        (weekTotal.water?.totalMl || 0) > 0 ||
+        (weekTotal.food?.count || 0) > 0 ||
+        (weekTotal.exercise?.count || 0) > 0
+      );
+    } else if (reportType === 'monthly') {
+      const monthTotal = reportData.monthTotal;
+      if (!monthTotal) return false;
+      return (
+        (monthTotal.medication?.count || 0) > 0 ||
+        (monthTotal.vitals?.count || 0) > 0 ||
+        (monthTotal.water?.totalMl || 0) > 0 ||
+        (monthTotal.food?.count || 0) > 0 ||
+        (monthTotal.exercise?.count || 0) > 0 ||
+        (reportData.activeDays || 0) > 0
+      );
+    }
+
+    return false;
+  }
+
+  /**
+   * Get appropriate no-data message based on report type
+   */
+  private getNoDataMessage(reportType: string): string {
+    const today = new Date().toLocaleDateString('th-TH', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+
+    if (reportType === 'daily') {
+      return `📊 รายงานประจำวัน\n📅 ${today}\n\n📝 ยังไม่มีกิจกรรมที่บันทึกในวันนี้ค่ะ\n\n💡 เริ่มบันทึกสุขภาพได้เลย:\n• พิมพ์ "กินยาแล้ว"\n• พิมพ์ "ความดัน 120/80"\n• พิมพ์ "ดื่มน้ำ"\n\nหรือเข้าเมนู "บันทึกสุขภาพ" ค่ะ 💚`;
+    } else if (reportType === 'weekly') {
+      return `📊 รายงานสัปดาห์\n\n📝 ยังไม่มีกิจกรรมที่บันทึกในช่วง 7 วันที่ผ่านมาค่ะ\n\n💡 เริ่มบันทึกสุขภาพวันนี้ได้เลย:\n• พิมพ์ "กินยาแล้ว"\n• พิมพ์ "ความดัน 120/80"\n• พิมพ์ "ดื่มน้ำ"\n\nหรือเข้าเมนู "บันทึกสุขภาพ" ค่ะ 💚`;
+    } else if (reportType === 'monthly') {
+      return `📊 รายงานเดือนนี้\n\n📝 ยังไม่มีกิจกรรมที่บันทึกในเดือนนี้ค่ะ\n\n💡 เริ่มบันทึกสุขภาพวันนี้ได้เลย:\n• พิมพ์ "กินยาแล้ว"\n• พิมพ์ "ความดัน 120/80"\n• พิมพ์ "ดื่มน้ำ"\n\nหรือเข้าเมนู "บันทึกสุขภาพ" ค่ะ 💚`;
+    }
+
+    return '📊 ยังไม่มีข้อมูลกิจกรรมค่ะ';
   }
 
   getCapabilities(): string[] {

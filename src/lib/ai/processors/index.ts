@@ -185,6 +185,7 @@ async function processSymptom(
   symptom: ExtractedSymptom,
   context: ProcessorContext
 ): Promise<ProcessResult> {
+  const now = new Date().toISOString();
   const insert: SymptomInsert = {
     patient_id: context.patientId,
     conversation_log_id: context.conversationLogId,
@@ -201,7 +202,9 @@ async function processSymptom(
     raw_text: context.rawText
   };
 
-  const recordId = await supabaseService.saveSymptom(insert);
+  // Add created_at to insert data
+  const insertWithTimestamp = { ...insert, created_at: now };
+  const recordId = await supabaseService.saveSymptom(insertWithTimestamp as any);
 
   // Create health event
   const healthEventId = await createHealthEvent({
