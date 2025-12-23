@@ -317,6 +317,53 @@ SubIntents:
 }
 \`\`\`
 
+ตัวอย่าง query (รายงานวันนี้):
+\`\`\`json
+{
+  "intent": "query",
+  "subIntent": "report",
+  "confidence": 0.95,
+  "entities": { "reportType": "daily" },
+  "healthData": null,
+  "action": { "type": "query", "target": "reports", "data": { "reportType": "daily" } },
+  "response": null,
+  "followUp": null
+}
+\`\`\`
+
+ตัวอย่าง query (รายงานสัปดาห์):
+\`\`\`json
+{
+  "intent": "query",
+  "subIntent": "report",
+  "confidence": 0.95,
+  "entities": { "reportType": "weekly" },
+  "healthData": null,
+  "action": { "type": "query", "target": "reports", "data": { "reportType": "weekly" } },
+  "response": null,
+  "followUp": null
+}
+\`\`\`
+
+ตัวอย่าง query (รายงานเดือน):
+\`\`\`json
+{
+  "intent": "query",
+  "subIntent": "report",
+  "confidence": 0.95,
+  "entities": { "reportType": "monthly" },
+  "healthData": null,
+  "action": { "type": "query", "target": "reports", "data": { "reportType": "monthly" } },
+  "response": null,
+  "followUp": null
+}
+\`\`\`
+
+**สำคัญ: รายงาน**
+- "รายงานวันนี้", "สรุปวันนี้", "รายงานประจำวัน" → intent: "query", subIntent: "report", reportType: "daily"
+- "รายงานสัปดาห์", "สรุปสัปดาห์", "รายงาน 7 วัน" → intent: "query", subIntent: "report", reportType: "weekly"
+- "รายงานเดือน", "สรุปเดือน", "รายงาน 30 วัน" → intent: "query", subIntent: "report", reportType: "monthly"
+
 ตัวอย่าง medication_manage (เพิ่มยา):
 \`\`\`json
 {

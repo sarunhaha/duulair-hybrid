@@ -469,7 +469,7 @@
     <div id="main-content" class="hidden">
       <!-- Header -->
       <div class="page-header">
-        <button class="back-btn" onclick="liff.closeWindow()">
+        <button class="back-btn" onclick="goBack()">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M19 12H5M12 19l-7-7 7-7"/>
           </svg>
@@ -498,7 +498,7 @@
         <p class="text-small text-muted mt-2">กดปุ่มด้านบนเพื่อเพิ่มยา</p>
       </div>
 
-      <button class="btn btn-secondary btn-block mt-3" onclick="liff.closeWindow()">ปิด</button>
+      <button class="btn btn-secondary btn-block mt-3" onclick="goBack()"><span id="closeBtnText">กลับ</span></button>
     </div>
   </div>
 
@@ -1259,6 +1259,18 @@
       alert.textContent = message;
       alert.style.display = 'block';
       document.getElementById('loading').classList.add('hidden');
+    }
+
+    // Go back to previous page or close LIFF
+    function goBack() {
+      const returnTo = sessionStorage.getItem('liff_return_to');
+      if (returnTo) {
+        sessionStorage.removeItem('liff_return_to');
+        const basePath = window.location.pathname.replace(/[^/]*$/, '');
+        window.location.href = basePath + returnTo;
+      } else {
+        liff.closeWindow();
+      }
     }
 
     // Initialize on load

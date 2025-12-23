@@ -289,6 +289,139 @@
       background: linear-gradient(135deg, #ff6b6b 0%, #fa5252 100%);
     }
 
+    /* Activity History Section */
+    .history-section {
+      background: var(--bg-card);
+      border-radius: var(--radius-lg);
+      padding: var(--spacing-lg);
+      margin-bottom: var(--spacing-lg);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .history-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: var(--spacing-md);
+    }
+
+    .history-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .history-toggle {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: none;
+      border: none;
+      color: var(--accent-primary);
+      font-size: 13px;
+      cursor: pointer;
+      padding: var(--spacing-xs) var(--spacing-sm);
+      border-radius: var(--radius-sm);
+      transition: background 0.2s;
+    }
+
+    .history-toggle:active {
+      background: var(--accent-light);
+    }
+
+    .history-toggle.expanded svg {
+      transform: rotate(180deg);
+    }
+
+    .history-list {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-sm);
+    }
+
+    .history-loading {
+      text-align: center;
+      color: var(--text-secondary);
+      padding: var(--spacing-md);
+    }
+
+    .history-empty {
+      text-align: center;
+      color: var(--text-secondary);
+      padding: var(--spacing-lg);
+    }
+
+    .history-day {
+      margin-bottom: var(--spacing-md);
+    }
+
+    .history-day:last-child {
+      margin-bottom: 0;
+    }
+
+    .history-day-header {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: var(--spacing-sm);
+      padding-bottom: var(--spacing-xs);
+      border-bottom: 1px solid rgba(0,0,0,0.08);
+    }
+
+    .history-item {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--spacing-sm);
+      padding: var(--spacing-sm);
+      background: var(--bg-secondary);
+      border-radius: var(--radius-md);
+      margin-bottom: var(--spacing-xs);
+    }
+
+    .history-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .history-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    .history-icon.medication { background: #FEE2E2; }
+    .history-icon.water { background: #DBEAFE; }
+    .history-icon.vitals { background: #D1FAE5; }
+    .history-icon.symptom { background: #FEF3C7; }
+    .history-icon.exercise { background: #E0E7FF; }
+    .history-icon.food { background: #FCE7F3; }
+
+    .history-content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .history-text {
+      font-size: 14px;
+      color: var(--text-primary);
+      margin-bottom: 2px;
+    }
+
+    .history-time {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .history-expanded {
+      margin-top: var(--spacing-md);
+      padding-top: var(--spacing-md);
+      border-top: 1px dashed rgba(0,0,0,0.1);
+    }
+
     @media (max-width: 380px) {
       .category-icon {
         font-size: 28px;
@@ -408,6 +541,25 @@
             </div>
             <span class="quick-btn-arrow">›</span>
           </button>
+        </div>
+      </div>
+
+      <!-- Activity History Section -->
+      <div class="history-section">
+        <div class="history-header">
+          <div class="history-title">📋 ประวัติกิจกรรม</div>
+          <button class="history-toggle" onclick="toggleHistory()">
+            <span id="historyToggleText">ดูเพิ่มเติม</span>
+            <svg id="historyArrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M6 9l6 6 6-6"/>
+            </svg>
+          </button>
+        </div>
+        <div id="historyList" class="history-list">
+          <div class="history-loading">กำลังโหลด...</div>
+        </div>
+        <div id="historyExpanded" class="history-expanded hidden">
+          <!-- More history items will be loaded here -->
         </div>
       </div>
 
@@ -565,7 +717,8 @@
         // Phase 1.3: Run profile fetch and data loading in parallel
         const [profile] = await Promise.all([
           getCachedProfile(),
-          loadTodaySummary() // Load real data in parallel
+          loadTodaySummary(), // Load real data in parallel
+          loadActivityHistory() // Load activity history
         ]);
 
         // Check registration in background (don't await)
@@ -762,6 +915,246 @@
 
     function closeLiff() {
       liff.closeWindow();
+    }
+
+    // ============================================
+    // Activity History Functions
+    // ============================================
+    let activityHistory = [];
+    let historyExpanded = false;
+
+    async function loadActivityHistory() {
+      if (!patientId || !supabaseClient) {
+        document.getElementById('historyList').innerHTML = '<div class="history-empty">ไม่พบข้อมูล</div>';
+        return;
+      }
+
+      try {
+        // Get activities from last 7 days
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        const startDate = sevenDaysAgo.toISOString();
+
+        const { data: logs, error } = await supabaseClient
+          .from('activity_logs')
+          .select('*')
+          .eq('patient_id', patientId)
+          .gte('created_at', startDate)
+          .order('created_at', { ascending: false })
+          .limit(50);
+
+        if (error) throw error;
+
+        // Also get vitals logs
+        const { data: vitals, error: vitalsError } = await supabaseClient
+          .from('vitals_logs')
+          .select('*')
+          .eq('patient_id', patientId)
+          .gte('created_at', startDate)
+          .order('created_at', { ascending: false })
+          .limit(20);
+
+        // Also get symptoms
+        const { data: symptoms, error: symptomsError } = await supabaseClient
+          .from('symptoms')
+          .select('*')
+          .eq('patient_id', patientId)
+          .gte('created_at', startDate)
+          .order('created_at', { ascending: false })
+          .limit(20);
+
+        // Combine and format all activities
+        activityHistory = [];
+
+        // Process activity logs
+        if (logs) {
+          logs.forEach(log => {
+            activityHistory.push({
+              type: log.task_type || 'activity',
+              text: formatActivityText(log),
+              timestamp: new Date(log.created_at),
+              icon: getActivityIcon(log.task_type)
+            });
+          });
+        }
+
+        // Process vitals
+        if (vitals) {
+          vitals.forEach(v => {
+            let text = '';
+            if (v.systolic && v.diastolic) {
+              text = `วัดความดัน ${v.systolic}/${v.diastolic} mmHg`;
+              if (v.pulse) text += ` ชีพจร ${v.pulse}`;
+            } else if (v.heart_rate) {
+              text = `ชีพจร ${v.heart_rate} bpm`;
+            } else if (v.blood_sugar) {
+              text = `น้ำตาล ${v.blood_sugar} mg/dL`;
+            } else if (v.temperature) {
+              text = `อุณหภูมิ ${v.temperature}°C`;
+            }
+            if (text) {
+              activityHistory.push({
+                type: 'vitals',
+                text,
+                timestamp: new Date(v.created_at),
+                icon: '💉'
+              });
+            }
+          });
+        }
+
+        // Process symptoms
+        if (symptoms) {
+          symptoms.forEach(s => {
+            const severity = { mild: 'เล็กน้อย', moderate: 'ปานกลาง', severe: 'รุนแรง' };
+            activityHistory.push({
+              type: 'symptom',
+              text: `${s.symptom} (${severity[s.severity] || s.severity})`,
+              timestamp: new Date(s.created_at),
+              icon: '🤒'
+            });
+          });
+        }
+
+        // Sort by timestamp descending
+        activityHistory.sort((a, b) => b.timestamp - a.timestamp);
+
+        // Render history
+        renderActivityHistory();
+
+      } catch (error) {
+        console.error('Error loading activity history:', error);
+        document.getElementById('historyList').innerHTML = '<div class="history-empty">ไม่สามารถโหลดข้อมูลได้</div>';
+      }
+    }
+
+    function formatActivityText(log) {
+      const type = log.task_type;
+      const meta = log.metadata || {};
+
+      switch (type) {
+        case 'medication':
+          return meta.medication_name ? `กินยา ${meta.medication_name}` : 'กินยาแล้ว';
+        case 'water':
+          const amount = meta.amount || log.value || 0;
+          return `ดื่มน้ำ ${amount} ml`;
+        case 'exercise':
+        case 'walk':
+          const duration = meta.duration || log.value || 0;
+          return `ออกกำลังกาย ${duration} นาที`;
+        case 'food':
+          return meta.meal || 'กินอาหาร';
+        default:
+          return log.notes || type || 'กิจกรรม';
+      }
+    }
+
+    function getActivityIcon(type) {
+      const icons = {
+        medication: '💊',
+        water: '💧',
+        vitals: '💉',
+        symptom: '🤒',
+        exercise: '🚶',
+        walk: '🚶',
+        food: '🍽️'
+      };
+      return icons[type] || '📝';
+    }
+
+    function renderActivityHistory() {
+      const historyList = document.getElementById('historyList');
+      const historyExpandedEl = document.getElementById('historyExpanded');
+
+      if (activityHistory.length === 0) {
+        historyList.innerHTML = '<div class="history-empty">ยังไม่มีประวัติกิจกรรม</div>';
+        return;
+      }
+
+      // Group by date
+      const grouped = {};
+      activityHistory.forEach(activity => {
+        const dateKey = activity.timestamp.toISOString().split('T')[0];
+        if (!grouped[dateKey]) {
+          grouped[dateKey] = [];
+        }
+        grouped[dateKey].push(activity);
+      });
+
+      // Render first 2 days in main list
+      const dates = Object.keys(grouped).sort().reverse();
+      const mainDates = dates.slice(0, 2);
+      const expandedDates = dates.slice(2);
+
+      let mainHTML = '';
+      mainDates.forEach(dateKey => {
+        mainHTML += renderDayActivities(dateKey, grouped[dateKey]);
+      });
+
+      historyList.innerHTML = mainHTML || '<div class="history-empty">ยังไม่มีประวัติกิจกรรม</div>';
+
+      // Render expanded section
+      if (expandedDates.length > 0) {
+        let expandedHTML = '';
+        expandedDates.forEach(dateKey => {
+          expandedHTML += renderDayActivities(dateKey, grouped[dateKey]);
+        });
+        historyExpandedEl.innerHTML = expandedHTML;
+        document.querySelector('.history-toggle').style.display = 'flex';
+      } else {
+        document.querySelector('.history-toggle').style.display = 'none';
+      }
+    }
+
+    function renderDayActivities(dateKey, activities) {
+      const date = new Date(dateKey);
+      const today = new Date().toISOString().split('T')[0];
+      const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+
+      let dateLabel;
+      if (dateKey === today) {
+        dateLabel = 'วันนี้';
+      } else if (dateKey === yesterday) {
+        dateLabel = 'เมื่อวาน';
+      } else {
+        dateLabel = date.toLocaleDateString('th-TH', { weekday: 'short', day: 'numeric', month: 'short' });
+      }
+
+      let html = `<div class="history-day">
+        <div class="history-day-header">${dateLabel}</div>`;
+
+      activities.forEach(activity => {
+        const time = activity.timestamp.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+        html += `
+          <div class="history-item">
+            <div class="history-icon ${activity.type}">${activity.icon}</div>
+            <div class="history-content">
+              <div class="history-text">${activity.text}</div>
+              <div class="history-time">${time}</div>
+            </div>
+          </div>`;
+      });
+
+      html += '</div>';
+      return html;
+    }
+
+    function toggleHistory() {
+      const expandedEl = document.getElementById('historyExpanded');
+      const toggleBtn = document.querySelector('.history-toggle');
+      const toggleText = document.getElementById('historyToggleText');
+
+      historyExpanded = !historyExpanded;
+
+      if (historyExpanded) {
+        expandedEl.classList.remove('hidden');
+        toggleBtn.classList.add('expanded');
+        toggleText.textContent = 'ซ่อน';
+      } else {
+        expandedEl.classList.add('hidden');
+        toggleBtn.classList.remove('expanded');
+        toggleText.textContent = 'ดูเพิ่มเติม';
+      }
     }
 
     // Initialize

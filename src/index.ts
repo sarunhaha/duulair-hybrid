@@ -1516,6 +1516,29 @@ async function handleTextMessage(event: any) {
       timestamp: new Date()
     };
 
+    // For 1:1 chat, try to get patientId from caregiver's linked_patient_id
+    if (!isGroup) {
+      try {
+        const { createClient } = await import('@supabase/supabase-js');
+        const supabase = createClient(
+          process.env.SUPABASE_URL || '',
+          process.env.SUPABASE_SERVICE_KEY || ''
+        );
+        const { data: caregiver } = await supabase
+          .from('caregivers')
+          .select('linked_patient_id')
+          .eq('line_user_id', userId)
+          .single();
+
+        if (caregiver?.linked_patient_id) {
+          context.patientId = caregiver.linked_patient_id;
+          console.log(`👤 1:1 chat - found linked patient: ${context.patientId}`);
+        }
+      } catch (err) {
+        console.log('ℹ️ Could not fetch caregiver info for 1:1 chat');
+      }
+    }
+
     // Handle group messages (TASK-002)
     if (isGroup) {
       console.log(`👥 Group message detected in group: ${groupId}`);
