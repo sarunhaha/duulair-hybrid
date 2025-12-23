@@ -1105,15 +1105,87 @@
         }
       }
 
-      // Load water data from localStorage
+      // Load water data from localStorage (fallback) and database
       const waterData = JSON.parse(localStorage.getItem(`water_${today}`) || '{"total": 0}');
       todaySummary.waterAmount = waterData.total || 0;
 
-      // Load vitals data from localStorage
-      const vitalsData = JSON.parse(localStorage.getItem(`vitals_${today}`) || '{"readings": []}');
-      if (vitalsData.readings && vitalsData.readings.length > 0) {
-        const latest = vitalsData.readings[0];
-        todaySummary.latestVitals = `${latest.systolic}/${latest.diastolic}`;
+      // Also check water from activity_logs in database
+      if (patientId && supabaseClient) {
+        try {
+          const { data: waterLogs, error: waterError } = await supabaseClient
+            .from('activity_logs')
+            .select('metadata, value')
+            .eq('patient_id', patientId)
+            .eq('task_type', 'water')
+            .gte('created_at', today + 'T00:00:00')
+            .lt('created_at', today + 'T23:59:59');
+
+          if (!waterError && waterLogs && waterLogs.length > 0) {
+            let totalWater = 0;
+            waterLogs.forEach(log => {
+              totalWater += parseInt(log.metadata?.amount || log.value || 0);
+            });
+            if (totalWater > todaySummary.waterAmount) {
+              todaySummary.waterAmount = totalWater;
+            }
+          }
+        } catch (e) {
+          console.error('Error loading water from DB:', e);
+        }
+      }
+
+      // Load vitals from database (not just localStorage)
+      if (patientId && supabaseClient) {
+        try {
+          const { data: vitals, error: vitalsError } = await supabaseClient
+            .from('vitals_logs')
+            .select('bp_systolic, bp_diastolic, heart_rate, glucose, temperature, created_at')
+            .eq('patient_id', patientId)
+            .gte('created_at', today + 'T00:00:00')
+            .lt('created_at', today + 'T23:59:59')
+            .order('created_at', { ascending: false })
+            .limit(1);
+
+          if (!vitalsError && vitals && vitals.length > 0) {
+            const latest = vitals[0];
+            if (latest.bp_systolic && latest.bp_diastolic) {
+              todaySummary.latestVitals = `${latest.bp_systolic}/${latest.bp_diastolic}`;
+            } else if (latest.glucose) {
+              todaySummary.latestVitals = `${latest.glucose} mg/dL`;
+            } else if (latest.temperature) {
+              todaySummary.latestVitals = `${latest.temperature}°C`;
+            }
+          }
+        } catch (e) {
+          console.error('Error loading vitals from DB:', e);
+        }
+      }
+
+      // Fallback to localStorage if no DB data
+      if (!todaySummary.latestVitals) {
+        const vitalsData = JSON.parse(localStorage.getItem(`vitals_${today}`) || '{"readings": []}');
+        if (vitalsData.readings && vitalsData.readings.length > 0) {
+          const latest = vitalsData.readings[0];
+          todaySummary.latestVitals = `${latest.systolic}/${latest.diastolic}`;
+        }
+      }
+
+      // Load symptoms from database
+      if (patientId && supabaseClient) {
+        try {
+          const { data: symptoms, error: symptomsError } = await supabaseClient
+            .from('symptoms')
+            .select('id, symptom_name')
+            .eq('patient_id', patientId)
+            .gte('created_at', today + 'T00:00:00')
+            .lt('created_at', today + 'T23:59:59');
+
+          if (!symptomsError && symptoms) {
+            todaySummary.symptoms = symptoms;
+          }
+        } catch (e) {
+          console.error('Error loading symptoms from DB:', e);
+        }
       }
 
       // Update UI
