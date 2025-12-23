@@ -29,6 +29,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.17.0",
+    "@deepgram/sdk": "^4.11.3",
     "@line/bot-sdk": "^8.4.1",
     "@supabase/supabase-js": "^2.39.0",
     "@types/cors": "^2.8.19",

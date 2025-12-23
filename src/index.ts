@@ -18,7 +18,7 @@ import crypto from 'crypto';
 import multer from 'multer';
 import { openRouterService, OPENROUTER_MODELS } from './services/openrouter.service';
 import { runHealthExtractionPipeline, hasHealthData } from './lib/ai';
-import { groqService } from './services/groq.service';
+import { deepgramService } from './services/deepgram.service';
 import { voiceConfirmationService } from './services/voice-confirmation.service';
 
 dotenv.config();
@@ -2142,14 +2142,15 @@ async function handleAudioMessage(event: any) {
       return { success: true, skipped: true, reason: 'file_too_large' };
     }
 
-    // Transcribe audio using Groq Whisper
-    console.log('🧠 Transcribing with Groq Whisper...');
-    const transcriptionResult = await groqService.transcribeAudio(
+    // Transcribe audio using Deepgram Nova-2
+    console.log('🧠 Transcribing with Deepgram Nova-2...');
+    const transcriptionResult = await deepgramService.transcribeAudio(
       audioBuffer,
       'audio.m4a',  // LINE audio is typically M4A
       {
         language: 'th',
-        prompt: 'บันทึกสุขภาพ ยา ความดัน น้ำหนัก กินยา ดื่มน้ำ ออกกำลังกาย เตือน แจ้งเตือน'
+        punctuate: true,
+        smartFormat: true
       }
     );
 
