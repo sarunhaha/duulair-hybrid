@@ -422,6 +422,183 @@
       border-top: 1px dashed rgba(0,0,0,0.1);
     }
 
+    /* History Item Actions */
+    .history-actions {
+      display: flex;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    .history-action-btn {
+      width: 32px;
+      height: 32px;
+      border: none;
+      border-radius: var(--radius-sm);
+      background: transparent;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s;
+      font-size: 14px;
+    }
+
+    .history-action-btn:active {
+      transform: scale(0.95);
+    }
+
+    .history-action-btn.edit {
+      color: var(--accent-primary);
+    }
+
+    .history-action-btn.edit:active {
+      background: var(--accent-light);
+    }
+
+    .history-action-btn.delete {
+      color: #EF4444;
+    }
+
+    .history-action-btn.delete:active {
+      background: #FEE2E2;
+    }
+
+    /* Edit Modal */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .modal-overlay.show {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .modal-content {
+      background: var(--bg-card);
+      border-radius: var(--radius-lg);
+      width: 90%;
+      max-width: 400px;
+      max-height: 80vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      transform: scale(0.9);
+      transition: transform 0.3s ease;
+    }
+
+    .modal-overlay.show .modal-content {
+      transform: scale(1);
+    }
+
+    .modal-header {
+      padding: var(--spacing-lg);
+      border-bottom: 1px solid rgba(0,0,0,0.08);
+      font-size: 18px;
+      font-weight: 600;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-close {
+      width: 32px;
+      height: 32px;
+      border: none;
+      background: var(--bg-secondary);
+      border-radius: var(--radius-full);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      color: var(--text-secondary);
+    }
+
+    .modal-body {
+      padding: var(--spacing-lg);
+    }
+
+    .form-group {
+      margin-bottom: var(--spacing-md);
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: var(--spacing-xs);
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      padding: var(--spacing-sm) var(--spacing-md);
+      border: 1px solid rgba(0,0,0,0.15);
+      border-radius: var(--radius-md);
+      font-size: 16px;
+      background: var(--bg-card);
+      transition: border-color 0.2s;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: var(--accent-primary);
+    }
+
+    .modal-footer {
+      padding: var(--spacing-md) var(--spacing-lg);
+      border-top: 1px solid rgba(0,0,0,0.08);
+      display: flex;
+      gap: var(--spacing-sm);
+      justify-content: flex-end;
+    }
+
+    .btn-cancel {
+      padding: var(--spacing-sm) var(--spacing-lg);
+      border: 1px solid rgba(0,0,0,0.15);
+      background: var(--bg-card);
+      border-radius: var(--radius-md);
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    .btn-save {
+      padding: var(--spacing-sm) var(--spacing-lg);
+      border: none;
+      background: var(--accent-primary);
+      color: white;
+      border-radius: var(--radius-md);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    .btn-delete {
+      padding: var(--spacing-sm) var(--spacing-lg);
+      border: none;
+      background: #EF4444;
+      color: white;
+      border-radius: var(--radius-md);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
     @media (max-width: 380px) {
       .category-icon {
         font-size: 28px;
@@ -569,6 +746,63 @@
 
   <!-- Toast Notification -->
   <div id="toast" class="toast"></div>
+
+  <!-- Edit Activity Modal -->
+  <div id="editModal" class="modal-overlay" onclick="closeEditModal(event)">
+    <div class="modal-content" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <span>แก้ไขกิจกรรม</span>
+        <button class="modal-close" onclick="closeEditModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="editActivityId">
+        <input type="hidden" id="editActivityTable">
+        <input type="hidden" id="editActivityType">
+
+        <div class="form-group">
+          <label>ประเภท</label>
+          <input type="text" id="editTypeDisplay" readonly style="background: var(--bg-secondary);">
+        </div>
+
+        <div class="form-group" id="editValueGroup">
+          <label id="editValueLabel">ค่า</label>
+          <input type="text" id="editValue" placeholder="กรอกค่า">
+        </div>
+
+        <div class="form-group" id="editNotesGroup">
+          <label>หมายเหตุ</label>
+          <textarea id="editNotes" rows="2" placeholder="หมายเหตุเพิ่มเติม (ถ้ามี)"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-cancel" onclick="closeEditModal()">ยกเลิก</button>
+        <button class="btn-save" onclick="saveActivityEdit()">บันทึก</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  <div id="deleteModal" class="modal-overlay" onclick="closeDeleteModal(event)">
+    <div class="modal-content" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <span>ยืนยันการลบ</span>
+        <button class="modal-close" onclick="closeDeleteModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="deleteActivityId">
+        <input type="hidden" id="deleteActivityTable">
+        <p style="text-align: center; margin-bottom: var(--spacing-md);">
+          คุณต้องการลบรายการนี้หรือไม่?
+        </p>
+        <div id="deleteActivityPreview" style="background: var(--bg-secondary); padding: var(--spacing-md); border-radius: var(--radius-md); text-align: center;">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-cancel" onclick="closeDeleteModal()">ยกเลิก</button>
+        <button class="btn-delete" onclick="confirmDelete()">ลบ</button>
+      </div>
+    </div>
+  </div>
 
   <script>
     // ============================================
@@ -970,10 +1204,13 @@
         if (logs) {
           logs.forEach(log => {
             activityHistory.push({
+              id: log.id,
+              table: 'activity_logs',
               type: log.task_type || 'activity',
               text: formatActivityText(log),
               timestamp: new Date(log.created_at),
-              icon: getActivityIcon(log.task_type)
+              icon: getActivityIcon(log.task_type),
+              rawData: log
             });
           });
         }
@@ -982,22 +1219,34 @@
         if (vitals) {
           vitals.forEach(v => {
             let text = '';
+            let valueDisplay = '';
             if (v.systolic && v.diastolic) {
               text = `วัดความดัน ${v.systolic}/${v.diastolic} mmHg`;
-              if (v.pulse) text += ` ชีพจร ${v.pulse}`;
+              valueDisplay = `${v.systolic}/${v.diastolic}`;
+              if (v.pulse) {
+                text += ` ชีพจร ${v.pulse}`;
+                valueDisplay += ` ชีพจร ${v.pulse}`;
+              }
             } else if (v.heart_rate) {
               text = `ชีพจร ${v.heart_rate} bpm`;
+              valueDisplay = v.heart_rate;
             } else if (v.blood_sugar) {
               text = `น้ำตาล ${v.blood_sugar} mg/dL`;
+              valueDisplay = v.blood_sugar;
             } else if (v.temperature) {
               text = `อุณหภูมิ ${v.temperature}°C`;
+              valueDisplay = v.temperature;
             }
             if (text) {
               activityHistory.push({
+                id: v.id,
+                table: 'vitals_logs',
                 type: 'vitals',
                 text,
+                valueDisplay,
                 timestamp: new Date(v.created_at),
-                icon: '💉'
+                icon: '💉',
+                rawData: v
               });
             }
           });
@@ -1008,10 +1257,14 @@
           symptoms.forEach(s => {
             const severity = { mild: 'เล็กน้อย', moderate: 'ปานกลาง', severe: 'รุนแรง' };
             activityHistory.push({
+              id: s.id,
+              table: 'symptoms',
               type: 'symptom',
               text: `${s.symptom} (${severity[s.severity] || s.severity})`,
+              valueDisplay: s.symptom,
               timestamp: new Date(s.created_at),
-              icon: '🤒'
+              icon: '🤒',
+              rawData: s
             });
           });
         }
@@ -1123,14 +1376,19 @@
       let html = `<div class="history-day">
         <div class="history-day-header">${dateLabel}</div>`;
 
-      activities.forEach(activity => {
+      activities.forEach((activity, idx) => {
         const time = activity.timestamp.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+        const activityIndex = activityHistory.findIndex(a => a.id === activity.id && a.table === activity.table);
         html += `
           <div class="history-item">
             <div class="history-icon ${activity.type}">${activity.icon}</div>
             <div class="history-content">
               <div class="history-text">${activity.text}</div>
               <div class="history-time">${time}</div>
+            </div>
+            <div class="history-actions">
+              <button class="history-action-btn edit" onclick="openEditModal(${activityIndex})" title="แก้ไข">✏️</button>
+              <button class="history-action-btn delete" onclick="openDeleteModal(${activityIndex})" title="ลบ">🗑️</button>
             </div>
           </div>`;
       });
@@ -1154,6 +1412,203 @@
         expandedEl.classList.add('hidden');
         toggleBtn.classList.remove('expanded');
         toggleText.textContent = 'ดูเพิ่มเติม';
+      }
+    }
+
+    // ============================================
+    // CRUD Functions for Activity History
+    // ============================================
+    let currentEditIndex = null;
+
+    function openEditModal(index) {
+      const activity = activityHistory[index];
+      if (!activity) return;
+
+      currentEditIndex = index;
+
+      document.getElementById('editActivityId').value = activity.id;
+      document.getElementById('editActivityTable').value = activity.table;
+      document.getElementById('editActivityType').value = activity.type;
+
+      // Set type display
+      const typeLabels = {
+        medication: '💊 กินยา',
+        water: '💧 ดื่มน้ำ',
+        vitals: '💉 วัดค่าสุขภาพ',
+        symptom: '🤒 อาการ',
+        exercise: '🚶 ออกกำลังกาย',
+        walk: '🚶 เดิน',
+        food: '🍽️ อาหาร'
+      };
+      document.getElementById('editTypeDisplay').value = typeLabels[activity.type] || activity.type;
+
+      // Set value based on type
+      const valueInput = document.getElementById('editValue');
+      const valueLabel = document.getElementById('editValueLabel');
+      const valueGroup = document.getElementById('editValueGroup');
+      const notesGroup = document.getElementById('editNotesGroup');
+
+      if (activity.table === 'vitals_logs') {
+        valueGroup.style.display = 'block';
+        notesGroup.style.display = 'block';
+        const raw = activity.rawData;
+        if (raw.systolic && raw.diastolic) {
+          valueLabel.textContent = 'ความดัน (systolic/diastolic)';
+          valueInput.value = `${raw.systolic}/${raw.diastolic}`;
+          if (raw.pulse) valueInput.value += ` ชีพจร ${raw.pulse}`;
+        } else if (raw.blood_sugar) {
+          valueLabel.textContent = 'น้ำตาล (mg/dL)';
+          valueInput.value = raw.blood_sugar;
+        } else if (raw.heart_rate) {
+          valueLabel.textContent = 'ชีพจร (bpm)';
+          valueInput.value = raw.heart_rate;
+        } else if (raw.temperature) {
+          valueLabel.textContent = 'อุณหภูมิ (°C)';
+          valueInput.value = raw.temperature;
+        }
+        document.getElementById('editNotes').value = raw.notes || '';
+      } else if (activity.table === 'symptoms') {
+        valueGroup.style.display = 'block';
+        notesGroup.style.display = 'block';
+        valueLabel.textContent = 'อาการ';
+        valueInput.value = activity.rawData.symptom || '';
+        document.getElementById('editNotes').value = activity.rawData.notes || '';
+      } else if (activity.table === 'activity_logs') {
+        const raw = activity.rawData;
+        if (activity.type === 'water') {
+          valueGroup.style.display = 'block';
+          valueLabel.textContent = 'ปริมาณ (ml)';
+          valueInput.value = raw.metadata?.amount || raw.value || '';
+        } else if (activity.type === 'medication') {
+          valueGroup.style.display = 'none';
+        } else {
+          valueGroup.style.display = 'block';
+          valueLabel.textContent = 'ค่า';
+          valueInput.value = raw.value || '';
+        }
+        notesGroup.style.display = 'block';
+        document.getElementById('editNotes').value = raw.notes || '';
+      }
+
+      document.getElementById('editModal').classList.add('show');
+    }
+
+    function closeEditModal(event) {
+      if (event && event.target !== event.currentTarget) return;
+      document.getElementById('editModal').classList.remove('show');
+      currentEditIndex = null;
+    }
+
+    async function saveActivityEdit() {
+      if (currentEditIndex === null) return;
+
+      const activity = activityHistory[currentEditIndex];
+      const id = document.getElementById('editActivityId').value;
+      const table = document.getElementById('editActivityTable').value;
+      const value = document.getElementById('editValue').value;
+      const notes = document.getElementById('editNotes').value;
+
+      try {
+        let updateData = {};
+
+        if (table === 'vitals_logs') {
+          // Parse vitals value
+          if (value.includes('/')) {
+            const parts = value.split(/[\/\s]+/);
+            updateData.systolic = parseInt(parts[0]);
+            updateData.diastolic = parseInt(parts[1]);
+            // Check for pulse
+            const pulseMatch = value.match(/ชีพจร\s*(\d+)/);
+            if (pulseMatch) updateData.pulse = parseInt(pulseMatch[1]);
+          } else {
+            // Single value - determine type from original data
+            const raw = activity.rawData;
+            if (raw.blood_sugar !== undefined) {
+              updateData.blood_sugar = parseFloat(value);
+            } else if (raw.heart_rate !== undefined) {
+              updateData.heart_rate = parseInt(value);
+            } else if (raw.temperature !== undefined) {
+              updateData.temperature = parseFloat(value);
+            }
+          }
+          updateData.notes = notes;
+        } else if (table === 'symptoms') {
+          updateData.symptom = value;
+          updateData.notes = notes;
+        } else if (table === 'activity_logs') {
+          if (activity.type === 'water') {
+            updateData.metadata = { ...activity.rawData.metadata, amount: parseInt(value) };
+            updateData.value = parseInt(value);
+          } else {
+            updateData.value = value;
+          }
+          updateData.notes = notes;
+        }
+
+        const { error } = await supabaseClient
+          .from(table)
+          .update(updateData)
+          .eq('id', id);
+
+        if (error) throw error;
+
+        showToast('บันทึกการแก้ไขเรียบร้อย', 'success');
+        closeEditModal();
+
+        // Reload history
+        await loadActivityHistory();
+
+      } catch (error) {
+        console.error('Error updating activity:', error);
+        showToast('เกิดข้อผิดพลาดในการบันทึก', 'error');
+      }
+    }
+
+    function openDeleteModal(index) {
+      const activity = activityHistory[index];
+      if (!activity) return;
+
+      document.getElementById('deleteActivityId').value = activity.id;
+      document.getElementById('deleteActivityTable').value = activity.table;
+      document.getElementById('deleteActivityPreview').innerHTML = `
+        <div style="font-size: 24px; margin-bottom: 8px;">${activity.icon}</div>
+        <div style="font-weight: 500;">${activity.text}</div>
+        <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">
+          ${activity.timestamp.toLocaleDateString('th-TH')} ${activity.timestamp.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}
+        </div>
+      `;
+
+      document.getElementById('deleteModal').classList.add('show');
+    }
+
+    function closeDeleteModal(event) {
+      if (event && event.target !== event.currentTarget) return;
+      document.getElementById('deleteModal').classList.remove('show');
+    }
+
+    async function confirmDelete() {
+      const id = document.getElementById('deleteActivityId').value;
+      const table = document.getElementById('deleteActivityTable').value;
+
+      try {
+        const { error } = await supabaseClient
+          .from(table)
+          .delete()
+          .eq('id', id);
+
+        if (error) throw error;
+
+        showToast('ลบรายการเรียบร้อย', 'success');
+        closeDeleteModal();
+
+        // Reload history
+        await loadActivityHistory();
+        // Also reload summary
+        await loadTodaySummary();
+
+      } catch (error) {
+        console.error('Error deleting activity:', error);
+        showToast('เกิดข้อผิดพลาดในการลบ', 'error');
       }
     }
 
