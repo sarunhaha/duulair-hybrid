@@ -1992,16 +1992,33 @@ async function handleImageMessage(event: any) {
     }
 
     const imageBuffer = Buffer.concat(chunks);
-    console.log(`📷 Image size: ${(imageBuffer.length / 1024 / 1024).toFixed(2)} MB`);
+    console.log(`📷 LINE Image received - size: ${(imageBuffer.length / 1024 / 1024).toFixed(2)} MB`);
 
     // Compress image if needed (API limit is 5MB)
-    const compressed = await compressImageForAPI(imageBuffer, 'image/jpeg');
-    const base64Image = compressed.base64;
-    const mimeType = compressed.mimeType;
+    let base64Image: string;
+    let mimeType: string;
 
-    if (compressed.wasCompressed) {
-      console.log(`🖼️ Image compressed: ${(compressed.originalSize / 1024 / 1024).toFixed(2)} MB → ${(compressed.compressedSize / 1024 / 1024).toFixed(2)} MB`);
+    try {
+      const compressed = await compressImageForAPI(imageBuffer, 'image/jpeg');
+      base64Image = compressed.base64;
+      mimeType = compressed.mimeType;
+
+      if (compressed.wasCompressed) {
+        console.log(`🖼️ Image compressed: ${(compressed.originalSize / 1024 / 1024).toFixed(2)} MB → ${(compressed.compressedSize / 1024 / 1024).toFixed(2)} MB`);
+      }
+    } catch (compressError: any) {
+      console.error(`❌ Image compression failed:`, compressError.message);
+      // Try to use original if small enough
+      if (imageBuffer.length <= 4.5 * 1024 * 1024) {
+        console.log(`⚠️ Using original image (compression failed but size OK)`);
+        base64Image = imageBuffer.toString('base64');
+        mimeType = 'image/jpeg';
+      } else {
+        throw new Error(`รูปภาพมีขนาดใหญ่เกินไป (${(imageBuffer.length / 1024 / 1024).toFixed(1)} MB)`);
+      }
     }
+
+    console.log(`📷 Sending to OpenRouter Vision API...`);
 
     // Use Claude Vision via OpenRouter to read health data from image
     const ocrPrompt = `วิเคราะห์รูปนี้และอ่านค่าสุขภาพที่เห็น
