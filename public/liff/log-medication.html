@@ -615,7 +615,7 @@
           .from('medications')
           .select('*')
           .eq('patient_id', patientId)
-          .eq('is_active', true)
+          .eq('active', true)
           .order('name');
 
         if (error) throw error;

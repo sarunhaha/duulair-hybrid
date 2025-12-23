@@ -1074,7 +1074,7 @@
             .from('medications')
             .select('id, times')
             .eq('patient_id', patientId)
-            .eq('is_active', true);
+            .eq('active', true);
 
           if (!error && meds) {
             // Count total expected medication doses for today
