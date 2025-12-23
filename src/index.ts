@@ -20,6 +20,7 @@ import { openRouterService, OPENROUTER_MODELS } from './services/openrouter.serv
 import { runHealthExtractionPipeline, hasHealthData } from './lib/ai';
 import { deepgramService } from './services/deepgram.service';
 import { voiceConfirmationService } from './services/voice-confirmation.service';
+import { compressImageForAPI } from './utils/image.utils';
 
 dotenv.config();
 
@@ -1314,11 +1315,16 @@ app.post('/api/ocr/vitals', upload.single('image'), async (req, res) => {
       });
     }
 
-    console.log(`📷 OCR vitals request - file size: ${req.file.size} bytes`);
+    console.log(`📷 OCR vitals request - file size: ${(req.file.size / 1024 / 1024).toFixed(2)} MB`);
 
-    // Convert buffer to base64
-    const base64Image = req.file.buffer.toString('base64');
-    const mimeType = req.file.mimetype;
+    // Compress image if needed (API limit is 5MB)
+    const compressed = await compressImageForAPI(req.file.buffer, req.file.mimetype);
+    const base64Image = compressed.base64;
+    const mimeType = compressed.mimeType;
+
+    if (compressed.wasCompressed) {
+      console.log(`🖼️ Image compressed: ${(compressed.originalSize / 1024 / 1024).toFixed(2)} MB → ${(compressed.compressedSize / 1024 / 1024).toFixed(2)} MB`);
+    }
 
     // Use Claude Vision via OpenRouter to read blood pressure from image
     const visionPrompt = `กรุณาอ่านค่าความดันโลหิตจากรูปภาพนี้
@@ -1986,10 +1992,16 @@ async function handleImageMessage(event: any) {
     }
 
     const imageBuffer = Buffer.concat(chunks);
-    const base64Image = imageBuffer.toString('base64');
-    const mimeType = 'image/jpeg'; // LINE images are usually JPEG
+    console.log(`📷 Image size: ${(imageBuffer.length / 1024 / 1024).toFixed(2)} MB`);
 
-    console.log(`📷 Image size: ${imageBuffer.length} bytes`);
+    // Compress image if needed (API limit is 5MB)
+    const compressed = await compressImageForAPI(imageBuffer, 'image/jpeg');
+    const base64Image = compressed.base64;
+    const mimeType = compressed.mimeType;
+
+    if (compressed.wasCompressed) {
+      console.log(`🖼️ Image compressed: ${(compressed.originalSize / 1024 / 1024).toFixed(2)} MB → ${(compressed.compressedSize / 1024 / 1024).toFixed(2)} MB`);
+    }
 
     // Use Claude Vision via OpenRouter to read health data from image
     const ocrPrompt = `วิเคราะห์รูปนี้และอ่านค่าสุขภาพที่เห็น
@@ -2216,8 +2228,32 @@ async function handleImageMessage(event: any) {
 
     return { success: true, type: 'image_ocr' };
 
-  } catch (error) {
-    console.error('Error handling image message:', error);
+  } catch (error: any) {
+    console.error('❌ Error handling image message:', error);
+
+    // Try to send error message to user
+    try {
+      const replyToken = event.replyToken;
+      const errorMessage = error.message || 'Unknown error';
+
+      // Check if it's a size-related error
+      let userErrorMessage = '❌ เกิดข้อผิดพลาดในการประมวลผลรูปภาพ\n\nกรุณาลองใหม่อีกครั้งค่ะ';
+
+      if (errorMessage.includes('exceeds') || errorMessage.includes('size') || errorMessage.includes('5 MB')) {
+        userErrorMessage = '❌ รูปภาพมีขนาดใหญ่เกินไป\n\nกรุณาส่งรูปที่มีขนาดเล็กกว่านี้ค่ะ';
+      } else if (errorMessage.includes('Provider returned error')) {
+        userErrorMessage = '❌ ระบบไม่สามารถอ่านรูปได้ชั่วคราว\n\nกรุณาลองใหม่อีกครั้งค่ะ';
+      }
+
+      const replyMessage: TextMessage = {
+        type: 'text',
+        text: userErrorMessage
+      };
+      await lineClient.replyMessage(replyToken, replyMessage);
+    } catch (replyError) {
+      console.error('❌ Failed to send error reply:', replyError);
+    }
+
     return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
   }
 }
