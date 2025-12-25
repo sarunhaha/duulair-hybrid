@@ -449,16 +449,53 @@
     }
 
     async function loadTodayData() {
-      // TODO: Load from Supabase when configured
-      // For now, use localStorage
-      const today = new Date().toISOString().split('T')[0];
-      const savedData = JSON.parse(localStorage.getItem(`vitals_${today}`) || '{"readings": []}');
+      if (!supabaseClient || !patientId) {
+        // Fallback to localStorage if no patient context
+        const today = new Date().toISOString().split('T')[0];
+        const savedData = JSON.parse(localStorage.getItem(`vitals_${today}`) || '{"readings": []}');
+        todayReadings = savedData.readings || [];
+        updateUI();
+        return;
+      }
 
-      todayReadings = savedData.readings || [];
-      updateUI();
+      try {
+        const today = new Date().toISOString().split('T')[0];
+
+        // Fetch from vitals_logs table
+        const { data, error } = await supabaseClient
+          .from('vitals_logs')
+          .select('id, bp_systolic, bp_diastolic, heart_rate, created_at')
+          .eq('patient_id', patientId)
+          .gte('created_at', today + 'T00:00:00')
+          .lt('created_at', today + 'T23:59:59')
+          .not('bp_systolic', 'is', null)
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        // Map database records to our format
+        todayReadings = (data || []).map(row => ({
+          id: row.id,
+          time: new Date(row.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
+          systolic: row.bp_systolic,
+          diastolic: row.bp_diastolic,
+          pulse: row.heart_rate,
+          timestamp: row.created_at,
+          fromDatabase: true
+        }));
+
+        updateUI();
+      } catch (error) {
+        console.error('Error loading vitals:', error);
+        // Fallback to localStorage on error
+        const today = new Date().toISOString().split('T')[0];
+        const savedData = JSON.parse(localStorage.getItem(`vitals_${today}`) || '{"readings": []}');
+        todayReadings = savedData.readings || [];
+        updateUI();
+      }
     }
 
-    function addReading() {
+    async function addReading() {
       const systolic = parseInt(document.getElementById('systolic').value);
       const diastolic = parseInt(document.getElementById('diastolic').value);
       const pulse = parseInt(document.getElementById('pulse').value) || null;
@@ -489,36 +526,89 @@
         return;
       }
 
-      // Add reading
-      const now = new Date();
-      const reading = {
-        id: Date.now(),
-        time: now.toTimeString().slice(0, 5),
-        systolic,
-        diastolic,
-        pulse,
-        timestamp: now.toISOString()
-      };
+      // Save to database
+      if (supabaseClient && patientId) {
+        try {
+          const vitalsData = {
+            patient_id: patientId,
+            bp_systolic: systolic,
+            bp_diastolic: diastolic,
+            heart_rate: pulse,
+            source: 'manual',
+            measured_at: new Date().toISOString()
+          };
 
-      todayReadings.unshift(reading);
+          const { error } = await supabaseClient
+            .from('vitals_logs')
+            .insert(vitalsData);
 
-      // Save and update
-      saveData();
-      updateUI();
+          if (error) throw error;
 
-      // Clear inputs
-      document.getElementById('systolic').value = '';
-      document.getElementById('diastolic').value = '';
-      document.getElementById('pulse').value = '';
+          // Reload data from database
+          await loadTodayData();
 
-      showToast('บันทึกความดันเรียบร้อยแล้ว', 'success');
+          // Clear inputs
+          document.getElementById('systolic').value = '';
+          document.getElementById('diastolic').value = '';
+          document.getElementById('pulse').value = '';
+
+          showToast('บันทึกความดันเรียบร้อยแล้ว', 'success');
+        } catch (error) {
+          console.error('Error saving vitals:', error);
+          showToast('เกิดข้อผิดพลาดในการบันทึก', 'error');
+        }
+      } else {
+        // Fallback to localStorage
+        const now = new Date();
+        const reading = {
+          id: Date.now(),
+          time: now.toTimeString().slice(0, 5),
+          systolic,
+          diastolic,
+          pulse,
+          timestamp: now.toISOString()
+        };
+
+        todayReadings.unshift(reading);
+        saveData();
+        updateUI();
+
+        // Clear inputs
+        document.getElementById('systolic').value = '';
+        document.getElementById('diastolic').value = '';
+        document.getElementById('pulse').value = '';
+
+        showToast('บันทึกความดันเรียบร้อยแล้ว', 'success');
+      }
     }
 
-    function deleteReading(readingId) {
-      todayReadings = todayReadings.filter(r => r.id !== readingId);
-      saveData();
-      updateUI();
-      showToast('ลบรายการเรียบร้อยแล้ว', 'success');
+    async function deleteReading(readingId) {
+      // Check if this is a database record (UUID) or localStorage record (timestamp number)
+      const isDbRecord = typeof readingId === 'string' && readingId.includes('-');
+
+      if (isDbRecord && supabaseClient) {
+        try {
+          const { error } = await supabaseClient
+            .from('vitals_logs')
+            .delete()
+            .eq('id', readingId);
+
+          if (error) throw error;
+
+          // Reload data from database
+          await loadTodayData();
+          showToast('ลบรายการเรียบร้อยแล้ว', 'success');
+        } catch (error) {
+          console.error('Error deleting vitals:', error);
+          showToast('เกิดข้อผิดพลาดในการลบ', 'error');
+        }
+      } else {
+        // localStorage record
+        todayReadings = todayReadings.filter(r => r.id !== readingId);
+        saveData();
+        updateUI();
+        showToast('ลบรายการเรียบร้อยแล้ว', 'success');
+      }
     }
 
     function saveData() {
@@ -564,7 +654,7 @@
                 ${reading.pulse ? `<span class="pulse">💓 ${reading.pulse} ครั้ง/นาที</span>` : ''}
                 <span class="vitals-status ${status.class}" style="align-self: flex-start; margin-top: 4px;">${status.label}</span>
               </div>
-              <button class="delete-btn" onclick="deleteReading(${reading.id})">ลบ</button>
+              <button class="delete-btn" onclick="deleteReading('${reading.id}')">ลบ</button>
             </div>
           `;
         }).join('');
