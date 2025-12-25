@@ -1522,7 +1522,8 @@ async function handleTextMessage(event: any) {
       timestamp: new Date()
     };
 
-    // For 1:1 chat, try to get patientId from caregiver's linked_patient_id
+    // For 1:1 chat, try to get patientId from user's linked patient
+    // Flow: users → caregiver_profiles/patient_profiles → patient_caregivers
     if (!isGroup) {
       try {
         const { createClient } = await import('@supabase/supabase-js');
@@ -1530,18 +1531,55 @@ async function handleTextMessage(event: any) {
           process.env.SUPABASE_URL || '',
           process.env.SUPABASE_SERVICE_KEY || ''
         );
-        const { data: caregiver } = await supabase
-          .from('caregivers')
-          .select('linked_patient_id')
+
+        // Step 1: Get user by LINE user ID
+        const { data: user } = await supabase
+          .from('users')
+          .select('id, role')
           .eq('line_user_id', userId)
           .single();
 
-        if (caregiver?.linked_patient_id) {
-          context.patientId = caregiver.linked_patient_id;
-          console.log(`👤 1:1 chat - found linked patient: ${context.patientId}`);
+        if (user) {
+          // Step 2: Check user role and get linked patient
+          if (user.role === 'caregiver') {
+            // Get caregiver profile
+            const { data: caregiverProfile } = await supabase
+              .from('caregiver_profiles')
+              .select('id')
+              .eq('user_id', user.id)
+              .single();
+
+            if (caregiverProfile) {
+              // Step 3: Get linked patient from patient_caregivers
+              const { data: patientLink } = await supabase
+                .from('patient_caregivers')
+                .select('patient_id')
+                .eq('caregiver_id', caregiverProfile.id)
+                .eq('status', 'active')
+                .limit(1)
+                .single();
+
+              if (patientLink?.patient_id) {
+                context.patientId = patientLink.patient_id;
+                console.log(`👤 1:1 chat (caregiver) - linked patient: ${context.patientId}`);
+              }
+            }
+          } else if (user.role === 'patient') {
+            // User is a patient - get their patient profile directly
+            const { data: patientProfile } = await supabase
+              .from('patient_profiles')
+              .select('id')
+              .eq('user_id', user.id)
+              .single();
+
+            if (patientProfile) {
+              context.patientId = patientProfile.id;
+              console.log(`👤 1:1 chat (patient) - own profile: ${context.patientId}`);
+            }
+          }
         }
       } catch (err) {
-        console.log('ℹ️ Could not fetch caregiver info for 1:1 chat');
+        console.log('ℹ️ Could not fetch user info for 1:1 chat:', err);
       }
     }
 
