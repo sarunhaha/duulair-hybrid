@@ -92,15 +92,15 @@ export interface OpenRouterError {
 // ============================================
 
 export const OPENROUTER_MODELS = {
-  // Claude 3.5 Series (Latest - use these for vision/OCR)
+  // Claude 4.5 Series (Latest - best for vision/OCR)
+  CLAUDE_SONNET_4_5: 'anthropic/claude-sonnet-4.5',
+  CLAUDE_HAIKU_4_5: 'anthropic/claude-haiku-4.5',
+
+  // Claude 3.5 Series (Legacy)
   CLAUDE_3_5_SONNET: 'anthropic/claude-3.5-sonnet',
   CLAUDE_3_5_HAIKU: 'anthropic/claude-3.5-haiku',
 
-  // Aliases for backward compatibility
-  CLAUDE_SONNET_4_5: 'anthropic/claude-3.5-sonnet',  // Map to 3.5 Sonnet (no 4.5 exists)
-  CLAUDE_OPUS_4_5: 'anthropic/claude-3-opus',         // Map to 3 Opus
-
-  // Claude 3 Series
+  // Claude 3 Series (Legacy)
   CLAUDE_3_OPUS: 'anthropic/claude-3-opus',
   CLAUDE_3_SONNET: 'anthropic/claude-3-sonnet',
   CLAUDE_3_HAIKU: 'anthropic/claude-3-haiku',
