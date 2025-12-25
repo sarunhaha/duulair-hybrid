@@ -1,10 +1,50 @@
 # OONJ.AI - Task List
 
-> Last Updated: 2025-12-22
+> Last Updated: 2025-12-25
 
 ---
 
-## Current Focus: LIFF Page Loading Optimization
+## Current Focus: Bug Fixes & Stability
+
+---
+
+## 1:1 Chat User Identification Bug ✅ FIXED
+
+> Fixed: 2025-12-25
+
+### Problem
+- Bot ตอบ "บันทึกแล้ว" แต่ข้อมูลไม่ถูกบันทึกจริง
+- Bot ตอบ "ไม่มีข้อมูลของคุณ" ทั้งที่ user ลงทะเบียนแล้ว
+
+### Root Cause
+Code ใน `src/index.ts` query จาก `caregivers` table ที่ไม่มีแล้ว (ถูก backup)
+
+### Solution
+เปลี่ยนเป็น query ตาม schema ปัจจุบัน:
+```
+users → caregiver_profiles → patient_caregivers → patient_id
+```
+
+### Files Changed
+- [x] `src/index.ts` - Fixed 1:1 chat user identification flow
+
+---
+
+## LIFF Page Database Query Fixes ✅ FIXED
+
+> Fixed: 2025-12-25
+
+### Problems Fixed
+1. `vitals_logs` query ใช้ `created_at` แต่ column จริงคือ `measured_at`
+2. `medications` query ใช้ `is_active` แต่ column จริงคือ `active`
+3. `patientId` ไม่อยู่ใน localStorage → query ไม่ได้
+
+### Files Changed
+- [x] `public/liff/health-log.html` - Fixed queries + UI
+- [x] `public/liff/vitals-tracking.html` - Fixed queries + BP status UI
+- [x] `public/liff/log-medication.html` - Fixed medications column name
+
+---
 
 ---
 

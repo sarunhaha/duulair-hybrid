@@ -1021,3 +1021,150 @@ $ npm run build
 ---
 *Session: 2025-12-21 (Evening)*
 *Feature: LIFF Health Logging Pages - COMPLETE*
+
+---
+
+## Session: 2025-12-25 - Critical Bug Fix: 1:1 Chat User Identification
+
+### Problem Statement
+
+**Issue:** Bot ตอบว่า "บันทึกแล้วค่ะ" แต่ข้อมูลไม่ถูกบันทึกจริง และเมื่อถามว่ารู้อะไรเกี่ยวกับตัวเอง Bot ตอบว่า "ไม่มีข้อมูลของคุณ"
+
+**Symptoms (จากภาพ chat):**
+1. User ส่งข้อมูลโปรไฟล์ครบ (ชื่อ วันเกิด สูง หนัก)
+2. Bot ตอบ "บันทึกข้อมูลให้คุณศิวัจน์แล้วค่ะ" ✅
+3. User ถาม "รู้อะไรเกี่ยวกับผมบ้าง"
+4. Bot ตอบ "ตอนนี้ยังไม่มีข้อมูลของคุณ" ❌
+
+### Root Cause Analysis
+
+```
+Database Investigation:
+├── users table: User "Popp" exists ✅
+├── caregiver_profiles: Profile exists ✅
+├── patient_caregivers: Link to ศิวัจน์ exists ✅
+├── patient_profiles: ศิวัจน์ exists ✅
+└── caregivers table: ❌ TABLE DOESN'T EXIST (backed up)
+```
+
+**The Bug:**
+```javascript
+// Line 1533-1537 in src/index.ts (OLD CODE)
+const { data: caregiver } = await supabase
+  .from('caregivers')           // ❌ This table was deleted/backed up!
+  .select('linked_patient_id')
+  .eq('line_user_id', userId)
+  .single();
+```
+
+**Impact:** Query failed silently → `context.patientId = null` → NLU has no patient context → Data not saved
+
+### Solution
+
+Changed to query correct tables following current schema:
+```
+users → caregiver_profiles → patient_caregivers → patient_id
+```
+
+**New Code:**
+```javascript
+// Step 1: Get user by LINE user ID
+const { data: user } = await supabase
+  .from('users')
+  .select('id, role')
+  .eq('line_user_id', userId)
+  .single();
+
+if (user) {
+  if (user.role === 'caregiver') {
+    // Step 2: Get caregiver profile
+    const { data: caregiverProfile } = await supabase
+      .from('caregiver_profiles')
+      .select('id')
+      .eq('user_id', user.id)
+      .single();
+
+    if (caregiverProfile) {
+      // Step 3: Get linked patient
+      const { data: patientLink } = await supabase
+        .from('patient_caregivers')
+        .select('patient_id')
+        .eq('caregiver_id', caregiverProfile.id)
+        .eq('status', 'active')
+        .single();
+
+      if (patientLink?.patient_id) {
+        context.patientId = patientLink.patient_id;
+      }
+    }
+  } else if (user.role === 'patient') {
+    // Direct patient - get their profile
+    const { data: patientProfile } = await supabase
+      .from('patient_profiles')
+      .select('id')
+      .eq('user_id', user.id)
+      .single();
+
+    if (patientProfile) {
+      context.patientId = patientProfile.id;
+    }
+  }
+}
+```
+
+### Verification
+
+```
+Test Result:
+Step 1 - users table: Found → id: e86a30d7-... | role: caregiver
+Step 2 - caregiver_profiles: Found → caregiver_id: 5273ee3e-...
+Step 3 - patient_caregivers: Found → patient_id: 4ccbe823-...
+
+✅ RESULT: context.patientId = 4ccbe823-b649-4cdf-8ae6-5503c9fc88db
+Patient: ศิวัจน์ (ป๊อป)
+```
+
+### Other Fixes in This Session
+
+1. **UI: Summary cards differentiation** (`health-log.html`)
+   - Added left border accent colors (red, blue, green, amber)
+   - Gray gradient background for summary section
+   - Visual distinction between stats (read-only) and action buttons
+
+2. **Database column fixes** (from earlier today)
+   - `vitals_logs`: Changed `created_at` → `measured_at`
+   - `medications`: Changed `.eq('is_active', true)` → `.eq('active', true)`
+   - Added patientId fallback from server when localStorage is empty
+
+3. **BP Status UI improvement** (`vitals-tracking.html`)
+   - 6 distinct CSS classes for BP status levels
+   - Gradient backgrounds, icons, animations for critical status
+
+### Files Modified
+
+| File | Changes |
+|------|---------|
+| `src/index.ts` | Fixed 1:1 chat user identification flow |
+| `public/liff/health-log.html` | UI: Summary cards styling, DB query fixes |
+| `public/liff/vitals-tracking.html` | DB query fixes, BP status UI |
+| `public/liff/log-medication.html` | Fixed medications query column name |
+
+### Database Schema Note
+
+Current schema uses:
+- `users` (line_user_id, role)
+- `caregiver_profiles` (user_id → users.id)
+- `patient_profiles` (user_id → users.id)
+- `patient_caregivers` (caregiver_id, patient_id, status)
+
+Old `caregivers` table was backed up to `_backup_caregivers` and is **no longer used**.
+
+### Commit
+```
+4548f71 - Fix: 1:1 chat now correctly identifies user and linked patient
+df98af0 - UI: Differentiate summary stats from action buttons in health-log
+```
+
+---
+*Session: 2025-12-25*
+*Bug Fix: 1:1 Chat User Identification - CRITICAL FIX*

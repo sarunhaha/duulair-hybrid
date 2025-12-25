@@ -1,6 +1,62 @@
 
 # OONJAI Changelog
 
+## [2025-12-25] - Critical Bug Fix: 1:1 Chat User Identification
+
+### Problem
+- Bot ตอบว่า "บันทึกแล้วค่ะ" แต่ข้อมูลไม่ถูกบันทึกจริง
+- เมื่อถามว่า "รู้อะไรเกี่ยวกับผม" Bot ตอบว่า "ไม่มีข้อมูลของคุณ"
+- Root cause: Code query จาก `caregivers` table ที่ไม่มีอยู่แล้ว (ถูก backup)
+
+### Root Cause
+```javascript
+// OLD (broken)
+.from('caregivers')           // ❌ Table doesn't exist!
+.select('linked_patient_id')
+
+// Query failed silently → patientId = null → Data not saved
+```
+
+### Solution
+Changed to query correct tables following current schema:
+```
+users → caregiver_profiles → patient_caregivers → patient_id
+```
+
+### Changed
+
+- **src/index.ts** (line 1525-1584)
+  - Rewrote 1:1 chat user identification flow
+  - Step 1: Get user from `users` table by `line_user_id`
+  - Step 2: For caregivers: Get `caregiver_profiles` by `user_id`
+  - Step 3: Get linked patient from `patient_caregivers`
+  - Also supports direct patient role
+
+- **public/liff/health-log.html**
+  - UI: Summary cards differentiation (left border accent colors)
+  - Fixed `vitals_logs` query: `created_at` → `measured_at`
+  - Fixed `medications` query: `is_active` → `active`
+  - Added patientId fallback from server
+
+- **public/liff/vitals-tracking.html**
+  - Fixed DB column names (measured_at, active)
+  - Added patientId fallback from server
+  - Improved BP status UI with 6 distinct CSS classes
+
+- **public/liff/log-medication.html**
+  - Fixed medications query column: `is_active` → `active`
+
+### Database Schema Note
+Current schema (no `caregivers` table):
+- `users` (line_user_id, role)
+- `caregiver_profiles` (user_id → users.id)
+- `patient_profiles` (user_id → users.id)
+- `patient_caregivers` (caregiver_id, patient_id, status)
+
+Old `caregivers` table → backed up to `_backup_caregivers`
+
+---
+
 ## [2025-12-22] - LIFF Page Loading Optimization
 
 ### Problem
