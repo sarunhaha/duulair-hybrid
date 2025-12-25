@@ -42,19 +42,25 @@
       opacity: 0.9;
     }
 
-    /* Today's Summary */
+    /* Today's Summary - Stat Cards (Read-only, Info Display) */
     .summary-section {
       margin-bottom: var(--spacing-lg);
+      background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+      border-radius: var(--radius-lg);
+      padding: var(--spacing-md);
+      border: 1px solid rgba(0, 0, 0, 0.05);
     }
 
     .summary-title {
-      font-size: 16px;
+      font-size: 14px;
       font-weight: 600;
-      color: var(--text-primary);
+      color: var(--text-secondary);
       margin-bottom: var(--spacing-md);
       display: flex;
       align-items: center;
       gap: var(--spacing-xs);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
 
     .summary-grid {
@@ -64,40 +70,69 @@
     }
 
     .summary-card {
-      background: var(--bg-card);
+      background: white;
       border-radius: var(--radius-md);
       padding: var(--spacing-md);
-      box-shadow: var(--shadow-sm);
       display: flex;
       align-items: center;
       gap: var(--spacing-sm);
+      border-left: 4px solid transparent;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .summary-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, transparent 0%, rgba(0,0,0,0.02) 100%);
+      pointer-events: none;
+    }
+
+    .summary-card.medication-card {
+      border-left-color: #EF4444;
+    }
+
+    .summary-card.water-card {
+      border-left-color: #3B82F6;
+    }
+
+    .summary-card.vitals-card {
+      border-left-color: #10B981;
+    }
+
+    .summary-card.symptom-card {
+      border-left-color: #F59E0B;
     }
 
     .summary-icon {
-      width: 44px;
-      height: 44px;
-      border-radius: var(--radius-md);
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 20px;
+      font-size: 18px;
       flex-shrink: 0;
     }
 
     .summary-icon.medication {
-      background: #FEE2E2;
+      background: linear-gradient(135deg, #FEE2E2 0%, #FECACA 100%);
     }
 
     .summary-icon.water {
-      background: #DBEAFE;
+      background: linear-gradient(135deg, #DBEAFE 0%, #BFDBFE 100%);
     }
 
     .summary-icon.vitals {
-      background: #D1FAE5;
+      background: linear-gradient(135deg, #D1FAE5 0%, #A7F3D0 100%);
     }
 
     .summary-icon.symptom {
-      background: #FEF3C7;
+      background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
     }
 
     .summary-info {
@@ -106,22 +141,31 @@
     }
 
     .summary-label {
-      font-size: 13px;
-      color: var(--text-secondary);
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 500;
+      margin-bottom: 2px;
     }
 
     .summary-value {
-      font-size: 18px;
-      font-weight: 600;
+      font-size: 20px;
+      font-weight: 700;
       color: var(--text-primary);
+      line-height: 1.2;
     }
 
     .summary-value.incomplete {
-      color: var(--warning);
+      color: #F59E0B;
     }
 
     .summary-value.complete {
-      color: var(--success);
+      color: #10B981;
+    }
+
+    .summary-value.not-recorded {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-muted);
     }
 
     /* Category Grid */
@@ -630,34 +674,34 @@
         <div class="dashboard-date" id="currentDate"></div>
       </div>
 
-      <!-- Today's Summary -->
+      <!-- Today's Summary - Stat Cards -->
       <div class="summary-section">
         <div class="summary-title">
-          📊 สรุปกิจกรรมวันนี้
+          📊 สรุปวันนี้
         </div>
         <div class="summary-grid">
-          <div class="summary-card">
+          <div class="summary-card medication-card">
             <div class="summary-icon medication">💊</div>
             <div class="summary-info">
               <div class="summary-label">กินยา</div>
               <div class="summary-value" id="medSummary">-/-</div>
             </div>
           </div>
-          <div class="summary-card">
+          <div class="summary-card water-card">
             <div class="summary-icon water">💧</div>
             <div class="summary-info">
               <div class="summary-label">ดื่มน้ำ</div>
               <div class="summary-value" id="waterSummary">0 ml</div>
             </div>
           </div>
-          <div class="summary-card">
+          <div class="summary-card vitals-card">
             <div class="summary-icon vitals">💉</div>
             <div class="summary-info">
               <div class="summary-label">วัดความดัน</div>
               <div class="summary-value" id="vitalsSummary">-</div>
             </div>
           </div>
-          <div class="summary-card">
+          <div class="summary-card symptom-card">
             <div class="summary-icon symptom">🤒</div>
             <div class="summary-info">
               <div class="summary-label">อาการ</div>
