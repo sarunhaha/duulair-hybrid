@@ -439,6 +439,24 @@
         patientId = context.patientId;
         groupId = context.groupId;
 
+        // ✅ Fallback: fetch patientId from server if not in localStorage
+        if (!patientId) {
+          console.log('⚠️ No patientId in localStorage, fetching from server...');
+          try {
+            const response = await fetch(`${API_BASE_URL}/check-user/${profile.userId}`);
+            const result = await response.json();
+            if (result.exists && result.profile?.linked_patient_id) {
+              patientId = result.profile.linked_patient_id;
+              // Update localStorage for future use
+              context.patientId = patientId;
+              localStorage.setItem('oonjai_context', JSON.stringify(context));
+              console.log('✅ Fetched patientId from server:', patientId);
+            }
+          } catch (e) {
+            console.error('Failed to fetch patientId from server:', e);
+          }
+        }
+
         // Load fresh data in background
         loadTodayData().catch(err => console.error('Load data error:', err));
 
@@ -461,26 +479,26 @@
       try {
         const today = new Date().toISOString().split('T')[0];
 
-        // Fetch from vitals_logs table
+        // Fetch from vitals_logs table (uses measured_at, not created_at)
         const { data, error } = await supabaseClient
           .from('vitals_logs')
-          .select('id, bp_systolic, bp_diastolic, heart_rate, created_at')
+          .select('id, bp_systolic, bp_diastolic, heart_rate, measured_at')
           .eq('patient_id', patientId)
-          .gte('created_at', today + 'T00:00:00')
-          .lt('created_at', today + 'T23:59:59')
+          .gte('measured_at', today + 'T00:00:00')
+          .lt('measured_at', today + 'T23:59:59')
           .not('bp_systolic', 'is', null)
-          .order('created_at', { ascending: false });
+          .order('measured_at', { ascending: false });
 
         if (error) throw error;
 
         // Map database records to our format
         todayReadings = (data || []).map(row => ({
           id: row.id,
-          time: new Date(row.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
+          time: new Date(row.measured_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
           systolic: row.bp_systolic,
           diastolic: row.bp_diastolic,
           pulse: row.heart_rate,
-          timestamp: row.created_at,
+          timestamp: row.measured_at,
           fromDatabase: true
         }));
 
