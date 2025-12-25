@@ -52,27 +52,75 @@
     }
 
     .vitals-status {
-      display: inline-block;
-      padding: 4px 12px;
-      border-radius: var(--radius-full);
-      font-size: 12px;
-      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 600;
       margin-top: var(--spacing-xs);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+      transition: all 0.2s ease;
     }
 
+    .vitals-status .status-icon {
+      font-size: 16px;
+    }
+
+    /* ปกติ - Normal (90-119 / 60-79) */
     .vitals-status.normal {
-      background: #d3f9d8;
-      color: #2b8a3e;
+      background: linear-gradient(135deg, #d3f9d8 0%, #b2f2bb 100%);
+      color: #1e7b34;
+      border: 1px solid #8ce99a;
     }
 
-    .vitals-status.high {
-      background: #ffe8cc;
-      color: #e8590c;
+    /* สูงกว่าปกติ - Elevated (120-129 / <80) */
+    .vitals-status.elevated {
+      background: linear-gradient(135deg, #fff3bf 0%, #ffe066 100%);
+      color: #866a00;
+      border: 1px solid #ffd43b;
     }
 
+    /* สูง ระยะ 1 - High Stage 1 (130-139 / 80-89) */
+    .vitals-status.high-stage1 {
+      background: linear-gradient(135deg, #ffe8cc 0%, #ffc078 100%);
+      color: #c65102;
+      border: 1px solid #ff922b;
+    }
+
+    /* สูง ระยะ 2 - High Stage 2 (140-179 / 90-119) */
+    .vitals-status.high-stage2 {
+      background: linear-gradient(135deg, #ffc9c9 0%, #ff8787 100%);
+      color: #c92a2a;
+      border: 1px solid #fa5252;
+    }
+
+    /* วิกฤต - Crisis (≥180 / ≥120) */
+    .vitals-status.critical {
+      background: linear-gradient(135deg, #e03131 0%, #c92a2a 100%);
+      color: white;
+      border: 1px solid #a61e1e;
+      animation: pulse-critical 1.5s ease-in-out infinite;
+    }
+
+    @keyframes pulse-critical {
+      0%, 100% { box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08); }
+      50% { box-shadow: 0 2px 12px rgba(224, 49, 49, 0.4); }
+    }
+
+    /* ต่ำ - Low (<90 / <60) */
     .vitals-status.low {
-      background: #e7f5ff;
-      color: #1971c2;
+      background: linear-gradient(135deg, #d0ebff 0%, #a5d8ff 100%);
+      color: #1864ab;
+      border: 1px solid #74c0fc;
+    }
+
+    /* Default/Unknown */
+    .vitals-status.unknown {
+      background: linear-gradient(135deg, #f1f3f5 0%, #dee2e6 100%);
+      color: #495057;
+      border: 1px solid #ced4da;
     }
 
     .input-row {
@@ -682,17 +730,17 @@
     function getBloodPressureStatus(systolic, diastolic) {
       // Based on American Heart Association guidelines
       if (systolic >= 180 || diastolic >= 120) {
-        return { label: 'สูงมาก (วิกฤต)', class: 'high' };
+        return { label: '🚨 วิกฤต', class: 'critical', icon: '🚨' };
       } else if (systolic >= 140 || diastolic >= 90) {
-        return { label: 'สูง (ระยะ 2)', class: 'high' };
+        return { label: '⚠️ สูง ระยะ 2', class: 'high-stage2', icon: '⚠️' };
       } else if (systolic >= 130 || diastolic >= 80) {
-        return { label: 'สูง (ระยะ 1)', class: 'high' };
+        return { label: '📈 สูง ระยะ 1', class: 'high-stage1', icon: '📈' };
       } else if (systolic >= 120 && diastolic < 80) {
-        return { label: 'สูงกว่าปกติ', class: 'normal' };
+        return { label: '📊 สูงกว่าปกติ', class: 'elevated', icon: '📊' };
       } else if (systolic < 90 || diastolic < 60) {
-        return { label: 'ต่ำ', class: 'low' };
+        return { label: '📉 ต่ำ', class: 'low', icon: '📉' };
       } else {
-        return { label: 'ปกติ', class: 'normal' };
+        return { label: '✅ ปกติ', class: 'normal', icon: '✅' };
       }
     }
 
