@@ -8,23 +8,49 @@
 
   <!-- Preconnect to speed up external resources -->
   <link rel="preconnect" href="https://static.line-scdn.net">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
   <link rel="dns-prefetch" href="https://static.line-scdn.net">
   <link rel="preload" href="https://static.line-scdn.net/liff/edge/2/sdk.js" as="script">
 
   <link rel="stylesheet" href="css/style.css">
+
+  <!-- Critical CSS for immediate display -->
+  <style>
+    .container { opacity: 1; }
+    .loading-spinner {
+      width: 48px;
+      height: 48px;
+      border: 4px solid #e0e0e0;
+      border-top-color: #4CAF50;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 16px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
 </head>
 <body>
   <div class="container">
     <h1>🏥 OONJAI</h1>
     <p class="text-center">ระบบดูแลสุขภาพผู้สูงอายุ</p>
 
-    <!-- Initial loading state -->
+    <!-- Initial loading state - visible immediately -->
     <div id="initial-loading" style="text-align: center; padding: 20px;">
-      <div style="font-size: 48px; margin-bottom: 10px;">⏳</div>
+      <div class="loading-spinner"></div>
       <p>กำลังเริ่มต้นระบบ...</p>
       <p id="debug-info" style="font-size: 12px; color: #999; margin-top: 20px;"></p>
     </div>
   </div>
+
+  <!-- Phase 2.1: Show UI immediately -->
+  <script>
+    // IIFE to show loading UI immediately without waiting for external scripts
+    (function showUIImmediately() {
+      // Container is already visible via CSS
+      // Loading spinner animation starts immediately
+      console.log('✅ UI shown immediately');
+    })();
+  </script>
 
   <!-- LIFF SDK -->
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
@@ -84,6 +110,28 @@
   <!-- App JavaScript -->
 
   <script>
+    // ========================================
+    // User Data Storage
+    // ========================================
+    function saveUserData(userData) {
+      try {
+        localStorage.setItem('oonjai_user', JSON.stringify(userData));
+        console.log('✅ User data saved:', userData);
+      } catch (error) {
+        console.error('❌ Failed to save user data:', error);
+      }
+    }
+
+    function getUserData() {
+      try {
+        const data = localStorage.getItem('oonjai_user');
+        return data ? JSON.parse(data) : null;
+      } catch (error) {
+        console.error('❌ Failed to get user data:', error);
+        return null;
+      }
+    }
+
     // ========================================
     // Debug Helper
     // ========================================

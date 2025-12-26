@@ -17,7 +17,7 @@ import { schedulerService } from './services/scheduler.service';
 import crypto from 'crypto';
 import multer from 'multer';
 import { openRouterService, OPENROUTER_MODELS } from './services/openrouter.service';
-import { runHealthExtractionPipeline, hasHealthData } from './lib/ai';
+// Note: Health extraction now handled by UnifiedNLUAgent (Sonnet 4.5)
 import { deepgramService } from './services/deepgram.service';
 import { voiceConfirmationService } from './services/voice-confirmation.service';
 import { compressImageForAPI } from './utils/image.utils';
@@ -1743,72 +1743,10 @@ async function handleTextMessage(event: any) {
     }
 
     // ============================================
-    // Phase 4: AI Health Extraction Pipeline
+    // Phase 4: Unified AI Processing (Sonnet 4.5)
     // ============================================
-    // Try to extract health data from message first
-    // If extraction succeeds with health data, use extraction response
-    // Otherwise, fall back to orchestrator for general dialog
-
-    if (context.patientId && !isMenuRequest) {
-      try {
-        console.log('🧠 Running health extraction pipeline...');
-
-        const extractionResult = await runHealthExtractionPipeline(originalMessage, {
-          patientId: context.patientId,
-          groupId: context.groupId,
-          lineUserId: context.actorLineUserId || userId,
-          displayName: context.actorDisplayName
-        });
-
-        if (extractionResult.success && extractionResult.hasHealthData) {
-          console.log('✅ Health data extracted:', {
-            hasHealthData: extractionResult.hasHealthData,
-            alerts: extractionResult.alerts,
-            savedRecords: extractionResult.processorResult?.savedRecords?.length || 0
-          });
-
-          // Build response message
-          let responseText = extractionResult.responseMessage || 'บันทึกข้อมูลสุขภาพแล้วค่ะ';
-
-          // Add alerts if any
-          if (extractionResult.alerts && extractionResult.alerts.length > 0) {
-            responseText += `\n\n⚠️ ${extractionResult.alerts.join('\n')}`;
-          }
-
-          // Add followup question if any
-          if (extractionResult.followupQuestion) {
-            responseText += `\n\n${extractionResult.followupQuestion}`;
-          }
-
-          const replyMessage: TextMessage = {
-            type: 'text',
-            text: responseText
-          };
-
-          try {
-            await lineClient.replyMessage(replyToken, replyMessage);
-            console.log('✅ Extraction response sent:', responseText.substring(0, 50) + '...');
-            return {
-              success: true,
-              extractionHandled: true,
-              conversationLogId: extractionResult.conversationLogId
-            };
-          } catch (sendError) {
-            console.error('❌ Failed to send extraction response:', sendError);
-            // Continue to orchestrator as fallback
-          }
-        } else {
-          console.log('ℹ️ No health data extracted, falling back to orchestrator');
-        }
-      } catch (extractionError) {
-        console.error('❌ Extraction pipeline error:', extractionError);
-        // Continue to orchestrator as fallback
-      }
-    }
-
-    // ============================================
-    // Process with orchestrator (fallback)
-    // ============================================
+    // Single AI call: intent + extraction + natural response
+    // All processing goes through OrchestratorAgent → UnifiedNLUAgent
     // Use originalMessage (in case it was from patient selection Quick Reply)
     const result = await orchestrator.process({
       id: message.id,
@@ -2510,50 +2448,22 @@ async function handleAudioMessage(event: any) {
       }
     }
 
-    // Try health extraction first (like handleTextMessage does)
+    // Process voice through Unified AI (Sonnet 4.5) - same as text
     let responseText = '';
     let handled = false;
 
-    if (patientId) {
-      try {
-        console.log('🧠 Running health extraction on transcribed text...');
-        const extractionResult = await runHealthExtractionPipeline(transcribedText, {
-          patientId,
-          groupId: context.groupId,
-          lineUserId: context.actorLineUserId || userId,
-          displayName: context.actorDisplayName
-        });
+    const result = await orchestrator.process({
+      id: messageId,
+      content: transcribedText,
+      context
+    });
 
-        if (extractionResult.success && extractionResult.hasHealthData) {
-          responseText = `🎤 ได้ยินว่า: "${transcribedText}"\n\n`;
-          responseText += extractionResult.responseMessage || 'บันทึกข้อมูลสุขภาพแล้วค่ะ';
-
-          if (extractionResult.alerts && extractionResult.alerts.length > 0) {
-            responseText += `\n\n⚠️ ${extractionResult.alerts.join('\n')}`;
-          }
-
-          handled = true;
-        }
-      } catch (extractionError) {
-        console.error('❌ Extraction error for voice:', extractionError);
-      }
-    }
-
-    // If not handled by extraction, use orchestrator
-    if (!handled) {
-      const result = await orchestrator.process({
-        id: messageId,
-        content: transcribedText,
-        context
-      });
-
-      // Support both Natural Conversation mode (result.data.response) and legacy mode (result.data.combined.response)
-      const orchestratorResponse = result.data?.response || result.data?.combined?.response;
-      if (result.success && orchestratorResponse) {
-        responseText = `🎤 ได้ยินว่า: "${transcribedText}"\n\n`;
-        responseText += orchestratorResponse;
-        handled = true;
-      }
+    // Support both Natural Conversation mode (result.data.response) and legacy mode (result.data.combined.response)
+    const orchestratorResponse = result.data?.response || result.data?.combined?.response;
+    if (result.success && orchestratorResponse) {
+      responseText = `🎤 ได้ยินว่า: "${transcribedText}"\n\n`;
+      responseText += orchestratorResponse;
+      handled = true;
     }
 
     // Send response
@@ -2872,45 +2782,21 @@ async function handlePostback(event: any) {
           context.groupId = pending.context.groupId;
         }
 
-        // Try health extraction first
+        // Process through Unified AI (Sonnet 4.5) - same as text
         let responseText = '';
         let handled = false;
 
-        if (pending.patient_id) {
-          try {
-            const extractionResult = await runHealthExtractionPipeline(pending.transcribed_text, {
-              patientId: pending.patient_id,
-              groupId: context.groupId,
-              lineUserId: userId,
-              displayName: undefined
-            });
+        const result = await orchestrator.process({
+          id: `voice-${Date.now()}`,
+          content: pending.transcribed_text,
+          context
+        });
 
-            if (extractionResult.success && extractionResult.hasHealthData) {
-              responseText = extractionResult.responseMessage || 'บันทึกข้อมูลสุขภาพแล้วค่ะ';
-              if (extractionResult.alerts && extractionResult.alerts.length > 0) {
-                responseText += `\n\n⚠️ ${extractionResult.alerts.join('\n')}`;
-              }
-              handled = true;
-            }
-          } catch (extractionError) {
-            console.error('❌ Extraction error:', extractionError);
-          }
-        }
-
-        // If not handled by extraction, use orchestrator
-        if (!handled) {
-          const result = await orchestrator.process({
-            id: `voice-${Date.now()}`,
-            content: pending.transcribed_text,
-            context
-          });
-
-          // Support both Natural Conversation mode and legacy mode
-          const orchestratorResponse = result.data?.response || result.data?.combined?.response;
-          if (result.success && orchestratorResponse) {
-            responseText = orchestratorResponse;
-            handled = true;
-          }
+        // Support both Natural Conversation mode and legacy mode
+        const orchestratorResponse = result.data?.response || result.data?.combined?.response;
+        if (result.success && orchestratorResponse) {
+          responseText = orchestratorResponse;
+          handled = true;
         }
 
         // Send response

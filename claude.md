@@ -1168,3 +1168,196 @@ df98af0 - UI: Differentiate summary stats from action buttons in health-log
 ---
 *Session: 2025-12-25*
 *Bug Fix: 1:1 Chat User Identification - CRITICAL FIX*
+
+---
+
+## Session: 2025-12-26 - Unified AI Flow (Sonnet 4.5 Only)
+
+### Goal
+ปรับ flow AI จาก 2 pipelines (Haiku + Sonnet) เป็น 1 pipeline เดียว (Sonnet 4.5 เท่านั้น)
+เพื่อความเรียบง่ายและคุณภาพ response ที่ดีขึ้น
+
+### Problem: Dual Pipeline Complexity
+
+**Before (2 Pipelines):**
+```
+Message → runHealthExtractionPipeline (Haiku)
+              ↓
+        Has health data?
+        ├─ Yes → ตอบด้วย Haiku response (คุณภาพต่ำ)
+        └─ No  → OrchestratorAgent → UnifiedNLUAgent (Sonnet 4.5)
+```
+
+**Problems:**
+1. 2 API calls ต่อบางข้อความ (เสียเงิน เสียเวลา)
+2. Response จาก Haiku คุณภาพต่ำกว่า Sonnet
+3. Logic ซับซ้อน ดูแลยาก
+
+### Solution: Single Unified Pipeline
+
+**After (1 Pipeline):**
+```
+Message → OrchestratorAgent → UnifiedNLUAgent (Sonnet 4.5)
+                                    │
+                                    ├─ Intent Classification
+                                    ├─ Health Data Extraction
+                                    ├─ Natural Response Generation
+                                    └─ Action Execution → DB
+```
+
+**Benefits:**
+- 1 API call ต่อข้อความ
+- Response คุณภาพสูง + เป็นธรรมชาติ
+- Code เรียบง่าย ดูแลง่าย
+
+### Implementation
+
+#### 1. Remove Health Extraction Pipeline (`src/index.ts`)
+```javascript
+// REMOVED (60+ lines)
+if (context.patientId && !isMenuRequest) {
+  const extractionResult = await runHealthExtractionPipeline(...);
+  if (extractionResult.hasHealthData) {
+    // ... respond with Haiku extraction
+  }
+}
+
+// NOW: All messages go directly to orchestrator
+const result = await orchestrator.process({ ... });
+```
+
+#### 2. Add Conversation Logging (`src/agents/core/OrchestratorAgent.ts`)
+```typescript
+// Save conversation log (user message)
+let conversationLogId: string | undefined;
+if (message.context.patientId) {
+  conversationLogId = await this.supabase.saveConversationLog({
+    patientId: message.context.patientId,
+    role: 'user',
+    text: message.content,
+    source: isGroupChat ? 'group' : '1:1'
+  });
+}
+
+// After NLU processing, update with extracted data
+if (conversationLogId) {
+  await this.supabase.updateConversationLog(conversationLogId, {
+    intent: nluResult.intent,
+    aiExtractedData: nluResult.healthData,
+    aiConfidence: nluResult.confidence,
+    aiModel: 'claude-sonnet-4.5'
+  });
+}
+```
+
+#### 3. Enhance NLU Prompt (`src/lib/ai/prompts/unified-nlu.ts`)
+```markdown
+## บุคลิกของคุณ
+- เป็นกันเอง อบอุ่น ใส่ใจ เหมือนหลานสาวที่ดูแลผู้ใหญ่
+- ฉลาด เข้าใจบริบท ไม่ต้องถามซ้ำเมื่อข้อมูลครบแล้ว
+- ตอบสั้น กระชับ ไม่เยิ่นเย้อ แต่อบอุ่น
+- ไม่พูดเหมือนหุ่นยนต์ ไม่พูดแบบราชการ
+
+## น้ำเสียงและภาษา
+- พูดสั้นๆ เช่น "โอเคค่ะ บันทึกแล้ว 💊"
+- ห้าม "พิมพ์...", "กรุณาระบุ...", "คำสั่งไม่ถูกต้อง"
+```
+
+#### 4. LIFF Page Optimization
+- `public/liff/index.html` - เพิ่ม IIFE + Critical CSS
+- `public/liff/success.html` - เพิ่ม IIFE + missing functions
+
+### Response Style Examples
+
+| User พูด | Bot ตอบ (แบบใหม่) |
+|----------|-------------------|
+| "ยายกินยาแล้วค่ะ" | "โอเคค่ะ บันทึกให้ยายแล้ว 💊" |
+| "ความดัน 140/90 สูงไปไหม" | "รับทราบค่ะ สูงนิดนึง ดื่มน้ำเยอะๆ นะคะ 💧" |
+| "วันนี้ปวดหัวมาก" | "อุ๊ย ปวดหัวเหรอคะ บันทึกไว้แล้ว พักผ่อนเยอะๆ นะคะ" |
+| "ลืมกินยาเช้า" | "ไม่เป็นไรค่ะ ถ้ายังไม่เกินเที่ยงก็กินได้นะคะ" |
+| "เปลี่ยนเบอร์ 0891234567" | "เปลี่ยนให้แล้วค่ะ 📱" |
+
+### Files Changed
+
+| File | Changes |
+|------|---------|
+| `src/index.ts` | ลบ Health Extraction Pipeline (-168 lines) |
+| `src/agents/core/OrchestratorAgent.ts` | เพิ่ม conversation log saving |
+| `src/lib/ai/prompts/unified-nlu.ts` | ปรับ prompt ให้ตอบธรรมชาติ |
+| `public/liff/index.html` | IIFE optimization |
+| `public/liff/success.html` | IIFE optimization + missing functions |
+
+### AI Model Configuration
+
+```typescript
+// UnifiedNLUAgent uses Sonnet 4.5 only
+model: OPENROUTER_MODELS.CLAUDE_SONNET_4_5  // 'anthropic/claude-sonnet-4.5'
+temperature: 0.3  // Low for consistent structured output
+maxTokens: 1500
+```
+
+### Current AI Flow Summary
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     User Message (LINE)                          │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    src/index.ts                                  │
+│              handleTextMessage() / handleAudioMessage()          │
+│                                                                  │
+│  - Get userId, groupId, patientId                                │
+│  - Check for commands (/help, etc.)                              │
+│  - Check for menu requests (บันทึกสุขภาพ, รายงาน)                 │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    OrchestratorAgent                             │
+│              processWithNaturalConversation()                    │
+│                                                                  │
+│  1. Fetch patientData (profile, medications, reminders)          │
+│  2. Save conversation log (user message)                         │
+│  3. Build NLUContext                                             │
+│  4. Call UnifiedNLUAgent                                         │
+│  5. Execute action if needed                                     │
+│  6. Update conversation log with NLU result                      │
+│  7. Return natural response                                      │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                   UnifiedNLUAgent                                │
+│              (Claude Sonnet 4.5 - Single Call)                   │
+│                                                                  │
+│  Input: message + patientContext + conversationHistory           │
+│                                                                  │
+│  Output: {                                                       │
+│    intent, subIntent, confidence,                                │
+│    entities, healthData, action,                                 │
+│    response: "โอเคค่ะ บันทึกแล้ว 💊"                              │
+│  }                                                               │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│              ActionRouter (executeAction)                        │
+│                                                                  │
+│  - save → บันทึก health data ลง DB                               │
+│  - update → อัพเดต profile/medication/reminder                   │
+│  - delete → ลบข้อมูล (with confirmation)                         │
+│  - query → ดึงข้อมูลมาแสดง                                        │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                   LINE Reply                                     │
+│              Natural, friendly response                          │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+*Session: 2025-12-26*
+*Feature: Unified AI Flow (Sonnet 4.5 Only) - COMPLETE*

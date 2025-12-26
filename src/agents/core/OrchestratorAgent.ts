@@ -116,6 +116,22 @@ export class OrchestratorAgent extends BaseAgent {
         conversationHistory: message.metadata?.conversationHistory
       };
 
+      // Save conversation log (user message)
+      let conversationLogId: string | undefined;
+      if (message.context.patientId) {
+        try {
+          conversationLogId = await this.supabase.saveConversationLog({
+            patientId: message.context.patientId,
+            groupId: message.context.groupId,
+            role: 'user',
+            text: message.content,
+            source: isGroupChat ? 'group' : '1:1'
+          } as any);
+        } catch (logError) {
+          this.log('debug', 'Could not save conversation log', logError);
+        }
+      }
+
       // Process through UnifiedNLU
       const nluResponse = await this.agents.unified_nlu.process({
         ...message,
@@ -169,6 +185,20 @@ export class OrchestratorAgent extends BaseAgent {
       // Append alerts if any
       if (actionResult?.alerts?.length) {
         finalResponse += '\n\n' + actionResult.alerts.join('\n');
+      }
+
+      // Update conversation log with NLU result
+      if (conversationLogId) {
+        try {
+          await this.supabase.updateConversationLog(conversationLogId, {
+            intent: nluResult.intent,
+            aiExtractedData: nluResult.healthData || (nluResult as any).healthDataArray,
+            aiConfidence: nluResult.confidence,
+            aiModel: 'claude-sonnet-4.5'
+          } as any);
+        } catch (updateError) {
+          this.log('debug', 'Could not update conversation log', updateError);
+        }
       }
 
       // Save processing log

@@ -1,10 +1,63 @@
 # OONJ.AI - Task List
 
-> Last Updated: 2025-12-25
+> Last Updated: 2025-12-26
 
 ---
 
-## Current Focus: Bug Fixes & Stability
+## Current Focus: Natural Conversation AI
+
+---
+
+## Unified AI Flow (Sonnet 4.5 Only) ✅ COMPLETE
+
+> Completed: 2025-12-26
+
+### Overview
+ปรับ flow AI จาก 2 pipelines เป็น 1 pipeline เดียวเพื่อความเรียบง่ายและคุณภาพที่ดีขึ้น
+
+### Before (Complex - 2 Pipelines)
+```
+Message → Health Extraction (Haiku) → ถ้าไม่มี data → Orchestrator (Sonnet)
+```
+- ใช้ 2 models: Haiku + Sonnet
+- 2 API calls ต่อข้อความ
+- Response จาก Haiku คุณภาพต่ำ
+
+### After (Simple - 1 Pipeline)
+```
+Message → OrchestratorAgent → UnifiedNLUAgent (Sonnet 4.5)
+                                    ↓
+                              Single AI Call:
+                              - Intent Classification
+                              - Health Data Extraction
+                              - Natural Response Generation
+                              - Action Execution → DB
+```
+- ใช้ Sonnet 4.5 ตัวเดียว
+- 1 API call ต่อข้อความ
+- Response คุณภาพสูง + เป็นธรรมชาติ
+
+### Files Changed
+- [x] `src/index.ts` - ลบ Health Extraction Pipeline
+- [x] `src/agents/core/OrchestratorAgent.ts` - เพิ่ม conversation logging
+- [x] `src/lib/ai/prompts/unified-nlu.ts` - ปรับ prompt ให้ตอบธรรมชาติ
+
+### Response Style Examples
+| User พูด | Bot ตอบ (แบบใหม่) |
+|----------|-------------------|
+| "ยายกินยาแล้วค่ะ" | "โอเคค่ะ บันทึกให้ยายแล้ว 💊" |
+| "ความดัน 140/90" | "รับทราบค่ะ สูงนิดนึง ดื่มน้ำเยอะๆ นะคะ 💧" |
+| "ปวดหัวมาก" | "อุ๊ย ปวดหัวเหรอคะ บันทึกไว้แล้ว พักผ่อนเยอะๆ นะคะ" |
+
+---
+
+## LIFF Page IIFE Optimization ✅ COMPLETE
+
+> Completed: 2025-12-26
+
+### Pages Optimized
+- [x] `public/liff/index.html` - เพิ่ม IIFE + Critical CSS
+- [x] `public/liff/success.html` - เพิ่ม IIFE + missing functions
 
 ---
 
