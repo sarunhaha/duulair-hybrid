@@ -3,122 +3,361 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#4CAF50">
+  <meta name="theme-color" content="#1E7B9C">
   <title>ลงทะเบียนสำเร็จ - OONJAI</title>
 
-  <!-- Preconnect to speed up external resources -->
+  <!-- Preconnect -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://static.line-scdn.net">
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
-  <link rel="dns-prefetch" href="https://static.line-scdn.net">
-  <link rel="preload" href="https://static.line-scdn.net/liff/edge/2/sdk.js" as="script">
 
-  <link rel="stylesheet" href="css/style.css">
+  <!-- Kanit Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-  <!-- Critical CSS for immediate display -->
+  <!-- Theme CSS -->
+  <link rel="stylesheet" href="css/oonjai-theme.css">
+
   <style>
-    .container { opacity: 1; }
-    .success-icon {
-      font-size: 64px;
-      animation: pop 0.3s ease-out;
+    /* Success Icon */
+    .success-icon-wrapper {
+      width: 96px;
+      height: 96px;
+      background: linear-gradient(135deg, hsl(var(--success)) 0%, hsl(145 60% 35%) 100%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1.5rem;
+      animation: pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      box-shadow: 0 8px 24px hsl(var(--success) / 0.3);
     }
+
+    .success-icon-wrapper svg {
+      width: 48px;
+      height: 48px;
+      color: white;
+    }
+
     @keyframes pop {
-      0% { transform: scale(0); }
-      80% { transform: scale(1.1); }
-      100% { transform: scale(1); }
+      0% { transform: scale(0); opacity: 0; }
+      60% { transform: scale(1.1); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    /* Success Header */
+    .success-header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .success-title {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: hsl(var(--foreground));
+      margin-bottom: 0.5rem;
+    }
+
+    .success-subtitle {
+      font-size: 1rem;
+      color: hsl(var(--muted-foreground));
+    }
+
+    /* Link Code Card */
+    .link-code-card {
+      background: hsl(var(--card));
+      border: 1px solid hsl(var(--border));
+      border-radius: var(--radius-xl);
+      margin-bottom: 1.5rem;
+      overflow: hidden;
+    }
+
+    .link-code-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 1rem 1.25rem;
+      background: hsl(var(--muted));
+      border-bottom: 1px solid hsl(var(--border));
+    }
+
+    .link-code-header-icon {
+      width: 40px;
+      height: 40px;
+      background: hsl(var(--primary) / 0.15);
+      border-radius: var(--radius-lg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .link-code-header-icon svg {
+      width: 20px;
+      height: 20px;
+      color: hsl(var(--primary));
+    }
+
+    .link-code-header-text {
+      flex: 1;
+    }
+
+    .link-code-header-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: hsl(var(--foreground));
+    }
+
+    .link-code-header-subtitle {
+      font-size: 0.75rem;
+      color: hsl(var(--muted-foreground));
+      margin-top: 0.125rem;
+    }
+
+    .link-code-body {
+      padding: 1.5rem;
+      text-align: center;
+    }
+
+    .link-code-instruction {
+      font-size: 0.875rem;
+      color: hsl(var(--muted-foreground));
+      margin-bottom: 1rem;
+    }
+
+    /* Link Code Display */
+    .link-code-display {
+      font-size: 2.5rem;
+      font-weight: 700;
+      letter-spacing: 0.3rem;
+      color: hsl(var(--primary));
+      background: hsl(var(--muted));
+      padding: 1rem 1.5rem;
+      border-radius: var(--radius-lg);
+      font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+      display: inline-block;
+      margin-bottom: 1.5rem;
+      border: 2px dashed hsl(var(--border));
+    }
+
+    /* QR Code Container */
+    .qr-code-wrapper {
+      background: white;
+      padding: 1rem;
+      border-radius: var(--radius-lg);
+      display: inline-block;
+      box-shadow: var(--shadow-md);
+    }
+
+    .qr-code-wrapper canvas,
+    .qr-code-wrapper img {
+      display: block;
+    }
+
+    /* Info Card */
+    .info-card {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      padding: 1rem;
+      background: hsl(var(--primary) / 0.08);
+      border: 1px solid hsl(var(--primary) / 0.2);
+      border-radius: var(--radius-lg);
+      margin-top: 1rem;
+    }
+
+    .info-card-icon {
+      width: 32px;
+      height: 32px;
+      background: hsl(var(--primary) / 0.15);
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .info-card-icon svg {
+      width: 16px;
+      height: 16px;
+      color: hsl(var(--primary));
+    }
+
+    .info-card-text {
+      font-size: 0.8125rem;
+      color: hsl(var(--foreground));
+      line-height: 1.5;
+    }
+
+    /* Caregiver Success Card */
+    .caregiver-success-card {
+      background: hsl(var(--card));
+      border: 1px solid hsl(var(--border));
+      border-radius: var(--radius-xl);
+      padding: 1.5rem;
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .caregiver-success-icon {
+      width: 64px;
+      height: 64px;
+      background: hsl(var(--success) / 0.15);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1rem;
+    }
+
+    .caregiver-success-icon svg {
+      width: 32px;
+      height: 32px;
+      color: hsl(var(--success));
+    }
+
+    .caregiver-success-text {
+      font-size: 0.9375rem;
+      color: hsl(var(--muted-foreground));
+      line-height: 1.6;
+    }
+
+    /* Already Registered Card */
+    .already-registered-card {
+      background: hsl(var(--card));
+      border: 1px solid hsl(var(--border));
+      border-radius: var(--radius-xl);
+      padding: 1.5rem;
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .already-registered-text {
+      font-size: 0.9375rem;
+      color: hsl(var(--muted-foreground));
+    }
+
+    /* Action Buttons */
+    .action-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+
+    /* Footer Note */
+    .footer-note {
+      text-align: center;
+      font-size: 0.8125rem;
+      color: hsl(var(--muted-foreground));
+      line-height: 1.6;
+    }
+
+    /* Toast Notification */
+    .toast {
+      position: fixed;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: hsl(var(--foreground));
+      color: hsl(var(--background));
+      padding: 0.875rem 1.5rem;
+      border-radius: var(--radius-lg);
+      font-size: 0.875rem;
+      font-weight: 500;
+      z-index: 9999;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      box-shadow: var(--shadow-lg);
+    }
+
+    .toast.show {
+      opacity: 1;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <!-- Success Icon -->
-    <div class="success-container">
-      <div class="success-icon">✅</div>
-      <h1 id="successTitle">ลงทะเบียนสำเร็จ!</h1>
-      <p id="successMessage" class="text-large">ขอบคุณที่ใช้บริการ OONJAI</p>
+    <!-- Success Header -->
+    <div class="success-header">
+      <div class="success-icon-wrapper" id="successIconWrapper"></div>
+      <h1 class="success-title" id="successTitle">ลงทะเบียนสำเร็จ!</h1>
+      <p class="success-subtitle" id="successSubtitle">ขอบคุณที่ใช้บริการ OONJAI</p>
     </div>
 
     <!-- Patient Success: Link Code & QR Code -->
     <div id="patientSuccess" class="hidden">
-      <div class="card">
-        <div class="card-header">🔗 รหัสเชื่อมต่อของคุณ</div>
-
-        <p class="text-center mb-2">
-          แชร์รหัสนี้กับผู้ดูแลเพื่อให้เขาเชื่อมต่อกับบัญชีของคุณ
-        </p>
-
-        <!-- Link Code -->
-        <div class="link-code" id="linkCodeDisplay">
-          ------
+      <div class="link-code-card">
+        <div class="link-code-header">
+          <div class="link-code-header-icon" id="linkCodeIcon"></div>
+          <div class="link-code-header-text">
+            <div class="link-code-header-title">รหัสเชื่อมต่อของคุณ</div>
+            <div class="link-code-header-subtitle">แชร์รหัสนี้กับผู้ดูแล</div>
+          </div>
         </div>
 
-        <!-- QR Code -->
-        <div class="qr-code">
-          <div id="qrCodeContainer" style="display: flex; justify-content: center; align-items: center;"></div>
-        </div>
+        <div class="link-code-body">
+          <p class="link-code-instruction">แชร์รหัสนี้กับผู้ดูแลเพื่อให้เขาเชื่อมต่อกับบัญชีของคุณ</p>
 
-        <div class="alert alert-info">
-          💡 ผู้ดูแลสามารถสแกน QR Code หรือกรอกรหัส 6 หลักเพื่อเชื่อมต่อกับคุณ
+          <!-- Link Code -->
+          <div class="link-code-display" id="linkCodeDisplay">------</div>
+
+          <!-- QR Code -->
+          <div class="qr-code-wrapper">
+            <div id="qrCodeContainer"></div>
+          </div>
+
+          <div class="info-card">
+            <div class="info-card-icon" id="infoIcon"></div>
+            <div class="info-card-text">
+              ผู้ดูแลสามารถสแกน QR Code หรือกรอกรหัส 6 หลักเพื่อเชื่อมต่อกับคุณ
+            </div>
+          </div>
         </div>
       </div>
 
-      <!-- Share Button -->
-      <button type="button" class="btn btn-block" onclick="shareCode()">
-        📤 แชร์รหัส
-      </button>
-
-      <!-- Copy Button -->
-      <button type="button" class="btn btn-secondary btn-block" onclick="copyCode()">
-        📋 คัดลอกรหัส
-      </button>
+      <!-- Share & Copy Buttons -->
+      <div class="action-buttons">
+        <button type="button" class="btn btn-primary btn-block" onclick="shareCode()" id="shareBtn"></button>
+        <button type="button" class="btn btn-secondary btn-block" onclick="copyCode()" id="copyBtn"></button>
+      </div>
     </div>
 
     <!-- Caregiver Success -->
     <div id="caregiverSuccess" class="hidden">
-      <div class="card">
-        <div class="card-header">✅ เชื่อมต่อสำเร็จ</div>
-
-        <p class="text-center">
+      <div class="caregiver-success-card">
+        <div class="caregiver-success-icon" id="caregiverSuccessIcon"></div>
+        <p class="caregiver-success-text">
           คุณได้เชื่อมต่อกับผู้ป่วยเรียบร้อยแล้ว<br>
           ตอนนี้คุณสามารถดูข้อมูลและติดตามสุขภาพของผู้ป่วยได้แล้ว
         </p>
 
-        <div class="alert alert-info mt-2">
-          💡 คุณจะได้รับแจ้งเตือนเกี่ยวกับสุขภาพของผู้ป่วยผ่าน LINE ทันที
+        <div class="info-card">
+          <div class="info-card-icon" id="caregiverInfoIcon"></div>
+          <div class="info-card-text">
+            คุณจะได้รับแจ้งเตือนเกี่ยวกับสุขภาพของผู้ป่วยผ่าน LINE ทันที
+          </div>
         </div>
       </div>
     </div>
 
     <!-- Already Registered -->
     <div id="alreadyRegistered" class="hidden">
-      <div class="card">
-        <p class="text-center">
-          คุณได้ลงทะเบียนไว้แล้ว
-        </p>
+      <div class="already-registered-card">
+        <p class="already-registered-text">คุณได้ลงทะเบียนไว้แล้ว</p>
       </div>
     </div>
 
-    <!-- Action Buttons -->
-    <div class="mt-2">
-      <button type="button" class="btn btn-block" onclick="closeLiff()">
-        ปิด
-      </button>
-    </div>
+    <!-- Close Button -->
+    <button type="button" class="btn btn-block" onclick="closeLiff()" id="closeBtn"></button>
 
-    <p class="text-center text-small mt-2" style="color: #666;">
+    <p class="footer-note">
       คุณสามารถเริ่มใช้งานระบบได้ทันที<br>
       พิมพ์ "สวัสดี" ใน LINE Chat เพื่อทดสอบ
     </p>
   </div>
 
-  <!-- Phase 2.1: Show UI immediately -->
-  <script>
-    // IIFE to show success UI immediately without waiting for external scripts
-    (function showUIImmediately() {
-      // Success container is already visible via CSS
-      // Success icon animation plays immediately
-      console.log('✅ Success UI shown immediately');
-    })();
-  </script>
+  <!-- Toast Container -->
+  <div class="toast" id="toast"></div>
 
   <!-- LIFF SDK -->
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
@@ -126,34 +365,48 @@
   <!-- QR Code Library -->
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs2@0.0.2/qrcode.min.js"></script>
 
+  <!-- Lucide Icons -->
+  <script src="js/lucide-icons.js"></script>
+
   <!-- API Client -->
   <script src="js/api.js"></script>
 
-  <!-- LIFF Helpers -->
   <script>
     const LIFF_ID = '2008278683-5k69jxNq';
     let liffProfile = null;
+    let linkCode = null;
+    let patientId = null;
+    let caregiverId = null;
 
-    function showLoading(message = 'กำลังโหลด...') {
-      console.log('Loading:', message);
-    }
+    // Initialize icons and UI immediately
+    (function initUI() {
+      // Initialize dark mode
+      darkMode.init();
 
-    function hideLoading() {
-      console.log('Loading hidden');
+      // Set icons
+      document.getElementById('successIconWrapper').innerHTML = icon('checkCircle');
+      document.getElementById('linkCodeIcon').innerHTML = icon('link');
+      document.getElementById('infoIcon').innerHTML = icon('lightbulb');
+      document.getElementById('shareBtn').innerHTML = icon('share2', 'inline-icon') + ' แชร์รหัส';
+      document.getElementById('copyBtn').innerHTML = icon('copy', 'inline-icon') + ' คัดลอกรหัส';
+      document.getElementById('closeBtn').innerHTML = icon('x', 'inline-icon') + ' ปิด';
+      document.getElementById('caregiverSuccessIcon').innerHTML = icon('userCheck');
+      document.getElementById('caregiverInfoIcon').innerHTML = icon('bell');
+
+      console.log('Success UI initialized');
+    })();
+
+    // Helper functions
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3000);
     }
 
     function showError(message) {
       alert('Error: ' + message);
       console.error('Error:', message);
-    }
-
-    function showSuccess(message) {
-      // Simple toast notification
-      const toast = document.createElement('div');
-      toast.style.cssText = 'position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #4CAF50; color: white; padding: 12px 24px; border-radius: 8px; z-index: 9999; font-size: 14px;';
-      toast.textContent = message;
-      document.body.appendChild(toast);
-      setTimeout(() => toast.remove(), 3000);
     }
 
     function closeLiff() {
@@ -180,37 +433,24 @@
     async function initLiff() {
       try {
         await liff.init({ liffId: LIFF_ID });
-        console.log('✅ LIFF initialized');
+        console.log('LIFF initialized');
 
         if (!liff.isLoggedIn()) {
-          console.log('❌ Not logged in');
+          console.log('Not logged in');
           liff.login();
           return null;
         }
 
         liffProfile = await liff.getProfile();
-        console.log('✅ LIFF Profile:', liffProfile);
+        console.log('LIFF Profile:', liffProfile);
         return liffProfile;
 
       } catch (error) {
-        console.error('❌ LIFF init failed:', error);
+        console.error('LIFF init failed:', error);
         showError('ไม่สามารถเชื่อมต่อได้');
         throw error;
       }
     }
-  </script>
-
-  <!-- App JavaScript -->
-
-  <script>
-    // ========================================
-    // Success Page Logic
-    // ========================================
-
-    // liffProfile is declared in liff-init.js - don't redeclare it here
-    let linkCode = null;
-    let patientId = null;
-    let caregiverId = null;
 
     async function init() {
       try {
@@ -236,7 +476,7 @@
         }
 
       } catch (error) {
-        console.error('❌ Initialization error:', error);
+        console.error('Initialization error:', error);
         showError('เกิดข้อผิดพลาด');
       }
     }
@@ -246,20 +486,16 @@
      */
     async function showPatientSuccess(patientId, isReturning) {
       try {
-        showLoading('กำลังสร้างรหัสเชื่อมต่อ...');
-
         // Generate or get existing link code
         const result = await api.generateLinkCode(patientId);
         linkCode = result.code;
 
-        console.log('✅ Link code generated:', linkCode, result);
-
-        hideLoading();
+        console.log('Link code generated:', linkCode, result);
 
         // Update UI
         if (isReturning) {
           document.getElementById('successTitle').textContent = 'ยินดีต้อนรับกลับ!';
-          document.getElementById('successMessage').textContent = 'คุณลงทะเบียนไว้แล้ว';
+          document.getElementById('successSubtitle').textContent = 'คุณลงทะเบียนไว้แล้ว';
         }
 
         // Display link code
@@ -272,24 +508,23 @@
         if (typeof QRCode !== 'undefined') {
           new QRCode(qrContainer, {
             text: `OONJAI:${linkCode}`,
-            width: 200,
-            height: 200,
-            colorDark: '#000000',
+            width: 180,
+            height: 180,
+            colorDark: '#1E7B9C',
             colorLight: '#ffffff',
             correctLevel: QRCode.CorrectLevel.H
           });
-          console.log('✅ QR Code generated');
+          console.log('QR Code generated');
         } else {
-          console.error('❌ QRCode library not loaded');
-          qrContainer.innerHTML = '<p style="color: #999;">QR Code ไม่สามารถแสดงได้</p>';
+          console.error('QRCode library not loaded');
+          qrContainer.innerHTML = '<p style="color: var(--muted-foreground);">QR Code ไม่สามารถแสดงได้</p>';
         }
 
         // Show patient success section
         document.getElementById('patientSuccess').classList.remove('hidden');
 
       } catch (error) {
-        console.error('❌ Error generating link code:', error);
-        hideLoading();
+        console.error('Error generating link code:', error);
         showError('ไม่สามารถสร้างรหัสเชื่อมต่อได้');
       }
     }
@@ -299,7 +534,7 @@
      */
     function showCaregiverSuccess() {
       document.getElementById('successTitle').textContent = 'เชื่อมต่อสำเร็จ!';
-      document.getElementById('successMessage').textContent = 'คุณสามารถติดตามสุขภาพของผู้ป่วยได้แล้ว';
+      document.getElementById('successSubtitle').textContent = 'คุณสามารถติดตามสุขภาพของผู้ป่วยได้แล้ว';
       document.getElementById('caregiverSuccess').classList.remove('hidden');
     }
 
@@ -308,7 +543,7 @@
      */
     function showAlreadyRegistered() {
       document.getElementById('successTitle').textContent = 'คุณลงทะเบียนแล้ว';
-      document.getElementById('successMessage').textContent = 'ขอบคุณที่ใช้บริการ';
+      document.getElementById('successSubtitle').textContent = 'ขอบคุณที่ใช้บริการ';
       document.getElementById('alreadyRegistered').classList.remove('hidden');
     }
 
@@ -323,13 +558,13 @@
 
       const message = {
         type: 'text',
-        text: `🔗 รหัสเชื่อมต่อ OONJAI\n\nรหัส: ${linkCode}\n\nใช้รหัสนี้เพื่อเชื่อมต่อกับบัญชีผู้ป่วยของฉัน\n\n📱 เปิด LINE → OONJAI → ลงทะเบียนผู้ดูแล → กรอกรหัสนี้`
+        text: `รหัสเชื่อมต่อ OONJAI\n\nรหัส: ${linkCode}\n\nใช้รหัสนี้เพื่อเชื่อมต่อกับบัญชีผู้ป่วยของฉัน\n\nเปิด LINE → OONJAI → ลงทะเบียนผู้ดูแล → กรอกรหัสนี้`
       };
 
       const success = await shareWithTargetPicker(message);
 
       if (success) {
-        showSuccess('แชร์รหัสเรียบร้อย');
+        showToast('แชร์รหัสเรียบร้อย');
       } else {
         // Fallback: copy to clipboard
         copyCode();
@@ -345,7 +580,17 @@
         return;
       }
 
-      // Create temporary input
+      // Modern clipboard API
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(linkCode)
+          .then(() => showToast('คัดลอกรหัสเรียบร้อย'))
+          .catch(() => fallbackCopy());
+      } else {
+        fallbackCopy();
+      }
+    }
+
+    function fallbackCopy() {
       const input = document.createElement('input');
       input.value = linkCode;
       document.body.appendChild(input);
@@ -353,7 +598,7 @@
 
       try {
         document.execCommand('copy');
-        showSuccess('คัดลอกรหัสเรียบร้อย');
+        showToast('คัดลอกรหัสเรียบร้อย');
       } catch (error) {
         showError('ไม่สามารถคัดลอกได้');
       }
@@ -361,10 +606,7 @@
       document.body.removeChild(input);
     }
 
-    // ========================================
-    // Start
-    // ========================================
-
+    // Initialize on load
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', init);
     } else {

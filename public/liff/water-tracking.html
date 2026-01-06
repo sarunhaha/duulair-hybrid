@@ -2,216 +2,408 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#FAF9F6">
-  <title>💧 ดื่มน้ำ - OONJAI</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#1E7B9C">
+  <title>ดื่มน้ำ - OONJAI</title>
 
-  <!-- Preconnect to speed up external resources -->
+  <!-- Preconnect -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://static.line-scdn.net">
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
   <link rel="preconnect" href="https://mqxklnzxfrupwwkwlwwc.supabase.co">
-  <link rel="dns-prefetch" href="https://static.line-scdn.net">
-  <link rel="preload" href="https://static.line-scdn.net/liff/edge/2/sdk.js" as="script">
 
+  <!-- Kanit Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Theme CSS -->
+  <link rel="stylesheet" href="css/oonjai-theme.css">
+
+  <!-- External Scripts -->
   <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <link rel="stylesheet" href="css/minimal-theme.css">
+
   <style>
-    /* Water-specific styles */
+    /* Progress Section */
     .progress-section {
-      margin-bottom: var(--spacing-xl);
+      background: hsl(var(--card));
+      border: 1px solid hsl(var(--border));
+      border-radius: var(--radius-xl);
+      padding: 1.25rem;
+      margin-bottom: 1.5rem;
     }
 
     .progress-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: var(--spacing-sm);
+      margin-bottom: 0.75rem;
     }
 
     .progress-label {
-      font-size: 14px;
-      color: var(--text-secondary);
+      font-size: 0.8125rem;
+      color: hsl(var(--muted-foreground));
+      display: flex;
+      align-items: center;
+      gap: 0.375rem;
+    }
+
+    .progress-label svg {
+      width: 14px;
+      height: 14px;
     }
 
     .progress-bar-container {
       position: relative;
       height: 12px;
-      background: var(--bg-secondary);
-      border-radius: 6px;
-      border: 1px solid var(--border);
+      background: hsl(var(--muted));
+      border-radius: var(--radius-full);
       overflow: hidden;
-      margin-bottom: var(--spacing-md);
     }
 
     .progress-bar {
       height: 100%;
-      background: var(--accent-primary);
-      border-radius: 6px;
+      background: linear-gradient(90deg, hsl(200 85% 50%) 0%, hsl(200 85% 40%) 100%);
+      border-radius: var(--radius-full);
       transition: width 0.3s ease;
-      position: relative;
     }
 
+    /* Water Summary Card */
     .water-summary {
+      background: linear-gradient(135deg, hsl(200 85% 50%) 0%, hsl(200 85% 40%) 100%);
+      border-radius: var(--radius-xl);
+      padding: 1.5rem;
       text-align: center;
-      padding: var(--spacing-lg);
-      background: var(--bg-card);
-      border-radius: var(--radius-md);
-      box-shadow: var(--shadow-sm);
-      margin-bottom: var(--spacing-lg);
+      color: white;
+      margin-bottom: 1.5rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .water-summary::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -30%;
+      width: 200px;
+      height: 200px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 50%;
+    }
+
+    .water-summary-content {
+      position: relative;
+      z-index: 1;
+    }
+
+    .water-icon {
+      width: 48px;
+      height: 48px;
+      margin: 0 auto 0.75rem;
+      background: rgba(255,255,255,0.2);
+      border-radius: var(--radius-lg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(10px);
+    }
+
+    .water-icon svg {
+      width: 28px;
+      height: 28px;
     }
 
     .water-amount {
-      font-size: 42px;
-      font-weight: 600;
-      color: var(--text-primary);
-      margin-bottom: var(--spacing-xs);
+      font-size: 3rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+      font-family: var(--font-mono);
     }
 
     .water-unit {
-      font-size: 16px;
-      color: var(--text-secondary);
-      margin-bottom: var(--spacing-md);
+      font-size: 0.9375rem;
+      opacity: 0.9;
+      margin-bottom: 0.75rem;
     }
 
     .water-remaining {
-      font-size: 15px;
-      color: #5A8BA8;
-      font-weight: 500;
+      font-size: 0.875rem;
+      opacity: 0.85;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.375rem;
+    }
+
+    .water-remaining svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    /* Section Title */
+    .section-title {
+      font-size: 0.9375rem;
+      font-weight: 600;
+      color: hsl(var(--foreground));
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .section-title svg {
+      width: 18px;
+      height: 18px;
+      color: hsl(var(--primary));
+    }
+
+    /* Quick Add Buttons */
+    .quick-add-card {
+      background: hsl(var(--card));
+      border: 1px solid hsl(var(--border));
+      border-radius: var(--radius-xl);
+      padding: 1.25rem;
+      margin-bottom: 1.5rem;
     }
 
     .quick-add {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: var(--spacing-sm);
-      margin-bottom: var(--spacing-lg);
+      gap: 0.75rem;
+      margin-bottom: 1rem;
     }
 
     .quick-btn {
-      background: var(--bg-card);
-      border: 1px solid rgba(0, 0, 0, 0.08);
-      border-radius: var(--radius-md);
-      padding: var(--spacing-md);
+      background: hsl(var(--muted));
+      border: 2px solid transparent;
+      border-radius: var(--radius-lg);
+      padding: 1rem 0.5rem;
       text-align: center;
       cursor: pointer;
       transition: all 0.2s ease;
-      box-shadow: var(--shadow-sm);
+    }
+
+    .quick-btn:hover {
+      border-color: hsl(200 85% 50%);
+      background: hsl(200 85% 95%);
+    }
+
+    .dark .quick-btn:hover {
+      background: hsl(200 50% 20%);
     }
 
     .quick-btn:active {
       transform: scale(0.95);
-      box-shadow: var(--shadow-md);
     }
 
     .quick-btn .amount {
-      font-size: 18px;
+      font-size: 1.125rem;
       font-weight: 600;
-      color: var(--text-primary);
+      color: hsl(200 85% 45%);
       display: block;
-      margin-bottom: 4px;
+      margin-bottom: 0.25rem;
     }
 
     .quick-btn .label {
-      font-size: 12px;
-      color: var(--text-muted);
+      font-size: 0.75rem;
+      color: hsl(var(--muted-foreground));
     }
 
     .custom-input-group {
       display: flex;
-      gap: var(--spacing-sm);
-      margin-bottom: var(--spacing-lg);
+      gap: 0.75rem;
     }
 
     .custom-input-group input {
       flex: 1;
-      padding: 12px 16px;
-      border: 1px solid rgba(0, 0, 0, 0.1);
-      border-radius: var(--radius-sm);
-      font-size: 15px;
+      padding: 0.75rem 1rem;
+      border: 2px solid hsl(var(--border));
+      border-radius: var(--radius-lg);
+      font-size: 0.9375rem;
+      background: hsl(var(--background));
+      color: hsl(var(--foreground));
+      transition: all 0.2s ease;
+    }
+
+    .custom-input-group input:focus {
+      outline: none;
+      border-color: hsl(var(--primary));
+      box-shadow: 0 0 0 3px hsl(var(--primary) / 0.1);
     }
 
     .custom-input-group button {
-      padding: 12px 24px;
-      background: var(--accent-primary);
+      padding: 0.75rem 1.25rem;
+      background: linear-gradient(135deg, hsl(200 85% 50%) 0%, hsl(200 85% 40%) 100%);
       color: white;
       border: none;
-      border-radius: var(--radius-sm);
+      border-radius: var(--radius-lg);
       font-weight: 500;
       cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.375rem;
       transition: all 0.2s ease;
+    }
+
+    .custom-input-group button:hover {
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-md);
     }
 
     .custom-input-group button:active {
       transform: scale(0.97);
     }
 
+    .custom-input-group button svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    /* Log Section */
+    .log-card {
+      background: hsl(var(--card));
+      border: 1px solid hsl(var(--border));
+      border-radius: var(--radius-xl);
+      padding: 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+
     .log-item {
-      background: var(--bg-card);
-      border-radius: var(--radius-sm);
-      padding: var(--spacing-md);
-      margin-bottom: var(--spacing-sm);
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      box-shadow: var(--shadow-sm);
+      justify-content: space-between;
+      padding: 0.875rem;
+      background: hsl(var(--muted));
+      border-radius: var(--radius-lg);
+      margin-bottom: 0.5rem;
+    }
+
+    .log-item:last-child {
+      margin-bottom: 0;
     }
 
     .log-item-info {
       display: flex;
       flex-direction: column;
-      gap: 4px;
-      flex: 1;
+      gap: 0.125rem;
     }
 
     .log-item .time {
-      font-size: 13px;
-      color: var(--text-muted);
+      font-size: 0.75rem;
+      color: hsl(var(--muted-foreground));
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    .log-item .time svg {
+      width: 12px;
+      height: 12px;
     }
 
     .log-item .amount {
-      font-size: 16px;
+      font-size: 1rem;
       font-weight: 600;
-      color: #5A8BA8;
+      color: hsl(200 85% 45%);
     }
 
-    .log-item .delete-btn {
-      background: #ff6b6b;
+    .delete-btn {
+      background: hsl(0 70% 50%);
       color: white;
       border: none;
-      border-radius: var(--radius-sm);
-      padding: 6px 12px;
-      font-size: 13px;
+      border-radius: var(--radius);
+      padding: 0.375rem 0.625rem;
+      font-size: 0.75rem;
       cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
       transition: all 0.2s ease;
-      margin-left: var(--spacing-sm);
     }
 
-    .log-item .delete-btn:active {
+    .delete-btn:hover {
+      background: hsl(0 70% 45%);
+    }
+
+    .delete-btn:active {
       transform: scale(0.95);
-      background: #fa5252;
+    }
+
+    .delete-btn svg {
+      width: 14px;
+      height: 14px;
     }
 
     .empty-state {
       text-align: center;
-      padding: var(--spacing-xl);
-      color: var(--text-muted);
+      padding: 1.5rem;
+      color: hsl(var(--muted-foreground));
+    }
+
+    .empty-state svg {
+      width: 40px;
+      height: 40px;
+      opacity: 0.5;
+      margin-bottom: 0.5rem;
+    }
+
+    /* Settings Card */
+    .settings-card {
+      background: hsl(var(--card));
+      border: 1px solid hsl(var(--border));
+      border-radius: var(--radius-xl);
+      padding: 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .settings-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    .settings-label {
+      font-size: 0.875rem;
+      color: hsl(var(--muted-foreground));
+    }
+
+    .settings-input {
+      width: 120px;
+      padding: 0.5rem 0.75rem;
+      border: 1px solid hsl(var(--border));
+      border-radius: var(--radius);
+      font-size: 0.9375rem;
+      text-align: center;
+      background: hsl(var(--background));
+      color: hsl(var(--foreground));
+    }
+
+    .settings-input:focus {
+      outline: none;
+      border-color: hsl(var(--primary));
+    }
+
+    /* Close Section */
+    .close-section {
+      padding-top: 0.5rem;
     }
 
     @media (max-width: 480px) {
       .water-amount {
-        font-size: 36px;
+        font-size: 2.5rem;
       }
 
       .quick-add {
-        gap: var(--spacing-xs);
+        gap: 0.5rem;
       }
 
       .quick-btn {
-        padding: var(--spacing-sm);
+        padding: 0.75rem 0.25rem;
       }
 
       .quick-btn .amount {
-        font-size: 16px;
+        font-size: 1rem;
       }
     }
   </style>
@@ -219,30 +411,24 @@
 <body>
   <div class="container">
     <!-- Loading State -->
-    <div id="loadingState" class="loading">
+    <div id="loadingState" class="loading-container">
       <div class="loading-spinner"></div>
-      <p>กำลังโหลด...</p>
+      <p class="loading-text">กำลังโหลด...</p>
     </div>
 
     <!-- Main Content -->
     <div id="mainContent" class="hidden">
-      <!-- Header with Back Button -->
-      <div class="header">
-        <button class="header-back" onclick="goBack()" id="backBtn" style="display:none;">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M15 18l-6-6 6-6"/>
-          </svg>
-        </button>
-        <div class="header-content">
-          <h1>💧 ดื่มน้ำ</h1>
-          <p>ติดตามปริมาณน้ำทั้งวัน</p>
-        </div>
-      </div>
+      <!-- Header -->
+      <header class="header">
+        <button class="btn-icon" onclick="goBack()" aria-label="กลับ" id="backBtn"></button>
+        <h1 class="header-title" id="headerTitle"></h1>
+        <button class="btn-icon" onclick="darkMode.toggle()" aria-label="สลับธีม" id="themeBtn"></button>
+      </header>
 
       <!-- Progress Section -->
       <div class="progress-section">
         <div class="progress-header">
-          <span class="progress-label">วันนี้</span>
+          <span class="progress-label" id="todayLabel"></span>
           <span class="progress-label" id="goalText">เป้าหมาย: 2000 ml</span>
         </div>
         <div class="progress-bar-container">
@@ -252,16 +438,20 @@
 
       <!-- Water Summary -->
       <div class="water-summary">
-        <div class="water-amount" id="totalAmount">0</div>
-        <div class="water-unit">มิลลิลิตร (<span id="glassCount">0</span> แก้ว)</div>
-        <div class="water-remaining">
-          <span id="remaining">2000 ml</span> เพื่อบรรลุเป้าหมาย
+        <div class="water-summary-content">
+          <div class="water-icon" id="waterIcon"></div>
+          <div class="water-amount" id="totalAmount">0</div>
+          <div class="water-unit">มิลลิลิตร (<span id="glassCount">0</span> แก้ว)</div>
+          <div class="water-remaining">
+            <span id="targetIcon"></span>
+            <span id="remaining">2000 ml</span> เพื่อบรรลุเป้าหมาย
+          </div>
         </div>
       </div>
 
       <!-- Quick Add -->
-      <div class="card">
-        <div class="card-header">⚡ เพิ่มเร็ว</div>
+      <div class="section-title" id="quickAddTitle"></div>
+      <div class="quick-add-card">
         <div class="quick-add">
           <button class="quick-btn" onclick="addWater(250)">
             <span class="amount">250 ml</span>
@@ -278,41 +468,42 @@
         </div>
 
         <div class="custom-input-group">
-          <input type="number" id="customAmount" placeholder="ระบุปริมาณ (ml)" min="1" max="5000">
-          <button onclick="addCustomWater()">เพิ่ม</button>
+          <input type="number" id="customAmount" placeholder="ระบุปริมาณ (ml)" min="1" max="5000" inputmode="numeric">
+          <button onclick="addCustomWater()" id="addCustomBtn"></button>
         </div>
       </div>
 
       <!-- Today's Log -->
-      <div class="card">
-        <div class="card-header">📝 บันทึกวันนี้</div>
+      <div class="section-title" id="logTitle"></div>
+      <div class="log-card">
         <div id="logContainer">
-          <div class="empty-state">
-            <p>ยังไม่มีการบันทึก</p>
-          </div>
+          <div class="empty-state" id="emptyState"></div>
         </div>
       </div>
 
       <!-- Settings -->
-      <div class="card">
-        <div class="card-header">⚙️ ตั้งค่า</div>
-        <div class="form-group">
-          <label for="dailyGoal">เป้าหมายรายวัน (ml)</label>
-          <input type="number" id="dailyGoal" value="2000" min="500" max="5000" onchange="updateGoal()">
+      <div class="section-title" id="settingsTitle"></div>
+      <div class="settings-card">
+        <div class="settings-row">
+          <span class="settings-label">เป้าหมายรายวัน (ml)</span>
+          <input type="number" id="dailyGoal" class="settings-input" value="2000" min="500" max="5000" onchange="updateGoal()" inputmode="numeric">
         </div>
       </div>
 
-      <button class="btn btn-secondary btn-block mt-3" onclick="goBack()">
-        <span id="closeBtnText">ปิด</span>
-      </button>
+      <!-- Close Button -->
+      <div class="close-section">
+        <button class="btn btn-secondary btn-block" onclick="goBack()">
+          <span id="closeBtnText">ปิด</span>
+        </button>
+      </div>
     </div>
   </div>
 
-  <script>
-    // ============================================
-    // OPTIMIZED LIFF LOADING
-    // ============================================
+  <!-- Lucide Icons -->
+  <script src="js/lucide-icons.js"></script>
 
+  <script>
+    // API Base URL
     const API_BASE_URL = window.location.hostname === 'localhost'
       ? 'http://localhost:3000/api'
       : 'https://duulair.vercel.app/api';
@@ -332,18 +523,31 @@
     let totalToday = 0;
     let todayLogs = [];
 
-    // ============================================
-    // Show UI Immediately with Cached Data
-    // ============================================
-    (function showUIImmediately() {
+    // Initialize UI immediately
+    (function initUI() {
+      // Initialize dark mode
+      darkMode.init();
+
+      // Set icons
+      document.getElementById('backBtn').innerHTML = icon('arrowLeft');
+      document.getElementById('headerTitle').innerHTML = icon('droplet', 'inline-icon') + ' ดื่มน้ำ';
+      document.getElementById('themeBtn').innerHTML = icon('sun');
+      document.getElementById('todayLabel').innerHTML = icon('calendar') + ' วันนี้';
+      document.getElementById('waterIcon').innerHTML = icon('droplet');
+      document.getElementById('targetIcon').innerHTML = icon('target');
+      document.getElementById('quickAddTitle').innerHTML = icon('zap') + ' เพิ่มเร็ว';
+      document.getElementById('addCustomBtn').innerHTML = icon('plus') + ' เพิ่ม';
+      document.getElementById('logTitle').innerHTML = icon('list') + ' บันทึกวันนี้';
+      document.getElementById('emptyState').innerHTML = icon('droplet') + '<p>ยังไม่มีการบันทึก</p>';
+      document.getElementById('settingsTitle').innerHTML = icon('settings') + ' ตั้งค่า';
+
       // Check if we should show back button
       const returnTo = sessionStorage.getItem('liff_return_to');
       if (returnTo) {
-        document.getElementById('backBtn').style.display = 'flex';
         document.getElementById('closeBtnText').textContent = 'กลับ';
       }
 
-      // Load cached data immediately
+      // Load cached data
       const today = new Date().toISOString().split('T')[0];
       const savedData = JSON.parse(localStorage.getItem(`water_${today}`) || '{"total": 0, "logs": [], "goal": 2000}');
       totalToday = savedData.total || 0;
@@ -358,6 +562,19 @@
       document.getElementById('dailyGoal').value = dailyGoal;
       updateUI();
     })();
+
+    // Update theme icon
+    function updateThemeIcon() {
+      const isDark = document.documentElement.classList.contains('dark');
+      document.getElementById('themeBtn').innerHTML = isDark ? icon('moon') : icon('sun');
+    }
+
+    const originalToggle = darkMode.toggle;
+    darkMode.toggle = function() {
+      originalToggle.call(darkMode);
+      updateThemeIcon();
+    };
+    setTimeout(updateThemeIcon, 100);
 
     function goBack() {
       const returnTo = sessionStorage.getItem('liff_return_to');
@@ -423,29 +640,14 @@
         patientId = context.patientId;
         groupId = context.groupId;
 
-        // Run in background - don't block UI
+        // Run in background
         getCachedProfile().then(profile => {
           checkUserRegistration(profile.userId).catch(e => console.error('Reg check:', e));
         }).catch(e => console.error('Profile error:', e));
 
       } catch (error) {
         console.error('LIFF init error:', error);
-        // UI is already shown
       }
-    }
-
-    async function loadTodayData() {
-      // TODO: Load from Supabase when configured
-      // For now, use localStorage
-      const today = new Date().toISOString().split('T')[0];
-      const savedData = JSON.parse(localStorage.getItem(`water_${today}`) || '{"total": 0, "logs": [], "goal": 2000}');
-
-      totalToday = savedData.total || 0;
-      todayLogs = savedData.logs || [];
-      dailyGoal = savedData.goal || 2000;
-
-      document.getElementById('dailyGoal').value = dailyGoal;
-      updateUI();
     }
 
     function addWater(amount) {
@@ -453,7 +655,7 @@
 
       const now = new Date();
       todayLogs.unshift({
-        id: Date.now(), // ✅ Add unique ID for delete
+        id: Date.now(),
         time: now.toTimeString().slice(0, 5),
         amount: amount
       });
@@ -489,8 +691,6 @@
         logs: todayLogs,
         goal: dailyGoal
       }));
-
-      // TODO: Save to Supabase when configured
     }
 
     function updateUI() {
@@ -510,32 +710,27 @@
       // Update logs
       const container = document.getElementById('logContainer');
       if (todayLogs.length === 0) {
-        container.innerHTML = '<div class="empty-state"><p>ยังไม่มีการบันทึก</p></div>';
+        container.innerHTML = `<div class="empty-state">${icon('droplet')}<p>ยังไม่มีการบันทึก</p></div>`;
       } else {
         container.innerHTML = todayLogs.map(log => `
           <div class="log-item">
             <div class="log-item-info">
-              <span class="time">${log.time}</span>
+              <span class="time">${icon('clock')} ${log.time}</span>
               <span class="amount">+${log.amount} ml</span>
             </div>
-            <button class="delete-btn" onclick="deleteWaterLog(${log.id})">ลบ</button>
+            <button class="delete-btn" onclick="deleteWaterLog(${log.id})">${icon('trash2')} ลบ</button>
           </div>
         `).join('');
       }
     }
 
     function deleteWaterLog(logId) {
-      // Find the log to get its amount
       const log = todayLogs.find(l => l.id === logId);
       if (!log) return;
 
-      // Subtract from total
       totalToday -= log.amount;
-
-      // Remove from array
       todayLogs = todayLogs.filter(l => l.id !== logId);
 
-      // Save and update UI
       saveData();
       updateUI();
     }

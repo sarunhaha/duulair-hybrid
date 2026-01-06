@@ -3,79 +3,406 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#4CAF50">
+  <meta name="theme-color" content="#1E7B9C">
   <title>แดชบอร์ดกลุ่ม - OONJAI</title>
 
-  <!-- Preconnect to speed up external resources -->
+  <!-- Preconnect -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://static.line-scdn.net">
-  <link rel="dns-prefetch" href="https://static.line-scdn.net">
-  <link rel="preload" href="https://static.line-scdn.net/liff/edge/2/sdk.js" as="script">
 
-  <link rel="stylesheet" href="css/style.css">
+  <!-- Kanit Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Theme CSS -->
+  <link rel="stylesheet" href="css/oonjai-theme.css">
+
+  <style>
+    /* Hero Card */
+    .hero-card {
+      background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary-dark)) 100%);
+      border-radius: var(--radius-xl);
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      color: white;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-card::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -30%;
+      width: 200px;
+      height: 200px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 50%;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .hero-title svg {
+      width: 24px;
+      height: 24px;
+    }
+
+    .hero-subtitle {
+      font-size: 0.875rem;
+      opacity: 0.9;
+    }
+
+    /* Info Card */
+    .info-card {
+      background: hsl(var(--card));
+      border: 1px solid hsl(var(--border));
+      border-radius: var(--radius-xl);
+      margin-bottom: 1.5rem;
+      overflow: hidden;
+    }
+
+    .info-card-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 1rem 1.25rem;
+      background: hsl(var(--muted));
+      border-bottom: 1px solid hsl(var(--border));
+    }
+
+    .info-card-header-icon {
+      width: 40px;
+      height: 40px;
+      background: hsl(var(--primary) / 0.15);
+      border-radius: var(--radius-lg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .info-card-header-icon svg {
+      width: 20px;
+      height: 20px;
+      color: hsl(var(--primary));
+    }
+
+    .info-card-header-icon.members {
+      background: hsl(var(--accent) / 0.15);
+    }
+
+    .info-card-header-icon.members svg {
+      color: hsl(var(--accent));
+    }
+
+    .info-card-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: hsl(var(--foreground));
+    }
+
+    .info-card-body {
+      padding: 1.25rem;
+    }
+
+    /* Info Row */
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem 0;
+      border-bottom: 1px solid hsl(var(--border));
+    }
+
+    .info-row:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .info-row:first-child {
+      padding-top: 0;
+    }
+
+    .info-label {
+      font-size: 0.875rem;
+      color: hsl(var(--muted-foreground));
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .info-label svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    .info-value {
+      font-size: 0.9375rem;
+      font-weight: 500;
+      color: hsl(var(--foreground));
+    }
+
+    /* Member List */
+    .member-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .member-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.75rem 1rem;
+      background: hsl(var(--muted));
+      border-radius: var(--radius-lg);
+    }
+
+    .member-info {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .member-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary-dark)) 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 600;
+      font-size: 1rem;
+    }
+
+    .member-name {
+      font-size: 0.9375rem;
+      font-weight: 500;
+      color: hsl(var(--foreground));
+    }
+
+    .member-role {
+      font-size: 0.75rem;
+      color: hsl(var(--muted-foreground));
+    }
+
+    .member-badge {
+      padding: 0.25rem 0.75rem;
+      border-radius: var(--radius-full);
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+
+    .member-badge.primary {
+      background: hsl(var(--primary) / 0.15);
+      color: hsl(var(--primary));
+    }
+
+    .member-badge.member {
+      background: hsl(var(--muted));
+      color: hsl(var(--muted-foreground));
+    }
+
+    /* Quick Actions */
+    .actions-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0.75rem;
+    }
+
+    .action-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      padding: 1rem;
+      background: hsl(var(--card));
+      border: 1px solid hsl(var(--border));
+      border-radius: var(--radius-lg);
+      font-size: 0.9375rem;
+      font-weight: 500;
+      color: hsl(var(--foreground));
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .action-btn:hover {
+      background: hsl(var(--muted));
+    }
+
+    .action-btn:active {
+      transform: scale(0.98);
+    }
+
+    .action-btn svg {
+      width: 20px;
+      height: 20px;
+      color: hsl(var(--primary));
+    }
+
+    .action-btn.primary {
+      background: hsl(var(--primary));
+      border-color: hsl(var(--primary));
+      color: white;
+    }
+
+    .action-btn.primary svg {
+      color: white;
+    }
+
+    .action-btn.primary:hover {
+      background: hsl(var(--primary-dark));
+    }
+
+    /* Tips Card */
+    .tips-card {
+      background: hsl(var(--primary) / 0.08);
+      border: 1px solid hsl(var(--primary) / 0.2);
+      border-radius: var(--radius-xl);
+      padding: 1.25rem;
+    }
+
+    .tips-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.9375rem;
+      font-weight: 600;
+      color: hsl(var(--foreground));
+      margin-bottom: 0.75rem;
+    }
+
+    .tips-header svg {
+      width: 20px;
+      height: 20px;
+      color: hsl(var(--primary));
+    }
+
+    .tips-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .tips-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+      padding: 0.375rem 0;
+      font-size: 0.8125rem;
+      color: hsl(var(--muted-foreground));
+    }
+
+    .tips-list li svg {
+      width: 16px;
+      height: 16px;
+      color: hsl(var(--primary));
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+  </style>
 </head>
 <body>
   <div class="container">
-    <h1>👨‍👩‍👧‍👦 แดชบอร์ดกลุ่ม</h1>
-
     <!-- Loading State -->
-    <div id="loadingState">
-      <div class="card">
-        <div class="text-center">
-          <div class="loading-spinner"></div>
-          <p>กำลังโหลดข้อมูล...</p>
-        </div>
-      </div>
+    <div id="loadingState" class="loading-container">
+      <div class="loading-spinner"></div>
+      <p class="loading-text">กำลังโหลด...</p>
     </div>
 
-    <!-- Group Info -->
-    <div id="groupInfo" class="hidden">
-      <div class="card">
-        <div class="card-header">📋 ข้อมูลกลุ่ม</div>
-        <div class="info-row">
-          <span class="info-label">ชื่อกลุ่ม:</span>
-          <span id="groupName">-</span>
-        </div>
-        <div class="info-row">
-          <span class="info-label">ผู้ป่วย:</span>
-          <span id="patientName">-</span>
-        </div>
-        <div class="info-row">
-          <span class="info-label">ผู้ดูแลหลัก:</span>
-          <span id="caregiverName">-</span>
+    <!-- Main Content -->
+    <div id="mainContent" class="hidden">
+      <!-- Header -->
+      <header class="header">
+        <button class="btn-icon" onclick="closeLiff()" aria-label="ปิด" id="backBtn"></button>
+        <h1 class="header-title" id="headerTitle"></h1>
+        <button class="btn-icon" onclick="darkMode.toggle()" aria-label="สลับธีม" id="themeBtn"></button>
+      </header>
+
+      <!-- Hero Card -->
+      <div class="hero-card">
+        <div class="hero-content">
+          <div class="hero-title" id="heroTitle"></div>
+          <div class="hero-subtitle" id="heroSubtitle">ดูแลสุขภาพผู้สูงอายุด้วยกัน</div>
         </div>
       </div>
 
-      <!-- Group Members -->
-      <div class="card">
-        <div class="card-header">👥 สมาชิกในกลุ่ม</div>
-        <div id="membersList">
-          <!-- Will be populated by JS -->
+      <!-- Group Info -->
+      <div class="info-card">
+        <div class="info-card-header">
+          <div class="info-card-header-icon" id="groupInfoIcon"></div>
+          <div class="info-card-title">ข้อมูลกลุ่ม</div>
+        </div>
+        <div class="info-card-body">
+          <div class="info-row">
+            <span class="info-label" id="groupNameLabel"></span>
+            <span class="info-value" id="groupName">-</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label" id="patientNameLabel"></span>
+            <span class="info-value" id="patientName">-</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label" id="caregiverNameLabel"></span>
+            <span class="info-value" id="caregiverName">-</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Members -->
+      <div class="info-card">
+        <div class="info-card-header">
+          <div class="info-card-header-icon members" id="membersIcon"></div>
+          <div class="info-card-title">สมาชิกในกลุ่ม</div>
+        </div>
+        <div class="info-card-body">
+          <div id="membersList" class="member-list">
+            <!-- Will be populated by JS -->
+          </div>
         </div>
       </div>
 
       <!-- Quick Actions -->
-      <div class="card">
-        <div class="card-header">⚡ เมนูด่วน</div>
-        <div class="quick-actions">
-          <button class="btn btn-block" onclick="logActivity()">
-            📝 บันทึกกิจกรรม
-          </button>
-          <button class="btn btn-secondary btn-block" onclick="viewReports()">
-            📊 ดูรายงาน
-          </button>
-          <button class="btn btn-secondary btn-block" onclick="viewSettings()">
-            ⚙️ ตั้งค่า
-          </button>
+      <div class="info-card">
+        <div class="info-card-header">
+          <div class="info-card-header-icon" id="actionsIcon"></div>
+          <div class="info-card-title">เมนูด่วน</div>
+        </div>
+        <div class="info-card-body">
+          <div class="actions-grid">
+            <button class="action-btn primary" onclick="logActivity()" id="logActivityBtn"></button>
+            <button class="action-btn" onclick="viewReports()" id="viewReportsBtn"></button>
+            <button class="action-btn" onclick="viewSettings()" id="viewSettingsBtn"></button>
+          </div>
         </div>
       </div>
 
-      <!-- Info Box -->
-      <div class="alert alert-info">
-        <strong>💡 วิธีใช้งาน:</strong><br>
-        ส่งข้อความในกลุ่มเพื่อบันทึกกิจกรรมต่างๆ เช่น:<br>
-        • "กินยาแล้ว"<br>
-        • "วัดความดัน 120/80"<br>
-        • "ดื่มน้ำ 500 มล."
+      <!-- Tips -->
+      <div class="tips-card">
+        <div class="tips-header" id="tipsHeader"></div>
+        <ul class="tips-list" id="tipsList">
+          <li id="tip1"></li>
+          <li id="tip2"></li>
+          <li id="tip3"></li>
+        </ul>
+      </div>
+
+      <!-- Close Button -->
+      <div style="padding-top: 1rem;">
+        <button class="btn btn-secondary btn-block" onclick="closeLiff()">ปิด</button>
       </div>
     </div>
   </div>
@@ -83,6 +410,181 @@
   <!-- LIFF SDK -->
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
-  <!-- App JavaScript -->
+  <!-- Lucide Icons -->
+  <script src="js/lucide-icons.js"></script>
+
+  <!-- API Client -->
+  <script src="js/api.js"></script>
+
+  <script>
+    const LIFF_ID = '2008278683-5k69jxNq';
+    let groupData = null;
+
+    // Initialize icons and UI immediately
+    (function initUI() {
+      // Initialize dark mode
+      darkMode.init();
+
+      // Set icons
+      document.getElementById('backBtn').innerHTML = icon('x');
+      document.getElementById('headerTitle').innerHTML = icon('users', 'inline-icon') + ' แดชบอร์ดกลุ่ม';
+      document.getElementById('themeBtn').innerHTML = icon('sun');
+      document.getElementById('heroTitle').innerHTML = icon('heartPulse') + ' OONJAI';
+      document.getElementById('groupInfoIcon').innerHTML = icon('clipboardList');
+      document.getElementById('groupNameLabel').innerHTML = icon('home') + ' ชื่อกลุ่ม';
+      document.getElementById('patientNameLabel').innerHTML = icon('user') + ' ผู้ป่วย';
+      document.getElementById('caregiverNameLabel').innerHTML = icon('userCheck') + ' ผู้ดูแลหลัก';
+      document.getElementById('membersIcon').innerHTML = icon('users');
+      document.getElementById('actionsIcon').innerHTML = icon('zap');
+      document.getElementById('logActivityBtn').innerHTML = icon('edit', 'inline-icon') + ' บันทึกกิจกรรม';
+      document.getElementById('viewReportsBtn').innerHTML = icon('barChart2', 'inline-icon') + ' ดูรายงาน';
+      document.getElementById('viewSettingsBtn').innerHTML = icon('settings', 'inline-icon') + ' ตั้งค่า';
+      document.getElementById('tipsHeader').innerHTML = icon('lightbulb') + ' วิธีใช้งาน';
+      document.getElementById('tip1').innerHTML = icon('messageCircle') + ' พิมพ์ "กินยาแล้ว" เพื่อบันทึกการกินยา';
+      document.getElementById('tip2').innerHTML = icon('activity') + ' พิมพ์ "ความดัน 120/80" เพื่อบันทึกความดัน';
+      document.getElementById('tip3').innerHTML = icon('droplet') + ' พิมพ์ "ดื่มน้ำ 500 มล." เพื่อบันทึกการดื่มน้ำ';
+
+      console.log('UI initialized');
+    })();
+
+    // Update theme icon
+    function updateThemeIcon() {
+      const isDark = document.documentElement.classList.contains('dark');
+      document.getElementById('themeBtn').innerHTML = isDark ? icon('moon') : icon('sun');
+    }
+
+    const originalToggle = darkMode.toggle;
+    darkMode.toggle = function() {
+      originalToggle.call(darkMode);
+      updateThemeIcon();
+    };
+
+    setTimeout(updateThemeIcon, 100);
+
+    // Initialize LIFF
+    async function init() {
+      try {
+        await liff.init({ liffId: LIFF_ID });
+
+        if (!liff.isLoggedIn()) {
+          liff.login();
+          return;
+        }
+
+        const context = liff.getContext();
+        if (!context || context.type !== 'group') {
+          showError('กรุณาเปิดจากกลุ่ม LINE');
+          return;
+        }
+
+        await loadGroupData(context.groupId);
+
+      } catch (error) {
+        console.error('Init error:', error);
+        showError('เกิดข้อผิดพลาด: ' + error.message);
+      }
+    }
+
+    // Load group data
+    async function loadGroupData(groupId) {
+      try {
+        const result = await api.post('/api/groups/check', { line_group_id: groupId });
+
+        if (!result.exists) {
+          showError('ไม่พบข้อมูลกลุ่ม กรุณาลงทะเบียนก่อน');
+          setTimeout(() => {
+            window.location.href = '/liff/group-registration.html';
+          }, 2000);
+          return;
+        }
+
+        groupData = result.group;
+
+        // Update UI
+        document.getElementById('groupName').textContent = groupData.group_name || 'ไม่ระบุ';
+        document.getElementById('patientName').textContent = groupData.patient_profiles?.first_name
+          ? `${groupData.patient_profiles.first_name} ${groupData.patient_profiles.last_name || ''}`
+          : 'ไม่ระบุ';
+
+        // Find primary caregiver
+        const primaryCaregiver = groupData.group_members?.find(m => m.role === 'primary_caregiver');
+        document.getElementById('caregiverName').textContent = primaryCaregiver?.display_name || 'ไม่ระบุ';
+
+        // Render members
+        renderMembers(groupData.group_members || []);
+
+        // Show content
+        document.getElementById('loadingState').classList.add('hidden');
+        document.getElementById('mainContent').classList.remove('hidden');
+
+      } catch (error) {
+        console.error('Load group data error:', error);
+        showError('ไม่สามารถโหลดข้อมูลกลุ่มได้');
+      }
+    }
+
+    // Render members
+    function renderMembers(members) {
+      const container = document.getElementById('membersList');
+
+      if (members.length === 0) {
+        container.innerHTML = '<p style="color: hsl(var(--muted-foreground)); text-align: center; padding: 1rem;">ไม่มีสมาชิก</p>';
+        return;
+      }
+
+      container.innerHTML = members.map(member => {
+        const initial = (member.display_name || 'U')[0].toUpperCase();
+        const isPrimary = member.role === 'primary_caregiver';
+        const roleText = isPrimary ? 'ผู้ดูแลหลัก' : 'สมาชิก';
+
+        return `
+          <div class="member-item">
+            <div class="member-info">
+              <div class="member-avatar">${initial}</div>
+              <div>
+                <div class="member-name">${member.display_name || 'ไม่ระบุชื่อ'}</div>
+                <div class="member-role">${roleText}</div>
+              </div>
+            </div>
+            <span class="member-badge ${isPrimary ? 'primary' : 'member'}">${roleText}</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Show error
+    function showError(message) {
+      document.getElementById('loadingState').innerHTML = `
+        <div style="text-align: center; padding: 2rem;">
+          <div style="font-size: 3rem; margin-bottom: 1rem;">${icon('alertCircle')}</div>
+          <p style="color: hsl(var(--error));">${message}</p>
+        </div>
+      `;
+    }
+
+    // Actions
+    function logActivity() {
+      window.location.href = '/liff/health-log.html';
+    }
+
+    function viewReports() {
+      window.location.href = '/liff/reports.html';
+    }
+
+    function viewSettings() {
+      window.location.href = '/liff/settings.html';
+    }
+
+    function closeLiff() {
+      if (liff.isInClient()) {
+        liff.closeWindow();
+      } else {
+        window.close();
+      }
+    }
+
+    // Initialize
+    init();
+  </script>
 </body>
 </html>

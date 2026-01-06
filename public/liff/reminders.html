@@ -2,136 +2,158 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#FAF9F6">
-  <title>🔔 ตั้งเวลาเตือน - OONJAI</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#1E7B9C">
+  <title>ตั้งเวลาเตือน - OONJAI</title>
 
-  <!-- Preconnect to speed up external resources -->
+  <!-- Preconnect -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://static.line-scdn.net">
-  <link rel="preconnect" href="https://cdn.jsdelivr.net">
   <link rel="preconnect" href="https://mqxklnzxfrupwwkwlwwc.supabase.co">
-  <link rel="dns-prefetch" href="https://static.line-scdn.net">
-  <link rel="preload" href="https://static.line-scdn.net/liff/edge/2/sdk.js" as="script">
 
-  <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <link rel="stylesheet" href="css/minimal-theme.css">
+  <!-- Kanit Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Theme CSS -->
+  <link rel="stylesheet" href="css/oonjai-theme.css">
+
   <style>
-    /* Header styles */
-    .page-header {
-      display: flex;
-      align-items: center;
-      gap: var(--spacing-md);
-      margin-bottom: var(--spacing-lg);
-      padding-bottom: var(--spacing-md);
-      border-bottom: 1px solid rgba(0,0,0,0.08);
-    }
-
-    .back-btn {
-      width: 40px;
-      height: 40px;
-      border-radius: var(--radius-full);
-      border: none;
-      background: var(--bg-secondary);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      color: var(--text-primary);
-    }
-
-    .back-btn:active {
-      transform: scale(0.95);
-      background: rgba(0,0,0,0.1);
-    }
-
-    .page-title {
-      font-size: 22px;
-      font-weight: 600;
-      color: var(--text-primary);
-      margin: 0;
-    }
-
-    /* Reminders-specific styles */
+    /* Reminder Section */
     .reminder-section {
-      margin-bottom: var(--spacing-lg);
-      background: var(--bg-card);
-      border-radius: var(--radius-md);
-      padding: var(--spacing-lg);
-      box-shadow: var(--shadow-sm);
-      border: 1px solid rgba(0, 0, 0, 0.05);
+      margin-bottom: 1.5rem;
+      background: hsl(var(--card));
+      border: 1px solid hsl(var(--border));
+      border-radius: var(--radius-xl);
+      padding: 1.25rem;
     }
 
     .section-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: var(--spacing-md);
-      gap: var(--spacing-sm);
+      margin-bottom: 1rem;
+      gap: 0.75rem;
     }
 
     .section-title {
       display: flex;
       align-items: center;
-      gap: var(--spacing-sm);
-      font-size: 18px;
+      gap: 0.5rem;
+      font-size: 1rem;
       font-weight: 600;
-      color: var(--text-primary);
+      color: hsl(var(--foreground));
     }
 
-    .section-icon {
-      font-size: 24px;
+    .section-title .section-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .section-title .section-icon svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .section-title .section-icon.medication {
+      background: hsl(280 60% 90%);
+      color: hsl(280 60% 45%);
+    }
+    .section-title .section-icon.water {
+      background: hsl(200 80% 90%);
+      color: hsl(200 80% 45%);
+    }
+    .section-title .section-icon.vitals {
+      background: hsl(350 80% 90%);
+      color: hsl(350 80% 45%);
+    }
+    .section-title .section-icon.food {
+      background: hsl(40 80% 90%);
+      color: hsl(40 80% 45%);
+    }
+    .section-title .section-icon.exercise {
+      background: hsl(142 60% 90%);
+      color: hsl(142 60% 40%);
+    }
+
+    .dark .section-title .section-icon.medication {
+      background: hsl(280 40% 25%);
+      color: hsl(280 60% 65%);
+    }
+    .dark .section-title .section-icon.water {
+      background: hsl(200 40% 25%);
+      color: hsl(200 60% 65%);
+    }
+    .dark .section-title .section-icon.vitals {
+      background: hsl(350 40% 25%);
+      color: hsl(350 60% 65%);
+    }
+    .dark .section-title .section-icon.food {
+      background: hsl(40 40% 25%);
+      color: hsl(40 60% 65%);
+    }
+    .dark .section-title .section-icon.exercise {
+      background: hsl(142 30% 25%);
+      color: hsl(142 50% 60%);
     }
 
     .add-reminder-btn {
-      padding: 8px 16px;
-      background: var(--accent-primary);
+      display: flex;
+      align-items: center;
+      gap: 0.375rem;
+      padding: 0.5rem 0.875rem;
+      background: hsl(var(--primary));
       color: white;
       border: none;
-      border-radius: var(--radius-sm);
-      font-size: 14px;
+      border-radius: var(--radius-md);
+      font-size: 0.875rem;
       font-weight: 500;
+      font-family: 'Kanit', sans-serif;
       cursor: pointer;
       transition: all 0.2s ease;
       white-space: nowrap;
-      box-shadow: var(--shadow-sm);
+    }
+
+    .add-reminder-btn svg {
+      width: 16px;
+      height: 16px;
     }
 
     .add-reminder-btn:active {
       transform: scale(0.97);
     }
 
+    /* Reminder List */
     .reminder-list {
       display: flex;
       flex-direction: column;
-      gap: var(--spacing-sm);
+      gap: 0.75rem;
     }
 
     .reminder-card {
-      background: var(--bg-secondary);
-      border-radius: var(--radius-sm);
-      padding: var(--spacing-md);
+      background: hsl(var(--muted));
+      border-radius: var(--radius-lg);
+      padding: 1rem;
       position: relative;
       transition: all 0.2s ease;
-      border-left: 4px solid var(--accent-primary);
+      border-left: 4px solid hsl(var(--primary));
     }
 
     .reminder-card.disabled {
       opacity: 0.5;
-      border-left-color: var(--text-muted);
-    }
-
-    .reminder-card:active {
-      box-shadow: var(--shadow-sm);
+      border-left-color: hsl(var(--muted-foreground));
     }
 
     .reminder-main {
       display: flex;
       justify-content: space-between;
-      align-items: center;
-      gap: var(--spacing-md);
-      margin-bottom: var(--spacing-sm);
+      align-items: flex-start;
+      gap: 1rem;
+      margin-bottom: 0.5rem;
     }
 
     .reminder-info {
@@ -140,29 +162,30 @@
     }
 
     .reminder-title {
-      font-size: 16px;
+      font-size: 0.9375rem;
       font-weight: 600;
-      color: var(--text-primary);
-      margin-bottom: 4px;
+      color: hsl(var(--foreground));
+      margin-bottom: 0.25rem;
     }
 
     .reminder-time {
-      font-size: 20px;
+      font-size: 1.375rem;
       font-weight: 700;
-      color: var(--accent-primary);
+      color: hsl(var(--primary));
     }
 
     .reminder-frequency {
-      font-size: 13px;
-      color: var(--text-secondary);
-      margin-top: 4px;
+      font-size: 0.8125rem;
+      color: hsl(var(--muted-foreground));
+      margin-top: 0.25rem;
     }
 
+    /* Toggle Switch */
     .toggle-switch {
       position: relative;
-      width: 50px;
+      width: 48px;
       height: 26px;
-      background: var(--text-muted);
+      background: hsl(var(--muted-foreground));
       border-radius: 26px;
       cursor: pointer;
       transition: background 0.3s;
@@ -170,86 +193,112 @@
     }
 
     .toggle-switch.active {
-      background: var(--success);
+      background: hsl(142 70% 45%);
     }
 
     .toggle-switch::after {
       content: '';
       position: absolute;
-      width: 22px;
-      height: 22px;
+      width: 20px;
+      height: 20px;
       border-radius: 50%;
       background: white;
-      top: 2px;
-      left: 2px;
+      top: 3px;
+      left: 3px;
       transition: left 0.3s;
     }
 
     .toggle-switch.active::after {
-      left: 26px;
+      left: 25px;
     }
 
+    /* Day Badges */
     .reminder-days {
       display: flex;
-      gap: 6px;
-      margin: var(--spacing-sm) 0;
+      gap: 0.375rem;
+      margin: 0.5rem 0;
       flex-wrap: wrap;
     }
 
     .day-badge {
-      width: 32px;
-      height: 32px;
-      border-radius: var(--radius-full);
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 11px;
+      font-size: 0.6875rem;
       font-weight: 600;
-      background: rgba(0, 0, 0, 0.08);
-      color: var(--text-muted);
+      background: hsl(var(--border));
+      color: hsl(var(--muted-foreground));
     }
 
     .day-badge.active {
-      background: var(--accent-primary);
+      background: hsl(var(--primary));
       color: white;
     }
 
+    /* Reminder Actions */
     .reminder-actions {
       display: flex;
-      gap: var(--spacing-xs);
-      margin-top: var(--spacing-sm);
+      gap: 0.5rem;
+      margin-top: 0.75rem;
     }
 
-    .btn-icon {
-      padding: 8px 14px;
-      border: none;
-      border-radius: var(--radius-sm);
-      cursor: pointer;
-      font-size: 13px;
-      font-weight: 500;
-      transition: all 0.2s ease;
+    .action-btn {
       flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.375rem;
+      padding: 0.5rem 0.75rem;
+      border: none;
+      border-radius: var(--radius-md);
+      font-size: 0.8125rem;
+      font-weight: 500;
+      font-family: 'Kanit', sans-serif;
+      cursor: pointer;
+      transition: all 0.2s ease;
     }
 
-    .btn-edit {
-      background: var(--info);
-      color: white;
+    .action-btn svg {
+      width: 14px;
+      height: 14px;
     }
 
-    .btn-edit:active {
+    .action-btn:active {
       transform: scale(0.97);
     }
 
-    .btn-delete {
-      background: var(--error);
+    .action-btn.edit {
+      background: hsl(210 100% 50%);
       color: white;
     }
 
-    .btn-delete:active {
-      transform: scale(0.97);
+    .action-btn.delete {
+      background: hsl(0 84% 60%);
+      color: white;
     }
 
-    /* Modal */
+    /* Empty State */
+    .empty-reminder {
+      text-align: center;
+      padding: 1.5rem 0.5rem;
+      color: hsl(var(--muted-foreground));
+    }
+
+    .empty-reminder svg {
+      width: 32px;
+      height: 32px;
+      margin-bottom: 0.5rem;
+      opacity: 0.5;
+    }
+
+    .empty-reminder p {
+      font-size: 0.875rem;
+    }
+
+    /* Modal Styles */
     .modal {
       display: none;
       position: fixed;
@@ -261,7 +310,7 @@
       z-index: 1000;
       align-items: center;
       justify-content: center;
-      padding: var(--spacing-md);
+      padding: 1rem;
     }
 
     .modal.active {
@@ -269,9 +318,9 @@
     }
 
     .modal-content {
-      background: var(--bg-card);
-      padding: var(--spacing-xl);
-      border-radius: var(--radius-lg);
+      background: hsl(var(--card));
+      padding: 1.5rem;
+      border-radius: var(--radius-xl);
       max-width: 500px;
       width: 100%;
       max-height: 90vh;
@@ -279,71 +328,120 @@
     }
 
     .modal-header {
-      font-size: 22px;
-      font-weight: 600;
-      margin-bottom: var(--spacing-lg);
-      color: var(--text-primary);
       display: flex;
       align-items: center;
-      gap: var(--spacing-sm);
+      gap: 0.5rem;
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 1.5rem;
+      color: hsl(var(--foreground));
     }
 
+    .modal-header svg {
+      width: 24px;
+      height: 24px;
+      color: hsl(var(--primary));
+    }
+
+    /* Form Styles */
+    .form-group {
+      margin-bottom: 1.25rem;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: hsl(var(--foreground));
+      margin-bottom: 0.5rem;
+    }
+
+    .form-group label .required {
+      color: hsl(0 84% 60%);
+    }
+
+    .form-group input,
+    .form-group textarea {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: 2px solid hsl(var(--border));
+      border-radius: var(--radius-md);
+      font-size: 0.9375rem;
+      font-family: 'Kanit', sans-serif;
+      background: hsl(var(--card));
+      color: hsl(var(--foreground));
+      transition: all 0.2s ease;
+    }
+
+    .form-group input:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: hsl(var(--primary));
+    }
+
+    /* Frequency Options */
     .frequency-options {
       display: flex;
-      gap: var(--spacing-sm);
-      margin-top: var(--spacing-sm);
+      gap: 0.5rem;
+      margin-top: 0.5rem;
     }
 
     .frequency-option {
       flex: 1;
-      padding: 12px;
-      border: 1px solid rgba(0, 0, 0, 0.1);
-      border-radius: var(--radius-sm);
+      padding: 0.75rem;
+      border: 2px solid hsl(var(--border));
+      border-radius: var(--radius-md);
       text-align: center;
       cursor: pointer;
       transition: all 0.2s ease;
       font-weight: 500;
-      color: var(--text-primary);
+      color: hsl(var(--foreground));
     }
 
     .frequency-option.selected {
-      background: var(--accent-primary);
+      background: hsl(var(--primary));
       color: white;
-      border-color: var(--accent-primary);
+      border-color: hsl(var(--primary));
     }
 
+    /* Days Selector */
     .days-selector {
       display: flex;
-      gap: var(--spacing-xs);
+      gap: 0.5rem;
       flex-wrap: wrap;
-      margin-top: var(--spacing-sm);
+      margin-top: 0.5rem;
     }
 
     .day-checkbox {
-      width: 45px;
-      height: 45px;
-      border: 1px solid rgba(0, 0, 0, 0.1);
-      border-radius: var(--radius-full);
+      width: 44px;
+      height: 44px;
+      border: 2px solid hsl(var(--border));
+      border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
       font-weight: 600;
       transition: all 0.2s ease;
-      font-size: 14px;
-      color: var(--text-primary);
+      font-size: 0.875rem;
+      color: hsl(var(--foreground));
     }
 
     .day-checkbox.selected {
-      background: var(--accent-primary);
+      background: hsl(var(--primary));
       color: white;
-      border-color: var(--accent-primary);
+      border-color: hsl(var(--primary));
     }
 
+    /* Modal Actions */
     .modal-actions {
       display: flex;
-      gap: var(--spacing-sm);
-      margin-top: var(--spacing-lg);
+      gap: 0.75rem;
+      margin-top: 1.5rem;
+    }
+
+    .modal-actions .btn {
+      flex: 1;
     }
 
     @media (max-width: 480px) {
@@ -354,81 +452,42 @@
 
       .add-reminder-btn {
         width: 100%;
+        justify-content: center;
       }
 
       .day-checkbox {
-        width: 40px;
-        height: 40px;
-        font-size: 12px;
+        width: 38px;
+        height: 38px;
+        font-size: 0.75rem;
       }
-    }
-
-    /* Toast Notification */
-    .toast {
-      position: fixed;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%) translateY(100px);
-      padding: 16px 24px;
-      border-radius: var(--radius-md);
-      color: white;
-      font-weight: 500;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-      z-index: 10000;
-      opacity: 0;
-      transition: all 0.3s ease;
-      max-width: 90%;
-      text-align: center;
-    }
-
-    .toast.show {
-      opacity: 1;
-      transform: translateX(-50%) translateY(0);
-    }
-
-    .toast.success {
-      background: linear-gradient(135deg, #51cf66 0%, #37b24d 100%);
-    }
-
-    .toast.error {
-      background: linear-gradient(135deg, #ff6b6b 0%, #fa5252 100%);
     }
   </style>
 </head>
 <body>
   <div class="container">
     <!-- Loading State -->
-    <div id="loading" class="loading">
+    <div id="loadingState" class="loading-container">
       <div class="loading-spinner"></div>
-      <p>กำลังโหลดข้อมูล...</p>
+      <p class="loading-text">กำลังโหลด...</p>
     </div>
 
-    <!-- Error & Success Messages -->
-    <div id="error" class="alert alert-error" style="display: none;"></div>
-    <div id="success" class="alert alert-success" style="display: none;"></div>
-
     <!-- Main Content -->
-    <div id="main-content" class="hidden">
+    <div id="mainContent" class="hidden">
       <!-- Header -->
-      <div class="page-header">
-        <button class="back-btn" onclick="liff.closeWindow()">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M19 12H5M12 19l-7-7 7-7"/>
-          </svg>
-        </button>
-        <h1 class="page-title">🔔 ตั้งเวลาเตือน</h1>
-      </div>
+      <header class="header">
+        <button class="btn-icon" onclick="closeLiff()" aria-label="ปิด" id="backBtn"></button>
+        <h1 class="header-title" id="headerTitle"></h1>
+        <button class="btn-icon" onclick="darkMode.toggle()" aria-label="สลับธีม" id="themeBtn"></button>
+      </header>
 
       <!-- Medication Reminders -->
       <div class="reminder-section">
         <div class="section-header">
           <div class="section-title">
-            <span class="section-icon">💊</span>
+            <span class="section-icon medication" id="medIcon"></span>
             <span>กินยา</span>
           </div>
-          <button class="add-reminder-btn" onclick="openModal('medication')">
-            + เพิ่มเตือน
-          </button>
+          <button class="add-reminder-btn" onclick="openModal('medication')" id="addMedBtn"></button>
         </div>
         <div id="medication-list" class="reminder-list"></div>
       </div>
@@ -437,12 +496,10 @@
       <div class="reminder-section">
         <div class="section-header">
           <div class="section-title">
-            <span class="section-icon">💧</span>
+            <span class="section-icon water" id="waterIcon"></span>
             <span>ดื่มน้ำ</span>
           </div>
-          <button class="add-reminder-btn" onclick="openModal('water')">
-            + เพิ่มเตือน
-          </button>
+          <button class="add-reminder-btn" onclick="openModal('water')" id="addWaterBtn"></button>
         </div>
         <div id="water-list" class="reminder-list"></div>
       </div>
@@ -451,12 +508,10 @@
       <div class="reminder-section">
         <div class="section-header">
           <div class="section-title">
-            <span class="section-icon">🩺</span>
+            <span class="section-icon vitals" id="vitalsIcon"></span>
             <span>วัดความดัน</span>
           </div>
-          <button class="add-reminder-btn" onclick="openModal('vitals')">
-            + เพิ่มเตือน
-          </button>
+          <button class="add-reminder-btn" onclick="openModal('vitals')" id="addVitalsBtn"></button>
         </div>
         <div id="vitals-list" class="reminder-list"></div>
       </div>
@@ -465,12 +520,10 @@
       <div class="reminder-section">
         <div class="section-header">
           <div class="section-title">
-            <span class="section-icon">🍚</span>
+            <span class="section-icon food" id="foodIcon"></span>
             <span>ทานอาหาร</span>
           </div>
-          <button class="add-reminder-btn" onclick="openModal('food')">
-            + เพิ่มเตือน
-          </button>
+          <button class="add-reminder-btn" onclick="openModal('food')" id="addFoodBtn"></button>
         </div>
         <div id="food-list" class="reminder-list"></div>
       </div>
@@ -479,29 +532,27 @@
       <div class="reminder-section">
         <div class="section-header">
           <div class="section-title">
-            <span class="section-icon">🚶</span>
+            <span class="section-icon exercise" id="exerciseIcon"></span>
             <span>ออกกำลังกาย</span>
           </div>
-          <button class="add-reminder-btn" onclick="openModal('exercise')">
-            + เพิ่มเตือน
-          </button>
+          <button class="add-reminder-btn" onclick="openModal('exercise')" id="addExerciseBtn"></button>
         </div>
         <div id="exercise-list" class="reminder-list"></div>
       </div>
 
-      <button class="btn btn-secondary btn-block mt-3" onclick="liff.closeWindow()">ปิด</button>
+      <!-- Close Button -->
+      <div style="padding-top: 0.5rem;">
+        <button class="btn btn-secondary btn-block" onclick="closeLiff()">ปิด</button>
+      </div>
     </div>
   </div>
 
   <!-- Add/Edit Reminder Modal -->
-  <div id="reminder-modal" class="modal">
+  <div id="reminderModal" class="modal">
     <div class="modal-content">
-      <div class="modal-header">
-        <span id="modal-icon">🔔</span>
-        <span id="modal-title">เพิ่มการเตือน</span>
-      </div>
+      <div class="modal-header" id="modalHeader"></div>
 
-      <form id="reminder-form">
+      <form id="reminderForm">
         <div class="form-group">
           <label>ชื่อเตือน <span class="required">*</span></label>
           <input type="text" id="reminderTitle" required placeholder="เช่น กินยาความดัน">
@@ -524,9 +575,9 @@
           </div>
         </div>
 
-        <div class="form-group" id="days-selector-group" style="display: none;">
+        <div class="form-group" id="daysSelectorGroup" style="display: none;">
           <label>เลือกวันที่ต้องการเตือน</label>
-          <div class="days-selector" id="days-selector">
+          <div class="days-selector" id="daysSelector">
             <div class="day-checkbox" data-day="monday">จ</div>
             <div class="day-checkbox" data-day="tuesday">อ</div>
             <div class="day-checkbox" data-day="wednesday">พ</div>
@@ -553,6 +604,15 @@
   <!-- Toast Notification -->
   <div id="toast" class="toast"></div>
 
+  <!-- LIFF SDK -->
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Lucide Icons -->
+  <script src="js/lucide-icons.js"></script>
+
   <!-- API Client -->
   <script src="js/api.js"></script>
 
@@ -563,8 +623,6 @@
     const LIFF_ID = '2008278683-5k69jxNq';
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    let liffId = null;
-    let groupId = null;
     let patientId = null;
     let reminders = [];
     let editingReminderId = null;
@@ -573,13 +631,71 @@
     let currentReminderType = null;
     let isGroupContext = false;
 
-    // Phase 2.1: Show UI immediately
-    (function showUIImmediately() {
-      document.getElementById('loading').classList.add('hidden');
-      document.getElementById('main-content').classList.remove('hidden');
+    const dayNames = {
+      monday: 'จ',
+      tuesday: 'อ',
+      wednesday: 'พ',
+      thursday: 'พฤ',
+      friday: 'ศ',
+      saturday: 'ส',
+      sunday: 'อา'
+    };
+
+    const typeConfig = {
+      medication: { icon: 'pill', name: 'กินยา' },
+      water: { icon: 'droplet', name: 'ดื่มน้ำ' },
+      vitals: { icon: 'heartPulse', name: 'วัดความดัน' },
+      food: { icon: 'utensils', name: 'ทานอาหาร' },
+      exercise: { icon: 'footprints', name: 'ออกกำลังกาย' }
+    };
+
+    // Initialize icons and UI immediately
+    (function initUI() {
+      // Initialize dark mode
+      darkMode.init();
+
+      // Set icons
+      document.getElementById('backBtn').innerHTML = icon('x');
+      document.getElementById('headerTitle').innerHTML = icon('bell', 'inline-icon') + ' ตั้งเวลาเตือน';
+      document.getElementById('themeBtn').innerHTML = icon('sun');
+
+      // Section icons
+      document.getElementById('medIcon').innerHTML = icon('pill');
+      document.getElementById('waterIcon').innerHTML = icon('droplet');
+      document.getElementById('vitalsIcon').innerHTML = icon('heartPulse');
+      document.getElementById('foodIcon').innerHTML = icon('utensils');
+      document.getElementById('exerciseIcon').innerHTML = icon('footprints');
+
+      // Add buttons
+      document.getElementById('addMedBtn').innerHTML = icon('plus') + ' เพิ่มเตือน';
+      document.getElementById('addWaterBtn').innerHTML = icon('plus') + ' เพิ่มเตือน';
+      document.getElementById('addVitalsBtn').innerHTML = icon('plus') + ' เพิ่มเตือน';
+      document.getElementById('addFoodBtn').innerHTML = icon('plus') + ' เพิ่มเตือน';
+      document.getElementById('addExerciseBtn').innerHTML = icon('plus') + ' เพิ่มเตือน';
+
+      // Modal header
+      document.getElementById('modalHeader').innerHTML = icon('bell') + ' เพิ่มการเตือน';
+
+      // Show UI immediately!
+      document.getElementById('loadingState').classList.add('hidden');
+      document.getElementById('mainContent').classList.remove('hidden');
     })();
 
-    // Phase 1.1: Cache LIFF profile in sessionStorage
+    // Update theme icon
+    function updateThemeIcon() {
+      const isDark = document.documentElement.classList.contains('dark');
+      document.getElementById('themeBtn').innerHTML = isDark ? icon('moon') : icon('sun');
+    }
+
+    const originalToggle = darkMode.toggle;
+    darkMode.toggle = function() {
+      originalToggle.call(darkMode);
+      updateThemeIcon();
+    };
+
+    setTimeout(updateThemeIcon, 100);
+
+    // Cache LIFF profile
     async function getCachedProfile() {
       const cached = sessionStorage.getItem('liff_profile');
       const cacheTime = sessionStorage.getItem('liff_profile_time');
@@ -595,7 +711,7 @@
       return profile;
     }
 
-    // Phase 1.2: Check user registration with cache
+    // Check registration
     async function checkUserRegistration(lineUserId) {
       if (sessionStorage.getItem('user_registered') === 'true') {
         return true;
@@ -620,24 +736,6 @@
       }
     }
 
-    const dayNames = {
-      monday: 'จ',
-      tuesday: 'อ',
-      wednesday: 'พ',
-      thursday: 'พฤ',
-      friday: 'ศ',
-      saturday: 'ส',
-      sunday: 'อา'
-    };
-
-    const typeConfig = {
-      medication: { icon: '💊', name: 'กินยา', color: '#ff6b6b' },
-      water: { icon: '💧', name: 'ดื่มน้ำ', color: '#4dabf7' },
-      vitals: { icon: '🩺', name: 'วัดความดัน', color: '#f06595' },
-      food: { icon: '🍚', name: 'ทานอาหาร', color: '#fab005' },
-      exercise: { icon: '🚶', name: 'ออกกำลังกาย', color: '#51cf66' }
-    };
-
     // Initialize LIFF
     async function initializeLiff() {
       try {
@@ -648,29 +746,26 @@
           return;
         }
 
-        // Phase 1.1: Get cached profile
         const profile = await getCachedProfile();
-
-        // Phase 1.2: Check registration in background
         checkUserRegistration(profile.userId).catch(err => console.error('Registration check error:', err));
 
         const context = liff.getContext();
         isGroupContext = context && context.type === 'group';
 
         if (isGroupContext) {
-          groupId = context.groupId;
-          loadGroupData().catch(err => console.error('Load group data error:', err));
+          const groupId = context.groupId;
+          await loadGroupData(groupId);
         } else {
-          loadUserData().catch(err => console.error('Load user data error:', err));
+          await loadUserData();
         }
       } catch (error) {
         console.error('LIFF initialization failed:', error);
-        showError('ไม่สามารถเชื่อมต่อ LINE ได้');
+        showToast('ไม่สามารถเชื่อมต่อ LINE ได้', 'error');
       }
     }
 
-    // Load group data (Group context)
-    async function loadGroupData() {
+    // Load group data
+    async function loadGroupData(groupId) {
       try {
         const { data: group, error: groupError } = await supabaseClient
           .from('caregiver_groups')
@@ -680,90 +775,57 @@
 
         if (groupError) throw groupError;
         if (!group) {
-          showError('ไม่พบข้อมูลกลุ่ม กรุณาลงทะเบียนก่อน');
+          showToast('ไม่พบข้อมูลกลุ่ม กรุณาลงทะเบียนก่อน', 'error');
           return;
         }
 
         patientId = group.patient_id;
         await loadReminders();
-
-        document.getElementById('loading').classList.add('hidden');
-        document.getElementById('main-content').classList.remove('hidden');
       } catch (error) {
         console.error('Error loading data:', error);
-        showError('ไม่สามารถโหลดข้อมูลได้');
+        showToast('ไม่สามารถโหลดข้อมูลได้', 'error');
       }
     }
 
-    // Load user data (1:1 context)
+    // Load user data
     async function loadUserData() {
       try {
-        // ✅ Get patientId from oonjai_context
         let contextData = JSON.parse(localStorage.getItem('oonjai_context') || '{}');
-
-        // ✅ IMPORTANT: Use contextData.patientId ONLY
-        // Do NOT use userData.profile_id as it contains caregiverId!
         patientId = contextData.patientId;
 
-        // ✅ If no patientId in localStorage, fetch from API
         if (!patientId) {
-          console.log('⚠️ No patientId in localStorage, fetching from API...');
-
           const profile = await liff.getProfile();
           const response = await fetch(`${API_BASE_URL}/check-user/${profile.userId}`);
           const result = await response.json();
 
           if (result.exists && result.profile) {
             if (result.role === 'patient') {
-              // For patient, use their own profile_id as patient_id
               patientId = result.profile.profile_id;
-
-              contextData = {
-                patientId: patientId,
-                role: 'patient'
-              };
-              localStorage.setItem('oonjai_context', JSON.stringify(contextData));
-              console.log('✅ Saved patient context to localStorage:', contextData);
-            } else if (result.role === 'caregiver') {
-              // For caregiver, use linked_patient_id from API response
-              const caregiverId = result.profile.profile_id;
-              const linkedPatientId = result.profile.linked_patient_id;
-
-              if (linkedPatientId) {
-                patientId = linkedPatientId;
-
-                contextData = {
-                  caregiverId: caregiverId,
-                  patientId: patientId,
-                  role: 'caregiver'
-                };
-                localStorage.setItem('oonjai_context', JSON.stringify(contextData));
-                console.log('✅ Saved caregiver context to localStorage:', contextData);
-              }
+              localStorage.setItem('oonjai_context', JSON.stringify({ patientId, role: 'patient' }));
+            } else if (result.role === 'caregiver' && result.profile.linked_patient_id) {
+              patientId = result.profile.linked_patient_id;
+              localStorage.setItem('oonjai_context', JSON.stringify({
+                caregiverId: result.profile.profile_id,
+                patientId,
+                role: 'caregiver'
+              }));
             }
           }
         }
 
         if (!patientId) {
-          showError('ไม่พบข้อมูลผู้ใช้ กรุณาลงทะเบียนก่อน');
-          setTimeout(() => {
-            window.location.href = '/liff/group-registration.html';
-          }, 2000);
+          showToast('ไม่พบข้อมูลผู้ใช้ กรุณาลงทะเบียนก่อน', 'error');
           return;
         }
 
-        console.log('📋 Using patient_id:', patientId);
         await loadReminders();
-
-        document.getElementById('loading').classList.add('hidden');
-        document.getElementById('main-content').classList.remove('hidden');
       } catch (error) {
         console.error('Error loading user data:', error);
-        showError('ไม่สามารถโหลดข้อมูลได้');
+        showToast('ไม่สามารถโหลดข้อมูลได้', 'error');
       }
     }
 
-    // Load reminders from database
+    // Load reminders
     async function loadReminders() {
       try {
         const { data, error } = await supabaseClient
@@ -774,18 +836,16 @@
 
         if (error) throw error;
 
-        // Parse JSON fields and group by type
         reminders = (data || []).map(reminder => ({
           ...reminder,
           days_of_week: reminder.days_of_week ? JSON.parse(reminder.days_of_week) : [],
-          // Handle both old 'type' field and new 'reminder_type' field
           reminder_type: reminder.reminder_type || reminder.type || 'custom'
         }));
 
         renderAllReminders();
       } catch (error) {
         console.error('Error loading reminders:', error);
-        showError('ไม่สามารถโหลดการเตือนได้');
+        showToast('ไม่สามารถโหลดการเตือนได้', 'error');
       }
     }
 
@@ -803,9 +863,9 @@
 
       if (typeReminders.length === 0) {
         container.innerHTML = `
-          <div class="empty-state">
-            <div style="font-size: 36px; margin-bottom: 8px;">${typeConfig[type].icon}</div>
-            <p class="text-small text-muted">ยังไม่มีการเตือน</p>
+          <div class="empty-reminder">
+            ${icon(typeConfig[type].icon)}
+            <p>ยังไม่มีการเตือน</p>
           </div>
         `;
         return;
@@ -828,7 +888,7 @@
                 <div class="reminder-title">${reminder.title}</div>
                 <div class="reminder-time">${reminder.custom_time || reminder.time}</div>
                 <div class="reminder-frequency">${frequencyText}</div>
-                ${reminder.note ? `<div style="color: var(--text-secondary); font-size: 13px; margin-top: 4px;">${reminder.note}</div>` : ''}
+                ${reminder.note ? `<div style="color: hsl(var(--muted-foreground)); font-size: 0.8125rem; margin-top: 0.25rem;">${reminder.note}</div>` : ''}
               </div>
               <div class="toggle-switch ${isActive ? 'active' : ''}"
                    onclick="toggleReminder('${reminder.id}', ${!isActive})"></div>
@@ -843,15 +903,15 @@
             ` : ''}
 
             <div class="reminder-actions">
-              <button class="btn-icon btn-edit" onclick="editReminder('${reminder.id}')">✏️ แก้ไข</button>
-              <button class="btn-icon btn-delete" onclick="deleteReminder('${reminder.id}')">🗑️ ลบ</button>
+              <button class="action-btn edit" onclick="editReminder('${reminder.id}')">${icon('edit2')} แก้ไข</button>
+              <button class="action-btn delete" onclick="deleteReminder('${reminder.id}')">${icon('trash2')} ลบ</button>
             </div>
           </div>
         `;
       }).join('');
     }
 
-    // Open modal for adding/editing
+    // Open modal
     function openModal(type = null, reminderId = null) {
       editingReminderId = reminderId;
       currentReminderType = type;
@@ -860,8 +920,7 @@
 
       // Update modal header
       if (type) {
-        document.getElementById('modal-icon').textContent = typeConfig[type].icon;
-        document.getElementById('modal-title').textContent = `เพิ่มเตือน${typeConfig[type].name}`;
+        document.getElementById('modalHeader').innerHTML = `${icon(typeConfig[type].icon)} เพิ่มเตือน${typeConfig[type].name}`;
       }
 
       if (reminderId) {
@@ -883,7 +942,7 @@
           }
         }
       } else {
-        document.getElementById('reminder-form').reset();
+        document.getElementById('reminderForm').reset();
         document.querySelectorAll('.day-checkbox').forEach(el => {
           el.classList.remove('selected');
         });
@@ -891,12 +950,12 @@
         updateFrequencyUI();
       }
 
-      document.getElementById('reminder-modal').classList.add('active');
+      document.getElementById('reminderModal').classList.add('active');
     }
 
     // Close modal
     function closeModal() {
-      document.getElementById('reminder-modal').classList.remove('active');
+      document.getElementById('reminderModal').classList.remove('active');
       editingReminderId = null;
       currentReminderType = null;
       selectedDays.clear();
@@ -914,7 +973,7 @@
         el.classList.toggle('selected', el.dataset.frequency === selectedFrequency);
       });
 
-      const daysSelectorGroup = document.getElementById('days-selector-group');
+      const daysSelectorGroup = document.getElementById('daysSelectorGroup');
       if (selectedFrequency === 'specific_days') {
         daysSelectorGroup.style.display = 'block';
       } else {
@@ -941,19 +1000,17 @@
     });
 
     // Form submission
-    document.getElementById('reminder-form').addEventListener('submit', async (e) => {
+    document.getElementById('reminderForm').addEventListener('submit', async (e) => {
       e.preventDefault();
 
-      // Validate frequency selection
       if (selectedFrequency === 'specific_days' && selectedDays.size === 0) {
-        showError('กรุณาเลือกวันที่ต้องการเตือน');
+        showToast('กรุณาเลือกวันที่ต้องการเตือน', 'error');
         return;
       }
 
-      // Get time value and ensure it's not empty
       const timeValue = document.getElementById('reminderTime').value.trim();
       if (!timeValue) {
-        showError('กรุณาระบุเวลาเตือน');
+        showToast('กรุณาระบุเวลาเตือน', 'error');
         return;
       }
 
@@ -961,7 +1018,7 @@
         patient_id: patientId,
         type: currentReminderType || (editingReminderId ? reminders.find(r => r.id === editingReminderId)?.type : 'custom'),
         title: document.getElementById('reminderTitle').value,
-        time: timeValue,  // Required NOT NULL field
+        time: timeValue,
         custom_time: timeValue,
         note: document.getElementById('reminderNote').value || null,
         frequency: selectedFrequency || 'daily',
@@ -977,21 +1034,21 @@
             .eq('id', editingReminderId);
 
           if (error) throw error;
-          showSuccess('แก้ไขการเตือนเรียบร้อยแล้ว');
+          showToast('แก้ไขการเตือนเรียบร้อยแล้ว', 'success');
         } else {
           const { error } = await supabaseClient
             .from('reminders')
             .insert(reminderData);
 
           if (error) throw error;
-          showSuccess('เพิ่มการเตือนเรียบร้อยแล้ว');
+          showToast('เพิ่มการเตือนเรียบร้อยแล้ว', 'success');
         }
 
         await loadReminders();
         closeModal();
       } catch (error) {
         console.error('Error saving reminder:', error);
-        showError('ไม่สามารถบันทึกการเตือนได้: ' + error.message);
+        showToast('ไม่สามารถบันทึกการเตือนได้: ' + error.message, 'error');
       }
     });
 
@@ -1015,15 +1072,15 @@
 
         if (error) throw error;
 
-        showSuccess('ลบการเตือนเรียบร้อยแล้ว');
+        showToast('ลบการเตือนเรียบร้อยแล้ว', 'success');
         await loadReminders();
       } catch (error) {
         console.error('Error deleting reminder:', error);
-        showError('ไม่สามารถลบการเตือนได้');
+        showToast('ไม่สามารถลบการเตือนได้', 'error');
       }
     }
 
-    // Toggle reminder active/inactive
+    // Toggle reminder
     async function toggleReminder(id, isActive) {
       try {
         const { error } = await supabaseClient
@@ -1036,36 +1093,26 @@
         await loadReminders();
       } catch (error) {
         console.error('Error toggling reminder:', error);
-        showError('ไม่สามารถเปลี่ยนสถานะได้');
+        showToast('ไม่สามารถเปลี่ยนสถานะได้', 'error');
       }
     }
 
-    // Toast notification helper
+    // Toast notification
     function showToast(message, type = 'success') {
       const toast = document.getElementById('toast');
       toast.textContent = message;
       toast.className = `toast ${type}`;
 
-      // Show toast
       setTimeout(() => toast.classList.add('show'), 10);
-
-      // Hide toast after 3 seconds
-      setTimeout(() => {
-        toast.classList.remove('show');
-      }, 3000);
+      setTimeout(() => toast.classList.remove('show'), 3000);
     }
 
-    // Alert helpers
-    function showSuccess(message) {
-      showToast(message, 'success');
+    // Close LIFF
+    function closeLiff() {
+      liff.closeWindow();
     }
 
-    function showError(message) {
-      showToast(message, 'error');
-      document.getElementById('loading').classList.add('hidden');
-    }
-
-    // Initialize on load
+    // Initialize
     window.addEventListener('load', initializeLiff);
   </script>
 </body>

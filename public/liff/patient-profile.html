@@ -3,51 +3,487 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#10B981">
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta name="theme-color" content="#1E7B9C">
   <title>ข้อมูลของคุณ - OONJAI</title>
 
-  <!-- Preconnect to speed up external resources -->
-  <link rel="preconnect" href="https://static.line-scdn.net">
-  <link rel="preconnect" href="https://cdn.jsdelivr.net">
-  <link rel="preconnect" href="https://mqxklnzxfrupwwkwlwwc.supabase.co">
+  <!-- Preconnect -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="dns-prefetch" href="https://static.line-scdn.net">
-  <link rel="preload" href="https://static.line-scdn.net/liff/edge/2/sdk.js" as="script">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://static.line-scdn.net">
 
-  <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <link rel="stylesheet" href="css/minimal-theme.css">
-  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Kanit Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Theme CSS -->
+  <link rel="stylesheet" href="css/oonjai-theme.css">
+
+  <style>
+    /* Profile Header */
+    .profile-header {
+      background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary-dark)) 100%);
+      border-radius: var(--radius-xl);
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+      color: white;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .profile-header::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -30%;
+      width: 200px;
+      height: 200px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 50%;
+    }
+
+    .profile-avatar {
+      width: 72px;
+      height: 72px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 0.75rem;
+      backdrop-filter: blur(10px);
+      position: relative;
+      z-index: 1;
+    }
+
+    .profile-avatar svg {
+      width: 36px;
+      height: 36px;
+      color: white;
+    }
+
+    .profile-name {
+      font-size: 1.375rem;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .profile-info {
+      font-size: 0.875rem;
+      opacity: 0.9;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Section Navigation */
+    .section-nav {
+      display: flex;
+      gap: 0.5rem;
+      overflow-x: auto;
+      padding-bottom: 0.5rem;
+      margin-bottom: 1rem;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+
+    .section-nav::-webkit-scrollbar {
+      display: none;
+    }
+
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.75rem 1rem;
+      background: hsl(var(--card));
+      border: 1px solid hsl(var(--border));
+      border-radius: var(--radius-lg);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      min-width: 72px;
+      flex-shrink: 0;
+    }
+
+    .nav-item:active {
+      transform: scale(0.95);
+    }
+
+    .nav-item.active {
+      background: hsl(var(--primary));
+      border-color: hsl(var(--primary));
+      color: white;
+    }
+
+    .nav-icon {
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .nav-icon svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .nav-item.active .nav-icon svg {
+      color: white;
+    }
+
+    .nav-label {
+      font-size: 0.75rem;
+      font-weight: 500;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    /* Tab Content */
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* Info Card */
+    .info-card {
+      background: hsl(var(--card));
+      border: 1px solid hsl(var(--border));
+      border-radius: var(--radius-xl);
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid hsl(var(--border));
+    }
+
+    .card-title {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 1rem;
+      font-weight: 600;
+      color: hsl(var(--foreground));
+    }
+
+    .card-title svg {
+      width: 20px;
+      height: 20px;
+      color: hsl(var(--primary));
+    }
+
+    .edit-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.5rem 0.75rem;
+      background: hsl(var(--primary) / 0.1);
+      color: hsl(var(--primary));
+      border: none;
+      border-radius: var(--radius-md);
+      font-size: 0.8125rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .edit-btn:active {
+      transform: scale(0.95);
+      background: hsl(var(--primary) / 0.2);
+    }
+
+    .edit-btn svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    /* Info Row */
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding: 0.75rem 0;
+      border-bottom: 1px solid hsl(var(--border) / 0.5);
+    }
+
+    .info-row:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .info-label {
+      font-size: 0.875rem;
+      color: hsl(var(--muted-foreground));
+    }
+
+    .info-value {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: hsl(var(--foreground));
+      text-align: right;
+      max-width: 60%;
+    }
+
+    /* Subsection */
+    .card-subsection {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 1rem;
+      padding-top: 0.75rem;
+      border-top: 1px solid hsl(var(--border));
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: hsl(var(--foreground));
+    }
+
+    .card-subsection svg {
+      width: 16px;
+      height: 16px;
+      color: hsl(var(--primary));
+    }
+
+    /* Tags */
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.375rem 0.75rem;
+      background: hsl(var(--muted));
+      color: hsl(var(--muted-foreground));
+      border-radius: var(--radius-full);
+      font-size: 0.8125rem;
+      font-weight: 500;
+    }
+
+    .tag.warning {
+      background: hsl(var(--warning) / 0.15);
+      color: hsl(var(--warning));
+    }
+
+    .dark .tag.warning {
+      background: hsl(var(--warning) / 0.2);
+    }
+
+    /* Tags Info Row */
+    .info-row.vertical {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+
+    /* Medication Item */
+    .med-item {
+      display: flex;
+      gap: 0.75rem;
+      padding: 0.75rem 0;
+      border-bottom: 1px solid hsl(var(--border) / 0.5);
+    }
+
+    .med-item:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .med-icon {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, hsl(280 60% 92%) 0%, hsl(280 60% 85%) 100%);
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .dark .med-icon {
+      background: linear-gradient(135deg, hsl(280 40% 25%) 0%, hsl(280 40% 20%) 100%);
+    }
+
+    .med-icon svg {
+      width: 20px;
+      height: 20px;
+      color: hsl(280 60% 45%);
+    }
+
+    .dark .med-icon svg {
+      color: hsl(280 60% 65%);
+    }
+
+    .med-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .med-name {
+      font-size: 0.9375rem;
+      font-weight: 600;
+      color: hsl(var(--foreground));
+      margin-bottom: 0.125rem;
+    }
+
+    .med-dosage {
+      font-size: 0.8125rem;
+      color: hsl(var(--muted-foreground));
+      margin-bottom: 0.375rem;
+    }
+
+    .med-times {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.375rem;
+    }
+
+    .med-time {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.25rem 0.5rem;
+      background: hsl(var(--muted));
+      border-radius: var(--radius-sm);
+      font-size: 0.75rem;
+      color: hsl(var(--muted-foreground));
+    }
+
+    .med-instructions {
+      margin-top: 0.375rem;
+      font-size: 0.8125rem;
+      color: hsl(var(--primary));
+      font-style: italic;
+    }
+
+    /* Add Button */
+    .add-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      width: 100%;
+      padding: 0.875rem;
+      background: hsl(var(--primary) / 0.1);
+      color: hsl(var(--primary));
+      border: 2px dashed hsl(var(--primary) / 0.3);
+      border-radius: var(--radius-lg);
+      font-size: 0.9375rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .add-btn:active {
+      transform: scale(0.98);
+      background: hsl(var(--primary) / 0.2);
+    }
+
+    .add-btn svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    /* Alert Info */
+    .alert-info {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      padding: 1rem;
+      background: hsl(var(--info) / 0.1);
+      border-radius: var(--radius-lg);
+      margin-top: 1rem;
+    }
+
+    .alert-info-icon {
+      width: 20px;
+      height: 20px;
+      color: hsl(var(--info));
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .alert-info-text {
+      font-size: 0.8125rem;
+      color: hsl(var(--muted-foreground));
+      line-height: 1.5;
+    }
+
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 2rem 1rem;
+    }
+
+    .empty-state-icon {
+      width: 56px;
+      height: 56px;
+      background: hsl(var(--muted));
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1rem;
+    }
+
+    .empty-state-icon svg {
+      width: 28px;
+      height: 28px;
+      color: hsl(var(--muted-foreground));
+    }
+
+    .empty-state-text {
+      font-size: 0.9375rem;
+      color: hsl(var(--muted-foreground));
+      margin-bottom: 1rem;
+    }
+
+    /* Notes text */
+    .notes-text {
+      font-size: 0.875rem;
+      color: hsl(var(--muted-foreground));
+      line-height: 1.5;
+    }
+  </style>
 </head>
 <body>
   <div class="container">
     <!-- Loading State -->
-    <div id="loading" class="loading">
+    <div id="loadingState" class="loading-container">
       <div class="loading-spinner"></div>
-      <p>กำลังโหลดข้อมูล...</p>
+      <p class="loading-text">กำลังโหลด...</p>
     </div>
 
-    <!-- Error Message -->
-    <div id="error" class="alert alert-error" style="display: none;"></div>
+    <!-- Error State -->
+    <div id="errorState" class="hidden">
+      <div class="alert alert-error" id="errorMessage"></div>
+    </div>
 
     <!-- Main Content -->
-    <div id="main-content" class="hidden">
-      <!-- Header with Back Button -->
-      <div class="header">
-        <button class="header-back" onclick="closeLiff()">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M19 12H5M12 19l-7-7 7-7"/>
-          </svg>
-        </button>
-        <div class="header-content">
-          <h1>ข้อมูลของคุณ</h1>
-        </div>
-      </div>
+    <div id="mainContent" class="hidden">
+      <!-- Header -->
+      <header class="header">
+        <button class="btn-icon" onclick="closeLiff()" aria-label="ปิด" id="backBtn"></button>
+        <h1 class="header-title" id="headerTitle"></h1>
+        <button class="btn-icon" onclick="darkMode.toggle()" aria-label="สลับธีม" id="themeBtn"></button>
+      </header>
 
       <!-- Profile Header Card -->
       <div class="profile-header">
-        <div class="profile-avatar" id="profileAvatar">👤</div>
+        <div class="profile-avatar" id="profileAvatar"></div>
         <div class="profile-name" id="profileName">กำลังโหลด...</div>
         <div class="profile-info" id="profileInfo">-</div>
       </div>
@@ -55,23 +491,23 @@
       <!-- Section Navigation -->
       <div class="section-nav">
         <div class="nav-item active" data-tab="personal">
-          <span class="nav-icon">📝</span>
-          <span class="nav-label">ข้อมูลส่วนตัว</span>
+          <span class="nav-icon" id="navPersonalIcon"></span>
+          <span class="nav-label">ส่วนตัว</span>
         </div>
         <div class="nav-item" data-tab="medical">
-          <span class="nav-icon">🏥</span>
+          <span class="nav-icon" id="navMedicalIcon"></span>
           <span class="nav-label">การแพทย์</span>
         </div>
         <div class="nav-item" data-tab="medications">
-          <span class="nav-icon">💊</span>
+          <span class="nav-icon" id="navMedicationsIcon"></span>
           <span class="nav-label">ยาประจำ</span>
         </div>
         <div class="nav-item" data-tab="hospital">
-          <span class="nav-icon">🏨</span>
+          <span class="nav-icon" id="navHospitalIcon"></span>
           <span class="nav-label">โรงพยาบาล</span>
         </div>
         <div class="nav-item" data-tab="emergency">
-          <span class="nav-icon">📞</span>
+          <span class="nav-icon" id="navEmergencyIcon"></span>
           <span class="nav-label">ฉุกเฉิน</span>
         </div>
       </div>
@@ -80,15 +516,10 @@
 
       <!-- Personal Info Tab -->
       <div id="personal-tab" class="tab-content active">
-        <div class="card">
+        <div class="info-card">
           <div class="card-header">
-            <div class="card-title">
-              <span class="icon">📝</span>
-              ข้อมูลส่วนตัว
-            </div>
-            <button class="edit-btn" onclick="editSection('personal')">
-              <span>แก้ไข</span>
-            </button>
+            <div class="card-title" id="personalTitle"></div>
+            <button class="edit-btn" onclick="editSection('personal')" id="editPersonalBtn"></button>
           </div>
           <div class="info-row">
             <span class="info-label">ชื่อ-นามสกุล</span>
@@ -118,8 +549,7 @@
             <span class="info-label">ที่อยู่</span>
             <span class="info-value" id="patientAddress">-</span>
           </div>
-          <div class="divider"></div>
-          <div class="card-subtitle">📏 ข้อมูลร่างกาย</div>
+          <div class="card-subsection" id="bodySubsection"></div>
           <div class="info-row">
             <span class="info-label">น้ำหนัก</span>
             <span class="info-value" id="patientWeight">-</span>
@@ -137,86 +567,66 @@
 
       <!-- Medical Info Tab -->
       <div id="medical-tab" class="tab-content">
-        <div class="card">
+        <div class="info-card">
           <div class="card-header">
-            <div class="card-title">
-              <span class="icon">🏥</span>
-              ข้อมูลทางการแพทย์
-            </div>
-            <button class="edit-btn" onclick="editSection('medical')">
-              <span>แก้ไข</span>
-            </button>
+            <div class="card-title" id="medicalTitle"></div>
+            <button class="edit-btn" onclick="editSection('medical')" id="editMedicalBtn"></button>
           </div>
-          <div class="info-row" style="flex-direction: column; align-items: flex-start; gap: 8px;">
+          <div class="info-row vertical">
             <span class="info-label">โรคประจำตัว</span>
             <div class="tags" id="patientConditions">
               <span class="tag">-</span>
             </div>
           </div>
-          <div class="info-row" style="flex-direction: column; align-items: flex-start; gap: 8px;">
+          <div class="info-row vertical">
             <span class="info-label">โรคเรื้อรัง</span>
             <div class="tags" id="patientChronicDiseases">
               <span class="tag">-</span>
             </div>
           </div>
-          <div class="divider"></div>
-          <div class="card-subtitle">⚠️ การแพ้</div>
-          <div class="info-row" style="flex-direction: column; align-items: flex-start; gap: 8px;">
+          <div class="card-subsection" id="allergySubsection"></div>
+          <div class="info-row vertical">
             <span class="info-label">แพ้ยา</span>
             <div class="tags" id="patientDrugAllergies">
               <span class="tag warning">-</span>
             </div>
           </div>
-          <div class="info-row" style="flex-direction: column; align-items: flex-start; gap: 8px;">
+          <div class="info-row vertical">
             <span class="info-label">แพ้อาหาร</span>
             <div class="tags" id="patientFoodAllergies">
               <span class="tag warning">-</span>
             </div>
           </div>
-          <div class="divider"></div>
-          <div class="card-subtitle">📋 หมายเหตุ</div>
-          <p id="patientMedicalNotes" style="color: var(--text-secondary); font-size: 14px; margin: 0;">-</p>
+          <div class="card-subsection" id="notesSubsection"></div>
+          <p class="notes-text" id="patientMedicalNotes">-</p>
         </div>
       </div>
 
       <!-- Medications Tab -->
       <div id="medications-tab" class="tab-content">
-        <div class="card">
+        <div class="info-card">
           <div class="card-header">
-            <div class="card-title">
-              <span class="icon">💊</span>
-              รายการยาประจำ
-            </div>
-            <button class="edit-btn" onclick="goToMedications()">
-              <span>จัดการ</span>
-            </button>
+            <div class="card-title" id="medicationsTitle"></div>
+            <button class="edit-btn" onclick="goToMedications()" id="manageMedsBtn"></button>
           </div>
           <div id="medicationsList">
             <!-- Medications will be loaded here -->
             <div class="empty-state">
-              <div class="icon">💊</div>
-              <p>กำลังโหลดรายการยา...</p>
+              <div class="empty-state-icon" id="medsLoadingIcon"></div>
+              <p class="empty-state-text">กำลังโหลดรายการยา...</p>
             </div>
           </div>
         </div>
 
-        <button class="add-btn" onclick="goToMedications()">
-          <span>➕</span>
-          <span>เพิ่มยาใหม่</span>
-        </button>
+        <button class="add-btn" onclick="goToMedications()" id="addMedBtn"></button>
       </div>
 
       <!-- Hospital Info Tab -->
       <div id="hospital-tab" class="tab-content">
-        <div class="card">
+        <div class="info-card">
           <div class="card-header">
-            <div class="card-title">
-              <span class="icon">🏨</span>
-              โรงพยาบาลประจำ
-            </div>
-            <button class="edit-btn" onclick="editSection('hospital')">
-              <span>แก้ไข</span>
-            </button>
+            <div class="card-title" id="hospitalTitle"></div>
+            <button class="edit-btn" onclick="editSection('hospital')" id="editHospitalBtn"></button>
           </div>
           <div class="info-row">
             <span class="info-label">ชื่อโรงพยาบาล</span>
@@ -231,15 +641,10 @@
 
       <!-- Emergency Contact Tab -->
       <div id="emergency-tab" class="tab-content">
-        <div class="card">
+        <div class="info-card">
           <div class="card-header">
-            <div class="card-title">
-              <span class="icon">📞</span>
-              ผู้ติดต่อฉุกเฉิน
-            </div>
-            <button class="edit-btn" onclick="editSection('emergency')">
-              <span>แก้ไข</span>
-            </button>
+            <div class="card-title" id="emergencyTitle"></div>
+            <button class="edit-btn" onclick="editSection('emergency')" id="editEmergencyBtn"></button>
           </div>
           <div class="info-row">
             <span class="info-label">ชื่อ</span>
@@ -255,13 +660,27 @@
           </div>
         </div>
 
-        <div class="alert alert-info">
-          <span class="alert-icon">ℹ️</span>
-          <span>ข้อมูลนี้จะใช้ในกรณีฉุกเฉิน ระบบจะส่งการแจ้งเตือนไปยังเบอร์โทรนี้โดยอัตโนมัติ</span>
+        <div class="alert-info">
+          <span class="alert-info-icon" id="infoAlertIcon"></span>
+          <span class="alert-info-text">ข้อมูลนี้จะใช้ในกรณีฉุกเฉิน ระบบจะส่งการแจ้งเตือนไปยังเบอร์โทรนี้โดยอัตโนมัติ</span>
         </div>
+      </div>
+
+      <!-- Close Button -->
+      <div style="padding-top: 0.5rem;">
+        <button class="btn btn-secondary btn-block" onclick="closeLiff()">ปิด</button>
       </div>
     </div>
   </div>
+
+  <!-- LIFF SDK -->
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+  <!-- Supabase SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Lucide Icons -->
+  <script src="js/lucide-icons.js"></script>
 
   <!-- API Client -->
   <script src="js/api.js"></script>
@@ -283,13 +702,68 @@
     let patientId = null;
     let patientData = null;
 
-    // Phase 2.1: Show UI immediately
-    (function showUIImmediately() {
-      document.getElementById('loading').classList.add('hidden');
-      document.getElementById('main-content').classList.remove('hidden');
+    // Initialize icons and UI immediately
+    (function initUI() {
+      // Initialize dark mode
+      darkMode.init();
+
+      // Set header icons
+      document.getElementById('backBtn').innerHTML = icon('arrowLeft');
+      document.getElementById('headerTitle').innerHTML = icon('user', 'inline-icon') + ' ข้อมูลของคุณ';
+      document.getElementById('themeBtn').innerHTML = icon('sun');
+
+      // Set profile avatar
+      document.getElementById('profileAvatar').innerHTML = icon('user');
+
+      // Set nav icons
+      document.getElementById('navPersonalIcon').innerHTML = icon('fileText');
+      document.getElementById('navMedicalIcon').innerHTML = icon('heartPulse');
+      document.getElementById('navMedicationsIcon').innerHTML = icon('pill');
+      document.getElementById('navHospitalIcon').innerHTML = icon('building');
+      document.getElementById('navEmergencyIcon').innerHTML = icon('phone');
+
+      // Set card titles
+      document.getElementById('personalTitle').innerHTML = icon('fileText') + ' ข้อมูลส่วนตัว';
+      document.getElementById('editPersonalBtn').innerHTML = icon('pencil') + ' แก้ไข';
+      document.getElementById('bodySubsection').innerHTML = icon('ruler') + ' ข้อมูลร่างกาย';
+
+      document.getElementById('medicalTitle').innerHTML = icon('heartPulse') + ' ข้อมูลทางการแพทย์';
+      document.getElementById('editMedicalBtn').innerHTML = icon('pencil') + ' แก้ไข';
+      document.getElementById('allergySubsection').innerHTML = icon('alertTriangle') + ' การแพ้';
+      document.getElementById('notesSubsection').innerHTML = icon('clipboardList') + ' หมายเหตุ';
+
+      document.getElementById('medicationsTitle').innerHTML = icon('pill') + ' รายการยาประจำ';
+      document.getElementById('manageMedsBtn').innerHTML = icon('settings') + ' จัดการ';
+      document.getElementById('medsLoadingIcon').innerHTML = icon('pill');
+      document.getElementById('addMedBtn').innerHTML = icon('plus') + ' เพิ่มยาใหม่';
+
+      document.getElementById('hospitalTitle').innerHTML = icon('building') + ' โรงพยาบาลประจำ';
+      document.getElementById('editHospitalBtn').innerHTML = icon('pencil') + ' แก้ไข';
+
+      document.getElementById('emergencyTitle').innerHTML = icon('phone') + ' ผู้ติดต่อฉุกเฉิน';
+      document.getElementById('editEmergencyBtn').innerHTML = icon('pencil') + ' แก้ไข';
+      document.getElementById('infoAlertIcon').innerHTML = icon('info');
+
+      // Show UI immediately
+      document.getElementById('loadingState').classList.add('hidden');
+      document.getElementById('mainContent').classList.remove('hidden');
     })();
 
-    // Phase 1.1: Cache LIFF profile in sessionStorage
+    // Update theme icon based on current mode
+    function updateThemeIcon() {
+      const isDark = document.documentElement.classList.contains('dark');
+      document.getElementById('themeBtn').innerHTML = isDark ? icon('moon') : icon('sun');
+    }
+
+    // Override dark mode toggle to update icon
+    const originalToggle = darkMode.toggle;
+    darkMode.toggle = function() {
+      originalToggle.call(darkMode);
+      updateThemeIcon();
+    };
+    setTimeout(updateThemeIcon, 100);
+
+    // Cache LIFF profile in sessionStorage
     async function getCachedProfile() {
       const cached = sessionStorage.getItem('liff_profile');
       const cacheTime = sessionStorage.getItem('liff_profile_time');
@@ -344,13 +818,12 @@
       return genderMap[gender] || gender;
     }
 
-    // Edit section handler - direct mapping to edit-profile.html sections
+    // Edit section handler
     function editSection(section) {
       if (!patientId) {
         alert('กรุณารอโหลดข้อมูลก่อน');
         return;
       }
-      // Section names now match directly: personal, medical, hospital, emergency
       window.location.href = `edit-profile.html?patient_id=${patientId}&section=${section}`;
     }
 
@@ -380,7 +853,7 @@
       });
     });
 
-    // Phase 1.2: Check user registration with cache
+    // Check user registration with cache
     async function checkUserRegistration(lineUserId) {
       if (sessionStorage.getItem('user_registered') === 'true') {
         return true;
@@ -411,13 +884,8 @@
           return;
         }
 
-        // Phase 1.1: Get cached profile
         const profile = await getCachedProfile();
-
-        // Phase 1.2: Check registration in background
         checkUserRegistration(profile.userId).catch(err => console.error('Registration check error:', err));
-
-        // Load data in background
         loadUserData().catch(err => console.error('Load data error:', err));
 
       } catch (error) {
@@ -432,7 +900,6 @@
         const profile = await liff.getProfile();
         const lineUserId = profile.userId;
 
-        // Get user info
         const checkUserResponse = await fetch(`${API_BASE_URL}/check-user/${lineUserId}`);
         if (!checkUserResponse.ok) throw new Error(`check-user API failed: ${checkUserResponse.status}`);
 
@@ -442,7 +909,6 @@
           return;
         }
 
-        // Get patient ID based on role
         if (checkUserResult.role === 'patient') {
           patientId = checkUserResult.profile.profile_id;
         } else if (checkUserResult.role === 'caregiver') {
@@ -454,7 +920,6 @@
           }
         }
 
-        // Load patient profile
         const response = await fetch(`${API_BASE_URL}/patient/${patientId}`);
         if (!response.ok) throw new Error(`patient API failed: ${response.status}`);
 
@@ -466,8 +931,6 @@
 
         patientData = result.profile;
         displayPatientData(result.profile);
-
-        // Load medications
         await loadMedications();
 
       } catch (error) {
@@ -478,7 +941,6 @@
 
     // Display patient data
     function displayPatientData(patient) {
-      // Profile Header
       const fullName = `${patient.first_name || ''} ${patient.last_name || ''}`.trim() || 'ไม่ระบุชื่อ';
       const nickname = patient.nickname || '';
       const age = calculateAge(patient.birth_date);
@@ -486,7 +948,10 @@
 
       document.getElementById('profileName').textContent = nickname || fullName;
       document.getElementById('profileInfo').textContent = `${age} • ${gender}`;
-      document.getElementById('profileAvatar').textContent = patient.gender === 'male' ? '👨' : patient.gender === 'female' ? '👩' : '👤';
+
+      // Update avatar based on gender
+      const avatarIcon = patient.gender === 'male' ? 'userCircle' : patient.gender === 'female' ? 'userCircle2' : 'user';
+      document.getElementById('profileAvatar').innerHTML = icon(avatarIcon);
 
       // Personal Info
       document.getElementById('patientName').textContent = fullName;
@@ -541,7 +1006,7 @@
       }
     }
 
-    // Load medications (using Supabase directly)
+    // Load medications
     async function loadMedications() {
       const container = document.getElementById('medicationsList');
       try {
@@ -549,6 +1014,7 @@
           .from('medications')
           .select('*')
           .eq('patient_id', patientId)
+          .eq('active', true)
           .order('created_at', { ascending: false });
 
         if (error) throw error;
@@ -559,24 +1025,37 @@
         }));
 
         if (medications.length === 0) {
-          container.innerHTML = '<div class="empty-state"><div class="icon">💊</div><p>ยังไม่มีรายการยา</p><button class="btn btn-outline btn-sm" onclick="goToMedications()">เพิ่มยา</button></div>';
+          container.innerHTML = `
+            <div class="empty-state">
+              <div class="empty-state-icon">${icon('pill')}</div>
+              <p class="empty-state-text">ยังไม่มีรายการยา</p>
+              <button class="btn btn-sm btn-outline" onclick="goToMedications()">เพิ่มยา</button>
+            </div>
+          `;
           return;
         }
 
         const timeLabels = {
-          morning: '🌅 เช้า',
-          afternoon: '☀️ กลางวัน',
-          evening: '🌆 เย็น',
-          night: '🌙 ก่อนนอน'
+          morning: 'เช้า',
+          afternoon: 'กลางวัน',
+          evening: 'เย็น',
+          night: 'ก่อนนอน'
+        };
+
+        const timeIcons = {
+          morning: icon('sunrise', 'inline-icon'),
+          afternoon: icon('sun', 'inline-icon'),
+          evening: icon('sunset', 'inline-icon'),
+          night: icon('moon', 'inline-icon')
         };
 
         container.innerHTML = medications.map(med => {
           const times = med.times || [];
-          const timesHtml = times.map(t => `<span class="med-time">${timeLabels[t] || t}</span>`).join('');
+          const timesHtml = times.map(t => `<span class="med-time">${timeIcons[t] || ''} ${timeLabels[t] || t}</span>`).join('');
 
           return `
             <div class="med-item">
-              <div class="med-icon">💊</div>
+              <div class="med-icon">${icon('pill')}</div>
               <div class="med-info">
                 <div class="med-name">${med.name}</div>
                 <div class="med-dosage">${med.dosage_amount || ''} ${med.dosage_unit || ''}</div>
@@ -589,15 +1068,21 @@
 
       } catch (error) {
         console.error('Error loading medications:', error);
-        container.innerHTML = '<div class="empty-state"><div class="icon">💊</div><p>ไม่สามารถโหลดรายการยาได้</p></div>';
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">${icon('alertCircle')}</div>
+            <p class="empty-state-text">ไม่สามารถโหลดรายการยาได้</p>
+          </div>
+        `;
       }
     }
 
     // Show error
     function showError(message) {
-      const errorEl = document.getElementById('error');
-      errorEl.textContent = message;
-      errorEl.style.display = 'flex';
+      document.getElementById('loadingState').classList.add('hidden');
+      document.getElementById('mainContent').classList.add('hidden');
+      document.getElementById('errorState').classList.remove('hidden');
+      document.getElementById('errorMessage').textContent = message;
     }
 
     // Activate tab from URL parameter

@@ -3,219 +3,340 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#4CAF50">
+  <meta name="theme-color" content="#1E7B9C">
   <title>OONJAI - ลงทะเบียน</title>
 
-  <!-- Preconnect to speed up external resources -->
+  <!-- Preconnect -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://static.line-scdn.net">
-  <link rel="preconnect" href="https://cdn.jsdelivr.net">
-  <link rel="dns-prefetch" href="https://static.line-scdn.net">
-  <link rel="preload" href="https://static.line-scdn.net/liff/edge/2/sdk.js" as="script">
 
-  <link rel="stylesheet" href="css/style.css">
+  <!-- Kanit Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-  <!-- Critical CSS for immediate display -->
+  <!-- Theme CSS -->
+  <link rel="stylesheet" href="css/oonjai-theme.css">
+
   <style>
-    .container { opacity: 1; }
-    .loading-spinner {
+    /* Welcome Card */
+    .welcome-card {
+      background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary-dark)) 100%);
+      border-radius: var(--radius-xl);
+      padding: 2.5rem 1.5rem;
+      margin-bottom: 2rem;
+      color: white;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .welcome-card::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -30%;
+      width: 200px;
+      height: 200px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 50%;
+    }
+
+    .welcome-card::after {
+      content: '';
+      position: absolute;
+      bottom: -30%;
+      left: -20%;
+      width: 150px;
+      height: 150px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 50%;
+    }
+
+    .welcome-icon {
+      width: 80px;
+      height: 80px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1rem;
+      backdrop-filter: blur(10px);
+      position: relative;
+      z-index: 1;
+    }
+
+    .welcome-icon svg {
+      width: 40px;
+      height: 40px;
+      color: white;
+    }
+
+    .welcome-title {
+      font-size: 1.75rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .welcome-subtitle {
+      font-size: 1rem;
+      opacity: 0.9;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Status Card */
+    .status-card {
+      background: hsl(var(--card));
+      border: 1px solid hsl(var(--border));
+      border-radius: var(--radius-xl);
+      padding: 2rem;
+      text-align: center;
+    }
+
+    .status-spinner {
       width: 48px;
       height: 48px;
-      border: 4px solid #e0e0e0;
-      border-top-color: #4CAF50;
+      border: 4px solid hsl(var(--muted));
+      border-top-color: hsl(var(--primary));
       border-radius: 50%;
       animation: spin 1s linear infinite;
-      margin: 0 auto 16px;
+      margin: 0 auto 1rem;
     }
-    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .status-text {
+      font-size: 1rem;
+      color: hsl(var(--muted-foreground));
+      margin-bottom: 0.5rem;
+    }
+
+    .status-debug {
+      font-size: 0.75rem;
+      color: hsl(var(--muted-foreground));
+      opacity: 0.7;
+    }
+
+    /* Error Card */
+    .error-card {
+      background: hsl(var(--error) / 0.1);
+      border: 1px solid hsl(var(--error) / 0.3);
+      border-radius: var(--radius-xl);
+      padding: 1.25rem;
+      margin-top: 1.5rem;
+    }
+
+    .error-title {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.9375rem;
+      font-weight: 600;
+      color: hsl(var(--error));
+      margin-bottom: 0.375rem;
+    }
+
+    .error-title svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .error-message {
+      font-size: 0.8125rem;
+      color: hsl(var(--muted-foreground));
+    }
+
+    /* Retry Button */
+    .retry-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      width: 100%;
+      padding: 1rem;
+      margin-top: 1rem;
+      background: hsl(var(--primary));
+      color: white;
+      border: none;
+      border-radius: var(--radius-lg);
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .retry-btn:active {
+      transform: scale(0.98);
+      background: hsl(var(--primary-dark));
+    }
+
+    .retry-btn svg {
+      width: 20px;
+      height: 20px;
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>🏥 OONJAI</h1>
-    <p class="text-center">ระบบดูแลสุขภาพผู้สูงอายุ</p>
-
-    <!-- Initial loading state - visible immediately -->
-    <div id="initial-loading" style="text-align: center; padding: 20px;">
-      <div class="loading-spinner"></div>
-      <p>กำลังเริ่มต้นระบบ...</p>
-      <p id="debug-info" style="font-size: 12px; color: #999; margin-top: 20px;"></p>
+    <!-- Welcome Card -->
+    <div class="welcome-card">
+      <div class="welcome-icon" id="welcomeIcon"></div>
+      <h1 class="welcome-title">OONJAI</h1>
+      <p class="welcome-subtitle">ระบบดูแลสุขภาพผู้สูงอายุ</p>
     </div>
-  </div>
 
-  <!-- Phase 2.1: Show UI immediately -->
-  <script>
-    // IIFE to show loading UI immediately without waiting for external scripts
-    (function showUIImmediately() {
-      // Container is already visible via CSS
-      // Loading spinner animation starts immediately
-      console.log('✅ UI shown immediately');
-    })();
-  </script>
+    <!-- Status Card -->
+    <div class="status-card" id="statusCard">
+      <div class="status-spinner"></div>
+      <p class="status-text" id="statusText">กำลังเริ่มต้นระบบ...</p>
+      <p class="status-debug" id="debugInfo"></p>
+    </div>
+
+    <!-- Error Card (hidden initially) -->
+    <div class="error-card hidden" id="errorCard">
+      <div class="error-title" id="errorTitle"></div>
+      <p class="error-message" id="errorMessage"></p>
+    </div>
+
+    <!-- Retry Button (hidden initially) -->
+    <button class="retry-btn hidden" onclick="location.reload()" id="retryBtn"></button>
+  </div>
 
   <!-- LIFF SDK -->
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
+  <!-- Lucide Icons -->
+  <script src="js/lucide-icons.js"></script>
+
   <!-- API Client -->
   <script src="js/api.js"></script>
 
-  <!-- LIFF Helpers -->
   <script>
     const LIFF_ID = '2008278683-5k69jxNq';
     let liffProfile = null;
 
-    function showLoading(message = 'กำลังโหลด...') {
-      const loading = document.getElementById('initial-loading');
-      if (loading) {
-        const p = loading.querySelector('p');
-        if (p) p.textContent = message;
+    // Initialize icons and UI immediately
+    (function initUI() {
+      // Initialize dark mode
+      darkMode.init();
+
+      // Set icons
+      document.getElementById('welcomeIcon').innerHTML = icon('heartPulse');
+      document.getElementById('errorTitle').innerHTML = icon('alertTriangle') + ' เกิดข้อผิดพลาด';
+      document.getElementById('retryBtn').innerHTML = icon('refreshCw') + ' ลองอีกครั้ง';
+
+      console.log('UI initialized');
+    })();
+
+    // Helper functions
+    function updateStatus(message) {
+      document.getElementById('statusText').textContent = message;
+    }
+
+    function updateDebug(message) {
+      document.getElementById('debugInfo').textContent = message;
+      console.log('DEBUG:', message);
+    }
+
+    function showError(title, message) {
+      document.getElementById('statusCard').classList.add('hidden');
+      document.getElementById('errorCard').classList.remove('hidden');
+      document.getElementById('errorTitle').innerHTML = icon('alertTriangle') + ' ' + title;
+      document.getElementById('errorMessage').textContent = message;
+      document.getElementById('retryBtn').classList.remove('hidden');
+    }
+
+    function saveUserData(userData) {
+      try {
+        localStorage.setItem('oonjai_user', JSON.stringify(userData));
+        console.log('User data saved:', userData);
+      } catch (error) {
+        console.error('Failed to save user data:', error);
       }
-    }
-
-    function hideLoading() {
-      const loading = document.getElementById('initial-loading');
-      if (loading) loading.style.display = 'none';
-    }
-
-    function showError(message) {
-      hideLoading();
-      alert('Error: ' + message);
-      console.error('Error:', message);
     }
 
     async function initLiff() {
       try {
-        showLoading('กำลังเข้าสู่ระบบ...');
+        updateStatus('กำลังเข้าสู่ระบบ...');
         await liff.init({ liffId: LIFF_ID });
-        console.log('✅ LIFF initialized');
+        console.log('LIFF initialized');
 
         if (!liff.isLoggedIn()) {
-          console.log('❌ Not logged in, redirecting...');
+          console.log('Not logged in, redirecting...');
           liff.login();
           return null;
         }
 
         liffProfile = await liff.getProfile();
-        console.log('✅ LIFF Profile:', liffProfile);
-        hideLoading();
+        console.log('LIFF Profile:', liffProfile);
         return liffProfile;
 
       } catch (error) {
-        console.error('❌ LIFF init failed:', error);
-        showError('ไม่สามารถเชื่อมต่อได้ กรุณาลองใหม่อีกครั้ง');
+        console.error('LIFF init failed:', error);
         throw error;
       }
     }
-  </script>
-
-  <!-- App JavaScript -->
-
-  <script>
-    // ========================================
-    // User Data Storage
-    // ========================================
-    function saveUserData(userData) {
-      try {
-        localStorage.setItem('oonjai_user', JSON.stringify(userData));
-        console.log('✅ User data saved:', userData);
-      } catch (error) {
-        console.error('❌ Failed to save user data:', error);
-      }
-    }
-
-    function getUserData() {
-      try {
-        const data = localStorage.getItem('oonjai_user');
-        return data ? JSON.parse(data) : null;
-      } catch (error) {
-        console.error('❌ Failed to get user data:', error);
-        return null;
-      }
-    }
-
-    // ========================================
-    // Debug Helper
-    // ========================================
-    function updateDebugInfo(message) {
-      const debugEl = document.getElementById('debug-info');
-      if (debugEl) {
-        debugEl.textContent = message;
-      }
-      console.log('🐛 DEBUG:', message);
-    }
-
-    // ========================================
-    // Main Entry Point
-    // ========================================
 
     async function init() {
       try {
-        updateDebugInfo('กำลังตรวจสอบ LIFF SDK...');
+        updateDebug('กำลังตรวจสอบ LIFF SDK...');
 
-        // Check if LIFF is loaded
         if (typeof liff === 'undefined') {
           throw new Error('LIFF SDK not loaded');
         }
 
-        updateDebugInfo('กำลัง initialize LIFF...');
+        updateDebug('กำลัง initialize LIFF...');
 
-        // Initialize LIFF
         const profile = await initLiff();
         if (!profile) {
-          updateDebugInfo('ไม่สามารถ login ได้');
+          updateDebug('ไม่สามารถ login ได้');
           return;
         }
 
-        updateDebugInfo('กำลังตรวจสอบ context...');
+        updateDebug('กำลังตรวจสอบ context...');
 
-        // Detect context: Group vs 1:1 (Hybrid Model - TASK-002 Option C)
+        // Detect context: Group vs 1:1
         const context = liff.getContext();
         const isGroupContext = context && context.type === 'group';
         const groupId = isGroupContext ? context.groupId : null;
 
-        console.log('🔍 Context detected:', {
-          type: context?.type,
-          isGroup: isGroupContext,
-          groupId: groupId
-        });
-
-        updateDebugInfo(isGroupContext ? 'Context: กลุ่ม LINE' : 'Context: 1:1 Chat');
+        console.log('Context detected:', { type: context?.type, isGroup: isGroupContext, groupId });
+        updateDebug(isGroupContext ? 'Context: กลุ่ม LINE' : 'Context: 1:1 Chat');
 
         // Check registration based on context
-        showLoading('กำลังตรวจสอบข้อมูล...');
+        updateStatus('กำลังตรวจสอบข้อมูล...');
 
         let result;
         if (isGroupContext) {
-          // Group context - check group registration
-          updateDebugInfo('ตรวจสอบการลงทะเบียนกลุ่ม...');
+          updateDebug('ตรวจสอบการลงทะเบียนกลุ่ม...');
           result = await api.post('/api/groups/check', { line_group_id: groupId });
         } else {
-          // 1:1 context - check user registration
-          updateDebugInfo('ตรวจสอบการลงทะเบียนผู้ใช้...');
+          updateDebug('ตรวจสอบการลงทะเบียนผู้ใช้...');
           result = await api.checkRegistration(profile.userId);
         }
 
-        hideLoading();
-
-        console.log('🔍 Registration check result:', result);
+        console.log('Registration check result:', result);
 
         if (result.exists) {
           // Already registered
-          console.log('✅ User/Group is registered:', result);
-          updateDebugInfo('พบข้อมูล กำลังเปลี่ยนหน้า...');
+          console.log('User/Group is registered:', result);
+          updateDebug('พบข้อมูล กำลังเปลี่ยนหน้า...');
 
           if (isGroupContext) {
-            // Group registered - go to group dashboard
-            console.log('👥 Redirecting to group dashboard');
+            console.log('Redirecting to group dashboard');
             setTimeout(() => {
               window.location.href = '/liff/group-dashboard.html';
             }, 500);
           } else {
-            // User registered - go to user dashboard
-            // ✅ Validate profile exists
             if (!result.profile || !result.profile.id) {
-              console.error('❌ Profile data missing:', result);
-              updateDebugInfo('ข้อมูลผู้ใช้ไม่ครบถ้วน');
-              showError('ข้อมูลผู้ใช้ไม่ครบถ้วน กรุณาติดต่อผู้ดูแลระบบ');
+              console.error('Profile data missing:', result);
+              updateDebug('ข้อมูลผู้ใช้ไม่ครบถ้วน');
+              showError('ข้อมูลไม่ครบถ้วน', 'ข้อมูลผู้ใช้ไม่ครบถ้วน กรุณาติดต่อผู้ดูแลระบบ');
               return;
             }
 
@@ -225,10 +346,9 @@
               line_user_id: profile.userId
             };
 
-            // Save to localStorage
             saveUserData(userData);
 
-            console.log('👤 Redirecting to user dashboard');
+            console.log('Redirecting to user dashboard');
             setTimeout(() => {
               window.location.href = '/liff/dashboard.html';
             }, 500);
@@ -236,18 +356,16 @@
 
         } else {
           // Not registered
-          console.log('❌ Not registered, redirecting to registration');
-          updateDebugInfo('ยังไม่ได้ลงทะเบียน กำลังเปลี่ยนหน้า...');
+          console.log('Not registered, redirecting to registration');
+          updateDebug('ยังไม่ได้ลงทะเบียน กำลังเปลี่ยนหน้า...');
 
           if (isGroupContext) {
-            // Group not registered - go to group registration
-            console.log('👥 Redirecting to group registration');
+            console.log('Redirecting to group registration');
             setTimeout(() => {
               window.location.href = '/liff/group-registration.html';
             }, 500);
           } else {
-            // User not registered - go to registration
-            console.log('👤 Redirecting to registration');
+            console.log('Redirecting to registration');
             setTimeout(() => {
               window.location.href = '/liff/registration.html';
             }, 500);
@@ -255,35 +373,15 @@
         }
 
       } catch (error) {
-        console.error('❌ Initialization error:', error);
-        updateDebugInfo('Error: ' + error.message);
-        hideLoading();
-
-        // Show error in container
-        const container = document.querySelector('.container');
-        const errorDiv = document.createElement('div');
-        errorDiv.style.cssText = 'background: #ffebee; border: 1px solid #f44336; padding: 15px; border-radius: 8px; margin: 20px 0; color: #c62828;';
-        errorDiv.innerHTML = `
-          <strong>⚠️ เกิดข้อผิดพลาด</strong><br>
-          <small>${error.message}</small>
-        `;
-        container.appendChild(errorDiv);
-
-        // Retry button
-        setTimeout(() => {
-          const retryBtn = document.createElement('button');
-          retryBtn.style.cssText = 'width: 100%; padding: 12px; background: #4CAF50; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; margin-top: 10px;';
-          retryBtn.textContent = '🔄 ลองอีกครั้ง';
-          retryBtn.onclick = () => location.reload();
-          container.appendChild(retryBtn);
-        }, 1000);
+        console.error('Initialization error:', error);
+        updateDebug('Error: ' + error.message);
+        showError('เกิดข้อผิดพลาด', error.message);
       }
     }
 
-    // Initial check
-    updateDebugInfo('หน้าเว็บโหลดเสร็จ กำลังเริ่มต้น...');
-
     // Start when DOM is ready
+    updateDebug('หน้าเว็บโหลดเสร็จ กำลังเริ่มต้น...');
+
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', init);
     } else {

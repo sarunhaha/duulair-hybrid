@@ -3,117 +3,416 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#FAF9F6">
+  <meta name="theme-color" content="#1E7B9C">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>ลงทะเบียน - OONJAI (v2.1)</title>
+  <title>ลงทะเบียน - OONJAI</title>
 
-  <!-- Preconnect to speed up external resources -->
+  <!-- Preconnect -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://static.line-scdn.net">
-  <link rel="dns-prefetch" href="https://static.line-scdn.net">
-  <link rel="preload" href="https://static.line-scdn.net/liff/edge/2/sdk.js" as="script">
 
-  <link rel="stylesheet" href="css/minimal-theme.css">
+  <!-- Kanit Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Theme CSS -->
+  <link rel="stylesheet" href="css/oonjai-theme.css">
+
+  <style>
+    /* Welcome Card */
+    .welcome-card {
+      background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary-dark)) 100%);
+      border-radius: var(--radius-xl);
+      padding: 2rem 1.5rem;
+      margin-bottom: 1.5rem;
+      color: white;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .welcome-card::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -30%;
+      width: 200px;
+      height: 200px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 50%;
+    }
+
+    .welcome-card::after {
+      content: '';
+      position: absolute;
+      bottom: -30%;
+      left: -20%;
+      width: 150px;
+      height: 150px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 50%;
+    }
+
+    .welcome-icon {
+      width: 64px;
+      height: 64px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1rem;
+      backdrop-filter: blur(10px);
+      position: relative;
+      z-index: 1;
+    }
+
+    .welcome-icon svg {
+      width: 32px;
+      height: 32px;
+      color: white;
+    }
+
+    .welcome-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .welcome-subtitle {
+      font-size: 0.9375rem;
+      opacity: 0.9;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Section Card */
+    .section-card {
+      background: hsl(var(--card));
+      border: 1px solid hsl(var(--border));
+      border-radius: var(--radius-xl);
+      margin-bottom: 1.5rem;
+      overflow: hidden;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 1rem 1.25rem;
+      background: hsl(var(--muted));
+      border-bottom: 1px solid hsl(var(--border));
+    }
+
+    .section-header-icon {
+      width: 40px;
+      height: 40px;
+      background: hsl(var(--primary) / 0.15);
+      border-radius: var(--radius-lg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .section-header-icon svg {
+      width: 20px;
+      height: 20px;
+      color: hsl(var(--primary));
+    }
+
+    .section-header-icon.patient {
+      background: hsl(var(--accent) / 0.15);
+    }
+
+    .section-header-icon.patient svg {
+      color: hsl(var(--accent));
+    }
+
+    .section-header-text {
+      flex: 1;
+    }
+
+    .section-header-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: hsl(var(--foreground));
+    }
+
+    .section-header-subtitle {
+      font-size: 0.75rem;
+      color: hsl(var(--muted-foreground));
+      margin-top: 0.125rem;
+    }
+
+    .section-body {
+      padding: 1.25rem;
+    }
+
+    /* Form Elements */
+    .form-group {
+      margin-bottom: 1.25rem;
+    }
+
+    .form-group:last-child {
+      margin-bottom: 0;
+    }
+
+    .form-label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: hsl(var(--foreground));
+      margin-bottom: 0.5rem;
+    }
+
+    .form-label .required {
+      color: hsl(var(--error));
+    }
+
+    .form-input,
+    .form-select,
+    .form-textarea {
+      width: 100%;
+      padding: 0.875rem 1rem;
+      border: 1.5px solid hsl(var(--border));
+      border-radius: var(--radius-lg);
+      font-size: 1rem;
+      font-family: 'Kanit', sans-serif;
+      background: hsl(var(--background));
+      color: hsl(var(--foreground));
+      transition: all 0.2s ease;
+    }
+
+    .form-input:focus,
+    .form-select:focus,
+    .form-textarea:focus {
+      outline: none;
+      border-color: hsl(var(--primary));
+      box-shadow: 0 0 0 3px hsl(var(--primary) / 0.1);
+    }
+
+    .form-input::placeholder,
+    .form-textarea::placeholder {
+      color: hsl(var(--muted-foreground));
+    }
+
+    .form-select {
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.75rem center;
+      background-size: 20px;
+      padding-right: 2.5rem;
+    }
+
+    .form-textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    .form-hint {
+      font-size: 0.75rem;
+      color: hsl(var(--muted-foreground));
+      margin-top: 0.375rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.375rem;
+    }
+
+    .form-hint svg {
+      width: 14px;
+      height: 14px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    /* Info Card */
+    .info-card {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      padding: 1rem;
+      background: hsl(var(--primary) / 0.08);
+      border: 1px solid hsl(var(--primary) / 0.2);
+      border-radius: var(--radius-lg);
+      margin-top: 1.25rem;
+    }
+
+    .info-card-icon {
+      width: 32px;
+      height: 32px;
+      background: hsl(var(--primary) / 0.15);
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .info-card-icon svg {
+      width: 16px;
+      height: 16px;
+      color: hsl(var(--primary));
+    }
+
+    .info-card-text {
+      font-size: 0.8125rem;
+      color: hsl(var(--foreground));
+      line-height: 1.5;
+    }
+
+    /* Submit Section */
+    .submit-section {
+      padding-top: 0.5rem;
+    }
+
+    .privacy-note {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      font-size: 0.75rem;
+      color: hsl(var(--muted-foreground));
+      margin-top: 1rem;
+    }
+
+    .privacy-note svg {
+      width: 14px;
+      height: 14px;
+    }
+  </style>
 </head>
 <body>
   <div class="container">
-    <!-- Header -->
-    <div class="header text-center">
-      <h1>👋 ยินดีต้อนรับสู่ OONJAI</h1>
-      <p>กรุณากรอกข้อมูลเพื่อเริ่มใช้งาน</p>
+    <!-- Welcome Card -->
+    <div class="welcome-card">
+      <div class="welcome-icon" id="welcomeIcon"></div>
+      <h1 class="welcome-title">ยินดีต้อนรับสู่ OONJAI</h1>
+      <p class="welcome-subtitle">กรุณากรอกข้อมูลเพื่อเริ่มใช้งาน</p>
     </div>
 
     <form id="registrationForm">
       <!-- ส่วนที่ 1: ข้อมูลผู้ดูแล -->
-      <div class="card">
-        <div class="card-header">👤 ข้อมูลของคุณ (ผู้ดูแล)</div>
-        <p class="text-small text-muted mb-3">
-          ข้อมูลจะถูกเชื่อมโยงกับบัญชี LINE ของคุณโดยอัตโนมัติ
-        </p>
-
-        <div class="form-group">
-          <label for="caregiverFirstName">ชื่อ <span class="required">*</span></label>
-          <input type="text" id="caregiverFirstName" required placeholder="กรอกชื่อของคุณ">
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-header-icon" id="caregiverIcon"></div>
+          <div class="section-header-text">
+            <div class="section-header-title">ข้อมูลของคุณ (ผู้ดูแล)</div>
+            <div class="section-header-subtitle">เชื่อมโยงกับบัญชี LINE โดยอัตโนมัติ</div>
+          </div>
         </div>
 
-        <div class="form-group">
-          <label for="caregiverLastName">นามสกุล <span class="required">*</span></label>
-          <input type="text" id="caregiverLastName" required placeholder="กรอกนามสกุลของคุณ">
-        </div>
+        <div class="section-body">
+          <div class="form-group">
+            <label class="form-label" for="caregiverFirstName">
+              ชื่อ <span class="required">*</span>
+            </label>
+            <input type="text" class="form-input" id="caregiverFirstName" required placeholder="กรอกชื่อของคุณ">
+          </div>
 
-        <div class="form-group">
-          <label for="caregiverPhoneNumber">เบอร์โทรศัพท์</label>
-          <input type="tel" id="caregiverPhoneNumber" placeholder="0XX-XXX-XXXX">
-        </div>
+          <div class="form-group">
+            <label class="form-label" for="caregiverLastName">
+              นามสกุล <span class="required">*</span>
+            </label>
+            <input type="text" class="form-input" id="caregiverLastName" required placeholder="กรอกนามสกุลของคุณ">
+          </div>
 
-        <div class="form-group">
-          <label for="relationshipToPatient">ความสัมพันธ์กับผู้ป่วย <span class="required">*</span></label>
-          <select id="relationshipToPatient" required>
-            <option value="">-- เลือกความสัมพันธ์ --</option>
-            <option value="child">ลูก</option>
-            <option value="grandchild">หลาน</option>
-            <option value="sibling">พี่/น้อง</option>
-            <option value="spouse">คู่สมรส</option>
-            <option value="nurse">พยาบาล/ผู้ดูแลมืออาชีพ</option>
-            <option value="other">อื่นๆ</option>
-          </select>
+          <div class="form-group">
+            <label class="form-label" for="caregiverPhoneNumber">
+              เบอร์โทรศัพท์
+            </label>
+            <input type="tel" class="form-input" id="caregiverPhoneNumber" placeholder="0XX-XXX-XXXX">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="relationshipToPatient">
+              ความสัมพันธ์กับผู้ป่วย <span class="required">*</span>
+            </label>
+            <select class="form-select" id="relationshipToPatient" required>
+              <option value="">-- เลือกความสัมพันธ์ --</option>
+              <option value="child">ลูก</option>
+              <option value="grandchild">หลาน</option>
+              <option value="sibling">พี่/น้อง</option>
+              <option value="spouse">คู่สมรส</option>
+              <option value="nurse">พยาบาล/ผู้ดูแลมืออาชีพ</option>
+              <option value="other">อื่นๆ</option>
+            </select>
+          </div>
         </div>
       </div>
 
       <!-- ส่วนที่ 2: ข้อมูลผู้ป่วย -->
-      <div class="card">
-        <div class="card-header">👴 ข้อมูลผู้ป่วยที่ดูแล</div>
-        <p class="text-small text-muted mb-3">
-          ผู้ป่วยไม่จำเป็นต้องมีบัญชี LINE
-        </p>
-
-        <div class="form-group">
-          <label for="patientFirstName">ชื่อผู้ป่วย <span class="required">*</span></label>
-          <input type="text" id="patientFirstName" required placeholder="กรอกชื่อผู้ป่วย">
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-header-icon patient" id="patientIcon"></div>
+          <div class="section-header-text">
+            <div class="section-header-title">ข้อมูลผู้ป่วยที่ดูแล</div>
+            <div class="section-header-subtitle">ไม่จำเป็นต้องมีบัญชี LINE</div>
+          </div>
         </div>
 
-        <div class="form-group">
-          <label for="patientLastName">นามสกุลผู้ป่วย <span class="required">*</span></label>
-          <input type="text" id="patientLastName" required placeholder="กรอกนามสกุลผู้ป่วย">
-        </div>
+        <div class="section-body">
+          <div class="form-group">
+            <label class="form-label" for="patientFirstName">
+              ชื่อผู้ป่วย <span class="required">*</span>
+            </label>
+            <input type="text" class="form-input" id="patientFirstName" required placeholder="กรอกชื่อผู้ป่วย">
+          </div>
 
-        <div class="form-group">
-          <label for="patientBirthDate">วันเกิดผู้ป่วย <span class="required">*</span></label>
-          <input type="date" id="patientBirthDate" required>
-          <small style="color: #666; font-size: 12px; margin-top: 4px; display: block;">
-            กรุณากรอกเป็น ค.ศ. (เช่น เกิดปี พ.ศ. 2496 = ค.ศ. 1953)
-          </small>
-        </div>
+          <div class="form-group">
+            <label class="form-label" for="patientLastName">
+              นามสกุลผู้ป่วย <span class="required">*</span>
+            </label>
+            <input type="text" class="form-input" id="patientLastName" required placeholder="กรอกนามสกุลผู้ป่วย">
+          </div>
 
-        <div class="form-group">
-          <label for="patientConditions">โรคประจำตัว (ถ้ามี)</label>
-          <textarea id="patientConditions" placeholder="เช่น ความดันสูง, เบาหวาน" rows="3"></textarea>
-          <small style="color: #666; font-size: 12px;">
-            กรอกโรคประจำตัวสำคัญ สามารถเพิ่มรายละเอียดเพิ่มเติมได้ภายหลัง
-          </small>
-        </div>
+          <div class="form-group">
+            <label class="form-label" for="patientBirthDate">
+              วันเกิดผู้ป่วย <span class="required">*</span>
+            </label>
+            <input type="date" class="form-input" id="patientBirthDate" required>
+            <div class="form-hint" id="birthDateHint"></div>
+          </div>
 
-        <div class="alert alert-info">
-          <strong>💡 คำแนะนำ:</strong> คุณสามารถเพิ่มรายละเอียดอื่นๆ เช่น ข้อมูลสุขภาพ ยาที่ทาน และอื่นๆ ได้ภายหลังที่เมนูข้อมูลผู้ป่วย
+          <div class="form-group">
+            <label class="form-label" for="patientConditions">
+              โรคประจำตัว (ถ้ามี)
+            </label>
+            <textarea class="form-textarea" id="patientConditions" placeholder="เช่น ความดันสูง, เบาหวาน" rows="3"></textarea>
+            <div class="form-hint" id="conditionsHint"></div>
+          </div>
+
+          <div class="info-card">
+            <div class="info-card-icon" id="infoIcon"></div>
+            <div class="info-card-text">
+              คุณสามารถเพิ่มรายละเอียดอื่นๆ เช่น ข้อมูลสุขภาพ ยาที่ทาน และอื่นๆ ได้ภายหลังที่เมนูข้อมูลผู้ป่วย
+            </div>
+          </div>
         </div>
       </div>
 
       <!-- ปุ่มบันทึก -->
-      <div class="mt-4">
-        <button type="submit" id="submitBtn" class="btn btn-primary btn-block">
-          ✅ บันทึกและเริ่มใช้งาน
+      <div class="submit-section">
+        <button type="submit" id="submitBtn" class="btn btn-primary btn-block" disabled>
+          <span id="submitBtnContent"></span>
         </button>
-      </div>
 
-      <p class="text-center text-small text-muted mt-2">
-        ข้อมูลของท่านจะถูกเก็บเป็นความลับและปลอดภัย 🔒
-      </p>
+        <div class="privacy-note" id="privacyNote"></div>
+      </div>
     </form>
   </div>
 
   <!-- LIFF SDK -->
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+  <!-- Lucide Icons -->
+  <script src="js/lucide-icons.js"></script>
 
   <!-- API Client -->
   <script src="js/api.js"></script>
@@ -122,24 +421,45 @@
     // LIFF Configuration
     const LIFF_ID = '2008278683-5k69jxNq';
 
+    // Initialize icons and UI immediately
+    (function initUI() {
+      // Initialize dark mode
+      darkMode.init();
+
+      // Set icons
+      document.getElementById('welcomeIcon').innerHTML = icon('handHeart');
+      document.getElementById('caregiverIcon').innerHTML = icon('user');
+      document.getElementById('patientIcon').innerHTML = icon('heartPulse');
+      document.getElementById('birthDateHint').innerHTML = icon('info') + ' กรุณากรอกเป็น ค.ศ. (เช่น เกิดปี พ.ศ. 2496 = ค.ศ. 1953)';
+      document.getElementById('conditionsHint').innerHTML = icon('info') + ' กรอกโรคประจำตัวสำคัญ สามารถเพิ่มรายละเอียดเพิ่มเติมได้ภายหลัง';
+      document.getElementById('infoIcon').innerHTML = icon('lightbulb');
+      document.getElementById('submitBtnContent').innerHTML = icon('check', 'inline-icon') + ' บันทึกและเริ่มใช้งาน';
+      document.getElementById('privacyNote').innerHTML = icon('shieldCheck') + ' ข้อมูลของท่านจะถูกเก็บเป็นความลับและปลอดภัย';
+
+      console.log('UI initialized');
+    })();
+
     // Initialize LIFF
     async function initLiff() {
       try {
-        console.log('🔄 Initializing LIFF...', LIFF_ID);
+        console.log('Initializing LIFF...', LIFF_ID);
         await liff.init({ liffId: LIFF_ID });
-        console.log('✅ LIFF initialized');
+        console.log('LIFF initialized');
 
         if (!liff.isLoggedIn()) {
-          console.log('⚠️ Not logged in, redirecting to login...');
+          console.log('Not logged in, redirecting to login...');
           liff.login();
           return;
         }
 
-        console.log('✅ User is logged in');
+        console.log('User is logged in');
+
+        // Enable submit button after LIFF is ready
+        document.getElementById('submitBtn').disabled = false;
 
         // Auto-fill caregiver name from LINE profile
         const profile = await liff.getProfile();
-        console.log('✅ Got profile for auto-fill:', profile.displayName);
+        console.log('Got profile for auto-fill:', profile.displayName);
 
         const displayName = profile.displayName || '';
         const nameParts = displayName.split(' ');
@@ -151,17 +471,17 @@
           document.getElementById('caregiverFirstName').value = displayName;
         }
 
-        console.log('✅ LIFF initialization complete');
+        console.log('LIFF initialization complete');
 
       } catch (error) {
-        console.error('❌ LIFF initialization failed:', error);
-        console.error('Error details:', {
-          message: error.message,
-          stack: error.stack,
-          name: error.name
-        });
-        alert('❌ เกิดข้อผิดพลาดในการเชื่อมต่อ LIFF\n\nError: ' + error.message + '\n\nกรุณาลองใหม่อีกครั้ง');
+        console.error('LIFF initialization failed:', error);
+        showError('ไม่สามารถเชื่อมต่อ LIFF ได้', error.message);
       }
+    }
+
+    // Show error message
+    function showError(title, message) {
+      alert(title + '\n\n' + message + '\n\nกรุณาลองใหม่อีกครั้ง');
     }
 
     // Handle form submission
@@ -170,17 +490,17 @@
 
       const submitBtn = document.getElementById('submitBtn');
       submitBtn.disabled = true;
-      submitBtn.textContent = 'กำลังบันทึก...';
+      document.getElementById('submitBtnContent').innerHTML = icon('loader', 'inline-icon spin') + ' กำลังบันทึก...';
 
       try {
-        console.log('🚀 Starting registration...');
+        console.log('Starting registration...');
 
         const profile = await liff.getProfile();
-        console.log('✅ Got LINE profile:', profile.userId);
+        console.log('Got LINE profile:', profile.userId);
 
         const contextType = liff.getContext()?.type || 'utou';
         const groupId = contextType === 'group' ? liff.getContext().groupId : null;
-        console.log('📍 Context:', { contextType, groupId });
+        console.log('Context:', { contextType, groupId });
 
         // Prepare data
         const formData = {
@@ -204,11 +524,7 @@
           }
         };
 
-        console.log('📤 Sending registration data:', {
-          ...formData,
-          lineUserId: formData.lineUserId.substring(0, 10) + '...',
-          pictureUrl: formData.pictureUrl ? 'set' : 'null'
-        });
+        console.log('Sending registration data...');
 
         // Send to API
         const response = await fetch(`${API_BASE_URL}/quick-register`, {
@@ -222,42 +538,36 @@
         const result = await response.json();
 
         if (!response.ok) {
-          // Show detailed error from API
           throw new Error(result.error || `HTTP error! status: ${response.status}`);
         }
 
         if (result.success) {
-          // ✅ Save context to localStorage for future access
+          // Save context to localStorage for future access
           const contextData = {
             caregiverId: result.caregiverId,
             patientId: result.patientId,
             role: 'caregiver',
-            profile_id: result.patientId, // ✅ Use patientId for patient-profile pages
+            profile_id: result.patientId,
             groupId: groupId,
             contextType: contextType
           };
 
-          console.log('💾 Saving context to localStorage:', contextData);
+          console.log('Saving context to localStorage:', contextData);
           localStorage.setItem('oonjai_context', JSON.stringify(contextData));
 
-          // ✅ Save to oonjai_user - use caregiverId (CORRECTED 2025-01-17)
+          // Save to oonjai_user - use caregiverId
           const userData = {
             role: 'caregiver',
-            profile_id: result.caregiverId, // ✅ Caregiver ID (correct!)
+            profile_id: result.caregiverId,
             line_user_id: profile.userId
           };
           localStorage.setItem('oonjai_user', JSON.stringify(userData));
 
-          console.log('✅ Saved to localStorage!');
-          console.log('Context:', localStorage.getItem('oonjai_context'));
-          console.log('User:', localStorage.getItem('oonjai_user'));
+          console.log('Saved to localStorage!');
 
-          // Show detailed success message with data
-          alert('✅ ลงทะเบียนสำเร็จ! \n\nCaregiver ID: ' + result.caregiverId.substring(0, 8) + '...\nPatient ID: ' + result.patientId.substring(0, 8) + '...\n\nคุณสามารถเริ่มใช้งานได้เลย');
-
-          // Close LIFF window or redirect
+          // Redirect to success page or close
           if (liff.isInClient()) {
-            liff.closeWindow();
+            window.location.href = '/liff/success.html?caregiver_id=' + result.caregiverId;
           } else {
             window.location.href = '/liff/dashboard.html';
           }
@@ -267,9 +577,9 @@
 
       } catch (error) {
         console.error('Registration failed:', error);
-        alert('❌ เกิดข้อผิดพลาด: ' + error.message + '\n\nกรุณาลองใหม่อีกครั้ง');
+        showError('เกิดข้อผิดพลาด', error.message);
         submitBtn.disabled = false;
-        submitBtn.textContent = '✅ บันทึกและเริ่มใช้งาน';
+        document.getElementById('submitBtnContent').innerHTML = icon('check', 'inline-icon') + ' บันทึกและเริ่มใช้งาน';
       }
     });
 

@@ -2,88 +2,62 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#FAF9F6">
-  <title>🤒 บันทึกอาการ - OONJAI</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#1E7B9C">
+  <title>บันทึกอาการ - OONJAI</title>
 
-  <!-- Preconnect to speed up external resources -->
+  <!-- Preconnect -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://static.line-scdn.net">
-  <link rel="preconnect" href="https://cdn.jsdelivr.net">
   <link rel="preconnect" href="https://mqxklnzxfrupwwkwlwwc.supabase.co">
-  <link rel="dns-prefetch" href="https://static.line-scdn.net">
-  <link rel="preload" href="https://static.line-scdn.net/liff/edge/2/sdk.js" as="script">
 
-  <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <link rel="stylesheet" href="css/minimal-theme.css">
+  <!-- Kanit Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Theme CSS -->
+  <link rel="stylesheet" href="css/oonjai-theme.css">
+
   <style>
-    /* Page Header */
-    .page-header {
-      display: flex;
-      align-items: center;
-      gap: var(--spacing-md);
-      margin-bottom: var(--spacing-lg);
-      padding-bottom: var(--spacing-md);
-      border-bottom: 1px solid rgba(0,0,0,0.08);
-    }
-
-    .back-btn {
-      width: 40px;
-      height: 40px;
-      border-radius: var(--radius-full);
-      border: none;
-      background: var(--bg-secondary);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      color: var(--text-primary);
-    }
-
-    .back-btn:active {
-      transform: scale(0.95);
-      background: rgba(0,0,0,0.1);
-    }
-
-    .page-title {
-      font-size: 22px;
-      font-weight: 600;
-      color: var(--text-primary);
-      margin: 0;
-    }
-
     /* Section Label */
     .section-label {
-      font-size: 14px;
-      font-weight: 500;
-      color: var(--text-secondary);
-      margin-bottom: var(--spacing-sm);
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: hsl(var(--foreground));
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .section-label svg {
+      width: 18px;
+      height: 18px;
+      color: hsl(var(--primary));
     }
 
     /* Symptom Grid */
     .symptom-section {
-      margin-bottom: var(--spacing-lg);
+      margin-bottom: 1.5rem;
     }
 
     .symptom-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: var(--spacing-sm);
+      gap: 0.75rem;
     }
 
     .symptom-btn {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 4px;
-      padding: var(--spacing-md);
-      background: var(--bg-card);
-      border: 2px solid transparent;
-      border-radius: var(--radius-md);
+      gap: 0.5rem;
+      padding: 1rem 0.5rem;
+      background: hsl(var(--card));
+      border: 2px solid hsl(var(--border));
+      border-radius: var(--radius-lg);
       cursor: pointer;
       transition: all 0.2s ease;
-      box-shadow: var(--shadow-sm);
     }
 
     .symptom-btn:active {
@@ -91,63 +65,88 @@
     }
 
     .symptom-btn.selected {
-      background: var(--accent-light);
-      border-color: var(--accent-primary);
+      background: hsl(var(--primary) / 0.1);
+      border-color: hsl(var(--primary));
     }
 
-    .symptom-btn .icon {
-      font-size: 28px;
+    .symptom-btn .icon-wrapper {
+      width: 48px;
+      height: 48px;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: hsl(var(--muted));
+    }
+
+    .symptom-btn .icon-wrapper svg {
+      width: 24px;
+      height: 24px;
+      color: hsl(var(--muted-foreground));
+    }
+
+    .symptom-btn.selected .icon-wrapper {
+      background: hsl(var(--primary) / 0.2);
+    }
+
+    .symptom-btn.selected .icon-wrapper svg {
+      color: hsl(var(--primary));
     }
 
     .symptom-btn .label {
-      font-size: 12px;
+      font-size: 0.8125rem;
       font-weight: 500;
-      color: var(--text-secondary);
+      color: hsl(var(--muted-foreground));
       text-align: center;
     }
 
     .symptom-btn.selected .label {
-      color: var(--accent-secondary);
+      color: hsl(var(--primary));
+      font-weight: 600;
     }
 
     /* Custom Symptom */
     .custom-symptom {
       display: flex;
-      gap: var(--spacing-sm);
-      margin-top: var(--spacing-md);
+      gap: 0.5rem;
+      margin-top: 1rem;
     }
 
     .custom-symptom input {
       flex: 1;
-      padding: 12px 16px;
-      border: 2px solid var(--bg-secondary);
+      padding: 0.75rem 1rem;
+      border: 2px solid hsl(var(--border));
       border-radius: var(--radius-md);
-      font-size: 15px;
+      font-size: 0.9375rem;
+      font-family: 'Kanit', sans-serif;
+      background: hsl(var(--card));
+      color: hsl(var(--foreground));
     }
 
     .custom-symptom input:focus {
       outline: none;
-      border-color: var(--accent-primary);
+      border-color: hsl(var(--primary));
     }
 
     .custom-symptom button {
-      padding: 12px 20px;
-      background: var(--accent-primary);
+      padding: 0.75rem 1.25rem;
+      background: hsl(var(--primary));
       color: white;
       border: none;
       border-radius: var(--radius-md);
       font-weight: 500;
+      font-family: 'Kanit', sans-serif;
       cursor: pointer;
     }
 
     /* Severity Section */
     .severity-section {
-      margin-bottom: var(--spacing-lg);
+      margin-bottom: 1.5rem;
     }
 
     .severity-selector {
       display: flex;
-      gap: var(--spacing-xs);
+      gap: 0.5rem;
     }
 
     .severity-btn {
@@ -155,14 +154,13 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 4px;
-      padding: var(--spacing-sm);
-      background: var(--bg-card);
-      border: 2px solid transparent;
+      gap: 0.25rem;
+      padding: 0.75rem 0.5rem;
+      background: hsl(var(--card));
+      border: 2px solid hsl(var(--border));
       border-radius: var(--radius-md);
       cursor: pointer;
       transition: all 0.2s ease;
-      box-shadow: var(--shadow-sm);
     }
 
     .severity-btn:active {
@@ -170,132 +168,126 @@
     }
 
     .severity-btn.selected {
-      border-color: var(--accent-primary);
+      border-color: hsl(var(--primary));
     }
 
-    .severity-btn.selected.level-1 { background: #D1FAE5; }
-    .severity-btn.selected.level-2 { background: #FEF3C7; }
-    .severity-btn.selected.level-3 { background: #FFEDD5; }
-    .severity-btn.selected.level-4 { background: #FEE2E2; }
-    .severity-btn.selected.level-5 { background: #FECACA; }
+    .severity-btn.selected.level-1 { background: hsl(142 76% 90%); }
+    .severity-btn.selected.level-2 { background: hsl(48 96% 89%); }
+    .severity-btn.selected.level-3 { background: hsl(33 100% 90%); }
+    .severity-btn.selected.level-4 { background: hsl(0 93% 90%); }
+    .severity-btn.selected.level-5 { background: hsl(0 84% 85%); }
 
-    .severity-btn .emoji {
-      font-size: 28px;
+    .dark .severity-btn.selected.level-1 { background: hsl(142 50% 20%); }
+    .dark .severity-btn.selected.level-2 { background: hsl(48 50% 20%); }
+    .dark .severity-btn.selected.level-3 { background: hsl(33 50% 20%); }
+    .dark .severity-btn.selected.level-4 { background: hsl(0 50% 20%); }
+    .dark .severity-btn.selected.level-5 { background: hsl(0 50% 15%); }
+
+    .severity-btn .severity-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
     }
 
     .severity-btn .label {
-      font-size: 11px;
-      color: var(--text-secondary);
+      font-size: 0.6875rem;
+      color: hsl(var(--muted-foreground));
       text-align: center;
     }
 
     /* Location Section */
     .location-section {
-      margin-bottom: var(--spacing-lg);
+      margin-bottom: 1.5rem;
     }
 
-    .location-selector {
+    .chip-selector {
       display: flex;
       flex-wrap: wrap;
-      gap: var(--spacing-xs);
+      gap: 0.5rem;
     }
 
-    .location-chip {
-      padding: 8px 16px;
-      background: var(--bg-card);
-      border: 2px solid transparent;
+    .chip {
+      padding: 0.5rem 1rem;
+      background: hsl(var(--card));
+      border: 2px solid hsl(var(--border));
       border-radius: var(--radius-xl);
-      font-size: 14px;
+      font-size: 0.875rem;
       cursor: pointer;
       transition: all 0.2s ease;
-      box-shadow: var(--shadow-sm);
+      color: hsl(var(--muted-foreground));
     }
 
-    .location-chip:active {
+    .chip:active {
       transform: scale(0.97);
     }
 
-    .location-chip.selected {
-      background: var(--accent-light);
-      border-color: var(--accent-primary);
-      color: var(--accent-secondary);
-    }
-
-    /* Duration Section */
-    .duration-section {
-      margin-bottom: var(--spacing-lg);
-    }
-
-    .duration-selector {
-      display: flex;
-      flex-wrap: wrap;
-      gap: var(--spacing-xs);
-    }
-
-    .duration-chip {
-      padding: 8px 16px;
-      background: var(--bg-card);
-      border: 2px solid transparent;
-      border-radius: var(--radius-xl);
-      font-size: 14px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      box-shadow: var(--shadow-sm);
-    }
-
-    .duration-chip.selected {
-      background: var(--accent-light);
-      border-color: var(--accent-primary);
-      color: var(--accent-secondary);
+    .chip.selected {
+      background: hsl(var(--primary) / 0.1);
+      border-color: hsl(var(--primary));
+      color: hsl(var(--primary));
+      font-weight: 500;
     }
 
     /* Note Section */
     .note-section {
-      margin-bottom: var(--spacing-lg);
+      margin-bottom: 1.5rem;
     }
 
     .note-input {
       width: 100%;
-      padding: 14px 16px;
-      border: 2px solid var(--bg-secondary);
+      padding: 0.875rem 1rem;
+      border: 2px solid hsl(var(--border));
       border-radius: var(--radius-md);
-      font-size: 15px;
+      font-size: 0.9375rem;
+      font-family: 'Kanit', sans-serif;
       transition: all 0.2s ease;
       resize: none;
       min-height: 80px;
+      background: hsl(var(--card));
+      color: hsl(var(--foreground));
     }
 
     .note-input:focus {
       outline: none;
-      border-color: var(--accent-primary);
+      border-color: hsl(var(--primary));
     }
 
-    /* Selected Symptoms List */
+    /* Selected Symptoms Tags */
     .selected-symptoms {
-      margin-bottom: var(--spacing-lg);
+      margin-bottom: 1.5rem;
     }
 
     .selected-list {
       display: flex;
       flex-wrap: wrap;
-      gap: var(--spacing-xs);
+      gap: 0.5rem;
     }
 
     .selected-tag {
       display: flex;
       align-items: center;
-      gap: 4px;
-      padding: 8px 12px;
-      background: var(--accent-light);
+      gap: 0.25rem;
+      padding: 0.5rem 0.75rem;
+      background: hsl(var(--primary) / 0.1);
       border-radius: var(--radius-xl);
-      font-size: 14px;
-      color: var(--accent-secondary);
+      font-size: 0.875rem;
+      color: hsl(var(--primary));
+      font-weight: 500;
     }
 
     .selected-tag .remove {
       cursor: pointer;
-      font-size: 16px;
-      margin-left: 4px;
+      font-size: 1rem;
+      margin-left: 0.25rem;
+      opacity: 0.7;
+    }
+
+    .selected-tag .remove:hover {
+      opacity: 1;
     }
 
     /* Submit Section */
@@ -304,64 +296,10 @@
       bottom: 0;
       left: 0;
       right: 0;
-      padding: var(--spacing-md);
-      background: var(--bg-primary);
-      box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+      padding: 1rem;
+      background: hsl(var(--background));
+      border-top: 1px solid hsl(var(--border));
       z-index: 100;
-    }
-
-    .submit-btn {
-      width: 100%;
-      padding: 16px;
-      background: var(--accent-primary);
-      color: white;
-      border: none;
-      border-radius: var(--radius-md);
-      font-size: 16px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      box-shadow: var(--shadow-md);
-    }
-
-    .submit-btn:disabled {
-      background: var(--text-muted);
-      cursor: not-allowed;
-    }
-
-    .submit-btn:not(:disabled):active {
-      transform: scale(0.98);
-    }
-
-    /* Toast */
-    .toast {
-      position: fixed;
-      bottom: 100px;
-      left: 50%;
-      transform: translateX(-50%) translateY(100px);
-      padding: 14px 24px;
-      border-radius: var(--radius-md);
-      color: white;
-      font-weight: 500;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-      z-index: 10000;
-      opacity: 0;
-      transition: all 0.3s ease;
-      max-width: 90%;
-      text-align: center;
-    }
-
-    .toast.show {
-      opacity: 1;
-      transform: translateX(-50%) translateY(0);
-    }
-
-    .toast.success {
-      background: linear-gradient(135deg, #51cf66 0%, #37b24d 100%);
-    }
-
-    .toast.error {
-      background: linear-gradient(135deg, #ff6b6b 0%, #fa5252 100%);
     }
 
     /* Add padding at bottom for fixed submit button */
@@ -374,12 +312,13 @@
         grid-template-columns: repeat(2, 1fr);
       }
 
-      .symptom-btn .icon {
-        font-size: 24px;
+      .severity-selector {
+        flex-wrap: wrap;
       }
 
-      .severity-btn .emoji {
-        font-size: 24px;
+      .severity-btn {
+        min-width: calc(50% - 0.25rem);
+        flex: none;
       }
     }
   </style>
@@ -387,32 +326,29 @@
 <body>
   <div class="container">
     <!-- Loading State -->
-    <div id="loadingState" class="loading">
+    <div id="loadingState" class="loading-container">
       <div class="loading-spinner"></div>
-      <p>กำลังโหลด...</p>
+      <p class="loading-text">กำลังโหลด...</p>
     </div>
 
     <!-- Main Content -->
     <div id="mainContent" class="hidden">
-      <!-- Page Header -->
-      <div class="page-header">
-        <button class="back-btn" onclick="goBack()">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M19 12H5M12 19l-7-7 7-7"/>
-          </svg>
-        </button>
-        <h1 class="page-title">🤒 บันทึกอาการ</h1>
-      </div>
+      <!-- Header -->
+      <header class="header">
+        <button class="btn-icon" onclick="goBack()" aria-label="กลับ" id="backBtn"></button>
+        <h1 class="header-title" id="headerTitle"></h1>
+        <button class="btn-icon" onclick="darkMode.toggle()" aria-label="สลับธีม" id="themeBtn"></button>
+      </header>
 
       <!-- Selected Symptoms -->
       <div id="selectedSymptomsSection" class="selected-symptoms hidden">
-        <div class="section-label">อาการที่เลือก</div>
+        <div class="section-label" id="selectedLabel"></div>
         <div id="selectedList" class="selected-list"></div>
       </div>
 
       <!-- Symptom Grid -->
       <div class="symptom-section">
-        <div class="section-label">เลือกอาการ</div>
+        <div class="section-label" id="symptomLabel"></div>
         <div class="symptom-grid" id="symptomGrid">
           <!-- Symptoms will be rendered here -->
         </div>
@@ -424,69 +360,60 @@
 
       <!-- Severity Section -->
       <div class="severity-section">
-        <div class="section-label">ความรุนแรง</div>
-        <div class="severity-selector">
-          <div class="severity-btn level-1" data-level="1" onclick="selectSeverity(1)">
-            <span class="emoji">😊</span>
-            <span class="label">น้อย</span>
-          </div>
-          <div class="severity-btn level-2" data-level="2" onclick="selectSeverity(2)">
-            <span class="emoji">😐</span>
-            <span class="label">เล็กน้อย</span>
-          </div>
-          <div class="severity-btn level-3" data-level="3" onclick="selectSeverity(3)">
-            <span class="emoji">😣</span>
-            <span class="label">ปานกลาง</span>
-          </div>
-          <div class="severity-btn level-4" data-level="4" onclick="selectSeverity(4)">
-            <span class="emoji">😫</span>
-            <span class="label">มาก</span>
-          </div>
-          <div class="severity-btn level-5" data-level="5" onclick="selectSeverity(5)">
-            <span class="emoji">😵</span>
-            <span class="label">รุนแรง</span>
-          </div>
+        <div class="section-label" id="severityLabel"></div>
+        <div class="severity-selector" id="severitySelector">
+          <!-- Severity buttons rendered by JS -->
         </div>
       </div>
 
       <!-- Location Section -->
       <div class="location-section">
-        <div class="section-label">ตำแหน่ง (ไม่บังคับ)</div>
-        <div class="location-selector" id="locationSelector">
+        <div class="section-label" id="locationLabel"></div>
+        <div class="chip-selector" id="locationSelector">
           <!-- Locations will be rendered here -->
         </div>
       </div>
 
       <!-- Duration Section -->
-      <div class="duration-section">
-        <div class="section-label">เริ่มเป็นตั้งแต่</div>
-        <div class="duration-selector" id="durationSelector">
+      <div class="location-section">
+        <div class="section-label" id="durationLabel"></div>
+        <div class="chip-selector" id="durationSelector">
           <!-- Durations will be rendered here -->
         </div>
       </div>
 
       <!-- Note Section -->
       <div class="note-section">
-        <div class="section-label">รายละเอียดเพิ่มเติม (ไม่บังคับ)</div>
+        <div class="section-label" id="noteLabel"></div>
         <textarea id="noteInput" class="note-input" placeholder="อธิบายอาการเพิ่มเติม..."></textarea>
       </div>
     </div>
 
     <!-- Submit Section -->
     <div id="submitSection" class="submit-section hidden">
-      <button class="submit-btn" id="submitBtn" onclick="submitSymptoms()" disabled>บันทึกอาการ</button>
+      <button class="btn btn-primary btn-block" id="submitBtn" onclick="submitSymptoms()" disabled>
+        <span id="submitIcon"></span> บันทึกอาการ
+      </button>
     </div>
   </div>
 
   <!-- Toast Notification -->
   <div id="toast" class="toast"></div>
 
-  <script>
-    // API Base URL - inline for LIFF compatibility
-    const API_BASE_URL = window.location.hostname === 'localhost'
-      ? 'http://localhost:3000/api'
-      : 'https://duulair.vercel.app/api';
+  <!-- LIFF SDK -->
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Lucide Icons -->
+  <script src="js/lucide-icons.js"></script>
+
+  <!-- API Client -->
+  <script src="js/api.js"></script>
+
+  <script>
+    // Configuration
     const LIFF_ID = '2008278683-5k69jxNq';
     const SUPABASE_URL = 'https://mqxklnzxfrupwwkwlwwc.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1xeGtsbnp4ZnJ1cHd3a3dsd3djIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNjcxMjYsImV4cCI6MjA3MjY0MzEyNn0.vPBkIGHdvrfotD3QMnFGrNRMTP3fFzn715XGwqKG-6Y';
@@ -498,17 +425,17 @@
 
     let patientId = null;
 
-    // Preset symptoms
+    // Preset symptoms with Lucide icons
     const presetSymptoms = [
-      { id: 'headache', icon: '🤕', label: 'ปวดหัว' },
-      { id: 'nausea', icon: '🤢', label: 'คลื่นไส้' },
-      { id: 'dizzy', icon: '😰', label: 'เวียนหัว' },
-      { id: 'fever', icon: '🌡️', label: 'มีไข้' },
-      { id: 'breathing', icon: '😮‍💨', label: 'หายใจลำบาก' },
-      { id: 'chest', icon: '💔', label: 'แน่นหน้าอก' },
-      { id: 'fatigue', icon: '😴', label: 'เหนื่อย/อ่อนเพลีย' },
-      { id: 'pain', icon: '😣', label: 'ปวดตามตัว' },
-      { id: 'cough', icon: '🤧', label: 'ไอ/จาม' }
+      { id: 'headache', icon: 'brain', label: 'ปวดหัว' },
+      { id: 'nausea', icon: 'frown', label: 'คลื่นไส้' },
+      { id: 'dizzy', icon: 'alertCircle', label: 'เวียนหัว' },
+      { id: 'fever', icon: 'thermometer', label: 'มีไข้' },
+      { id: 'breathing', icon: 'wind', label: 'หายใจลำบาก' },
+      { id: 'chest', icon: 'heart', label: 'แน่นหน้าอก' },
+      { id: 'fatigue', icon: 'battery', label: 'เหนื่อย/อ่อนเพลีย' },
+      { id: 'pain', icon: 'activity', label: 'ปวดตามตัว' },
+      { id: 'cough', icon: 'volume2', label: 'ไอ/จาม' }
     ];
 
     // Body locations
@@ -524,16 +451,41 @@
       { id: 'ongoing', label: 'เป็นมานาน' }
     ];
 
+    // Severity levels
+    const severityLevels = [
+      { level: 1, emoji: '😊', label: 'น้อย' },
+      { level: 2, emoji: '😐', label: 'เล็กน้อย' },
+      { level: 3, emoji: '😣', label: 'ปานกลาง' },
+      { level: 4, emoji: '😫', label: 'มาก' },
+      { level: 5, emoji: '😵', label: 'รุนแรง' }
+    ];
+
     // Selected state
     let selectedSymptoms = new Set();
     let selectedSeverity = null;
     let selectedLocation = null;
     let selectedDuration = null;
 
-    // Phase 2.1: Show UI immediately (this page is a form, no cached data needed)
-    (function showUIImmediately() {
+    // Initialize icons and UI immediately
+    (function initUI() {
+      // Initialize dark mode
+      darkMode.init();
+
+      // Set icons
+      document.getElementById('backBtn').innerHTML = icon('arrowLeft');
+      document.getElementById('headerTitle').innerHTML = icon('stethoscope', 'inline-icon') + ' บันทึกอาการ';
+      document.getElementById('themeBtn').innerHTML = icon('sun');
+      document.getElementById('selectedLabel').innerHTML = icon('checkCircle') + ' อาการที่เลือก';
+      document.getElementById('symptomLabel').innerHTML = icon('list') + ' เลือกอาการ';
+      document.getElementById('severityLabel').innerHTML = icon('gauge') + ' ความรุนแรง';
+      document.getElementById('locationLabel').innerHTML = icon('mapPin') + ' ตำแหน่ง (ไม่บังคับ)';
+      document.getElementById('durationLabel').innerHTML = icon('clock') + ' เริ่มเป็นตั้งแต่';
+      document.getElementById('noteLabel').innerHTML = icon('fileText') + ' รายละเอียดเพิ่มเติม (ไม่บังคับ)';
+      document.getElementById('submitIcon').innerHTML = icon('save');
+
       // Render static options immediately
       renderSymptoms();
+      renderSeverity();
       renderLocations();
       renderDurations();
 
@@ -543,7 +495,23 @@
       document.getElementById('submitSection').classList.remove('hidden');
     })();
 
-    // Phase 1.1: Cache LIFF profile in sessionStorage
+    // Update theme icon based on current mode
+    function updateThemeIcon() {
+      const isDark = document.documentElement.classList.contains('dark');
+      document.getElementById('themeBtn').innerHTML = isDark ? icon('moon') : icon('sun');
+    }
+
+    // Override dark mode toggle to update icon
+    const originalToggle = darkMode.toggle;
+    darkMode.toggle = function() {
+      originalToggle.call(darkMode);
+      updateThemeIcon();
+    };
+
+    // Initial theme icon update
+    setTimeout(updateThemeIcon, 100);
+
+    // Cache LIFF profile in sessionStorage
     async function getCachedProfile() {
       const cached = sessionStorage.getItem('liff_profile');
       const cacheTime = sessionStorage.getItem('liff_profile_time');
@@ -559,9 +527,8 @@
       return profile;
     }
 
-    // Phase 1.2: Check user registration with cache
+    // Check user registration with cache
     async function checkUserRegistration(lineUserId) {
-      // Skip if already verified this session
       if (sessionStorage.getItem('user_registered') === 'true') {
         return true;
       }
@@ -577,7 +544,6 @@
           return false;
         }
 
-        // Cache registration status
         sessionStorage.setItem('user_registered', 'true');
         return true;
       } catch (error) {
@@ -595,10 +561,7 @@
           return;
         }
 
-        // Phase 1.1 & 1.2: Get cached profile and check registration in background
         const profile = await getCachedProfile();
-
-        // Check registration in background (don't block UI)
         checkUserRegistration(profile.userId).catch(err => console.error('Registration check error:', err));
 
         // Get context
@@ -615,7 +578,17 @@
       const grid = document.getElementById('symptomGrid');
       grid.innerHTML = presetSymptoms.map(s => `
         <div class="symptom-btn ${selectedSymptoms.has(s.id) ? 'selected' : ''}" data-id="${s.id}" onclick="toggleSymptom('${s.id}')">
-          <span class="icon">${s.icon}</span>
+          <div class="icon-wrapper">${icon(s.icon)}</div>
+          <span class="label">${s.label}</span>
+        </div>
+      `).join('');
+    }
+
+    function renderSeverity() {
+      const container = document.getElementById('severitySelector');
+      container.innerHTML = severityLevels.map(s => `
+        <div class="severity-btn level-${s.level} ${selectedSeverity === s.level ? 'selected' : ''}" data-level="${s.level}" onclick="selectSeverity(${s.level})">
+          <span class="severity-icon">${s.emoji}</span>
           <span class="label">${s.label}</span>
         </div>
       `).join('');
@@ -624,14 +597,14 @@
     function renderLocations() {
       const container = document.getElementById('locationSelector');
       container.innerHTML = locations.map(loc => `
-        <div class="location-chip ${selectedLocation === loc ? 'selected' : ''}" onclick="selectLocation('${loc}')">${loc}</div>
+        <div class="chip ${selectedLocation === loc ? 'selected' : ''}" onclick="selectLocation('${loc}')">${loc}</div>
       `).join('');
     }
 
     function renderDurations() {
       const container = document.getElementById('durationSelector');
       container.innerHTML = durations.map(d => `
-        <div class="duration-chip ${selectedDuration === d.id ? 'selected' : ''}" onclick="selectDuration('${d.id}')">${d.label}</div>
+        <div class="chip ${selectedDuration === d.id ? 'selected' : ''}" onclick="selectDuration('${d.id}')">${d.label}</div>
       `).join('');
     }
 
@@ -653,7 +626,7 @@
 
       // Add as custom symptom
       const customId = 'custom_' + Date.now();
-      presetSymptoms.push({ id: customId, icon: '✏️', label: value });
+      presetSymptoms.push({ id: customId, icon: 'edit3', label: value });
       selectedSymptoms.add(customId);
 
       input.value = '';
@@ -684,7 +657,7 @@
         const symptom = presetSymptoms.find(s => s.id === id);
         return `
           <div class="selected-tag">
-            ${symptom ? symptom.icon : '✏️'} ${symptom ? symptom.label : id}
+            ${symptom ? symptom.label : id}
             <span class="remove" onclick="removeSymptom('${id}')">×</span>
           </div>
         `;
@@ -693,9 +666,7 @@
 
     function selectSeverity(level) {
       selectedSeverity = level;
-      document.querySelectorAll('.severity-btn').forEach(btn => {
-        btn.classList.toggle('selected', parseInt(btn.dataset.level) === level);
-      });
+      renderSeverity();
       updateSubmitButton();
     }
 
@@ -719,7 +690,7 @@
 
       const btn = document.getElementById('submitBtn');
       btn.disabled = true;
-      btn.textContent = 'กำลังบันทึก...';
+      btn.innerHTML = icon('loader2') + ' กำลังบันทึก...';
 
       try {
         const note = document.getElementById('noteInput').value.trim();
@@ -770,7 +741,7 @@
         console.error('Error submitting symptoms:', error);
         showToast('เกิดข้อผิดพลาดในการบันทึก', 'error');
         btn.disabled = false;
-        btn.textContent = 'บันทึกอาการ';
+        btn.innerHTML = icon('save') + ' บันทึกอาการ';
       }
     }
 

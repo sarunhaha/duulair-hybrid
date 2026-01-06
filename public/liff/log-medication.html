@@ -2,88 +2,89 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#FAF9F6">
-  <title>💊 บันทึกกินยา - OONJAI</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#1E7B9C">
+  <title>บันทึกกินยา - OONJAI</title>
 
-  <!-- Preconnect to speed up external resources -->
+  <!-- Preconnect -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://static.line-scdn.net">
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
   <link rel="preconnect" href="https://mqxklnzxfrupwwkwlwwc.supabase.co">
-  <link rel="dns-prefetch" href="https://static.line-scdn.net">
-  <link rel="preload" href="https://static.line-scdn.net/liff/edge/2/sdk.js" as="script">
 
+  <!-- Kanit Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Theme CSS -->
+  <link rel="stylesheet" href="css/oonjai-theme.css">
+
+  <!-- External Scripts -->
   <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <link rel="stylesheet" href="css/minimal-theme.css">
-  <style>
-    /* Page Header */
-    .page-header {
-      display: flex;
-      align-items: center;
-      gap: var(--spacing-md);
-      margin-bottom: var(--spacing-lg);
-      padding-bottom: var(--spacing-md);
-      border-bottom: 1px solid rgba(0,0,0,0.08);
-    }
 
-    .back-btn {
-      width: 40px;
-      height: 40px;
-      border-radius: var(--radius-full);
-      border: none;
-      background: var(--bg-secondary);
+  <style>
+    /* Current Time Card */
+    .time-card {
+      background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary-dark)) 100%);
+      border-radius: var(--radius-xl);
+      padding: 1rem 1.25rem;
+      margin-bottom: 1.5rem;
+      color: white;
       display: flex;
       align-items: center;
       justify-content: center;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      color: var(--text-primary);
+      gap: 0.75rem;
     }
 
-    .back-btn:active {
-      transform: scale(0.95);
-      background: rgba(0,0,0,0.1);
+    .time-card svg {
+      width: 24px;
+      height: 24px;
+      opacity: 0.9;
     }
 
-    .page-title {
-      font-size: 22px;
+    .time-card .time {
+      font-size: 1.5rem;
       font-weight: 600;
-      color: var(--text-primary);
-      margin: 0;
+      font-family: var(--font-mono);
+    }
+
+    /* Section Title */
+    .section-title {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: hsl(var(--muted-foreground));
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .section-title svg {
+      width: 16px;
+      height: 16px;
+      color: hsl(var(--primary));
     }
 
     /* Time Period Selector */
     .time-period-section {
-      margin-bottom: var(--spacing-lg);
-    }
-
-    .section-label {
-      font-size: 14px;
-      font-weight: 500;
-      color: var(--text-secondary);
-      margin-bottom: var(--spacing-sm);
+      margin-bottom: 1.5rem;
     }
 
     .time-selector {
-      display: flex;
-      gap: var(--spacing-xs);
-      overflow-x: auto;
-      padding-bottom: var(--spacing-xs);
-      -webkit-overflow-scrolling: touch;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.5rem;
     }
 
     .time-option {
-      flex: 1;
-      min-width: 70px;
-      padding: var(--spacing-sm) var(--spacing-md);
-      background: var(--bg-card);
-      border: 2px solid transparent;
-      border-radius: var(--radius-md);
+      background: hsl(var(--card));
+      border: 2px solid hsl(var(--border));
+      border-radius: var(--radius-lg);
+      padding: 0.75rem 0.5rem;
       text-align: center;
       cursor: pointer;
       transition: all 0.2s ease;
-      box-shadow: var(--shadow-sm);
     }
 
     .time-option:active {
@@ -91,71 +92,58 @@
     }
 
     .time-option.selected {
-      background: var(--accent-light);
-      border-color: var(--accent-primary);
+      background: hsl(var(--primary) / 0.1);
+      border-color: hsl(var(--primary));
     }
 
     .time-option .icon {
-      font-size: 20px;
-      display: block;
-      margin-bottom: 4px;
+      display: flex;
+      justify-content: center;
+      margin-bottom: 0.375rem;
+    }
+
+    .time-option .icon svg {
+      width: 24px;
+      height: 24px;
+      color: hsl(var(--muted-foreground));
+    }
+
+    .time-option.selected .icon svg {
+      color: hsl(var(--primary));
     }
 
     .time-option .label {
-      font-size: 12px;
+      font-size: 0.75rem;
       font-weight: 500;
-      color: var(--text-secondary);
+      color: hsl(var(--muted-foreground));
     }
 
     .time-option.selected .label {
-      color: var(--accent-secondary);
-    }
-
-    /* Current Time Display */
-    .current-time {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: var(--spacing-sm);
-      padding: var(--spacing-md);
-      background: var(--bg-card);
-      border-radius: var(--radius-md);
-      margin-bottom: var(--spacing-lg);
-      box-shadow: var(--shadow-sm);
-    }
-
-    .current-time .icon {
-      font-size: 20px;
-    }
-
-    .current-time .time {
-      font-size: 18px;
+      color: hsl(var(--primary));
       font-weight: 600;
-      color: var(--text-primary);
     }
 
     /* Medication List */
     .medication-list-section {
-      margin-bottom: var(--spacing-lg);
+      margin-bottom: 1.5rem;
     }
 
     .medication-list {
       display: flex;
       flex-direction: column;
-      gap: var(--spacing-sm);
+      gap: 0.75rem;
     }
 
     .medication-item {
       display: flex;
       align-items: center;
-      gap: var(--spacing-md);
-      padding: var(--spacing-md);
-      background: var(--bg-card);
-      border: 2px solid transparent;
-      border-radius: var(--radius-md);
+      gap: 1rem;
+      padding: 1rem;
+      background: hsl(var(--card));
+      border: 2px solid hsl(var(--border));
+      border-radius: var(--radius-xl);
       cursor: pointer;
       transition: all 0.2s ease;
-      box-shadow: var(--shadow-sm);
     }
 
     .medication-item:active {
@@ -163,38 +151,49 @@
     }
 
     .medication-item.selected {
-      border-color: var(--accent-primary);
-      background: var(--accent-light);
+      border-color: hsl(var(--primary));
+      background: hsl(var(--primary) / 0.05);
     }
 
     .medication-item.taken {
       opacity: 0.6;
-      background: var(--bg-secondary);
+      background: hsl(var(--muted));
+      cursor: default;
     }
 
     .medication-checkbox {
       width: 28px;
       height: 28px;
-      border: 2px solid var(--text-muted);
-      border-radius: var(--radius-sm);
+      border: 2px solid hsl(var(--muted-foreground) / 0.5);
+      border-radius: var(--radius);
       display: flex;
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
       transition: all 0.2s ease;
-      font-size: 16px;
+    }
+
+    .medication-checkbox svg {
+      width: 16px;
+      height: 16px;
       color: transparent;
     }
 
     .medication-item.selected .medication-checkbox {
-      background: var(--accent-primary);
-      border-color: var(--accent-primary);
+      background: hsl(var(--primary));
+      border-color: hsl(var(--primary));
+    }
+
+    .medication-item.selected .medication-checkbox svg {
       color: white;
     }
 
     .medication-item.taken .medication-checkbox {
-      background: var(--text-muted);
-      border-color: var(--text-muted);
+      background: hsl(var(--muted-foreground));
+      border-color: hsl(var(--muted-foreground));
+    }
+
+    .medication-item.taken .medication-checkbox svg {
       color: white;
     }
 
@@ -204,108 +203,136 @@
     }
 
     .medication-name {
-      font-size: 16px;
+      font-size: 1rem;
       font-weight: 600;
-      color: var(--text-primary);
-      margin-bottom: 4px;
+      color: hsl(var(--foreground));
+      margin-bottom: 0.25rem;
     }
 
     .medication-dosage {
-      font-size: 14px;
-      color: var(--text-secondary);
+      font-size: 0.8125rem;
+      color: hsl(var(--muted-foreground));
     }
 
     .medication-time-badge {
-      font-size: 12px;
-      color: var(--accent-secondary);
-      background: var(--accent-light);
-      padding: 4px 8px;
-      border-radius: var(--radius-sm);
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: hsl(var(--primary));
+      background: hsl(var(--primary) / 0.1);
+      padding: 0.375rem 0.625rem;
+      border-radius: var(--radius);
+      white-space: nowrap;
     }
 
     .medication-item.taken .medication-time-badge {
-      background: var(--bg-secondary);
-      color: var(--text-muted);
+      background: hsl(var(--muted));
+      color: hsl(var(--muted-foreground));
     }
 
     /* Empty State */
     .empty-state {
       text-align: center;
-      padding: var(--spacing-xl);
-      color: var(--text-secondary);
+      padding: 2.5rem 1rem;
+      background: hsl(var(--card));
+      border: 1px solid hsl(var(--border));
+      border-radius: var(--radius-xl);
     }
 
-    .empty-state .icon {
-      font-size: 48px;
-      margin-bottom: var(--spacing-md);
+    .empty-state svg {
+      width: 48px;
+      height: 48px;
+      color: hsl(var(--muted-foreground));
       opacity: 0.5;
+      margin-bottom: 1rem;
     }
 
     .empty-state p {
-      margin-bottom: var(--spacing-md);
+      color: hsl(var(--muted-foreground));
+      margin-bottom: 1rem;
     }
 
     /* Note Section */
     .note-section {
-      margin-bottom: var(--spacing-lg);
+      margin-bottom: 1.5rem;
     }
 
     .note-input {
       width: 100%;
-      padding: 14px 16px;
-      border: 2px solid var(--bg-secondary);
-      border-radius: var(--radius-md);
-      font-size: 15px;
+      padding: 0.875rem 1rem;
+      border: 2px solid hsl(var(--border));
+      border-radius: var(--radius-lg);
+      font-size: 0.9375rem;
+      font-family: var(--font-sans);
+      background: hsl(var(--card));
+      color: hsl(var(--foreground));
       transition: all 0.2s ease;
       resize: none;
       min-height: 80px;
     }
 
-    .note-input:focus {
-      outline: none;
-      border-color: var(--accent-primary);
+    .note-input::placeholder {
+      color: hsl(var(--muted-foreground));
     }
 
-    /* Submit Button */
+    .note-input:focus {
+      outline: none;
+      border-color: hsl(var(--primary));
+      box-shadow: 0 0 0 3px hsl(var(--primary) / 0.1);
+    }
+
+    /* Submit Section */
     .submit-section {
       position: fixed;
       bottom: 0;
       left: 0;
       right: 0;
-      padding: var(--spacing-md);
-      background: var(--bg-primary);
-      box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+      padding: 1rem;
+      background: hsl(var(--background));
+      border-top: 1px solid hsl(var(--border));
       z-index: 100;
+    }
+
+    .selected-count {
+      text-align: center;
+      font-size: 0.8125rem;
+      color: hsl(var(--muted-foreground));
+      margin-bottom: 0.5rem;
     }
 
     .submit-btn {
       width: 100%;
-      padding: 16px;
-      background: var(--accent-primary);
+      padding: 0.875rem;
+      background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary-dark)) 100%);
       color: white;
       border: none;
-      border-radius: var(--radius-md);
-      font-size: 16px;
+      border-radius: var(--radius-lg);
+      font-size: 1rem;
       font-weight: 600;
       cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
       transition: all 0.2s ease;
-      box-shadow: var(--shadow-md);
     }
 
     .submit-btn:disabled {
-      background: var(--text-muted);
+      background: hsl(var(--muted-foreground));
       cursor: not-allowed;
+    }
+
+    .submit-btn:not(:disabled):hover {
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-md);
     }
 
     .submit-btn:not(:disabled):active {
       transform: scale(0.98);
     }
 
-    .selected-count {
-      text-align: center;
-      font-size: 14px;
-      color: var(--text-secondary);
-      margin-bottom: var(--spacing-xs);
+    .submit-btn svg {
+      width: 20px;
+      height: 20px;
     }
 
     /* Toast */
@@ -314,16 +341,24 @@
       bottom: 100px;
       left: 50%;
       transform: translateX(-50%) translateY(100px);
-      padding: 14px 24px;
-      border-radius: var(--radius-md);
+      padding: 0.875rem 1.5rem;
+      border-radius: var(--radius-lg);
       color: white;
       font-weight: 500;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      box-shadow: var(--shadow-lg);
       z-index: 10000;
       opacity: 0;
       transition: all 0.3s ease;
       max-width: 90%;
       text-align: center;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .toast svg {
+      width: 20px;
+      height: 20px;
     }
 
     .toast.show {
@@ -332,30 +367,30 @@
     }
 
     .toast.success {
-      background: linear-gradient(135deg, #51cf66 0%, #37b24d 100%);
+      background: linear-gradient(135deg, hsl(142 70% 45%) 0%, hsl(142 70% 35%) 100%);
     }
 
     .toast.error {
-      background: linear-gradient(135deg, #ff6b6b 0%, #fa5252 100%);
+      background: linear-gradient(135deg, hsl(0 70% 50%) 0%, hsl(0 70% 40%) 100%);
     }
 
-    /* Add padding at bottom for fixed submit button */
+    /* Container padding for fixed submit */
     .container {
       padding-bottom: 120px;
     }
 
     @media (max-width: 380px) {
       .time-option {
-        min-width: 60px;
-        padding: var(--spacing-xs) var(--spacing-sm);
+        padding: 0.5rem 0.25rem;
       }
 
-      .time-option .icon {
-        font-size: 18px;
+      .time-option .icon svg {
+        width: 20px;
+        height: 20px;
       }
 
       .time-option .label {
-        font-size: 11px;
+        font-size: 0.6875rem;
       }
     }
   </style>
@@ -363,47 +398,44 @@
 <body>
   <div class="container">
     <!-- Loading State -->
-    <div id="loadingState" class="loading">
+    <div id="loadingState" class="loading-container">
       <div class="loading-spinner"></div>
-      <p>กำลังโหลด...</p>
+      <p class="loading-text">กำลังโหลด...</p>
     </div>
 
     <!-- Main Content -->
     <div id="mainContent" class="hidden">
-      <!-- Page Header -->
-      <div class="page-header">
-        <button class="back-btn" onclick="goBack()">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M19 12H5M12 19l-7-7 7-7"/>
-          </svg>
-        </button>
-        <h1 class="page-title">💊 บันทึกกินยา</h1>
-      </div>
+      <!-- Header -->
+      <header class="header">
+        <button class="btn-icon" onclick="goBack()" aria-label="กลับ" id="backBtn"></button>
+        <h1 class="header-title" id="headerTitle"></h1>
+        <button class="btn-icon" onclick="darkMode.toggle()" aria-label="สลับธีม" id="themeBtn"></button>
+      </header>
 
-      <!-- Current Time Display -->
-      <div class="current-time">
-        <span class="icon">🕐</span>
+      <!-- Current Time Card -->
+      <div class="time-card">
+        <span id="clockIcon"></span>
         <span class="time" id="currentTime"></span>
       </div>
 
       <!-- Time Period Selector -->
       <div class="time-period-section">
-        <div class="section-label">ช่วงเวลา</div>
+        <div class="section-title" id="periodTitle"></div>
         <div class="time-selector">
           <div class="time-option" data-period="morning" onclick="selectPeriod('morning')">
-            <span class="icon">🌅</span>
+            <div class="icon" id="morningIcon"></div>
             <span class="label">เช้า</span>
           </div>
           <div class="time-option" data-period="afternoon" onclick="selectPeriod('afternoon')">
-            <span class="icon">☀️</span>
+            <div class="icon" id="afternoonIcon"></div>
             <span class="label">กลางวัน</span>
           </div>
           <div class="time-option" data-period="evening" onclick="selectPeriod('evening')">
-            <span class="icon">🌆</span>
+            <div class="icon" id="eveningIcon"></div>
             <span class="label">เย็น</span>
           </div>
           <div class="time-option" data-period="night" onclick="selectPeriod('night')">
-            <span class="icon">🌙</span>
+            <div class="icon" id="nightIcon"></div>
             <span class="label">ก่อนนอน</span>
           </div>
         </div>
@@ -411,20 +443,20 @@
 
       <!-- Medication List -->
       <div class="medication-list-section">
-        <div class="section-label">เลือกยาที่กินแล้ว</div>
+        <div class="section-title" id="medListTitle"></div>
         <div id="medicationList" class="medication-list">
           <!-- Medications will be rendered here -->
         </div>
         <div id="emptyState" class="empty-state hidden">
-          <div class="icon">💊</div>
+          <span id="emptyIcon"></span>
           <p>ไม่มียาสำหรับช่วงเวลานี้</p>
-          <button class="btn btn-outline" onclick="openMedications()">จัดการรายการยา</button>
+          <button class="btn btn-secondary" onclick="openMedications()">จัดการรายการยา</button>
         </div>
       </div>
 
       <!-- Note Section -->
       <div class="note-section">
-        <div class="section-label">หมายเหตุ (ไม่บังคับ)</div>
+        <div class="section-title" id="noteTitle"></div>
         <textarea id="noteInput" class="note-input" placeholder="เช่น ลืมกินยาตอนเช้า, กินยาช้ากว่าปกติ"></textarea>
       </div>
     </div>
@@ -432,15 +464,21 @@
     <!-- Submit Section -->
     <div id="submitSection" class="submit-section hidden">
       <div class="selected-count" id="selectedCount">เลือกแล้ว 0 รายการ</div>
-      <button class="submit-btn" id="submitBtn" onclick="submitLog()" disabled>บันทึก</button>
+      <button class="submit-btn" id="submitBtn" onclick="submitLog()" disabled>
+        <span id="submitIcon"></span>
+        <span id="submitText">บันทึก</span>
+      </button>
     </div>
   </div>
 
   <!-- Toast Notification -->
   <div id="toast" class="toast"></div>
 
+  <!-- Lucide Icons -->
+  <script src="js/lucide-icons.js"></script>
+
   <script>
-    // API Base URL - inline for LIFF compatibility
+    // API Base URL
     const API_BASE_URL = window.location.hostname === 'localhost'
       ? 'http://localhost:3000/api'
       : 'https://duulair.vercel.app/api';
@@ -460,11 +498,11 @@
     let currentPeriod = 'morning';
     let todayLogs = [];
 
-    const timeLabels = {
-      morning: '🌅 เช้า',
-      afternoon: '☀️ กลางวัน',
-      evening: '🌆 เย็น',
-      night: '🌙 ก่อนนอน'
+    const periodIcons = {
+      morning: 'sunrise',
+      afternoon: 'sun',
+      evening: 'sunset',
+      night: 'moon'
     };
 
     // Determine current time period
@@ -476,24 +514,55 @@
       return 'night';
     }
 
-    // Phase 2.1: Show UI immediately with cached data
-    (function showUIImmediately() {
+    // Initialize UI immediately
+    (function initUI() {
+      // Initialize dark mode
+      darkMode.init();
+
+      // Set icons
+      document.getElementById('backBtn').innerHTML = icon('arrowLeft');
+      document.getElementById('headerTitle').innerHTML = icon('pill', 'inline-icon') + ' บันทึกกินยา';
+      document.getElementById('themeBtn').innerHTML = icon('sun');
+      document.getElementById('clockIcon').innerHTML = icon('clock');
+      document.getElementById('periodTitle').innerHTML = icon('clock') + ' ช่วงเวลา';
+      document.getElementById('morningIcon').innerHTML = icon('sunrise');
+      document.getElementById('afternoonIcon').innerHTML = icon('sun');
+      document.getElementById('eveningIcon').innerHTML = icon('sunset');
+      document.getElementById('nightIcon').innerHTML = icon('moon');
+      document.getElementById('medListTitle').innerHTML = icon('pill') + ' เลือกยาที่กินแล้ว';
+      document.getElementById('emptyIcon').innerHTML = icon('pill');
+      document.getElementById('noteTitle').innerHTML = icon('fileText') + ' หมายเหตุ (ไม่บังคับ)';
+      document.getElementById('submitIcon').innerHTML = icon('check');
+
       // Set current time
       const now = new Date();
       const time = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
       document.getElementById('currentTime').textContent = time;
 
-      // Set current period based on time
+      // Set current period
       currentPeriod = getCurrentPeriod();
       document.querySelectorAll('.time-option').forEach(el => {
         el.classList.toggle('selected', el.dataset.period === currentPeriod);
       });
 
-      // Show UI immediately!
+      // Show UI immediately
       document.getElementById('loadingState').classList.add('hidden');
       document.getElementById('mainContent').classList.remove('hidden');
       document.getElementById('submitSection').classList.remove('hidden');
     })();
+
+    // Update theme icon
+    function updateThemeIcon() {
+      const isDark = document.documentElement.classList.contains('dark');
+      document.getElementById('themeBtn').innerHTML = isDark ? icon('moon') : icon('sun');
+    }
+
+    const originalToggle = darkMode.toggle;
+    darkMode.toggle = function() {
+      originalToggle.call(darkMode);
+      updateThemeIcon();
+    };
+    setTimeout(updateThemeIcon, 100);
 
     // Format dosage display
     function formatDosage(med) {
@@ -505,11 +574,11 @@
       let dosageText = '';
 
       if (form === 'tablet' || form === 'capsule') {
-        if (amount === 0.25) dosageText = '¼ เม็ด';
-        else if (amount === 0.5) dosageText = '½ เม็ด';
-        else if (amount === 0.75) dosageText = '¾ เม็ด';
+        if (amount === 0.25) dosageText = '1/4 เม็ด';
+        else if (amount === 0.5) dosageText = '1/2 เม็ด';
+        else if (amount === 0.75) dosageText = '3/4 เม็ด';
         else if (amount === 1) dosageText = '1 เม็ด';
-        else if (amount === 1.5) dosageText = '1½ เม็ด';
+        else if (amount === 1.5) dosageText = '1.5 เม็ด';
         else dosageText = `${amount} เม็ด`;
       } else if (form === 'liquid' && unit === 'ml') {
         dosageText = `${amount} ml`;
@@ -518,13 +587,13 @@
       }
 
       if (instructions) {
-        dosageText += ` · ${instructions}`;
+        dosageText += ` - ${instructions}`;
       }
 
       return dosageText;
     }
 
-    // Phase 1.1: Cache LIFF profile in sessionStorage
+    // Cache LIFF profile
     async function getCachedProfile() {
       const cached = sessionStorage.getItem('liff_profile');
       const cacheTime = sessionStorage.getItem('liff_profile_time');
@@ -540,9 +609,8 @@
       return profile;
     }
 
-    // Phase 1.2: Check user registration with cache
+    // Check registration
     async function checkUserRegistration(lineUserId) {
-      // Skip if already verified this session
       if (sessionStorage.getItem('user_registered') === 'true') {
         return true;
       }
@@ -558,7 +626,6 @@
           return false;
         }
 
-        // Cache registration status
         sessionStorage.setItem('user_registered', 'true');
         return true;
       } catch (error) {
@@ -576,10 +643,7 @@
           return;
         }
 
-        // Phase 1.1 & 1.2: Get cached profile and check registration in background
         const profile = await getCachedProfile();
-
-        // Check registration in background (don't block UI)
         checkUserRegistration(profile.userId).catch(err => console.error('Registration check error:', err));
 
         // Get context
@@ -589,11 +653,13 @@
         // Start time updater
         setInterval(updateCurrentTime, 60000);
 
-        // Phase 1.3: Load data in parallel (background, don't block)
+        // Load data in parallel
         Promise.all([
           loadMedications(),
           loadTodayLogs()
-        ]).catch(err => console.error('Load data error:', err));
+        ]).then(() => {
+          renderMedications();
+        }).catch(err => console.error('Load data error:', err));
 
       } catch (error) {
         console.error('LIFF init error:', error);
@@ -688,6 +754,13 @@
 
       emptyState.classList.add('hidden');
 
+      const periodLabels = {
+        morning: 'เช้า',
+        afternoon: 'กลางวัน',
+        evening: 'เย็น',
+        night: 'ก่อนนอน'
+      };
+
       container.innerHTML = medsForPeriod.map(med => {
         // Check if already logged today for this period
         const isLogged = todayLogs.some(log => {
@@ -700,12 +773,12 @@
 
         return `
           <div class="${itemClass}" data-id="${med.id}" onclick="${isLogged ? '' : `toggleMedication('${med.id}')`}">
-            <div class="medication-checkbox">${isLogged ? '✓' : (isSelected ? '✓' : '')}</div>
+            <div class="medication-checkbox">${icon('check')}</div>
             <div class="medication-info">
               <div class="medication-name">${med.name}</div>
               <div class="medication-dosage">${formatDosage(med)}</div>
             </div>
-            <div class="medication-time-badge">${isLogged ? 'บันทึกแล้ว' : timeLabels[currentPeriod]}</div>
+            <div class="medication-time-badge">${isLogged ? 'บันทึกแล้ว' : periodLabels[currentPeriod]}</div>
           </div>
         `;
       }).join('');
@@ -735,8 +808,9 @@
       if (selectedMedications.size === 0) return;
 
       const btn = document.getElementById('submitBtn');
+      const submitText = document.getElementById('submitText');
       btn.disabled = true;
-      btn.textContent = 'กำลังบันทึก...';
+      submitText.textContent = 'กำลังบันทึก...';
 
       try {
         const note = document.getElementById('noteInput').value.trim();
@@ -776,8 +850,8 @@
         console.error('Error submitting log:', error);
         showToast('เกิดข้อผิดพลาดในการบันทึก', 'error');
       } finally {
-        btn.disabled = false;
-        btn.textContent = 'บันทึก';
+        btn.disabled = selectedMedications.size === 0;
+        submitText.textContent = 'บันทึก';
       }
     }
 
@@ -798,7 +872,8 @@
 
     function showToast(message, type = 'success') {
       const toast = document.getElementById('toast');
-      toast.textContent = message;
+      const iconName = type === 'success' ? 'checkCircle' : 'alertCircle';
+      toast.innerHTML = icon(iconName) + ' ' + message;
       toast.className = `toast ${type}`;
 
       setTimeout(() => toast.classList.add('show'), 10);

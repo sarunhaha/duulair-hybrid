@@ -2,252 +2,445 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#FAF9F6">
-  <title>🩺 วัดความดัน - OONJAI</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#1E7B9C">
+  <title>วัดความดัน - OONJAI</title>
 
-  <!-- Preconnect to speed up external resources -->
+  <!-- Preconnect -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://static.line-scdn.net">
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
   <link rel="preconnect" href="https://mqxklnzxfrupwwkwlwwc.supabase.co">
-  <link rel="dns-prefetch" href="https://static.line-scdn.net">
-  <link rel="preload" href="https://static.line-scdn.net/liff/edge/2/sdk.js" as="script">
 
+  <!-- Kanit Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Theme CSS -->
+  <link rel="stylesheet" href="css/oonjai-theme.css">
+
+  <!-- External Scripts -->
   <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <link rel="stylesheet" href="css/minimal-theme.css">
+
   <style>
-    /* Vitals-specific styles */
+    /* Vitals Summary Cards */
     .vitals-summary {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: var(--spacing-md);
-      margin-bottom: var(--spacing-lg);
+      gap: 1rem;
+      margin-bottom: 1rem;
     }
 
     .vitals-card {
-      background: var(--bg-card);
-      border-radius: var(--radius-md);
-      padding: var(--spacing-lg);
+      background: hsl(var(--card));
+      border: 1px solid hsl(var(--border));
+      border-radius: var(--radius-xl);
+      padding: 1.25rem;
       text-align: center;
-      box-shadow: var(--shadow-sm);
     }
 
     .vitals-label {
-      font-size: 13px;
-      color: var(--text-muted);
-      margin-bottom: var(--spacing-xs);
+      font-size: 0.8125rem;
+      color: hsl(var(--muted-foreground));
+      margin-bottom: 0.5rem;
     }
 
     .vitals-value {
-      font-size: 32px;
-      font-weight: 600;
-      color: var(--text-primary);
-      margin-bottom: var(--spacing-xs);
+      font-size: 2.25rem;
+      font-weight: 700;
+      color: hsl(var(--foreground));
+      margin-bottom: 0.25rem;
+      font-family: var(--font-mono);
     }
 
     .vitals-unit {
-      font-size: 13px;
-      color: var(--text-secondary);
+      font-size: 0.8125rem;
+      color: hsl(var(--muted-foreground));
     }
 
-    .vitals-status {
+    /* BP Status Badge */
+    .status-card {
+      background: hsl(var(--card));
+      border: 1px solid hsl(var(--border));
+      border-radius: var(--radius-xl);
+      padding: 1rem;
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .bp-status {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      padding: 8px 16px;
-      border-radius: 20px;
-      font-size: 14px;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      border-radius: var(--radius-full);
+      font-size: 0.875rem;
       font-weight: 600;
-      margin-top: var(--spacing-xs);
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
-      transition: all 0.2s ease;
     }
 
-    .vitals-status .status-icon {
-      font-size: 16px;
+    .bp-status svg {
+      width: 18px;
+      height: 18px;
     }
 
-    /* ปกติ - Normal (90-119 / 60-79) */
-    .vitals-status.normal {
-      background: linear-gradient(135deg, #d3f9d8 0%, #b2f2bb 100%);
-      color: #1e7b34;
-      border: 1px solid #8ce99a;
+    .bp-status.normal {
+      background: linear-gradient(135deg, hsl(142 70% 90%) 0%, hsl(142 70% 85%) 100%);
+      color: hsl(142 70% 30%);
+    }
+    .dark .bp-status.normal {
+      background: linear-gradient(135deg, hsl(142 50% 20%) 0%, hsl(142 50% 15%) 100%);
+      color: hsl(142 70% 60%);
     }
 
-    /* สูงกว่าปกติ - Elevated (120-129 / <80) */
-    .vitals-status.elevated {
-      background: linear-gradient(135deg, #fff3bf 0%, #ffe066 100%);
-      color: #866a00;
-      border: 1px solid #ffd43b;
+    .bp-status.elevated {
+      background: linear-gradient(135deg, hsl(45 90% 88%) 0%, hsl(45 90% 80%) 100%);
+      color: hsl(45 90% 25%);
+    }
+    .dark .bp-status.elevated {
+      background: linear-gradient(135deg, hsl(45 60% 20%) 0%, hsl(45 60% 15%) 100%);
+      color: hsl(45 80% 60%);
     }
 
-    /* สูง ระยะ 1 - High Stage 1 (130-139 / 80-89) */
-    .vitals-status.high-stage1 {
-      background: linear-gradient(135deg, #ffe8cc 0%, #ffc078 100%);
-      color: #c65102;
-      border: 1px solid #ff922b;
+    .bp-status.high-stage1 {
+      background: linear-gradient(135deg, hsl(25 90% 90%) 0%, hsl(25 90% 82%) 100%);
+      color: hsl(25 90% 30%);
+    }
+    .dark .bp-status.high-stage1 {
+      background: linear-gradient(135deg, hsl(25 60% 20%) 0%, hsl(25 60% 15%) 100%);
+      color: hsl(25 80% 60%);
     }
 
-    /* สูง ระยะ 2 - High Stage 2 (140-179 / 90-119) */
-    .vitals-status.high-stage2 {
-      background: linear-gradient(135deg, #ffc9c9 0%, #ff8787 100%);
-      color: #c92a2a;
-      border: 1px solid #fa5252;
+    .bp-status.high-stage2 {
+      background: linear-gradient(135deg, hsl(0 85% 90%) 0%, hsl(0 85% 82%) 100%);
+      color: hsl(0 85% 35%);
+    }
+    .dark .bp-status.high-stage2 {
+      background: linear-gradient(135deg, hsl(0 60% 20%) 0%, hsl(0 60% 15%) 100%);
+      color: hsl(0 70% 60%);
     }
 
-    /* วิกฤต - Crisis (≥180 / ≥120) */
-    .vitals-status.critical {
-      background: linear-gradient(135deg, #e03131 0%, #c92a2a 100%);
+    .bp-status.critical {
+      background: linear-gradient(135deg, hsl(0 80% 45%) 0%, hsl(0 80% 35%) 100%);
       color: white;
-      border: 1px solid #a61e1e;
       animation: pulse-critical 1.5s ease-in-out infinite;
     }
 
     @keyframes pulse-critical {
-      0%, 100% { box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08); }
-      50% { box-shadow: 0 2px 12px rgba(224, 49, 49, 0.4); }
+      0%, 100% { box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); }
+      50% { box-shadow: 0 2px 16px rgba(220, 38, 38, 0.5); }
     }
 
-    /* ต่ำ - Low (<90 / <60) */
-    .vitals-status.low {
-      background: linear-gradient(135deg, #d0ebff 0%, #a5d8ff 100%);
-      color: #1864ab;
-      border: 1px solid #74c0fc;
+    .bp-status.low {
+      background: linear-gradient(135deg, hsl(200 85% 90%) 0%, hsl(200 85% 82%) 100%);
+      color: hsl(200 85% 30%);
+    }
+    .dark .bp-status.low {
+      background: linear-gradient(135deg, hsl(200 60% 20%) 0%, hsl(200 60% 15%) 100%);
+      color: hsl(200 70% 60%);
     }
 
-    /* Default/Unknown */
-    .vitals-status.unknown {
-      background: linear-gradient(135deg, #f1f3f5 0%, #dee2e6 100%);
-      color: #495057;
-      border: 1px solid #ced4da;
+    .bp-status.unknown {
+      background: hsl(var(--muted));
+      color: hsl(var(--muted-foreground));
     }
+
+    /* Section Title */
+    .section-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: hsl(var(--foreground));
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .section-title svg {
+      width: 20px;
+      height: 20px;
+      color: hsl(var(--primary));
+    }
+
+    /* Input Form */
+    .form-card {
+      background: hsl(var(--card));
+      border: 1px solid hsl(var(--border));
+      border-radius: var(--radius-xl);
+      padding: 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .ocr-section {
+      margin-bottom: 1rem;
+    }
+
+    .ocr-btn {
+      width: 100%;
+      padding: 0.875rem;
+      background: linear-gradient(135deg, hsl(200 60% 50%) 0%, hsl(200 60% 40%) 100%);
+      color: white;
+      border: none;
+      border-radius: var(--radius-lg);
+      font-size: 0.9375rem;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      transition: all 0.2s ease;
+    }
+
+    .ocr-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .ocr-btn:active {
+      transform: scale(0.98);
+    }
+
+    .ocr-btn svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .ocr-status {
+      text-align: center;
+      font-size: 0.8125rem;
+      color: hsl(var(--muted-foreground));
+      margin-top: 0.75rem;
+      display: none;
+    }
+
+    .divider {
+      text-align: center;
+      color: hsl(var(--muted-foreground));
+      font-size: 0.8125rem;
+      margin: 1rem 0;
+      position: relative;
+    }
+
+    .divider::before,
+    .divider::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      width: 30%;
+      height: 1px;
+      background: hsl(var(--border));
+    }
+
+    .divider::before { left: 0; }
+    .divider::after { right: 0; }
 
     .input-row {
-      display: flex;
-      gap: var(--spacing-sm);
-      margin-bottom: var(--spacing-md);
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-bottom: 1rem;
     }
 
     .input-group {
-      flex: 1;
+      display: flex;
+      flex-direction: column;
     }
 
     .input-group label {
-      display: block;
-      font-size: 13px;
-      color: var(--text-secondary);
-      margin-bottom: var(--spacing-xs);
+      font-size: 0.8125rem;
+      color: hsl(var(--muted-foreground));
+      margin-bottom: 0.5rem;
     }
 
     .input-group input {
       width: 100%;
-      padding: 12px 16px;
-      border: 1px solid rgba(0, 0, 0, 0.1);
-      border-radius: var(--radius-sm);
-      font-size: 16px;
+      padding: 0.75rem;
+      border: 1px solid hsl(var(--border));
+      border-radius: var(--radius-lg);
+      font-size: 1.125rem;
       font-weight: 600;
       text-align: center;
+      background: hsl(var(--background));
+      color: hsl(var(--foreground));
+      transition: all 0.2s ease;
+    }
+
+    .input-group input:focus {
+      outline: none;
+      border-color: hsl(var(--primary));
+      box-shadow: 0 0 0 3px hsl(var(--primary) / 0.1);
     }
 
     .input-group .unit {
-      font-size: 12px;
-      color: var(--text-muted);
+      font-size: 0.75rem;
+      color: hsl(var(--muted-foreground));
       text-align: center;
-      margin-top: 4px;
+      margin-top: 0.25rem;
     }
 
-    .add-btn {
+    .submit-btn {
       width: 100%;
-      padding: 14px;
-      background: var(--accent-primary);
+      padding: 0.875rem;
+      background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary-dark)) 100%);
       color: white;
       border: none;
-      border-radius: var(--radius-sm);
-      font-size: 16px;
+      border-radius: var(--radius-lg);
+      font-size: 1rem;
       font-weight: 500;
       cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
       transition: all 0.2s ease;
-      margin-bottom: var(--spacing-lg);
     }
 
-    .add-btn:active {
+    .submit-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .submit-btn:active {
       transform: scale(0.98);
     }
 
+    .submit-btn svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    /* Log List */
+    .log-card {
+      background: hsl(var(--card));
+      border: 1px solid hsl(var(--border));
+      border-radius: var(--radius-xl);
+      padding: 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+
     .log-item {
-      background: var(--bg-card);
-      border-radius: var(--radius-sm);
-      padding: var(--spacing-md);
-      margin-bottom: var(--spacing-sm);
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      box-shadow: var(--shadow-sm);
+      justify-content: space-between;
+      padding: 1rem;
+      background: hsl(var(--muted));
+      border-radius: var(--radius-lg);
+      margin-bottom: 0.75rem;
+    }
+
+    .log-item:last-child {
+      margin-bottom: 0;
     }
 
     .log-item-info {
       display: flex;
       flex-direction: column;
-      gap: 4px;
-      flex: 1;
+      gap: 0.25rem;
     }
 
     .log-item .time {
-      font-size: 13px;
-      color: var(--text-muted);
+      font-size: 0.75rem;
+      color: hsl(var(--muted-foreground));
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    .log-item .time svg {
+      width: 12px;
+      height: 12px;
     }
 
     .log-item .reading {
-      font-size: 18px;
+      font-size: 1.125rem;
       font-weight: 600;
-      color: var(--text-primary);
+      color: hsl(var(--foreground));
+      font-family: var(--font-mono);
     }
 
     .log-item .pulse {
-      font-size: 14px;
-      color: var(--text-secondary);
+      font-size: 0.8125rem;
+      color: hsl(var(--muted-foreground));
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
     }
 
-    .log-item .delete-btn {
-      background: #ff6b6b;
+    .log-item .pulse svg {
+      width: 14px;
+      height: 14px;
+      color: hsl(0 70% 50%);
+    }
+
+    .log-item .item-status {
+      margin-top: 0.5rem;
+    }
+
+    .delete-btn {
+      background: hsl(0 70% 50%);
       color: white;
       border: none;
-      border-radius: var(--radius-sm);
-      padding: 6px 12px;
-      font-size: 13px;
+      border-radius: var(--radius);
+      padding: 0.5rem 0.75rem;
+      font-size: 0.8125rem;
       cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
       transition: all 0.2s ease;
-      margin-left: var(--spacing-sm);
     }
 
-    .log-item .delete-btn:active {
+    .delete-btn:hover {
+      background: hsl(0 70% 45%);
+    }
+
+    .delete-btn:active {
       transform: scale(0.95);
-      background: #fa5252;
+    }
+
+    .delete-btn svg {
+      width: 14px;
+      height: 14px;
     }
 
     .empty-state {
       text-align: center;
-      padding: var(--spacing-xl);
-      color: var(--text-muted);
+      padding: 2rem;
+      color: hsl(var(--muted-foreground));
     }
 
-    /* Toast Notification */
+    .empty-state svg {
+      width: 48px;
+      height: 48px;
+      margin-bottom: 1rem;
+      opacity: 0.5;
+    }
+
+    /* Toast */
     .toast {
       position: fixed;
       bottom: 20px;
       left: 50%;
       transform: translateX(-50%) translateY(100px);
-      padding: 16px 24px;
-      border-radius: var(--radius-md);
+      padding: 0.875rem 1.5rem;
+      border-radius: var(--radius-lg);
       color: white;
       font-weight: 500;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      box-shadow: var(--shadow-lg);
       z-index: 10000;
       opacity: 0;
       transition: all 0.3s ease;
       max-width: 90%;
       text-align: center;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .toast svg {
+      width: 20px;
+      height: 20px;
     }
 
     .toast.show {
@@ -256,20 +449,21 @@
     }
 
     .toast.success {
-      background: linear-gradient(135deg, #51cf66 0%, #37b24d 100%);
+      background: linear-gradient(135deg, hsl(142 70% 45%) 0%, hsl(142 70% 35%) 100%);
     }
 
     .toast.error {
-      background: linear-gradient(135deg, #ff6b6b 0%, #fa5252 100%);
+      background: linear-gradient(135deg, hsl(0 70% 50%) 0%, hsl(0 70% 40%) 100%);
+    }
+
+    /* Close Section */
+    .close-section {
+      padding-top: 0.5rem;
     }
 
     @media (max-width: 480px) {
       .vitals-value {
-        font-size: 28px;
-      }
-
-      .input-group input {
-        font-size: 15px;
+        font-size: 1.875rem;
       }
     }
   </style>
@@ -277,27 +471,21 @@
 <body>
   <div class="container">
     <!-- Loading State -->
-    <div id="loadingState" class="loading">
+    <div id="loadingState" class="loading-container">
       <div class="loading-spinner"></div>
-      <p>กำลังโหลด...</p>
+      <p class="loading-text">กำลังโหลด...</p>
     </div>
 
     <!-- Main Content -->
     <div id="mainContent" class="hidden">
-      <!-- Header with Back Button -->
-      <div class="header">
-        <button class="header-back" onclick="goBack()" id="backBtn" style="display:none;">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M15 18l-6-6 6-6"/>
-          </svg>
-        </button>
-        <div class="header-content">
-          <h1>🩺 วัดความดัน</h1>
-          <p>บันทึกค่าความดันโลหิต</p>
-        </div>
-      </div>
+      <!-- Header -->
+      <header class="header">
+        <button class="btn-icon" onclick="goBack()" aria-label="กลับ" id="backBtn"></button>
+        <h1 class="header-title" id="headerTitle"></h1>
+        <button class="btn-icon" onclick="darkMode.toggle()" aria-label="สลับธีม" id="themeBtn"></button>
+      </header>
 
-      <!-- Latest Reading Summary -->
+      <!-- Vitals Summary -->
       <div class="vitals-summary">
         <div class="vitals-card">
           <div class="vitals-label">ค่าบน (Systolic)</div>
@@ -311,69 +499,72 @@
         </div>
       </div>
 
-      <!-- Blood Pressure Status -->
-      <div class="card" style="text-align: center; margin-bottom: var(--spacing-lg);">
-        <div id="bpStatus" class="vitals-status normal">ปกติ</div>
+      <!-- BP Status -->
+      <div class="status-card">
+        <div id="bpStatus" class="bp-status unknown">--</div>
       </div>
 
       <!-- Add New Reading -->
-      <div class="card">
-        <div class="card-header">📝 บันทึกค่าใหม่</div>
+      <div class="section-title" id="formSectionTitle"></div>
 
+      <div class="form-card">
         <!-- OCR Option -->
-        <div style="margin-bottom: var(--spacing-md);">
+        <div class="ocr-section">
           <input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
-          <button class="add-btn" style="background: #5A8BA8; margin-bottom: var(--spacing-md);" onclick="document.getElementById('imageInput').click()">
-            📷 ถ่ายรูป/อัพโหลด
-          </button>
-          <div id="ocrStatus" style="display: none; text-align: center; color: var(--text-secondary); font-size: 13px; margin-bottom: var(--spacing-md);"></div>
+          <button class="ocr-btn" onclick="document.getElementById('imageInput').click()" id="ocrBtn"></button>
+          <div id="ocrStatus" class="ocr-status"></div>
         </div>
 
-        <div style="text-align: center; color: var(--text-muted); font-size: 13px; margin-bottom: var(--spacing-md);">หรือกรอกด้วยตัวเอง</div>
+        <div class="divider">หรือกรอกด้วยตัวเอง</div>
 
         <div class="input-row">
           <div class="input-group">
             <label for="systolic">ค่าบน</label>
-            <input type="number" id="systolic" placeholder="120" min="50" max="250">
+            <input type="number" id="systolic" placeholder="120" min="50" max="250" inputmode="numeric">
             <div class="unit">mmHg</div>
           </div>
           <div class="input-group">
             <label for="diastolic">ค่าล่าง</label>
-            <input type="number" id="diastolic" placeholder="80" min="30" max="150">
+            <input type="number" id="diastolic" placeholder="80" min="30" max="150" inputmode="numeric">
             <div class="unit">mmHg</div>
           </div>
         </div>
 
-        <div class="input-group" style="margin-bottom: var(--spacing-md);">
+        <div class="input-group" style="margin-bottom: 1rem;">
           <label for="pulse">ชีพจร (ไม่บังคับ)</label>
-          <input type="number" id="pulse" placeholder="72" min="40" max="200">
+          <input type="number" id="pulse" placeholder="72" min="40" max="200" inputmode="numeric">
           <div class="unit">ครั้ง/นาที</div>
         </div>
 
-        <button class="add-btn" onclick="addReading()">บันทึก</button>
+        <button class="submit-btn" onclick="addReading()" id="submitBtn"></button>
       </div>
 
       <!-- Today's Log -->
-      <div class="card">
-        <div class="card-header">📊 บันทึกวันนี้</div>
+      <div class="section-title" id="logSectionTitle"></div>
+
+      <div class="log-card">
         <div id="logContainer">
-          <div class="empty-state">
-            <p>ยังไม่มีการบันทึก</p>
-          </div>
+          <div class="empty-state" id="emptyState"></div>
         </div>
       </div>
 
-      <button class="btn btn-secondary btn-block mt-3" onclick="goBack()">
-        <span id="closeBtnText">ปิด</span>
-      </button>
+      <!-- Close Button -->
+      <div class="close-section">
+        <button class="btn btn-secondary btn-block" onclick="goBack()">
+          <span id="closeBtnText">ปิด</span>
+        </button>
+      </div>
     </div>
   </div>
 
   <!-- Toast Notification -->
   <div id="toast" class="toast"></div>
 
+  <!-- Lucide Icons -->
+  <script src="js/lucide-icons.js"></script>
+
   <script>
-    // API Base URL - inline for LIFF compatibility
+    // API Base URL
     const API_BASE_URL = window.location.hostname === 'localhost'
       ? 'http://localhost:3000/api'
       : 'https://duulair.vercel.app/api';
@@ -391,16 +582,28 @@
     let groupId = null;
     let todayReadings = [];
 
-    // Phase 2.1: Show UI immediately with cached data
-    (function showUIImmediately() {
+    // Initialize UI immediately
+    (function initUI() {
+      // Initialize dark mode
+      darkMode.init();
+
+      // Set icons
+      document.getElementById('backBtn').innerHTML = icon('arrowLeft');
+      document.getElementById('headerTitle').innerHTML = icon('heartPulse', 'inline-icon') + ' วัดความดัน';
+      document.getElementById('themeBtn').innerHTML = icon('sun');
+      document.getElementById('formSectionTitle').innerHTML = icon('edit') + ' บันทึกค่าใหม่';
+      document.getElementById('ocrBtn').innerHTML = icon('camera') + ' ถ่ายรูป/อัพโหลด';
+      document.getElementById('submitBtn').innerHTML = icon('save') + ' บันทึก';
+      document.getElementById('logSectionTitle').innerHTML = icon('list') + ' บันทึกวันนี้';
+      document.getElementById('emptyState').innerHTML = icon('clipboardList') + '<p>ยังไม่มีการบันทึก</p>';
+
       // Check if we should show back button
       const returnTo = sessionStorage.getItem('liff_return_to');
       if (returnTo) {
-        document.getElementById('backBtn').style.display = 'flex';
         document.getElementById('closeBtnText').textContent = 'กลับ';
       }
 
-      // Load cached vitals data from localStorage
+      // Load cached vitals data
       const today = new Date().toISOString().split('T')[0];
       const savedData = JSON.parse(localStorage.getItem(`vitals_${today}`) || '{"readings": []}');
       todayReadings = savedData.readings || [];
@@ -413,6 +616,19 @@
       updateUI();
     })();
 
+    // Update theme icon
+    function updateThemeIcon() {
+      const isDark = document.documentElement.classList.contains('dark');
+      document.getElementById('themeBtn').innerHTML = isDark ? icon('moon') : icon('sun');
+    }
+
+    const originalToggle = darkMode.toggle;
+    darkMode.toggle = function() {
+      originalToggle.call(darkMode);
+      updateThemeIcon();
+    };
+    setTimeout(updateThemeIcon, 100);
+
     function goBack() {
       const returnTo = sessionStorage.getItem('liff_return_to');
       if (returnTo) {
@@ -424,7 +640,7 @@
       }
     }
 
-    // Phase 1.1: Cache LIFF profile in sessionStorage
+    // Cache LIFF profile
     async function getCachedProfile() {
       const cached = sessionStorage.getItem('liff_profile');
       const cacheTime = sessionStorage.getItem('liff_profile_time');
@@ -440,9 +656,8 @@
       return profile;
     }
 
-    // Phase 1.2: Check user registration with cache
+    // Check registration
     async function checkUserRegistration(lineUserId) {
-      // Skip if already verified this session
       if (sessionStorage.getItem('user_registered') === 'true') {
         return true;
       }
@@ -458,7 +673,6 @@
           return false;
         }
 
-        // Cache registration status
         sessionStorage.setItem('user_registered', 'true');
         return true;
       } catch (error) {
@@ -476,10 +690,7 @@
           return;
         }
 
-        // Phase 1.1 & 1.2: Get cached profile and check registration in background
         const profile = await getCachedProfile();
-
-        // Check registration in background (don't block UI)
         checkUserRegistration(profile.userId).catch(err => console.error('Registration check error:', err));
 
         // Get user context
@@ -487,18 +698,15 @@
         patientId = context.patientId;
         groupId = context.groupId;
 
-        // ✅ Fallback: fetch patientId from server if not in localStorage
+        // Fallback: fetch patientId from server if not in localStorage
         if (!patientId) {
-          console.log('⚠️ No patientId in localStorage, fetching from server...');
           try {
             const response = await fetch(`${API_BASE_URL}/check-user/${profile.userId}`);
             const result = await response.json();
             if (result.exists && result.profile?.linked_patient_id) {
               patientId = result.profile.linked_patient_id;
-              // Update localStorage for future use
               context.patientId = patientId;
               localStorage.setItem('oonjai_context', JSON.stringify(context));
-              console.log('✅ Fetched patientId from server:', patientId);
             }
           } catch (e) {
             console.error('Failed to fetch patientId from server:', e);
@@ -516,7 +724,6 @@
 
     async function loadTodayData() {
       if (!supabaseClient || !patientId) {
-        // Fallback to localStorage if no patient context
         const today = new Date().toISOString().split('T')[0];
         const savedData = JSON.parse(localStorage.getItem(`vitals_${today}`) || '{"readings": []}');
         todayReadings = savedData.readings || [];
@@ -527,7 +734,6 @@
       try {
         const today = new Date().toISOString().split('T')[0];
 
-        // Fetch from vitals_logs table (uses measured_at, not created_at)
         const { data, error } = await supabaseClient
           .from('vitals_logs')
           .select('id, bp_systolic, bp_diastolic, heart_rate, measured_at')
@@ -539,7 +745,6 @@
 
         if (error) throw error;
 
-        // Map database records to our format
         todayReadings = (data || []).map(row => ({
           id: row.id,
           time: new Date(row.measured_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
@@ -553,7 +758,6 @@
         updateUI();
       } catch (error) {
         console.error('Error loading vitals:', error);
-        // Fallback to localStorage on error
         const today = new Date().toISOString().split('T')[0];
         const savedData = JSON.parse(localStorage.getItem(`vitals_${today}`) || '{"readings": []}');
         todayReadings = savedData.readings || [];
@@ -592,7 +796,6 @@
         return;
       }
 
-      // Save to database
       if (supabaseClient && patientId) {
         try {
           const vitalsData = {
@@ -610,10 +813,8 @@
 
           if (error) throw error;
 
-          // Reload data from database
           await loadTodayData();
 
-          // Clear inputs
           document.getElementById('systolic').value = '';
           document.getElementById('diastolic').value = '';
           document.getElementById('pulse').value = '';
@@ -624,7 +825,6 @@
           showToast('เกิดข้อผิดพลาดในการบันทึก', 'error');
         }
       } else {
-        // Fallback to localStorage
         const now = new Date();
         const reading = {
           id: Date.now(),
@@ -639,7 +839,6 @@
         saveData();
         updateUI();
 
-        // Clear inputs
         document.getElementById('systolic').value = '';
         document.getElementById('diastolic').value = '';
         document.getElementById('pulse').value = '';
@@ -649,7 +848,6 @@
     }
 
     async function deleteReading(readingId) {
-      // Check if this is a database record (UUID) or localStorage record (timestamp number)
       const isDbRecord = typeof readingId === 'string' && readingId.includes('-');
 
       if (isDbRecord && supabaseClient) {
@@ -661,7 +859,6 @@
 
           if (error) throw error;
 
-          // Reload data from database
           await loadTodayData();
           showToast('ลบรายการเรียบร้อยแล้ว', 'success');
         } catch (error) {
@@ -669,7 +866,6 @@
           showToast('เกิดข้อผิดพลาดในการลบ', 'error');
         }
       } else {
-        // localStorage record
         todayReadings = todayReadings.filter(r => r.id !== readingId);
         saveData();
         updateUI();
@@ -682,8 +878,6 @@
       localStorage.setItem(`vitals_${today}`, JSON.stringify({
         readings: todayReadings
       }));
-
-      // TODO: Save to Supabase when configured
     }
 
     function updateUI() {
@@ -693,34 +887,35 @@
         document.getElementById('latestSystolic').textContent = latest.systolic;
         document.getElementById('latestDiastolic').textContent = latest.diastolic;
 
-        // Update status
         const status = getBloodPressureStatus(latest.systolic, latest.diastolic);
         const statusEl = document.getElementById('bpStatus');
-        statusEl.textContent = status.label;
-        statusEl.className = `vitals-status ${status.class}`;
+        statusEl.innerHTML = status.icon + ' ' + status.label;
+        statusEl.className = `bp-status ${status.class}`;
       } else {
         document.getElementById('latestSystolic').textContent = '--';
         document.getElementById('latestDiastolic').textContent = '--';
-        document.getElementById('bpStatus').textContent = '--';
-        document.getElementById('bpStatus').className = 'vitals-status';
+        document.getElementById('bpStatus').innerHTML = '--';
+        document.getElementById('bpStatus').className = 'bp-status unknown';
       }
 
       // Update logs
       const container = document.getElementById('logContainer');
       if (todayReadings.length === 0) {
-        container.innerHTML = '<div class="empty-state"><p>ยังไม่มีการบันทึก</p></div>';
+        container.innerHTML = `<div class="empty-state">${icon('clipboardList')}<p>ยังไม่มีการบันทึก</p></div>`;
       } else {
         container.innerHTML = todayReadings.map(reading => {
           const status = getBloodPressureStatus(reading.systolic, reading.diastolic);
           return `
             <div class="log-item">
               <div class="log-item-info">
-                <span class="time">${reading.time}</span>
+                <span class="time">${icon('clock')} ${reading.time}</span>
                 <span class="reading">${reading.systolic}/${reading.diastolic} mmHg</span>
-                ${reading.pulse ? `<span class="pulse">💓 ${reading.pulse} ครั้ง/นาที</span>` : ''}
-                <span class="vitals-status ${status.class}" style="align-self: flex-start; margin-top: 4px;">${status.label}</span>
+                ${reading.pulse ? `<span class="pulse">${icon('heart')} ${reading.pulse} ครั้ง/นาที</span>` : ''}
+                <div class="item-status">
+                  <span class="bp-status ${status.class}" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">${status.icon} ${status.label}</span>
+                </div>
               </div>
-              <button class="delete-btn" onclick="deleteReading('${reading.id}')">ลบ</button>
+              <button class="delete-btn" onclick="deleteReading('${reading.id}')">${icon('trash2')} ลบ</button>
             </div>
           `;
         }).join('');
@@ -728,25 +923,25 @@
     }
 
     function getBloodPressureStatus(systolic, diastolic) {
-      // Based on American Heart Association guidelines
       if (systolic >= 180 || diastolic >= 120) {
-        return { label: '🚨 วิกฤต', class: 'critical', icon: '🚨' };
+        return { label: 'วิกฤต', class: 'critical', icon: icon('alertTriangle') };
       } else if (systolic >= 140 || diastolic >= 90) {
-        return { label: '⚠️ สูง ระยะ 2', class: 'high-stage2', icon: '⚠️' };
+        return { label: 'สูง ระยะ 2', class: 'high-stage2', icon: icon('trendingUp') };
       } else if (systolic >= 130 || diastolic >= 80) {
-        return { label: '📈 สูง ระยะ 1', class: 'high-stage1', icon: '📈' };
+        return { label: 'สูง ระยะ 1', class: 'high-stage1', icon: icon('arrowUp') };
       } else if (systolic >= 120 && diastolic < 80) {
-        return { label: '📊 สูงกว่าปกติ', class: 'elevated', icon: '📊' };
+        return { label: 'สูงกว่าปกติ', class: 'elevated', icon: icon('minus') };
       } else if (systolic < 90 || diastolic < 60) {
-        return { label: '📉 ต่ำ', class: 'low', icon: '📉' };
+        return { label: 'ต่ำ', class: 'low', icon: icon('arrowDown') };
       } else {
-        return { label: '✅ ปกติ', class: 'normal', icon: '✅' };
+        return { label: 'ปกติ', class: 'normal', icon: icon('checkCircle') };
       }
     }
 
     function showToast(message, type = 'success') {
       const toast = document.getElementById('toast');
-      toast.textContent = message;
+      const iconName = type === 'success' ? 'checkCircle' : 'alertCircle';
+      toast.innerHTML = icon(iconName) + ' ' + message;
       toast.className = `toast ${type}`;
 
       setTimeout(() => toast.classList.add('show'), 10);
@@ -757,18 +952,15 @@
       const file = event.target.files[0];
       if (!file) return;
 
-      // Show loading state
       const statusEl = document.getElementById('ocrStatus');
-      statusEl.textContent = '⏳ กำลังอ่านค่าจากรูปภาพ...';
+      statusEl.innerHTML = icon('loader') + ' กำลังอ่านค่าจากรูปภาพ...';
       statusEl.style.display = 'block';
-      statusEl.style.color = '#5A8BA8';
+      statusEl.style.color = 'hsl(var(--primary))';
 
       try {
-        // Create FormData and append the image
         const formData = new FormData();
         formData.append('image', file);
 
-        // Call OCR API
         const response = await fetch(`${API_BASE_URL}/ocr/vitals`, {
           method: 'POST',
           body: formData
@@ -777,33 +969,31 @@
         const result = await response.json();
 
         if (result.success && result.data) {
-          // Fill the form with extracted values
           document.getElementById('systolic').value = result.data.systolic;
           document.getElementById('diastolic').value = result.data.diastolic;
           if (result.data.pulse) {
             document.getElementById('pulse').value = result.data.pulse;
           }
 
-          statusEl.textContent = '✅ อ่านค่าสำเร็จ! กรุณาตรวจสอบความถูกต้อง';
-          statusEl.style.color = '#37b24d';
+          statusEl.innerHTML = icon('checkCircle') + ' อ่านค่าสำเร็จ! กรุณาตรวจสอบความถูกต้อง';
+          statusEl.style.color = 'hsl(142 70% 40%)';
 
           showToast('อ่านค่าความดันจากรูปภาพสำเร็จ', 'success');
         } else {
-          statusEl.textContent = '❌ ' + (result.error || 'ไม่สามารถอ่านค่าได้');
-          statusEl.style.color = '#fa5252';
+          statusEl.innerHTML = icon('xCircle') + ' ' + (result.error || 'ไม่สามารถอ่านค่าได้');
+          statusEl.style.color = 'hsl(0 70% 50%)';
 
           showToast(result.error || 'ไม่สามารถอ่านค่าความดันจากรูปภาพนี้ได้', 'error');
         }
 
       } catch (error) {
         console.error('OCR error:', error);
-        statusEl.textContent = '❌ เกิดข้อผิดพลาด กรุณาลองใหม่';
-        statusEl.style.color = '#fa5252';
+        statusEl.innerHTML = icon('xCircle') + ' เกิดข้อผิดพลาด กรุณาลองใหม่';
+        statusEl.style.color = 'hsl(0 70% 50%)';
 
         showToast('เกิดข้อผิดพลาดในการประมวลผลรูปภาพ', 'error');
       }
 
-      // Clear file input
       event.target.value = '';
     }
 

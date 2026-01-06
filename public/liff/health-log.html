@@ -3,64 +3,81 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#FAF9F6">
-  <title>🩺 บันทึกสุขภาพ - OONJAI</title>
+  <meta name="theme-color" content="#f8fafc">
+  <title>บันทึกสุขภาพ - OONJAI</title>
 
-  <!-- Phase 3.1: Preconnect to speed up external resources -->
+  <!-- Preconnect for performance -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://static.line-scdn.net">
-  <link rel="preconnect" href="https://cdn.jsdelivr.net">
   <link rel="preconnect" href="https://mqxklnzxfrupwwkwlwwc.supabase.co">
-  <link rel="dns-prefetch" href="https://static.line-scdn.net">
-  <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
 
-  <!-- Preload critical scripts -->
-  <link rel="preload" href="https://static.line-scdn.net/liff/edge/2/sdk.js" as="script">
+  <!-- Kanit Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
+  <!-- Theme CSS -->
+  <link rel="stylesheet" href="css/oonjai-theme.css">
+
+  <!-- External Scripts -->
   <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <link rel="stylesheet" href="css/minimal-theme.css">
+  <script src="js/lucide-icons.js"></script>
+
   <style>
-    /* Dashboard Header */
-    .dashboard-header {
-      background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
-      border-radius: var(--radius-lg);
-      padding: var(--spacing-lg);
-      margin-bottom: var(--spacing-lg);
+    /* Page-specific styles */
+    .hero-card {
+      background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(190 85% 28%) 100%);
+      border-radius: var(--radius-xl);
+      padding: var(--spacing-xl);
       color: white;
       text-align: center;
-      box-shadow: var(--shadow-md);
+      position: relative;
+      overflow: hidden;
+      margin-bottom: var(--spacing-lg);
     }
 
-    .dashboard-header h1 {
-      font-size: 24px;
-      font-weight: 600;
+    .hero-card::before {
+      content: '';
+      position: absolute;
+      top: -4rem;
+      right: -4rem;
+      width: 10rem;
+      height: 10rem;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: var(--radius-full);
+      filter: blur(2rem);
+    }
+
+    .hero-card h1 {
+      color: white;
+      font-size: 1.5rem;
       margin-bottom: var(--spacing-xs);
+      position: relative;
     }
 
-    .dashboard-date {
-      font-size: 14px;
+    .hero-date {
+      font-size: 0.875rem;
       opacity: 0.9;
     }
 
-    /* Today's Summary - Stat Cards (Read-only, Info Display) */
+    /* Summary Section */
     .summary-section {
-      margin-bottom: var(--spacing-lg);
-      background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+      background: hsl(var(--muted) / 0.3);
       border-radius: var(--radius-lg);
       padding: var(--spacing-md);
-      border: 1px solid rgba(0, 0, 0, 0.05);
+      margin-bottom: var(--spacing-lg);
     }
 
-    .summary-title {
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--text-secondary);
-      margin-bottom: var(--spacing-md);
+    .summary-label {
+      font-size: 0.6875rem;
+      font-weight: 700;
+      color: hsl(var(--muted-foreground));
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: var(--spacing-sm);
       display: flex;
       align-items: center;
       gap: var(--spacing-xs);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
     }
 
     .summary-grid {
@@ -70,127 +87,60 @@
     }
 
     .summary-card {
-      background: white;
+      background: hsl(var(--card));
       border-radius: var(--radius-md);
       padding: var(--spacing-md);
       display: flex;
       align-items: center;
       gap: var(--spacing-sm);
       border-left: 4px solid transparent;
-      position: relative;
-      overflow: hidden;
     }
 
-    .summary-card::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: linear-gradient(135deg, transparent 0%, rgba(0,0,0,0.02) 100%);
-      pointer-events: none;
-    }
-
-    .summary-card.medication-card {
-      border-left-color: #EF4444;
-    }
-
-    .summary-card.water-card {
-      border-left-color: #3B82F6;
-    }
-
-    .summary-card.vitals-card {
-      border-left-color: #10B981;
-    }
-
-    .summary-card.symptom-card {
-      border-left-color: #F59E0B;
-    }
+    .summary-card.medication { border-left-color: hsl(0 84% 60%); }
+    .summary-card.water { border-left-color: hsl(217 91% 60%); }
+    .summary-card.vitals { border-left-color: hsl(var(--success)); }
+    .summary-card.symptom { border-left-color: hsl(var(--accent)); }
 
     .summary-icon {
-      width: 40px;
-      height: 40px;
-      border-radius: 10px;
+      width: 2.5rem;
+      height: 2.5rem;
+      border-radius: var(--radius-md);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 18px;
       flex-shrink: 0;
     }
 
-    .summary-icon.medication {
-      background: linear-gradient(135deg, #FEE2E2 0%, #FECACA 100%);
-    }
+    .summary-icon.medication { background: linear-gradient(135deg, hsl(0 93% 94%) 0%, hsl(0 96% 89%) 100%); color: hsl(0 72% 51%); }
+    .summary-icon.water { background: linear-gradient(135deg, hsl(217 91% 95%) 0%, hsl(217 91% 90%) 100%); color: hsl(217 91% 60%); }
+    .summary-icon.vitals { background: linear-gradient(135deg, hsl(142 76% 94%) 0%, hsl(142 76% 86%) 100%); color: hsl(var(--success)); }
+    .summary-icon.symptom { background: linear-gradient(135deg, hsl(38 92% 95%) 0%, hsl(38 92% 87%) 100%); color: hsl(var(--accent)); }
 
-    .summary-icon.water {
-      background: linear-gradient(135deg, #DBEAFE 0%, #BFDBFE 100%);
-    }
-
-    .summary-icon.vitals {
-      background: linear-gradient(135deg, #D1FAE5 0%, #A7F3D0 100%);
-    }
-
-    .summary-icon.symptom {
-      background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
-    }
-
-    .summary-info {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .summary-label {
-      font-size: 12px;
-      color: var(--text-muted);
+    .summary-info .label {
+      font-size: 0.75rem;
+      color: hsl(var(--muted-foreground));
       font-weight: 500;
-      margin-bottom: 2px;
     }
 
-    .summary-value {
-      font-size: 20px;
+    .summary-info .value {
+      font-size: 1.125rem;
       font-weight: 700;
-      color: var(--text-primary);
-      line-height: 1.2;
+      color: hsl(var(--foreground));
     }
 
-    .summary-value.incomplete {
-      color: #F59E0B;
-    }
-
-    .summary-value.complete {
-      color: #10B981;
-    }
-
-    .summary-value.not-recorded {
-      font-size: 14px;
-      font-weight: 500;
-      color: var(--text-muted);
-    }
+    .summary-info .value.incomplete { color: hsl(var(--accent)); }
+    .summary-info .value.complete { color: hsl(var(--success)); }
 
     /* Category Grid */
-    .category-section {
-      margin-bottom: var(--spacing-lg);
-    }
-
-    .category-title {
-      font-size: 16px;
-      font-weight: 600;
-      color: var(--text-primary);
-      margin-bottom: var(--spacing-md);
-      display: flex;
-      align-items: center;
-      gap: var(--spacing-xs);
-    }
-
     .category-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
       gap: var(--spacing-sm);
+      margin-bottom: var(--spacing-lg);
     }
 
     .category-btn {
-      background: var(--bg-card);
+      background: hsl(var(--card));
       border: 2px solid transparent;
       border-radius: var(--radius-lg);
       padding: var(--spacing-lg);
@@ -198,58 +148,49 @@
       cursor: pointer;
       transition: all 0.2s ease;
       box-shadow: var(--shadow-sm);
-      text-decoration: none;
-      display: block;
     }
 
     .category-btn:active {
       transform: scale(0.97);
-      border-color: var(--accent-primary);
+      border-color: hsl(var(--primary));
       box-shadow: var(--shadow-md);
     }
 
-    .category-icon {
-      font-size: 36px;
-      margin-bottom: var(--spacing-sm);
-      display: block;
+    .category-btn .cat-icon {
+      width: 3rem;
+      height: 3rem;
+      margin: 0 auto var(--spacing-sm);
+      border-radius: var(--radius-lg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
-    .category-label {
-      font-size: 15px;
+    .category-btn .cat-icon.medication { background: hsl(0 93% 94%); color: hsl(0 72% 51%); }
+    .category-btn .cat-icon.vitals { background: hsl(142 76% 94%); color: hsl(var(--success)); }
+    .category-btn .cat-icon.water { background: hsl(217 91% 95%); color: hsl(217 91% 60%); }
+    .category-btn .cat-icon.symptom { background: hsl(38 92% 95%); color: hsl(var(--accent)); }
+
+    .category-btn .cat-label {
+      font-size: 0.9375rem;
       font-weight: 600;
-      color: var(--text-primary);
+      color: hsl(var(--foreground));
       display: block;
-      margin-bottom: 4px;
+      margin-bottom: 0.125rem;
     }
 
-    .category-desc {
-      font-size: 12px;
-      color: var(--text-secondary);
+    .category-btn .cat-desc {
+      font-size: 0.75rem;
+      color: hsl(var(--muted-foreground));
     }
 
     /* Quick Actions */
     .quick-actions {
-      background: var(--bg-card);
+      background: hsl(var(--card));
       border-radius: var(--radius-lg);
       padding: var(--spacing-lg);
       margin-bottom: var(--spacing-lg);
       box-shadow: var(--shadow-sm);
-    }
-
-    .quick-title {
-      font-size: 16px;
-      font-weight: 600;
-      color: var(--text-primary);
-      margin-bottom: var(--spacing-md);
-      display: flex;
-      align-items: center;
-      gap: var(--spacing-xs);
-    }
-
-    .quick-btn-group {
-      display: flex;
-      flex-direction: column;
-      gap: var(--spacing-sm);
     }
 
     .quick-btn {
@@ -257,85 +198,60 @@
       align-items: center;
       gap: var(--spacing-md);
       padding: var(--spacing-md);
-      background: var(--bg-secondary);
+      background: hsl(var(--muted) / 0.3);
       border: none;
-      border-radius: var(--radius-md);
+      border-radius: var(--radius-lg);
       cursor: pointer;
       transition: all 0.2s ease;
+      width: 100%;
       text-align: left;
+      margin-bottom: var(--spacing-sm);
+    }
+
+    .quick-btn:last-child {
+      margin-bottom: 0;
     }
 
     .quick-btn:active {
-      background: var(--accent-light);
+      transform: scale(0.98);
+      background: hsl(var(--secondary));
     }
 
-    .quick-btn-icon {
-      width: 40px;
-      height: 40px;
+    .quick-btn .q-icon {
+      width: 2.5rem;
+      height: 2.5rem;
       border-radius: var(--radius-md);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 20px;
+      background: hsl(var(--card));
       flex-shrink: 0;
-      background: var(--bg-card);
+      color: hsl(var(--success));
     }
 
-    .quick-btn-text {
+    .quick-btn .q-text {
       flex: 1;
     }
 
-    .quick-btn-text .label {
-      font-size: 15px;
+    .quick-btn .q-text .label {
+      font-size: 0.9375rem;
       font-weight: 500;
-      color: var(--text-primary);
+      color: hsl(var(--foreground));
       display: block;
     }
 
-    .quick-btn-text .desc {
-      font-size: 13px;
-      color: var(--text-secondary);
+    .quick-btn .q-text .desc {
+      font-size: 0.8125rem;
+      color: hsl(var(--muted-foreground));
     }
 
-    .quick-btn-arrow {
-      color: var(--text-muted);
-      font-size: 18px;
+    .quick-btn .q-arrow {
+      color: hsl(var(--muted-foreground));
     }
 
-    /* Toast Notification */
-    .toast {
-      position: fixed;
-      bottom: 80px;
-      left: 50%;
-      transform: translateX(-50%) translateY(100px);
-      padding: 14px 24px;
-      border-radius: var(--radius-md);
-      color: white;
-      font-weight: 500;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-      z-index: 10000;
-      opacity: 0;
-      transition: all 0.3s ease;
-      max-width: 90%;
-      text-align: center;
-    }
-
-    .toast.show {
-      opacity: 1;
-      transform: translateX(-50%) translateY(0);
-    }
-
-    .toast.success {
-      background: linear-gradient(135deg, #51cf66 0%, #37b24d 100%);
-    }
-
-    .toast.error {
-      background: linear-gradient(135deg, #ff6b6b 0%, #fa5252 100%);
-    }
-
-    /* Activity History Section */
+    /* History Section */
     .history-section {
-      background: var(--bg-card);
+      background: hsl(var(--card));
       border-radius: var(--radius-lg);
       padding: var(--spacing-lg);
       margin-bottom: var(--spacing-lg);
@@ -350,66 +266,44 @@
     }
 
     .history-title {
-      font-size: 16px;
-      font-weight: 600;
-      color: var(--text-primary);
+      font-size: 1rem;
+      font-weight: 700;
+      color: hsl(var(--foreground));
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-xs);
     }
 
     .history-toggle {
       display: flex;
       align-items: center;
-      gap: 4px;
+      gap: 0.25rem;
       background: none;
       border: none;
-      color: var(--accent-primary);
-      font-size: 13px;
+      color: hsl(var(--accent));
+      font-size: 0.8125rem;
+      font-weight: 600;
       cursor: pointer;
       padding: var(--spacing-xs) var(--spacing-sm);
-      border-radius: var(--radius-sm);
+      border-radius: var(--radius-md);
       transition: background 0.2s;
     }
 
     .history-toggle:active {
-      background: var(--accent-light);
+      background: hsl(var(--accent) / 0.1);
     }
 
-    .history-toggle.expanded svg {
+    .history-toggle.expanded .toggle-arrow {
       transform: rotate(180deg);
     }
 
-    .history-list {
-      display: flex;
-      flex-direction: column;
-      gap: var(--spacing-sm);
-    }
-
-    .history-loading {
-      text-align: center;
-      color: var(--text-secondary);
-      padding: var(--spacing-md);
-    }
-
-    .history-empty {
-      text-align: center;
-      color: var(--text-secondary);
-      padding: var(--spacing-lg);
-    }
-
-    .history-day {
-      margin-bottom: var(--spacing-md);
-    }
-
-    .history-day:last-child {
-      margin-bottom: 0;
-    }
-
     .history-day-header {
-      font-size: 13px;
+      font-size: 0.8125rem;
       font-weight: 600;
-      color: var(--text-secondary);
+      color: hsl(var(--muted-foreground));
       margin-bottom: var(--spacing-sm);
       padding-bottom: var(--spacing-xs);
-      border-bottom: 1px solid rgba(0,0,0,0.08);
+      border-bottom: 1px solid hsl(var(--border));
     }
 
     .history-item {
@@ -417,32 +311,27 @@
       align-items: flex-start;
       gap: var(--spacing-sm);
       padding: var(--spacing-sm);
-      background: var(--bg-secondary);
-      border-radius: var(--radius-md);
+      background: hsl(var(--muted) / 0.2);
+      border-radius: var(--radius-lg);
       margin-bottom: var(--spacing-xs);
     }
 
-    .history-item:last-child {
-      margin-bottom: 0;
-    }
-
     .history-icon {
-      width: 36px;
-      height: 36px;
+      width: 2.25rem;
+      height: 2.25rem;
       border-radius: var(--radius-md);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 18px;
       flex-shrink: 0;
     }
 
-    .history-icon.medication { background: #FEE2E2; }
-    .history-icon.water { background: #DBEAFE; }
-    .history-icon.vitals { background: #D1FAE5; }
-    .history-icon.symptom { background: #FEF3C7; }
-    .history-icon.exercise { background: #E0E7FF; }
-    .history-icon.food { background: #FCE7F3; }
+    .history-icon.medication { background: hsl(0 93% 94%); color: hsl(0 72% 51%); }
+    .history-icon.water { background: hsl(217 91% 95%); color: hsl(217 91% 60%); }
+    .history-icon.vitals { background: hsl(142 76% 94%); color: hsl(var(--success)); }
+    .history-icon.symptom { background: hsl(38 92% 95%); color: hsl(var(--accent)); }
+    .history-icon.exercise { background: hsl(263 70% 95%); color: hsl(263 70% 50%); }
+    .history-icon.food { background: hsl(330 81% 95%); color: hsl(330 81% 60%); }
 
     .history-content {
       flex: 1;
@@ -450,78 +339,73 @@
     }
 
     .history-text {
-      font-size: 14px;
-      color: var(--text-primary);
-      margin-bottom: 2px;
+      font-size: 0.875rem;
+      color: hsl(var(--foreground));
+      margin-bottom: 0.125rem;
     }
 
     .history-time {
-      font-size: 12px;
-      color: var(--text-secondary);
+      font-size: 0.75rem;
+      color: hsl(var(--muted-foreground));
     }
 
-    .history-expanded {
-      margin-top: var(--spacing-md);
-      padding-top: var(--spacing-md);
-      border-top: 1px dashed rgba(0,0,0,0.1);
-    }
-
-    /* History Item Actions */
     .history-actions {
       display: flex;
-      gap: 4px;
+      gap: 0.25rem;
       flex-shrink: 0;
     }
 
     .history-action-btn {
-      width: 32px;
-      height: 32px;
+      width: 2rem;
+      height: 2rem;
       border: none;
-      border-radius: var(--radius-sm);
+      border-radius: var(--radius-md);
       background: transparent;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
       transition: background 0.2s;
-      font-size: 14px;
-    }
-
-    .history-action-btn:active {
-      transform: scale(0.95);
     }
 
     .history-action-btn.edit {
-      color: var(--accent-primary);
+      color: hsl(var(--primary));
     }
 
     .history-action-btn.edit:active {
-      background: var(--accent-light);
+      background: hsl(var(--primary) / 0.1);
     }
 
     .history-action-btn.delete {
-      color: #EF4444;
+      color: hsl(var(--destructive));
     }
 
     .history-action-btn.delete:active {
-      background: #FEE2E2;
+      background: hsl(var(--destructive) / 0.1);
     }
 
-    /* Edit Modal */
+    .history-expanded {
+      margin-top: var(--spacing-md);
+      padding-top: var(--spacing-md);
+      border-top: 1px dashed hsl(var(--border));
+    }
+
+    /* Modal Styles */
     .modal-overlay {
       position: fixed;
       top: 0;
       left: 0;
       right: 0;
       bottom: 0;
-      background: rgba(0,0,0,0.5);
+      background: rgba(0, 0, 0, 0.5);
       display: flex;
       align-items: center;
       justify-content: center;
-      z-index: 10000;
+      z-index: 100;
       opacity: 0;
       visibility: hidden;
       transition: all 0.3s ease;
+      backdrop-filter: blur(4px);
     }
 
     .modal-overlay.show {
@@ -530,13 +414,13 @@
     }
 
     .modal-content {
-      background: var(--bg-card);
-      border-radius: var(--radius-lg);
+      background: hsl(var(--card));
+      border-radius: var(--radius-xl);
       width: 90%;
       max-width: 400px;
       max-height: 80vh;
       overflow-y: auto;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      box-shadow: var(--shadow-xl);
       transform: scale(0.9);
       transition: transform 0.3s ease;
     }
@@ -547,8 +431,8 @@
 
     .modal-header {
       padding: var(--spacing-lg);
-      border-bottom: 1px solid rgba(0,0,0,0.08);
-      font-size: 18px;
+      border-bottom: 1px solid hsl(var(--border));
+      font-size: 1.125rem;
       font-weight: 600;
       display: flex;
       justify-content: space-between;
@@ -556,235 +440,177 @@
     }
 
     .modal-close {
-      width: 32px;
-      height: 32px;
+      width: 2rem;
+      height: 2rem;
       border: none;
-      background: var(--bg-secondary);
+      background: hsl(var(--muted));
       border-radius: var(--radius-full);
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 18px;
-      color: var(--text-secondary);
+      color: hsl(var(--muted-foreground));
+    }
+
+    .modal-close:active {
+      background: hsl(var(--muted-foreground) / 0.2);
     }
 
     .modal-body {
       padding: var(--spacing-lg);
     }
 
-    .form-group {
-      margin-bottom: var(--spacing-md);
-    }
-
-    .form-group label {
-      display: block;
-      font-size: 14px;
-      font-weight: 500;
-      color: var(--text-secondary);
-      margin-bottom: var(--spacing-xs);
-    }
-
-    .form-group input,
-    .form-group select,
-    .form-group textarea {
-      width: 100%;
-      padding: var(--spacing-sm) var(--spacing-md);
-      border: 1px solid rgba(0,0,0,0.15);
-      border-radius: var(--radius-md);
-      font-size: 16px;
-      background: var(--bg-card);
-      transition: border-color 0.2s;
-    }
-
-    .form-group input:focus,
-    .form-group select:focus,
-    .form-group textarea:focus {
-      outline: none;
-      border-color: var(--accent-primary);
-    }
-
     .modal-footer {
       padding: var(--spacing-md) var(--spacing-lg);
-      border-top: 1px solid rgba(0,0,0,0.08);
+      border-top: 1px solid hsl(var(--border));
       display: flex;
       gap: var(--spacing-sm);
       justify-content: flex-end;
     }
 
-    .btn-cancel {
-      padding: var(--spacing-sm) var(--spacing-lg);
-      border: 1px solid rgba(0,0,0,0.15);
-      background: var(--bg-card);
-      border-radius: var(--radius-md);
-      font-size: 14px;
-      cursor: pointer;
-    }
-
-    .btn-save {
-      padding: var(--spacing-sm) var(--spacing-lg);
-      border: none;
-      background: var(--accent-primary);
-      color: white;
-      border-radius: var(--radius-md);
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-    }
-
-    .btn-delete {
-      padding: var(--spacing-sm) var(--spacing-lg);
-      border: none;
-      background: #EF4444;
-      color: white;
-      border-radius: var(--radius-md);
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-    }
-
-    @media (max-width: 380px) {
-      .category-icon {
-        font-size: 28px;
-      }
-
-      .category-label {
-        font-size: 14px;
-      }
-
-      .summary-value {
-        font-size: 16px;
-      }
+    /* Close button at bottom */
+    .close-section {
+      padding: var(--spacing-md) 0 var(--spacing-xl);
     }
   </style>
 </head>
 <body>
   <div class="container">
     <!-- Loading State -->
-    <div id="loadingState" class="loading">
+    <div id="loadingState" class="loading-container">
       <div class="loading-spinner"></div>
-      <p>กำลังโหลด...</p>
+      <p class="loading-text">กำลังโหลด...</p>
     </div>
 
     <!-- Main Content -->
-    <div id="mainContent" class="hidden">
-      <!-- Dashboard Header -->
-      <div class="dashboard-header">
-        <h1>🩺 บันทึกสุขภาพวันนี้</h1>
-        <div class="dashboard-date" id="currentDate"></div>
+    <div id="mainContent" class="hidden animate-fadeIn">
+      <!-- Hero Header -->
+      <div class="hero-card">
+        <h1>
+          <span id="heroIcon"></span>
+          บันทึกสุขภาพวันนี้
+        </h1>
+        <div class="hero-date" id="currentDate"></div>
       </div>
 
-      <!-- Today's Summary - Stat Cards -->
+      <!-- Today's Summary -->
       <div class="summary-section">
-        <div class="summary-title">
-          📊 สรุปวันนี้
+        <div class="summary-label">
+          <span id="chartIcon"></span>
+          สรุปวันนี้
         </div>
         <div class="summary-grid">
-          <div class="summary-card medication-card">
-            <div class="summary-icon medication">💊</div>
+          <div class="summary-card medication">
+            <div class="summary-icon medication" id="medIcon"></div>
             <div class="summary-info">
-              <div class="summary-label">กินยา</div>
-              <div class="summary-value" id="medSummary">-/-</div>
+              <div class="label">กินยา</div>
+              <div class="value" id="medSummary">-/-</div>
             </div>
           </div>
-          <div class="summary-card water-card">
-            <div class="summary-icon water">💧</div>
+          <div class="summary-card water">
+            <div class="summary-icon water" id="waterIcon"></div>
             <div class="summary-info">
-              <div class="summary-label">ดื่มน้ำ</div>
-              <div class="summary-value" id="waterSummary">0 ml</div>
+              <div class="label">ดื่มน้ำ</div>
+              <div class="value" id="waterSummary">0 ml</div>
             </div>
           </div>
-          <div class="summary-card vitals-card">
-            <div class="summary-icon vitals">💉</div>
+          <div class="summary-card vitals">
+            <div class="summary-icon vitals" id="vitalsIcon"></div>
             <div class="summary-info">
-              <div class="summary-label">วัดความดัน</div>
-              <div class="summary-value" id="vitalsSummary">-</div>
+              <div class="label">วัดความดัน</div>
+              <div class="value" id="vitalsSummary">-</div>
             </div>
           </div>
-          <div class="summary-card symptom-card">
-            <div class="summary-icon symptom">🤒</div>
+          <div class="summary-card symptom">
+            <div class="summary-icon symptom" id="symptomIcon"></div>
             <div class="summary-info">
-              <div class="summary-label">อาการ</div>
-              <div class="summary-value" id="symptomSummary">ปกติ</div>
+              <div class="label">อาการ</div>
+              <div class="value" id="symptomSummary">ปกติ</div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Category Grid -->
-      <div class="category-section">
-        <div class="category-title">
-          📝 เลือกหมวดที่ต้องการบันทึก
-        </div>
-        <div class="category-grid">
-          <button class="category-btn" onclick="navigateTo('log-medication.html')">
-            <span class="category-icon">💊</span>
-            <span class="category-label">กินยา</span>
-            <span class="category-desc">บันทึกการกินยา</span>
-          </button>
-          <button class="category-btn" onclick="navigateTo('vitals-tracking.html')">
-            <span class="category-icon">💉</span>
-            <span class="category-label">ความดัน</span>
-            <span class="category-desc">วัดค่าความดันโลหิต</span>
-          </button>
-          <button class="category-btn" onclick="navigateTo('water-tracking.html')">
-            <span class="category-icon">💧</span>
-            <span class="category-label">ดื่มน้ำ</span>
-            <span class="category-desc">ติดตามการดื่มน้ำ</span>
-          </button>
-          <button class="category-btn" onclick="navigateTo('log-symptom.html')">
-            <span class="category-icon">🤒</span>
-            <span class="category-label">อาการ</span>
-            <span class="category-desc">บันทึกอาการผิดปกติ</span>
-          </button>
-        </div>
+      <!-- Category Section -->
+      <div class="section-header">
+        <h3 class="section-title">เลือกหมวดที่ต้องการบันทึก</h3>
+      </div>
+      <div class="category-grid">
+        <button class="category-btn" onclick="navigateTo('log-medication.html')">
+          <div class="cat-icon medication" id="catMedIcon"></div>
+          <span class="cat-label">กินยา</span>
+          <span class="cat-desc">บันทึกการกินยา</span>
+        </button>
+        <button class="category-btn" onclick="navigateTo('vitals-tracking.html')">
+          <div class="cat-icon vitals" id="catVitalsIcon"></div>
+          <span class="cat-label">ความดัน</span>
+          <span class="cat-desc">วัดค่าความดันโลหิต</span>
+        </button>
+        <button class="category-btn" onclick="navigateTo('water-tracking.html')">
+          <div class="cat-icon water" id="catWaterIcon"></div>
+          <span class="cat-label">ดื่มน้ำ</span>
+          <span class="cat-desc">ติดตามการดื่มน้ำ</span>
+        </button>
+        <button class="category-btn" onclick="navigateTo('log-symptom.html')">
+          <div class="cat-icon symptom" id="catSymptomIcon"></div>
+          <span class="cat-label">อาการ</span>
+          <span class="cat-desc">บันทึกอาการผิดปกติ</span>
+        </button>
       </div>
 
       <!-- Quick Actions -->
       <div class="quick-actions">
-        <div class="quick-title">
-          ⚡ ทางลัด
+        <div class="section-header mb-4">
+          <h3 class="section-title" style="display: flex; align-items: center; gap: 0.5rem;">
+            <span id="zapIcon"></span>
+            ทางลัด
+          </h3>
         </div>
-        <div class="quick-btn-group">
-          <button class="quick-btn" onclick="quickLogMedication()">
-            <div class="quick-btn-icon">✅</div>
-            <div class="quick-btn-text">
-              <span class="label">กินยาครบแล้ว</span>
-              <span class="desc">บันทึกว่ากินยาตามที่กำหนดทั้งหมดแล้ว</span>
-            </div>
-            <span class="quick-btn-arrow">›</span>
-          </button>
-          <button class="quick-btn" onclick="openMedications()">
-            <div class="quick-btn-icon">📋</div>
-            <div class="quick-btn-text">
-              <span class="label">จัดการรายการยา</span>
-              <span class="desc">เพิ่ม แก้ไข หรือลบรายการยา</span>
-            </div>
-            <span class="quick-btn-arrow">›</span>
-          </button>
-        </div>
+        <button class="quick-btn" onclick="quickLogMedication()">
+          <div class="q-icon" id="checkIcon"></div>
+          <div class="q-text">
+            <span class="label">กินยาครบแล้ว</span>
+            <span class="desc">บันทึกว่ากินยาตามที่กำหนดทั้งหมดแล้ว</span>
+          </div>
+          <div class="q-arrow" id="chevronRight1"></div>
+        </button>
+        <button class="quick-btn" onclick="openMedications()">
+          <div class="q-icon" id="listIcon" style="color: hsl(var(--primary))"></div>
+          <div class="q-text">
+            <span class="label">จัดการรายการยา</span>
+            <span class="desc">เพิ่ม แก้ไข หรือลบรายการยา</span>
+          </div>
+          <div class="q-arrow" id="chevronRight2"></div>
+        </button>
       </div>
 
-      <!-- Activity History Section -->
+      <!-- Activity History -->
       <div class="history-section">
         <div class="history-header">
-          <div class="history-title">📋 ประวัติกิจกรรม</div>
+          <div class="history-title">
+            <span id="historyIcon"></span>
+            ประวัติกิจกรรม
+          </div>
           <button class="history-toggle" onclick="toggleHistory()">
             <span id="historyToggleText">ดูเพิ่มเติม</span>
-            <svg id="historyArrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M6 9l6 6 6-6"/>
-            </svg>
+            <span class="toggle-arrow" id="historyArrow"></span>
           </button>
         </div>
-        <div id="historyList" class="history-list">
-          <div class="history-loading">กำลังโหลด...</div>
+        <div id="historyList" class="space-y-3">
+          <div class="text-center text-muted p-4">กำลังโหลด...</div>
         </div>
         <div id="historyExpanded" class="history-expanded hidden">
           <!-- More history items will be loaded here -->
         </div>
       </div>
 
-      <button class="btn btn-secondary btn-block" onclick="closeLiff()">ปิด</button>
+      <!-- Close Button -->
+      <div class="close-section">
+        <button class="btn btn-secondary btn-block" onclick="closeLiff()">
+          <span id="closeIcon"></span>
+          ปิด
+        </button>
+      </div>
     </div>
   </div>
 
@@ -796,7 +622,9 @@
     <div class="modal-content" onclick="event.stopPropagation()">
       <div class="modal-header">
         <span id="editModalTitle">แก้ไขกิจกรรม</span>
-        <button class="modal-close" onclick="closeEditModal()">×</button>
+        <button class="modal-close" onclick="closeEditModal()">
+          <span id="modalCloseIcon"></span>
+        </button>
       </div>
       <div class="modal-body">
         <input type="hidden" id="editActivityId">
@@ -806,12 +634,12 @@
         <!-- Medication Form -->
         <div id="editFormMedication" class="edit-form-section" style="display: none;">
           <div class="form-group">
-            <label>💊 ชื่อยา</label>
-            <input type="text" id="editMedName" placeholder="ชื่อยา">
+            <label class="form-label">ชื่อยา</label>
+            <input type="text" class="form-input" id="editMedName" placeholder="ชื่อยา">
           </div>
           <div class="form-group">
-            <label>เวลากิน</label>
-            <select id="editMedTime">
+            <label class="form-label">เวลากิน</label>
+            <select class="form-select" id="editMedTime">
               <option value="morning">เช้า</option>
               <option value="noon">กลางวัน</option>
               <option value="evening">เย็น</option>
@@ -819,68 +647,68 @@
             </select>
           </div>
           <div class="form-group">
-            <label>หมายเหตุ</label>
-            <textarea id="editMedNotes" rows="2" placeholder="หมายเหตุเพิ่มเติม"></textarea>
+            <label class="form-label">หมายเหตุ</label>
+            <textarea class="form-textarea" id="editMedNotes" rows="2" placeholder="หมายเหตุเพิ่มเติม"></textarea>
           </div>
         </div>
 
         <!-- Vitals Form -->
         <div id="editFormVitals" class="edit-form-section" style="display: none;">
           <div id="editVitalsBP" style="display: none;">
-            <div style="display: flex; gap: 10px;">
+            <div style="display: flex; gap: 0.625rem;">
               <div class="form-group" style="flex: 1;">
-                <label>💉 ค่าบน (Systolic)</label>
-                <input type="number" id="editBpSystolic" placeholder="120">
+                <label class="form-label">ค่าบน (Systolic)</label>
+                <input type="number" class="form-input" id="editBpSystolic" placeholder="120">
               </div>
               <div class="form-group" style="flex: 1;">
-                <label>ค่าล่าง (Diastolic)</label>
-                <input type="number" id="editBpDiastolic" placeholder="80">
+                <label class="form-label">ค่าล่าง (Diastolic)</label>
+                <input type="number" class="form-input" id="editBpDiastolic" placeholder="80">
               </div>
             </div>
             <div class="form-group">
-              <label>ชีพจร (ครั้ง/นาที)</label>
-              <input type="number" id="editPulse" placeholder="72">
+              <label class="form-label">ชีพจร (ครั้ง/นาที)</label>
+              <input type="number" class="form-input" id="editPulse" placeholder="72">
             </div>
           </div>
           <div id="editVitalsOther" style="display: none;">
             <div class="form-group">
-              <label id="editVitalsOtherLabel">ค่า</label>
-              <input type="number" id="editVitalsOtherValue" step="0.1">
+              <label class="form-label" id="editVitalsOtherLabel">ค่า</label>
+              <input type="number" class="form-input" id="editVitalsOtherValue" step="0.1">
             </div>
           </div>
           <div class="form-group">
-            <label>หมายเหตุ</label>
-            <textarea id="editVitalsNotes" rows="2" placeholder="หมายเหตุเพิ่มเติม"></textarea>
+            <label class="form-label">หมายเหตุ</label>
+            <textarea class="form-textarea" id="editVitalsNotes" rows="2" placeholder="หมายเหตุเพิ่มเติม"></textarea>
           </div>
         </div>
 
         <!-- Water Form -->
         <div id="editFormWater" class="edit-form-section" style="display: none;">
           <div class="form-group">
-            <label>💧 ปริมาณน้ำ</label>
-            <div style="display: flex; gap: 10px; align-items: center;">
-              <input type="number" id="editWaterAmount" placeholder="250" style="flex: 1;">
-              <select id="editWaterUnit" style="width: 80px;">
+            <label class="form-label">ปริมาณน้ำ</label>
+            <div style="display: flex; gap: 0.625rem; align-items: center;">
+              <input type="number" class="form-input" id="editWaterAmount" placeholder="250" style="flex: 1;">
+              <select class="form-select" id="editWaterUnit" style="width: 5rem;">
                 <option value="ml">ml</option>
                 <option value="glass">แก้ว</option>
               </select>
             </div>
           </div>
           <div class="form-group">
-            <label>หมายเหตุ</label>
-            <textarea id="editWaterNotes" rows="2" placeholder="หมายเหตุเพิ่มเติม"></textarea>
+            <label class="form-label">หมายเหตุ</label>
+            <textarea class="form-textarea" id="editWaterNotes" rows="2" placeholder="หมายเหตุเพิ่มเติม"></textarea>
           </div>
         </div>
 
         <!-- Symptom Form -->
         <div id="editFormSymptom" class="edit-form-section" style="display: none;">
           <div class="form-group">
-            <label>🤒 อาการ</label>
-            <input type="text" id="editSymptomName" placeholder="ชื่ออาการ">
+            <label class="form-label">อาการ</label>
+            <input type="text" class="form-input" id="editSymptomName" placeholder="ชื่ออาการ">
           </div>
           <div class="form-group">
-            <label>ระดับความรุนแรง</label>
-            <select id="editSymptomSeverity">
+            <label class="form-label">ระดับความรุนแรง</label>
+            <select class="form-select" id="editSymptomSeverity">
               <option value="1">1 - เล็กน้อย</option>
               <option value="2">2 - เล็กน้อย-ปานกลาง</option>
               <option value="3">3 - ปานกลาง</option>
@@ -889,34 +717,34 @@
             </select>
           </div>
           <div class="form-group">
-            <label>ตำแหน่ง/บริเวณ</label>
-            <input type="text" id="editSymptomLocation" placeholder="เช่น ท้อง, หัว, หน้าอก">
+            <label class="form-label">ตำแหน่ง/บริเวณ</label>
+            <input type="text" class="form-input" id="editSymptomLocation" placeholder="เช่น ท้อง, หัว, หน้าอก">
           </div>
           <div class="form-group">
-            <label>หมายเหตุ</label>
-            <textarea id="editSymptomNotes" rows="2" placeholder="รายละเอียดเพิ่มเติม"></textarea>
+            <label class="form-label">หมายเหตุ</label>
+            <textarea class="form-textarea" id="editSymptomNotes" rows="2" placeholder="รายละเอียดเพิ่มเติม"></textarea>
           </div>
         </div>
 
-        <!-- Generic Form (for other types) -->
+        <!-- Generic Form -->
         <div id="editFormGeneric" class="edit-form-section" style="display: none;">
           <div class="form-group">
-            <label>ประเภท</label>
-            <input type="text" id="editTypeDisplay" readonly style="background: var(--bg-secondary);">
+            <label class="form-label">ประเภท</label>
+            <input type="text" class="form-input" id="editTypeDisplay" readonly style="background: hsl(var(--muted));">
           </div>
           <div class="form-group">
-            <label id="editGenericLabel">ค่า</label>
-            <input type="text" id="editGenericValue" placeholder="กรอกค่า">
+            <label class="form-label" id="editGenericLabel">ค่า</label>
+            <input type="text" class="form-input" id="editGenericValue" placeholder="กรอกค่า">
           </div>
           <div class="form-group">
-            <label>หมายเหตุ</label>
-            <textarea id="editGenericNotes" rows="2" placeholder="หมายเหตุเพิ่มเติม"></textarea>
+            <label class="form-label">หมายเหตุ</label>
+            <textarea class="form-textarea" id="editGenericNotes" rows="2" placeholder="หมายเหตุเพิ่มเติม"></textarea>
           </div>
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn-cancel" onclick="closeEditModal()">ยกเลิก</button>
-        <button class="btn-save" onclick="saveActivityEdit()">บันทึก</button>
+        <button class="btn btn-secondary btn-sm" onclick="closeEditModal()">ยกเลิก</button>
+        <button class="btn btn-teal btn-sm" onclick="saveActivityEdit()">บันทึก</button>
       </div>
     </div>
   </div>
@@ -926,30 +754,64 @@
     <div class="modal-content" onclick="event.stopPropagation()">
       <div class="modal-header">
         <span>ยืนยันการลบ</span>
-        <button class="modal-close" onclick="closeDeleteModal()">×</button>
+        <button class="modal-close" onclick="closeDeleteModal()">
+          <span id="deleteCloseIcon"></span>
+        </button>
       </div>
       <div class="modal-body">
         <input type="hidden" id="deleteActivityId">
         <input type="hidden" id="deleteActivityTable">
-        <p style="text-align: center; margin-bottom: var(--spacing-md);">
-          คุณต้องการลบรายการนี้หรือไม่?
-        </p>
-        <div id="deleteActivityPreview" style="background: var(--bg-secondary); padding: var(--spacing-md); border-radius: var(--radius-md); text-align: center;">
-        </div>
+        <p class="text-center mb-4">คุณต้องการลบรายการนี้หรือไม่?</p>
+        <div id="deleteActivityPreview" style="background: hsl(var(--muted)); padding: var(--spacing-md); border-radius: var(--radius-lg); text-align: center;"></div>
       </div>
       <div class="modal-footer">
-        <button class="btn-cancel" onclick="closeDeleteModal()">ยกเลิก</button>
-        <button class="btn-delete" onclick="confirmDelete()">ลบ</button>
+        <button class="btn btn-secondary btn-sm" onclick="closeDeleteModal()">ยกเลิก</button>
+        <button class="btn btn-sm" style="background: hsl(var(--destructive)); color: white;" onclick="confirmDelete()">ลบ</button>
       </div>
     </div>
   </div>
 
   <script>
     // ============================================
-    // OPTIMIZED LIFF LOADING - All Phases
+    // ICON INITIALIZATION
     // ============================================
+    document.addEventListener('DOMContentLoaded', function() {
+      // Hero & Summary icons
+      document.getElementById('heroIcon').innerHTML = icon('stethoscope', 'lucide-lg');
+      document.getElementById('chartIcon').innerHTML = icon('barChart', 'lucide-sm');
+      document.getElementById('medIcon').innerHTML = icon('pill');
+      document.getElementById('waterIcon').innerHTML = icon('droplet');
+      document.getElementById('vitalsIcon').innerHTML = icon('heartPulse');
+      document.getElementById('symptomIcon').innerHTML = icon('thermometer');
 
-    // API Base URL - inline for LIFF compatibility
+      // Category icons
+      document.getElementById('catMedIcon').innerHTML = icon('pill', 'lucide-lg');
+      document.getElementById('catVitalsIcon').innerHTML = icon('heartPulse', 'lucide-lg');
+      document.getElementById('catWaterIcon').innerHTML = icon('droplet', 'lucide-lg');
+      document.getElementById('catSymptomIcon').innerHTML = icon('thermometer', 'lucide-lg');
+
+      // Quick action icons
+      document.getElementById('zapIcon').innerHTML = icon('zap');
+      document.getElementById('checkIcon').innerHTML = icon('checkCircle');
+      document.getElementById('listIcon').innerHTML = icon('fileText');
+      document.getElementById('chevronRight1').innerHTML = icon('chevronRight');
+      document.getElementById('chevronRight2').innerHTML = icon('chevronRight');
+
+      // History icons
+      document.getElementById('historyIcon').innerHTML = icon('clock');
+      document.getElementById('historyArrow').innerHTML = icon('chevronRight', 'lucide-sm');
+
+      // Close icon
+      document.getElementById('closeIcon').innerHTML = icon('x', 'lucide-sm');
+
+      // Modal close icons
+      document.getElementById('modalCloseIcon').innerHTML = icon('x', 'lucide-sm');
+      document.getElementById('deleteCloseIcon').innerHTML = icon('x', 'lucide-sm');
+    });
+
+    // ============================================
+    // CONFIGURATION
+    // ============================================
     const API_BASE_URL = window.location.hostname === 'localhost'
       ? 'http://localhost:3000/api'
       : 'https://duulair.vercel.app/api';
@@ -975,13 +837,11 @@
     };
 
     // ============================================
-    // Phase 2.1 & 2.2: Show UI First with Cached Data
+    // SHOW UI IMMEDIATELY WITH CACHED DATA
     // ============================================
     (function showUIImmediately() {
-      // Set date immediately (no async needed)
       document.getElementById('currentDate').textContent = formatThaiDate(new Date());
 
-      // Load cached summary from localStorage
       const today = new Date().toISOString().split('T')[0];
       const cachedSummary = localStorage.getItem(`health_summary_${today}`);
       if (cachedSummary) {
@@ -991,7 +851,6 @@
         } catch (e) {}
       }
 
-      // Load water & vitals from localStorage immediately
       const waterData = JSON.parse(localStorage.getItem(`water_${today}`) || '{"total": 0}');
       todaySummary.waterAmount = waterData.total || 0;
 
@@ -1003,12 +862,10 @@
 
       updateSummaryUI();
 
-      // Show UI immediately! Don't wait for LIFF
       document.getElementById('loadingState').classList.add('hidden');
       document.getElementById('mainContent').classList.remove('hidden');
     })();
 
-    // Format Thai date
     function formatThaiDate(date) {
       const thaiMonths = [
         'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
@@ -1025,10 +882,9 @@
     }
 
     // ============================================
-    // Phase 1.1: Cache LIFF Profile
+    // LIFF INITIALIZATION
     // ============================================
     async function getCachedProfile() {
-      // Check cache first (valid for 1 hour)
       const cached = sessionStorage.getItem('liff_profile');
       const cacheTime = sessionStorage.getItem('liff_profile_time');
       const ONE_HOUR = 60 * 60 * 1000;
@@ -1037,22 +893,15 @@
         return JSON.parse(cached);
       }
 
-      // Fetch fresh profile
       const profile = await liff.getProfile();
       sessionStorage.setItem('liff_profile', JSON.stringify(profile));
       sessionStorage.setItem('liff_profile_time', Date.now().toString());
       return profile;
     }
 
-    // ============================================
-    // Phase 1.2: Skip Registration Check if Cached
-    // ============================================
     async function checkUserRegistration(lineUserId) {
-      // Check cache first
       const cached = sessionStorage.getItem('user_registered');
-      if (cached === 'true') {
-        return true; // Skip API call!
-      }
+      if (cached === 'true') return true;
 
       try {
         const response = await fetch(`${API_BASE_URL}/check-user/${lineUserId}`);
@@ -1067,13 +916,10 @@
         }
       } catch (error) {
         console.error('Error checking registration:', error);
-        return true; // Don't block on error
+        return true;
       }
     }
 
-    // ============================================
-    // Phase 1.3: Parallel Loading with LIFF Init
-    // ============================================
     async function initializeLIFF() {
       try {
         await liff.init({ liffId: LIFF_ID });
@@ -1083,57 +929,51 @@
           return;
         }
 
-        // Get context immediately (sync, no wait)
         const context = JSON.parse(localStorage.getItem('oonjai_context') || '{}');
         patientId = context.patientId;
         groupId = context.groupId;
 
-        // Get profile first
         const profile = await getCachedProfile();
 
-        // ✅ Fallback: fetch patientId from server if not in localStorage
         if (!patientId && profile?.userId) {
-          console.log('⚠️ No patientId in localStorage, fetching from server...');
+          console.log('Fetching patientId from server...');
           try {
             const response = await fetch(`${API_BASE_URL}/check-user/${profile.userId}`);
             const result = await response.json();
             if (result.exists && result.profile?.linked_patient_id) {
               patientId = result.profile.linked_patient_id;
-              // Update localStorage for future use
               context.patientId = patientId;
               localStorage.setItem('oonjai_context', JSON.stringify(context));
-              console.log('✅ Fetched patientId from server:', patientId);
             }
           } catch (e) {
-            console.error('Failed to fetch patientId from server:', e);
+            console.error('Failed to fetch patientId:', e);
           }
         }
 
-        // Load data in parallel (now patientId is available)
         await Promise.all([
           loadTodaySummary(),
           loadActivityHistory()
         ]);
 
-        // Check registration in background (don't await)
         checkUserRegistration(profile.userId).catch(e => console.error('Reg check:', e));
 
-        // Cache summary for next visit
         const today = new Date().toISOString().split('T')[0];
         localStorage.setItem(`health_summary_${today}`, JSON.stringify(todaySummary));
 
       } catch (error) {
         console.error('LIFF init error:', error);
-        // UI is already shown, just log the error
       }
     }
 
+    // ============================================
+    // DATA LOADING
+    // ============================================
     async function loadTodaySummary() {
       const today = new Date().toISOString().split('T')[0];
 
-      // Load medications count
       if (patientId && supabaseClient) {
         try {
+          // Load medications
           const { data: meds, error } = await supabaseClient
             .from('medications')
             .select('id, times')
@@ -1141,7 +981,6 @@
             .eq('active', true);
 
           if (!error && meds) {
-            // Count total expected medication doses for today
             let totalDoses = 0;
             meds.forEach(med => {
               const times = med.times || [];
@@ -1169,11 +1008,10 @@
         }
       }
 
-      // Load water data from localStorage (fallback) and database
+      // Water data
       const waterData = JSON.parse(localStorage.getItem(`water_${today}`) || '{"total": 0}');
       todaySummary.waterAmount = waterData.total || 0;
 
-      // Also check water from activity_logs in database
       if (patientId && supabaseClient) {
         try {
           const { data: waterLogs, error: waterError } = await supabaseClient
@@ -1194,11 +1032,11 @@
             }
           }
         } catch (e) {
-          console.error('Error loading water from DB:', e);
+          console.error('Error loading water:', e);
         }
       }
 
-      // Load vitals from database (uses measured_at, not created_at)
+      // Vitals data
       if (patientId && supabaseClient) {
         try {
           const { data: vitals, error: vitalsError } = await supabaseClient
@@ -1221,11 +1059,10 @@
             }
           }
         } catch (e) {
-          console.error('Error loading vitals from DB:', e);
+          console.error('Error loading vitals:', e);
         }
       }
 
-      // Fallback to localStorage if no DB data
       if (!todaySummary.latestVitals) {
         const vitalsData = JSON.parse(localStorage.getItem(`vitals_${today}`) || '{"readings": []}');
         if (vitalsData.readings && vitalsData.readings.length > 0) {
@@ -1234,7 +1071,7 @@
         }
       }
 
-      // Load symptoms from database
+      // Symptoms
       if (patientId && supabaseClient) {
         try {
           const { data: symptoms, error: symptomsError } = await supabaseClient
@@ -1248,16 +1085,14 @@
             todaySummary.symptoms = symptoms;
           }
         } catch (e) {
-          console.error('Error loading symptoms from DB:', e);
+          console.error('Error loading symptoms:', e);
         }
       }
 
-      // Update UI
       updateSummaryUI();
     }
 
     function updateSummaryUI() {
-      // Medication summary
       const medEl = document.getElementById('medSummary');
       if (todaySummary.medicationsTotal > 0) {
         medEl.textContent = `${todaySummary.medicationsTaken}/${todaySummary.medicationsTotal}`;
@@ -1270,26 +1105,23 @@
         }
       } else {
         medEl.textContent = 'ไม่มียา';
-        medEl.style.fontSize = '14px';
+        medEl.style.fontSize = '0.875rem';
       }
 
-      // Water summary
       const waterEl = document.getElementById('waterSummary');
       waterEl.textContent = `${todaySummary.waterAmount} ml`;
       if (todaySummary.waterAmount >= 2000) {
         waterEl.classList.add('complete');
       }
 
-      // Vitals summary
       const vitalsEl = document.getElementById('vitalsSummary');
       if (todaySummary.latestVitals) {
         vitalsEl.textContent = todaySummary.latestVitals;
       } else {
         vitalsEl.textContent = 'ยังไม่วัด';
-        vitalsEl.style.fontSize = '14px';
+        vitalsEl.style.fontSize = '0.875rem';
       }
 
-      // Symptom summary
       const symptomEl = document.getElementById('symptomSummary');
       if (todaySummary.symptoms && todaySummary.symptoms.length > 0) {
         symptomEl.textContent = `${todaySummary.symptoms.length} อาการ`;
@@ -1300,7 +1132,9 @@
       }
     }
 
-    // Quick log all medications
+    // ============================================
+    // QUICK ACTIONS
+    // ============================================
     async function quickLogMedication() {
       if (!patientId) {
         showToast('กรุณาลงทะเบียนก่อน', 'error');
@@ -1312,7 +1146,6 @@
         return;
       }
 
-      // Determine current time period
       const hour = new Date().getHours();
       let currentPeriod = 'morning';
       if (hour >= 11 && hour < 14) currentPeriod = 'afternoon';
@@ -1330,7 +1163,6 @@
           return;
         }
 
-        // Log each medication
         const logs = medsForPeriod.map(med => ({
           patient_id: patientId,
           task_type: 'medication',
@@ -1341,9 +1173,7 @@
           }
         }));
 
-        const { error } = await supabaseClient
-          .from('activity_logs')
-          .insert(logs);
+        const { error } = await supabaseClient.from('activity_logs').insert(logs);
 
         if (error) throw error;
 
@@ -1357,11 +1187,8 @@
       }
     }
 
-    // Navigate to sub-page within LIFF
     function navigateTo(page) {
-      // Store current page as return destination
       sessionStorage.setItem('liff_return_to', 'health-log.html');
-      // Navigate using proper path
       const basePath = window.location.pathname.replace(/[^/]*$/, '');
       window.location.href = basePath + page;
     }
@@ -1384,19 +1211,18 @@
     }
 
     // ============================================
-    // Activity History Functions
+    // ACTIVITY HISTORY
     // ============================================
     let activityHistory = [];
     let historyExpanded = false;
 
     async function loadActivityHistory() {
       if (!patientId || !supabaseClient) {
-        document.getElementById('historyList').innerHTML = '<div class="history-empty">ไม่พบข้อมูล</div>';
+        document.getElementById('historyList').innerHTML = '<div class="empty-state"><p class="empty-description">ไม่พบข้อมูล</p></div>';
         return;
       }
 
       try {
-        // Get activities from last 7 days
         const sevenDaysAgo = new Date();
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
         const startDate = sevenDaysAgo.toISOString();
@@ -1411,7 +1237,6 @@
 
         if (error) throw error;
 
-        // Also get vitals logs (uses measured_at, not created_at)
         const { data: vitals, error: vitalsError } = await supabaseClient
           .from('vitals_logs')
           .select('*')
@@ -1420,7 +1245,6 @@
           .order('measured_at', { ascending: false })
           .limit(20);
 
-        // Also get symptoms
         const { data: symptoms, error: symptomsError } = await supabaseClient
           .from('symptoms')
           .select('*')
@@ -1429,10 +1253,8 @@
           .order('created_at', { ascending: false })
           .limit(20);
 
-        // Combine and format all activities
         activityHistory = [];
 
-        // Process activity logs
         if (logs) {
           logs.forEach(log => {
             activityHistory.push({
@@ -1441,18 +1263,15 @@
               type: log.task_type || 'activity',
               text: formatActivityText(log),
               timestamp: new Date(log.created_at),
-              icon: getActivityIcon(log.task_type),
+              iconName: getActivityIconName(log.task_type),
               rawData: log
             });
           });
         }
 
-        // Process vitals
         if (vitals) {
           vitals.forEach(v => {
             let text = '';
-            let valueDisplay = '';
-            // Support both snake_case (database) and camelCase column names
             const systolic = v.bp_systolic || v.systolic;
             const diastolic = v.bp_diastolic || v.diastolic;
             const pulse = v.heart_rate || v.pulse;
@@ -1462,66 +1281,52 @@
 
             if (systolic && diastolic) {
               text = `วัดความดัน ${systolic}/${diastolic} mmHg`;
-              valueDisplay = `${systolic}/${diastolic}`;
-              if (pulse) {
-                text += ` ชีพจร ${pulse}`;
-                valueDisplay += ` ชีพจร ${pulse}`;
-              }
+              if (pulse) text += ` ชีพจร ${pulse}`;
             } else if (pulse && !systolic) {
               text = `ชีพจร ${pulse} bpm`;
-              valueDisplay = pulse;
             } else if (bloodSugar) {
               text = `น้ำตาล ${bloodSugar} mg/dL`;
-              valueDisplay = bloodSugar;
             } else if (temp) {
               text = `อุณหภูมิ ${temp}°C`;
-              valueDisplay = temp;
             }
+
             if (text) {
               activityHistory.push({
                 id: v.id,
                 table: 'vitals_logs',
                 type: 'vitals',
                 text,
-                valueDisplay,
                 timestamp: new Date(timestamp),
-                icon: '💉',
+                iconName: 'heartPulse',
                 rawData: v
               });
             }
           });
         }
 
-        // Process symptoms
         if (symptoms) {
           symptoms.forEach(s => {
-            // Map severity_1to5 to text
             const severityText = s.severity_1to5 ?
-              (s.severity_1to5 <= 2 ? 'เล็กน้อย' : s.severity_1to5 <= 3 ? 'ปานกลาง' : 'รุนแรง') :
-              '';
+              (s.severity_1to5 <= 2 ? 'เล็กน้อย' : s.severity_1to5 <= 3 ? 'ปานกลาง' : 'รุนแรง') : '';
             const symptomName = s.symptom_name || s.symptom || 'อาการ';
             activityHistory.push({
               id: s.id,
               table: 'symptoms',
               type: 'symptom',
               text: severityText ? `${symptomName} (${severityText})` : symptomName,
-              valueDisplay: symptomName,
               timestamp: new Date(s.created_at),
-              icon: '🤒',
+              iconName: 'thermometer',
               rawData: s
             });
           });
         }
 
-        // Sort by timestamp descending
         activityHistory.sort((a, b) => b.timestamp - a.timestamp);
-
-        // Render history
         renderActivityHistory();
 
       } catch (error) {
         console.error('Error loading activity history:', error);
-        document.getElementById('historyList').innerHTML = '<div class="history-empty">ไม่สามารถโหลดข้อมูลได้</div>';
+        document.getElementById('historyList').innerHTML = '<div class="empty-state"><p class="empty-description">ไม่สามารถโหลดข้อมูลได้</p></div>';
       }
     }
 
@@ -1546,17 +1351,17 @@
       }
     }
 
-    function getActivityIcon(type) {
+    function getActivityIconName(type) {
       const icons = {
-        medication: '💊',
-        water: '💧',
-        vitals: '💉',
-        symptom: '🤒',
-        exercise: '🚶',
-        walk: '🚶',
-        food: '🍽️'
+        medication: 'pill',
+        water: 'droplet',
+        vitals: 'heartPulse',
+        symptom: 'thermometer',
+        exercise: 'dumbbell',
+        walk: 'footprints',
+        food: 'utensils'
       };
-      return icons[type] || '📝';
+      return icons[type] || 'fileText';
     }
 
     function renderActivityHistory() {
@@ -1564,21 +1369,17 @@
       const historyExpandedEl = document.getElementById('historyExpanded');
 
       if (activityHistory.length === 0) {
-        historyList.innerHTML = '<div class="history-empty">ยังไม่มีประวัติกิจกรรม</div>';
+        historyList.innerHTML = '<div class="empty-state"><p class="empty-description">ยังไม่มีประวัติกิจกรรม</p></div>';
         return;
       }
 
-      // Group by date
       const grouped = {};
       activityHistory.forEach(activity => {
         const dateKey = activity.timestamp.toISOString().split('T')[0];
-        if (!grouped[dateKey]) {
-          grouped[dateKey] = [];
-        }
+        if (!grouped[dateKey]) grouped[dateKey] = [];
         grouped[dateKey].push(activity);
       });
 
-      // Render first 2 days in main list
       const dates = Object.keys(grouped).sort().reverse();
       const mainDates = dates.slice(0, 2);
       const expandedDates = dates.slice(2);
@@ -1588,9 +1389,8 @@
         mainHTML += renderDayActivities(dateKey, grouped[dateKey]);
       });
 
-      historyList.innerHTML = mainHTML || '<div class="history-empty">ยังไม่มีประวัติกิจกรรม</div>';
+      historyList.innerHTML = mainHTML || '<div class="empty-state"><p class="empty-description">ยังไม่มีประวัติกิจกรรม</p></div>';
 
-      // Render expanded section
       if (expandedDates.length > 0) {
         let expandedHTML = '';
         expandedDates.forEach(dateKey => {
@@ -1609,30 +1409,27 @@
       const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
 
       let dateLabel;
-      if (dateKey === today) {
-        dateLabel = 'วันนี้';
-      } else if (dateKey === yesterday) {
-        dateLabel = 'เมื่อวาน';
-      } else {
-        dateLabel = date.toLocaleDateString('th-TH', { weekday: 'short', day: 'numeric', month: 'short' });
-      }
+      if (dateKey === today) dateLabel = 'วันนี้';
+      else if (dateKey === yesterday) dateLabel = 'เมื่อวาน';
+      else dateLabel = date.toLocaleDateString('th-TH', { weekday: 'short', day: 'numeric', month: 'short' });
 
-      let html = `<div class="history-day">
+      let html = `<div class="history-day mb-4">
         <div class="history-day-header">${dateLabel}</div>`;
 
-      activities.forEach((activity, idx) => {
+      activities.forEach((activity) => {
         const time = activity.timestamp.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
         const activityIndex = activityHistory.findIndex(a => a.id === activity.id && a.table === activity.table);
+
         html += `
           <div class="history-item">
-            <div class="history-icon ${activity.type}">${activity.icon}</div>
+            <div class="history-icon ${activity.type}">${icon(activity.iconName)}</div>
             <div class="history-content">
               <div class="history-text">${activity.text}</div>
               <div class="history-time">${time}</div>
             </div>
             <div class="history-actions">
-              <button class="history-action-btn edit" onclick="openEditModal(${activityIndex})" title="แก้ไข">✏️</button>
-              <button class="history-action-btn delete" onclick="openDeleteModal(${activityIndex})" title="ลบ">🗑️</button>
+              <button class="history-action-btn edit" onclick="openEditModal(${activityIndex})">${icon('edit', 'lucide-sm')}</button>
+              <button class="history-action-btn delete" onclick="openDeleteModal(${activityIndex})">${icon('trash', 'lucide-sm')}</button>
             </div>
           </div>`;
       });
@@ -1660,7 +1457,7 @@
     }
 
     // ============================================
-    // CRUD Functions for Activity History
+    // CRUD FUNCTIONS
     // ============================================
     let currentEditIndex = null;
 
@@ -1674,7 +1471,6 @@
       document.getElementById('editActivityTable').value = activity.table;
       document.getElementById('editActivityType').value = activity.type;
 
-      // Hide all form sections first
       document.getElementById('editFormMedication').style.display = 'none';
       document.getElementById('editFormVitals').style.display = 'none';
       document.getElementById('editFormWater').style.display = 'none';
@@ -1683,30 +1479,25 @@
 
       const raw = activity.rawData;
 
-      // Set modal title based on type
       const typeLabels = {
-        medication: '💊 แก้ไขการกินยา',
-        water: '💧 แก้ไขการดื่มน้ำ',
-        vitals: '💉 แก้ไขค่าสุขภาพ',
-        symptom: '🤒 แก้ไขอาการ',
-        exercise: '🚶 แก้ไขการออกกำลังกาย',
-        walk: '🚶 แก้ไขการเดิน',
-        food: '🍽️ แก้ไขอาหาร'
+        medication: 'แก้ไขการกินยา',
+        water: 'แก้ไขการดื่มน้ำ',
+        vitals: 'แก้ไขค่าสุขภาพ',
+        symptom: 'แก้ไขอาการ',
+        exercise: 'แก้ไขการออกกำลังกาย',
+        walk: 'แก้ไขการเดิน',
+        food: 'แก้ไขอาหาร'
       };
       document.getElementById('editModalTitle').textContent = typeLabels[activity.type] || 'แก้ไขกิจกรรม';
 
-      // Show appropriate form section and populate fields
       if (activity.type === 'medication' || (activity.table === 'activity_logs' && raw.task_type === 'medication')) {
-        // Medication form
         document.getElementById('editFormMedication').style.display = 'block';
         document.getElementById('editMedName').value = raw.metadata?.medication_name || raw.value || '';
         document.getElementById('editMedTime').value = raw.metadata?.time_period || 'morning';
         document.getElementById('editMedNotes').value = raw.notes || '';
 
       } else if (activity.type === 'vitals' || activity.table === 'vitals_logs') {
-        // Vitals form
         document.getElementById('editFormVitals').style.display = 'block';
-        // Support both snake_case (database) and camelCase column names
         const systolic = raw.bp_systolic || raw.systolic;
         const diastolic = raw.bp_diastolic || raw.diastolic;
         const pulse = raw.heart_rate || raw.pulse;
@@ -1714,35 +1505,30 @@
         const temp = raw.temperature;
 
         if (systolic && diastolic) {
-          // Blood pressure form
           document.getElementById('editVitalsBP').style.display = 'block';
           document.getElementById('editVitalsOther').style.display = 'none';
           document.getElementById('editBpSystolic').value = systolic;
           document.getElementById('editBpDiastolic').value = diastolic;
           document.getElementById('editPulse').value = pulse || '';
         } else if (glucose) {
-          // Blood sugar
           document.getElementById('editVitalsBP').style.display = 'none';
           document.getElementById('editVitalsOther').style.display = 'block';
-          document.getElementById('editVitalsOtherLabel').textContent = '🩸 น้ำตาลในเลือด (mg/dL)';
+          document.getElementById('editVitalsOtherLabel').textContent = 'น้ำตาลในเลือด (mg/dL)';
           document.getElementById('editVitalsOtherValue').value = glucose;
         } else if (temp) {
-          // Temperature
           document.getElementById('editVitalsBP').style.display = 'none';
           document.getElementById('editVitalsOther').style.display = 'block';
-          document.getElementById('editVitalsOtherLabel').textContent = '🌡️ อุณหภูมิ (°C)';
+          document.getElementById('editVitalsOtherLabel').textContent = 'อุณหภูมิ (°C)';
           document.getElementById('editVitalsOtherValue').value = temp;
         } else if (pulse && !systolic) {
-          // Heart rate only
           document.getElementById('editVitalsBP').style.display = 'none';
           document.getElementById('editVitalsOther').style.display = 'block';
-          document.getElementById('editVitalsOtherLabel').textContent = '❤️ ชีพจร (ครั้ง/นาที)';
+          document.getElementById('editVitalsOtherLabel').textContent = 'ชีพจร (ครั้ง/นาที)';
           document.getElementById('editVitalsOtherValue').value = pulse;
         }
         document.getElementById('editVitalsNotes').value = raw.notes || '';
 
       } else if (activity.type === 'water' || (activity.table === 'activity_logs' && raw.task_type === 'water')) {
-        // Water form
         document.getElementById('editFormWater').style.display = 'block';
         const amount = raw.metadata?.amount || raw.value || 0;
         document.getElementById('editWaterAmount').value = amount;
@@ -1750,7 +1536,6 @@
         document.getElementById('editWaterNotes').value = raw.notes || '';
 
       } else if (activity.type === 'symptom' || activity.table === 'symptoms') {
-        // Symptom form
         document.getElementById('editFormSymptom').style.display = 'block';
         document.getElementById('editSymptomName').value = raw.symptom_name || raw.symptom || '';
         document.getElementById('editSymptomSeverity').value = raw.severity_1to5 || raw.severity || 3;
@@ -1758,13 +1543,8 @@
         document.getElementById('editSymptomNotes').value = raw.notes || raw.duration_text || '';
 
       } else {
-        // Generic form for other types
         document.getElementById('editFormGeneric').style.display = 'block';
-        const typeDisplayLabels = {
-          exercise: '🚶 ออกกำลังกาย',
-          walk: '🚶 เดิน',
-          food: '🍽️ อาหาร'
-        };
+        const typeDisplayLabels = { exercise: 'ออกกำลังกาย', walk: 'เดิน', food: 'อาหาร' };
         document.getElementById('editTypeDisplay').value = typeDisplayLabels[activity.type] || activity.type;
         document.getElementById('editGenericLabel').textContent = activity.type === 'exercise' || activity.type === 'walk' ? 'ระยะเวลา (นาที)' : 'ค่า';
         document.getElementById('editGenericValue').value = raw.value || raw.metadata?.duration || '';
@@ -1792,27 +1572,19 @@
       try {
         let updateData = {};
 
-        // Build update data based on activity type and visible form
         if (activityType === 'medication' || (table === 'activity_logs' && raw.task_type === 'medication')) {
-          // Medication form
           const medName = document.getElementById('editMedName').value;
           const medTime = document.getElementById('editMedTime').value;
           const medNotes = document.getElementById('editMedNotes').value;
 
-          updateData.metadata = {
-            ...raw.metadata,
-            medication_name: medName,
-            time_period: medTime
-          };
+          updateData.metadata = { ...raw.metadata, medication_name: medName, time_period: medTime };
           updateData.value = medName;
           if (medNotes) updateData.notes = medNotes;
 
         } else if (activityType === 'vitals' || table === 'vitals_logs') {
-          // Vitals form - check which sub-form is visible
           const bpFormVisible = document.getElementById('editVitalsBP').style.display !== 'none';
 
           if (bpFormVisible) {
-            // Blood pressure form
             const systolic = document.getElementById('editBpSystolic').value;
             const diastolic = document.getElementById('editBpDiastolic').value;
             const pulse = document.getElementById('editPulse').value;
@@ -1821,41 +1593,29 @@
             if (diastolic) updateData.bp_diastolic = parseInt(diastolic);
             if (pulse) updateData.heart_rate = parseInt(pulse);
           } else {
-            // Other vitals form (blood sugar, temp, heart rate only)
             const otherValue = document.getElementById('editVitalsOtherValue').value;
             const otherLabel = document.getElementById('editVitalsOtherLabel').textContent;
 
-            if (otherLabel.includes('น้ำตาล')) {
-              updateData.glucose = parseFloat(otherValue);
-            } else if (otherLabel.includes('อุณหภูมิ')) {
-              updateData.temperature = parseFloat(otherValue);
-            } else if (otherLabel.includes('ชีพจร')) {
-              updateData.heart_rate = parseInt(otherValue);
-            }
+            if (otherLabel.includes('น้ำตาล')) updateData.glucose = parseFloat(otherValue);
+            else if (otherLabel.includes('อุณหภูมิ')) updateData.temperature = parseFloat(otherValue);
+            else if (otherLabel.includes('ชีพจร')) updateData.heart_rate = parseInt(otherValue);
           }
 
           const vitalsNotes = document.getElementById('editVitalsNotes').value;
           if (vitalsNotes) updateData.notes = vitalsNotes;
 
         } else if (activityType === 'water' || (table === 'activity_logs' && raw.task_type === 'water')) {
-          // Water form
           const waterAmount = document.getElementById('editWaterAmount').value;
           const waterUnit = document.getElementById('editWaterUnit').value;
           const waterNotes = document.getElementById('editWaterNotes').value;
 
-          // Convert to ml if unit is glass (1 glass ≈ 250ml)
           const amountMl = waterUnit === 'glass' ? parseInt(waterAmount) * 250 : parseInt(waterAmount);
 
-          updateData.metadata = {
-            ...raw.metadata,
-            amount: amountMl,
-            unit: waterUnit
-          };
+          updateData.metadata = { ...raw.metadata, amount: amountMl, unit: waterUnit };
           updateData.value = amountMl.toString();
           if (waterNotes) updateData.notes = waterNotes;
 
         } else if (activityType === 'symptom' || table === 'symptoms') {
-          // Symptom form
           const symptomName = document.getElementById('editSymptomName').value;
           const symptomSeverity = document.getElementById('editSymptomSeverity').value;
           const symptomLocation = document.getElementById('editSymptomLocation').value;
@@ -1867,15 +1627,11 @@
           if (symptomNotes) updateData.notes = symptomNotes;
 
         } else {
-          // Generic form for other types
           const genericValue = document.getElementById('editGenericValue').value;
           const genericNotes = document.getElementById('editGenericNotes').value;
 
           if (activityType === 'exercise' || activityType === 'walk') {
-            updateData.metadata = {
-              ...raw.metadata,
-              duration: parseInt(genericValue)
-            };
+            updateData.metadata = { ...raw.metadata, duration: parseInt(genericValue) };
             updateData.value = genericValue;
           } else {
             updateData.value = genericValue;
@@ -1883,17 +1639,12 @@
           if (genericNotes) updateData.notes = genericNotes;
         }
 
-        const { error } = await supabaseClient
-          .from(table)
-          .update(updateData)
-          .eq('id', id);
+        const { error } = await supabaseClient.from(table).update(updateData).eq('id', id);
 
         if (error) throw error;
 
         showToast('บันทึกการแก้ไขเรียบร้อย', 'success');
         closeEditModal();
-
-        // Reload history
         await loadActivityHistory();
 
       } catch (error) {
@@ -1909,9 +1660,9 @@
       document.getElementById('deleteActivityId').value = activity.id;
       document.getElementById('deleteActivityTable').value = activity.table;
       document.getElementById('deleteActivityPreview').innerHTML = `
-        <div style="font-size: 24px; margin-bottom: 8px;">${activity.icon}</div>
+        <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">${icon(activity.iconName, 'lucide-xl')}</div>
         <div style="font-weight: 500;">${activity.text}</div>
-        <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">
+        <div style="font-size: 0.75rem; color: hsl(var(--muted-foreground)); margin-top: 0.25rem;">
           ${activity.timestamp.toLocaleDateString('th-TH')} ${activity.timestamp.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}
         </div>
       `;
@@ -1929,19 +1680,13 @@
       const table = document.getElementById('deleteActivityTable').value;
 
       try {
-        const { error } = await supabaseClient
-          .from(table)
-          .delete()
-          .eq('id', id);
+        const { error } = await supabaseClient.from(table).delete().eq('id', id);
 
         if (error) throw error;
 
         showToast('ลบรายการเรียบร้อย', 'success');
         closeDeleteModal();
-
-        // Reload history
         await loadActivityHistory();
-        // Also reload summary
         await loadTodaySummary();
 
       } catch (error) {

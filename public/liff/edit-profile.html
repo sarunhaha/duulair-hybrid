@@ -3,186 +3,295 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#10B981">
+  <meta name="theme-color" content="#1E7B9C">
   <title>แก้ไขข้อมูล - OONJAI</title>
-  <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-  <link rel="stylesheet" href="css/minimal-theme.css">
+
+  <!-- Preconnect -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://static.line-scdn.net">
+
+  <!-- Kanit Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Theme CSS -->
+  <link rel="stylesheet" href="css/oonjai-theme.css">
+
   <style>
-    /* Header styles */
-    .page-header {
-      display: flex;
-      align-items: center;
-      gap: var(--spacing-md);
-      margin-bottom: var(--spacing-lg);
-      padding-bottom: var(--spacing-md);
-      border-bottom: 1px solid rgba(0,0,0,0.08);
+    /* Form Group */
+    .form-group {
+      margin-bottom: 1rem;
     }
 
-    .back-btn {
-      width: 40px;
-      height: 40px;
-      border-radius: var(--radius-full);
-      border: none;
-      background: var(--bg-secondary);
+    .form-label {
+      display: block;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: hsl(var(--foreground));
+      margin-bottom: 0.375rem;
+    }
+
+    .form-input,
+    .form-select,
+    .form-textarea {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      font-size: 1rem;
+      font-family: inherit;
+      color: hsl(var(--foreground));
+      background: hsl(var(--card));
+      border: 1px solid hsl(var(--border));
+      border-radius: var(--radius-lg);
+      transition: all 0.2s ease;
+      box-sizing: border-box;
+    }
+
+    .form-input:focus,
+    .form-select:focus,
+    .form-textarea:focus {
+      outline: none;
+      border-color: hsl(var(--primary));
+      box-shadow: 0 0 0 3px hsl(var(--primary) / 0.1);
+    }
+
+    .form-input::placeholder,
+    .form-textarea::placeholder {
+      color: hsl(var(--muted-foreground));
+    }
+
+    .form-textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    .form-select {
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%23718096' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.75rem center;
+      background-size: 1.25rem;
+      padding-right: 2.5rem;
+    }
+
+    /* Section Card */
+    .section-card {
+      background: hsl(var(--card));
+      border: 1px solid hsl(var(--border));
+      border-radius: var(--radius-xl);
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 1.0625rem;
+      font-weight: 600;
+      color: hsl(var(--foreground));
+      margin-bottom: 1rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 2px solid hsl(var(--primary));
+    }
+
+    .section-title svg {
+      width: 20px;
+      height: 20px;
+      color: hsl(var(--primary));
+    }
+
+    .section-divider {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.9375rem;
+      font-weight: 600;
+      color: hsl(var(--foreground));
+      margin-top: 1.25rem;
+      padding-top: 1rem;
+      border-top: 1px solid hsl(var(--border));
+    }
+
+    .section-divider svg {
+      width: 16px;
+      height: 16px;
+      color: hsl(var(--primary));
+    }
+
+    /* Button Group */
+    .button-group {
+      display: flex;
+      gap: 0.75rem;
+      margin-top: 1.5rem;
+      padding-bottom: 2rem;
+    }
+
+    .btn-cancel {
+      flex: 1;
       display: flex;
       align-items: center;
       justify-content: center;
+      gap: 0.375rem;
+      padding: 0.875rem;
+      background: hsl(var(--muted));
+      color: hsl(var(--foreground));
+      border: 1px solid hsl(var(--border));
+      border-radius: var(--radius-lg);
+      font-size: 1rem;
+      font-weight: 500;
       cursor: pointer;
       transition: all 0.2s ease;
-      color: var(--text-primary);
     }
 
-    .back-btn:active {
-      transform: scale(0.95);
-      background: rgba(0,0,0,0.1);
-    }
-
-    .page-title {
-      font-size: 20px;
-      font-weight: 600;
-      color: var(--text-primary);
-      margin: 0;
-    }
-
-    .form-group {
-      margin-bottom: 16px;
-    }
-    .form-group label {
-      display: block;
-      margin-bottom: 6px;
-      color: var(--text-primary);
-      font-weight: 500;
-      font-size: 14px;
-    }
-    .form-group input,
-    .form-group select,
-    .form-group textarea {
-      width: 100%;
-      padding: 12px;
-      border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      font-size: 16px;
-      box-sizing: border-box;
-      background: var(--bg-card);
-      color: var(--text-primary);
-    }
-    .form-group input:focus,
-    .form-group select:focus,
-    .form-group textarea:focus {
-      border-color: var(--accent-primary);
-      outline: none;
-      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
-    }
-    .btn-group {
-      display: flex;
-      gap: 12px;
-      margin-top: 24px;
-      padding-bottom: 32px;
-    }
-    .btn {
-      flex: 1;
-      padding: 14px;
-      border: none;
-      border-radius: var(--radius-md);
-      cursor: pointer;
-      font-size: 16px;
-      font-weight: 500;
-      transition: all 0.2s ease;
-    }
-    .btn-save {
-      background: var(--accent-primary);
-      color: white;
-    }
-    .btn-save:active {
-      background: var(--accent-secondary);
-      transform: scale(0.98);
-    }
-    .btn-cancel {
-      background: var(--bg-secondary);
-      color: var(--text-primary);
-    }
     .btn-cancel:active {
-      background: rgba(0,0,0,0.1);
+      transform: scale(0.98);
+      background: hsl(var(--muted-foreground) / 0.1);
     }
-    .btn:disabled {
+
+    .btn-save {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.375rem;
+      padding: 0.875rem;
+      background: hsl(var(--primary));
+      color: white;
+      border: none;
+      border-radius: var(--radius-lg);
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn-save:active {
+      transform: scale(0.98);
+      background: hsl(var(--primary-dark));
+    }
+
+    .btn-save:disabled,
+    .btn-cancel:disabled {
       opacity: 0.6;
       cursor: not-allowed;
     }
-    .section-title {
-      font-size: 18px;
-      font-weight: 600;
-      margin-bottom: 16px;
-      padding-bottom: 12px;
-      border-bottom: 2px solid var(--accent-primary);
-      color: var(--text-primary);
+
+    .btn-save svg,
+    .btn-cancel svg {
+      width: 18px;
+      height: 18px;
     }
-    .section-divider {
-      font-size: 15px;
-      font-weight: 600;
-      color: var(--text-primary);
-      padding: 12px 0 8px 0;
-      margin-top: 8px;
-      border-top: 1px solid var(--bg-secondary);
-    }
+
+    /* Success Message */
     .success-message {
-      background: #D1FAE5;
-      border: 1px solid #A7F3D0;
-      color: #065F46;
-      padding: 12px 16px;
-      border-radius: var(--radius-md);
-      margin-bottom: 16px;
       display: none;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 1rem;
+      background: hsl(var(--success) / 0.15);
+      border: 1px solid hsl(var(--success) / 0.3);
+      border-radius: var(--radius-lg);
+      margin-bottom: 1rem;
+    }
+
+    .success-message.show {
+      display: flex;
+    }
+
+    .success-message svg {
+      width: 20px;
+      height: 20px;
+      color: hsl(var(--success));
+      flex-shrink: 0;
+    }
+
+    .success-message-text {
+      font-size: 0.9375rem;
+      color: hsl(var(--success));
+      font-weight: 500;
+    }
+
+    /* Error Message */
+    .error-message {
+      display: none;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 1rem;
+      background: hsl(var(--error) / 0.15);
+      border: 1px solid hsl(var(--error) / 0.3);
+      border-radius: var(--radius-lg);
+      margin-bottom: 1rem;
+    }
+
+    .error-message.show {
+      display: flex;
+    }
+
+    .error-message svg {
+      width: 20px;
+      height: 20px;
+      color: hsl(var(--error));
+      flex-shrink: 0;
+    }
+
+    .error-message-text {
+      font-size: 0.9375rem;
+      color: hsl(var(--error));
+      font-weight: 500;
     }
   </style>
 </head>
 <body>
   <div class="container">
     <!-- Loading State -->
-    <div id="loading" class="loading">
+    <div id="loadingState" class="loading-container">
       <div class="loading-spinner"></div>
-      <p>กำลังโหลด...</p>
+      <p class="loading-text">กำลังโหลด...</p>
     </div>
 
-    <!-- Error Message -->
-    <div id="error" class="alert alert-error" style="display: none;"></div>
-
-    <!-- Success Message -->
-    <div id="success" class="success-message"></div>
-
-    <!-- Edit Form -->
-    <div id="edit-form" style="display: none;">
+    <!-- Main Content -->
+    <div id="mainContent" class="hidden">
       <!-- Header -->
-      <div class="page-header">
-        <button class="back-btn" onclick="goBack()">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M19 12H5M12 19l-7-7 7-7"/>
-          </svg>
-        </button>
-        <h1 class="page-title" id="page-title">แก้ไขข้อมูล</h1>
+      <header class="header">
+        <button class="btn-icon" onclick="goBack()" aria-label="กลับ" id="backBtn"></button>
+        <h1 class="header-title" id="headerTitle"></h1>
+        <button class="btn-icon" onclick="darkMode.toggle()" aria-label="สลับธีม" id="themeBtn"></button>
+      </header>
+
+      <!-- Error Message -->
+      <div class="error-message" id="errorMessage">
+        <span id="errorIcon"></span>
+        <span class="error-message-text" id="errorText"></span>
+      </div>
+
+      <!-- Success Message -->
+      <div class="success-message" id="successMessage">
+        <span id="successIcon"></span>
+        <span class="success-message-text" id="successText">บันทึกข้อมูลสำเร็จ!</span>
       </div>
 
       <!-- Personal Info Section -->
-      <div id="section-personal" class="card" style="display: none;">
-        <div class="section-title">📝 ข้อมูลส่วนตัว</div>
+      <div id="section-personal" class="section-card hidden">
+        <div class="section-title" id="personalSectionTitle"></div>
         <div class="form-group">
-          <label>ชื่อ</label>
-          <input type="text" id="first_name" placeholder="ชื่อ">
+          <label class="form-label">ชื่อ</label>
+          <input type="text" class="form-input" id="first_name" placeholder="ชื่อ">
         </div>
         <div class="form-group">
-          <label>นามสกุล</label>
-          <input type="text" id="last_name" placeholder="นามสกุล">
+          <label class="form-label">นามสกุล</label>
+          <input type="text" class="form-input" id="last_name" placeholder="นามสกุล">
         </div>
         <div class="form-group">
-          <label>ชื่อเล่น</label>
-          <input type="text" id="nickname" placeholder="ชื่อเล่น">
+          <label class="form-label">ชื่อเล่น</label>
+          <input type="text" class="form-input" id="nickname" placeholder="ชื่อเล่น">
         </div>
         <div class="form-group">
-          <label>วันเกิด</label>
-          <input type="date" id="birth_date">
+          <label class="form-label">วันเกิด</label>
+          <input type="date" class="form-input" id="birth_date">
         </div>
         <div class="form-group">
-          <label>เพศ</label>
-          <select id="gender">
+          <label class="form-label">เพศ</label>
+          <select class="form-select" id="gender">
             <option value="">เลือกเพศ</option>
             <option value="male">ชาย</option>
             <option value="female">หญิง</option>
@@ -190,25 +299,25 @@
           </select>
         </div>
         <div class="form-group">
-          <label>เบอร์โทรศัพท์</label>
-          <input type="tel" id="phone_number" placeholder="0812345678">
+          <label class="form-label">เบอร์โทรศัพท์</label>
+          <input type="tel" class="form-input" id="phone_number" placeholder="0812345678">
         </div>
         <div class="form-group">
-          <label>ที่อยู่</label>
-          <textarea id="address" rows="2" placeholder="บ้านเลขที่ ถนน ตำบล อำเภอ จังหวัด"></textarea>
+          <label class="form-label">ที่อยู่</label>
+          <textarea class="form-textarea" id="address" rows="2" placeholder="บ้านเลขที่ ถนน ตำบล อำเภอ จังหวัด"></textarea>
         </div>
-        <div class="section-divider">📏 ข้อมูลร่างกาย</div>
+        <div class="section-divider" id="bodyDivider"></div>
         <div class="form-group">
-          <label>น้ำหนัก (กก.)</label>
-          <input type="number" id="weight_kg" placeholder="60" step="0.1">
-        </div>
-        <div class="form-group">
-          <label>ส่วนสูง (ซม.)</label>
-          <input type="number" id="height_cm" placeholder="160">
+          <label class="form-label">น้ำหนัก (กก.)</label>
+          <input type="number" class="form-input" id="weight_kg" placeholder="60" step="0.1">
         </div>
         <div class="form-group">
-          <label>กรุ๊ปเลือด</label>
-          <select id="blood_type">
+          <label class="form-label">ส่วนสูง (ซม.)</label>
+          <input type="number" class="form-input" id="height_cm" placeholder="160">
+        </div>
+        <div class="form-group">
+          <label class="form-label">กรุ๊ปเลือด</label>
+          <select class="form-select" id="blood_type">
             <option value="">เลือกกรุ๊ปเลือด</option>
             <option value="A">A</option>
             <option value="B">B</option>
@@ -219,42 +328,42 @@
       </div>
 
       <!-- Medical Info Section -->
-      <div id="section-medical" class="card" style="display: none;">
-        <div class="section-title">🏥 ข้อมูลทางการแพทย์</div>
+      <div id="section-medical" class="section-card hidden">
+        <div class="section-title" id="medicalSectionTitle"></div>
         <div class="form-group">
-          <label>โรคประจำตัว</label>
-          <textarea id="medical_condition" rows="2" placeholder="โรคประจำตัว..."></textarea>
+          <label class="form-label">โรคประจำตัว</label>
+          <textarea class="form-textarea" id="medical_condition" rows="2" placeholder="โรคประจำตัว..."></textarea>
         </div>
         <div class="form-group">
-          <label>โรคเรื้อรัง (คั่นด้วยจุลภาค)</label>
-          <textarea id="chronic_diseases" rows="2" placeholder="ความดันสูง, เบาหวาน..."></textarea>
+          <label class="form-label">โรคเรื้อรัง (คั่นด้วยจุลภาค)</label>
+          <textarea class="form-textarea" id="chronic_diseases" rows="2" placeholder="ความดันสูง, เบาหวาน..."></textarea>
         </div>
-        <div class="section-divider">⚠️ การแพ้</div>
+        <div class="section-divider" id="allergyDivider"></div>
         <div class="form-group">
-          <label>แพ้ยา (คั่นด้วยจุลภาค)</label>
-          <textarea id="drug_allergies" rows="2" placeholder="Penicillin, Aspirin..."></textarea>
+          <label class="form-label">แพ้ยา (คั่นด้วยจุลภาค)</label>
+          <textarea class="form-textarea" id="drug_allergies" rows="2" placeholder="Penicillin, Aspirin..."></textarea>
         </div>
         <div class="form-group">
-          <label>แพ้อาหาร (คั่นด้วยจุลภาค)</label>
-          <textarea id="food_allergies" rows="2" placeholder="อาหารทะเล, ถั่ว..."></textarea>
+          <label class="form-label">แพ้อาหาร (คั่นด้วยจุลภาค)</label>
+          <textarea class="form-textarea" id="food_allergies" rows="2" placeholder="อาหารทะเล, ถั่ว..."></textarea>
         </div>
-        <div class="section-divider">📋 หมายเหตุ</div>
+        <div class="section-divider" id="notesDivider"></div>
         <div class="form-group">
-          <label>หมายเหตุทางการแพทย์</label>
-          <textarea id="medical_notes" rows="3" placeholder="ข้อมูลเพิ่มเติม..."></textarea>
+          <label class="form-label">หมายเหตุทางการแพทย์</label>
+          <textarea class="form-textarea" id="medical_notes" rows="3" placeholder="ข้อมูลเพิ่มเติม..."></textarea>
         </div>
       </div>
 
       <!-- Emergency Contact Section -->
-      <div id="section-emergency" class="card" style="display: none;">
-        <div class="section-title">📞 ผู้ติดต่อฉุกเฉิน</div>
+      <div id="section-emergency" class="section-card hidden">
+        <div class="section-title" id="emergencySectionTitle"></div>
         <div class="form-group">
-          <label>ชื่อผู้ติดต่อฉุกเฉิน</label>
-          <input type="text" id="emergency_contact_name" placeholder="ชื่อ-นามสกุล">
+          <label class="form-label">ชื่อผู้ติดต่อฉุกเฉิน</label>
+          <input type="text" class="form-input" id="emergency_contact_name" placeholder="ชื่อ-นามสกุล">
         </div>
         <div class="form-group">
-          <label>ความสัมพันธ์</label>
-          <select id="emergency_contact_relation">
+          <label class="form-label">ความสัมพันธ์</label>
+          <select class="form-select" id="emergency_contact_relation">
             <option value="">เลือกความสัมพันธ์</option>
             <option value="ลูก">ลูก</option>
             <option value="ลูกสะใภ้">ลูกสะใภ้</option>
@@ -269,30 +378,37 @@
           </select>
         </div>
         <div class="form-group">
-          <label>เบอร์โทรศัพท์</label>
-          <input type="tel" id="emergency_contact_phone" placeholder="0812345678">
+          <label class="form-label">เบอร์โทรศัพท์</label>
+          <input type="tel" class="form-input" id="emergency_contact_phone" placeholder="0812345678">
         </div>
       </div>
 
       <!-- Hospital Section -->
-      <div id="section-hospital" class="card" style="display: none;">
-        <div class="section-title">🏨 โรงพยาบาลประจำ</div>
+      <div id="section-hospital" class="section-card hidden">
+        <div class="section-title" id="hospitalSectionTitle"></div>
         <div class="form-group">
-          <label>ชื่อโรงพยาบาล</label>
-          <input type="text" id="hospital_name" placeholder="โรงพยาบาล...">
+          <label class="form-label">ชื่อโรงพยาบาล</label>
+          <input type="text" class="form-input" id="hospital_name" placeholder="โรงพยาบาล...">
         </div>
         <div class="form-group">
-          <label>เบอร์โทรโรงพยาบาล</label>
-          <input type="tel" id="hospital_phone" placeholder="02-xxx-xxxx">
+          <label class="form-label">เบอร์โทรโรงพยาบาล</label>
+          <input type="tel" class="form-input" id="hospital_phone" placeholder="02-xxx-xxxx">
         </div>
       </div>
 
-      <div class="btn-group">
-        <button class="btn btn-cancel" onclick="goBack()">ยกเลิก</button>
-        <button class="btn btn-save" id="save-btn" onclick="saveChanges()">บันทึก</button>
+      <!-- Button Group -->
+      <div class="button-group">
+        <button class="btn-cancel" onclick="goBack()" id="cancelBtn"></button>
+        <button class="btn-save" onclick="saveChanges()" id="saveBtn"></button>
       </div>
     </div>
   </div>
+
+  <!-- LIFF SDK -->
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+  <!-- Lucide Icons -->
+  <script src="js/lucide-icons.js"></script>
 
   <!-- API Client -->
   <script src="js/api.js"></script>
@@ -307,6 +423,74 @@
     currentPatientId = urlParams.get('patient_id');
     currentSection = urlParams.get('section') || 'personal';
 
+    // Initialize icons and UI immediately
+    (function initUI() {
+      // Initialize dark mode
+      darkMode.init();
+
+      // Set header icons
+      document.getElementById('backBtn').innerHTML = icon('arrowLeft');
+      document.getElementById('themeBtn').innerHTML = icon('sun');
+
+      // Set message icons
+      document.getElementById('errorIcon').innerHTML = icon('alertCircle');
+      document.getElementById('successIcon').innerHTML = icon('checkCircle');
+
+      // Set section titles
+      document.getElementById('personalSectionTitle').innerHTML = icon('fileText') + ' ข้อมูลส่วนตัว';
+      document.getElementById('bodyDivider').innerHTML = icon('ruler') + ' ข้อมูลร่างกาย';
+
+      document.getElementById('medicalSectionTitle').innerHTML = icon('heartPulse') + ' ข้อมูลทางการแพทย์';
+      document.getElementById('allergyDivider').innerHTML = icon('alertTriangle') + ' การแพ้';
+      document.getElementById('notesDivider').innerHTML = icon('clipboardList') + ' หมายเหตุ';
+
+      document.getElementById('emergencySectionTitle').innerHTML = icon('phone') + ' ผู้ติดต่อฉุกเฉิน';
+      document.getElementById('hospitalSectionTitle').innerHTML = icon('building') + ' โรงพยาบาลประจำ';
+
+      // Set button content
+      document.getElementById('cancelBtn').innerHTML = icon('x') + ' ยกเลิก';
+      document.getElementById('saveBtn').innerHTML = icon('check') + ' บันทึก';
+
+      // Set page title based on section
+      const sectionTitles = {
+        personal: 'แก้ไขข้อมูลส่วนตัว',
+        medical: 'แก้ไขข้อมูลทางการแพทย์',
+        emergency: 'แก้ไขผู้ติดต่อฉุกเฉิน',
+        hospital: 'แก้ไขข้อมูลโรงพยาบาล'
+      };
+      const titleIcon = {
+        personal: 'fileText',
+        medical: 'heartPulse',
+        emergency: 'phone',
+        hospital: 'building'
+      };
+      document.getElementById('headerTitle').innerHTML = icon(titleIcon[currentSection] || 'pencil', 'inline-icon') + ' ' + (sectionTitles[currentSection] || 'แก้ไขข้อมูล');
+
+      // Show relevant section
+      const sectionEl = document.getElementById(`section-${currentSection}`);
+      if (sectionEl) {
+        sectionEl.classList.remove('hidden');
+      }
+
+      // Show UI immediately
+      document.getElementById('loadingState').classList.add('hidden');
+      document.getElementById('mainContent').classList.remove('hidden');
+    })();
+
+    // Update theme icon based on current mode
+    function updateThemeIcon() {
+      const isDark = document.documentElement.classList.contains('dark');
+      document.getElementById('themeBtn').innerHTML = isDark ? icon('moon') : icon('sun');
+    }
+
+    // Override dark mode toggle to update icon
+    const originalToggle = darkMode.toggle;
+    darkMode.toggle = function() {
+      originalToggle.call(darkMode);
+      updateThemeIcon();
+    };
+    setTimeout(updateThemeIcon, 100);
+
     // Initialize page
     async function init() {
       if (!currentPatientId) {
@@ -314,19 +498,6 @@
         return;
       }
 
-      // Set page title
-      const sectionTitles = {
-        personal: 'แก้ไขข้อมูลส่วนตัว',
-        medical: 'แก้ไขข้อมูลทางการแพทย์',
-        emergency: 'แก้ไขผู้ติดต่อฉุกเฉิน',
-        hospital: 'แก้ไขข้อมูลโรงพยาบาล'
-      };
-      document.getElementById('page-title').textContent = sectionTitles[currentSection] || 'แก้ไขข้อมูล';
-
-      // Show relevant section
-      document.getElementById(`section-${currentSection}`).style.display = 'block';
-
-      // Load patient data
       await loadPatientData();
     }
 
@@ -342,9 +513,6 @@
         originalData = result.profile;
         populateForm(result.profile);
 
-        document.getElementById('loading').style.display = 'none';
-        document.getElementById('edit-form').style.display = 'block';
-
       } catch (error) {
         console.error('Error loading patient:', error);
         showError(error.message);
@@ -352,7 +520,7 @@
     }
 
     function populateForm(patient) {
-      // Personal Info (includes body info)
+      // Personal Info
       if (currentSection === 'personal') {
         document.getElementById('first_name').value = patient.first_name || '';
         document.getElementById('last_name').value = patient.last_name || '';
@@ -361,13 +529,12 @@
         document.getElementById('gender').value = patient.gender || '';
         document.getElementById('phone_number').value = patient.phone_number || '';
         document.getElementById('address').value = patient.address || '';
-        // Body info
         document.getElementById('weight_kg').value = patient.weight_kg || '';
         document.getElementById('height_cm').value = patient.height_cm || '';
         document.getElementById('blood_type').value = patient.blood_type || '';
       }
 
-      // Medical Info (conditions, allergies, notes)
+      // Medical Info
       if (currentSection === 'medical') {
         document.getElementById('medical_condition').value = patient.medical_condition || '';
         document.getElementById('chronic_diseases').value =
@@ -404,7 +571,6 @@
         data.gender = document.getElementById('gender').value || null;
         data.phone_number = document.getElementById('phone_number').value.trim() || null;
         data.address = document.getElementById('address').value.trim() || null;
-        // Body info
         const weight = document.getElementById('weight_kg').value;
         data.weight_kg = weight ? parseFloat(weight) : null;
         const height = document.getElementById('height_cm').value;
@@ -438,9 +604,9 @@
     }
 
     async function saveChanges() {
-      const saveBtn = document.getElementById('save-btn');
+      const saveBtn = document.getElementById('saveBtn');
       saveBtn.disabled = true;
-      saveBtn.textContent = 'กำลังบันทึก...';
+      saveBtn.innerHTML = icon('loader') + ' กำลังบันทึก...';
 
       try {
         const formData = getFormData();
@@ -461,9 +627,7 @@
         }
 
         // Show success
-        const successEl = document.getElementById('success');
-        successEl.textContent = 'บันทึกข้อมูลสำเร็จ!';
-        successEl.style.display = 'block';
+        document.getElementById('successMessage').classList.add('show');
 
         // Go back after delay
         setTimeout(() => {
@@ -474,24 +638,21 @@
         console.error('Error saving:', error);
         showError(error.message);
         saveBtn.disabled = false;
-        saveBtn.textContent = 'บันทึก';
+        saveBtn.innerHTML = icon('check') + ' บันทึก';
       }
     }
 
     function showError(message) {
-      document.getElementById('loading').style.display = 'none';
-      const errorEl = document.getElementById('error');
-      errorEl.textContent = message;
-      errorEl.style.display = 'block';
+      document.getElementById('errorText').textContent = message;
+      document.getElementById('errorMessage').classList.add('show');
     }
 
     function goBack() {
-      // Section names match directly with patient-profile.html tabs
       window.location.href = `patient-profile.html?tab=${currentSection}`;
     }
 
     // Initialize on load
-    init();
+    document.addEventListener('DOMContentLoaded', init);
   </script>
 </body>
 </html>

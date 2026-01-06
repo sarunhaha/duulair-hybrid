@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#F2F1F7">
+  <meta name="theme-color" content="#1E7B9C">
   <title>รายงานสุขภาพ - OONJAI</title>
 
   <!-- Preconnect to speed up external resources -->
@@ -11,11 +11,17 @@
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
   <link rel="preconnect" href="https://cdnjs.cloudflare.com">
   <link rel="preconnect" href="https://npmcdn.com">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="dns-prefetch" href="https://static.line-scdn.net">
   <link rel="preload" href="https://static.line-scdn.net/liff/edge/2/sdk.js" as="script">
 
-  <link rel="stylesheet" href="css/minimal-theme.css">
-  <link rel="stylesheet" href="css/reports.css">
+  <!-- Google Fonts - Kanit -->
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- OONJAI Theme -->
+  <link rel="stylesheet" href="css/oonjai-theme.css">
+
   <!-- LIFF SDK -->
   <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <!-- Chart.js -->
@@ -27,9 +33,805 @@
   <!-- PDF Generation -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <!-- Lucide Icons -->
+  <script src="js/lucide-icons.js"></script>
+
+  <style>
+    /* ===== Page-specific styles ===== */
+
+    /* Header */
+    .page-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: hsl(var(--background));
+      border-bottom: 1px solid hsl(var(--border));
+      padding: 1rem 1.25rem;
+    }
+
+    .header-content {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .back-button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: hsl(var(--muted));
+      border: none;
+      color: hsl(var(--foreground));
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .back-button:hover {
+      background: hsl(var(--primary) / 0.1);
+      color: hsl(var(--primary));
+    }
+
+    .page-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: hsl(var(--foreground));
+    }
+
+    /* Hero Section */
+    .hero-section {
+      background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-dark)));
+      color: white;
+      padding: 1.5rem;
+      margin: -1px -1px 1.5rem -1px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-section::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -20%;
+      width: 200px;
+      height: 200px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 50%;
+    }
+
+    .hero-section::after {
+      content: '';
+      position: absolute;
+      bottom: -30%;
+      left: 10%;
+      width: 120px;
+      height: 120px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 50%;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .hero-icon {
+      width: 56px;
+      height: 56px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .hero-icon svg {
+      width: 28px;
+      height: 28px;
+    }
+
+    .hero-text h1 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+
+    .hero-text p {
+      font-size: 0.875rem;
+      opacity: 0.9;
+    }
+
+    /* Patient Selector */
+    .patient-selector {
+      padding: 0 1.25rem;
+      margin-bottom: 1rem;
+    }
+
+    .selector-label {
+      display: block;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: hsl(var(--muted-foreground));
+      margin-bottom: 0.5rem;
+    }
+
+    .patient-select {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: 2px solid hsl(var(--border));
+      border-radius: 0.75rem;
+      background: hsl(var(--card));
+      font-size: 1rem;
+      font-family: 'Kanit', sans-serif;
+      color: hsl(var(--foreground));
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+
+    .patient-select:focus {
+      outline: none;
+      border-color: hsl(var(--primary));
+    }
+
+    /* Date Range Section */
+    .date-range-section {
+      background: hsl(var(--card));
+      border-radius: 1rem;
+      padding: 1rem;
+      margin: 0 1.25rem 1.5rem;
+      box-shadow: 0 2px 8px hsl(var(--foreground) / 0.05);
+      border: 1px solid hsl(var(--border));
+    }
+
+    .date-presets {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .preset-btn {
+      flex: 1;
+      min-width: 70px;
+      padding: 0.625rem 0.75rem;
+      border: 2px solid hsl(var(--border));
+      border-radius: 0.5rem;
+      background: hsl(var(--card));
+      font-size: 0.875rem;
+      font-family: 'Kanit', sans-serif;
+      color: hsl(var(--muted-foreground));
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .preset-btn.active {
+      background: hsl(var(--primary));
+      color: white;
+      border-color: hsl(var(--primary));
+    }
+
+    .preset-btn:not(.active):hover {
+      border-color: hsl(var(--primary));
+      color: hsl(var(--primary));
+    }
+
+    .preset-btn:active {
+      transform: scale(0.97);
+    }
+
+    .custom-date-range {
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid hsl(var(--border));
+    }
+
+    .date-inputs {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .date-input-group {
+      flex: 1;
+    }
+
+    .date-input-group label {
+      display: block;
+      font-size: 0.8125rem;
+      color: hsl(var(--muted-foreground));
+      margin-bottom: 0.375rem;
+    }
+
+    .date-input {
+      width: 100%;
+      padding: 0.625rem 0.75rem;
+      border: 2px solid hsl(var(--border));
+      border-radius: 0.5rem;
+      font-size: 0.875rem;
+      font-family: 'Kanit', sans-serif;
+      color: hsl(var(--foreground));
+      background: hsl(var(--background));
+      transition: border-color 0.2s;
+    }
+
+    .date-input:focus {
+      outline: none;
+      border-color: hsl(var(--primary));
+    }
+
+    .apply-date-btn {
+      width: 100%;
+      padding: 0.75rem;
+      background: hsl(var(--accent));
+      color: hsl(var(--accent-foreground));
+      border: none;
+      border-radius: 0.5rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+      font-family: 'Kanit', sans-serif;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    .apply-date-btn:hover {
+      opacity: 0.9;
+    }
+
+    .date-display {
+      text-align: center;
+      font-size: 0.875rem;
+      color: hsl(var(--muted-foreground));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    .date-display svg {
+      width: 16px;
+      height: 16px;
+      color: hsl(var(--primary));
+    }
+
+    #date-range-display {
+      font-weight: 500;
+      color: hsl(var(--foreground));
+    }
+
+    /* Summary Section */
+    .summary-section {
+      padding: 0 1.25rem 1.5rem;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .section-header svg {
+      width: 20px;
+      height: 20px;
+      color: hsl(var(--primary));
+    }
+
+    .section-title {
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: hsl(var(--foreground));
+    }
+
+    .summary-cards {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.75rem;
+    }
+
+    .summary-card {
+      background: hsl(var(--card));
+      border-radius: 1rem;
+      padding: 1rem;
+      box-shadow: 0 2px 8px hsl(var(--foreground) / 0.05);
+      border: 1px solid hsl(var(--border));
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .card-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 0.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .card-icon svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .bp-card .card-icon { background: hsl(var(--danger) / 0.1); color: hsl(var(--danger)); }
+    .med-card .card-icon { background: hsl(var(--primary) / 0.1); color: hsl(var(--primary)); }
+    .water-card .card-icon { background: hsl(215 100% 50% / 0.1); color: hsl(215 100% 50%); }
+    .activity-card .card-icon { background: hsl(var(--accent) / 0.1); color: hsl(var(--accent)); }
+
+    .card-label {
+      font-size: 0.75rem;
+      color: hsl(var(--muted-foreground));
+    }
+
+    .card-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: hsl(var(--foreground));
+      line-height: 1;
+    }
+
+    .card-status {
+      font-size: 0.6875rem;
+      font-weight: 500;
+      padding: 0.25rem 0.5rem;
+      border-radius: 9999px;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      width: fit-content;
+    }
+
+    .card-status svg {
+      width: 12px;
+      height: 12px;
+    }
+
+    .card-status.normal {
+      background: hsl(var(--success) / 0.1);
+      color: hsl(var(--success));
+    }
+
+    .card-status.elevated {
+      background: hsl(var(--warning) / 0.1);
+      color: hsl(var(--warning));
+    }
+
+    .card-status.high {
+      background: hsl(var(--danger) / 0.1);
+      color: hsl(var(--danger));
+    }
+
+    .card-status.crisis {
+      background: hsl(var(--danger));
+      color: white;
+    }
+
+    /* Charts Section */
+    .charts-section {
+      padding: 0 1.25rem 1.5rem;
+    }
+
+    .chart-card {
+      background: hsl(var(--card));
+      border-radius: 1rem;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      box-shadow: 0 2px 8px hsl(var(--foreground) / 0.05);
+      border: 1px solid hsl(var(--border));
+    }
+
+    .chart-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .chart-header svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .chart-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: hsl(var(--foreground));
+    }
+
+    .chart-container {
+      position: relative;
+      height: 200px;
+      width: 100%;
+    }
+
+    .chart-legend {
+      display: flex;
+      justify-content: center;
+      gap: 1.5rem;
+      margin-top: 0.75rem;
+      font-size: 0.75rem;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.375rem;
+      color: hsl(var(--muted-foreground));
+    }
+
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    .legend-item.systolic .legend-dot { background: hsl(var(--danger)); }
+    .legend-item.diastolic .legend-dot { background: hsl(215 100% 50%); }
+
+    /* Activities Section */
+    .activities-section {
+      padding: 0 1.25rem 1.5rem;
+    }
+
+    .activities-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .activity-date-header {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: hsl(var(--foreground));
+      background: hsl(var(--muted));
+      padding: 0.5rem 0.75rem;
+      border-radius: 0.5rem;
+      margin-top: 1rem;
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .activity-date-header:first-child {
+      margin-top: 0;
+    }
+
+    .activity-date-header svg {
+      width: 16px;
+      height: 16px;
+      color: hsl(var(--primary));
+    }
+
+    .activity-item {
+      background: hsl(var(--card));
+      border-radius: 0.75rem;
+      padding: 0.875rem;
+      box-shadow: 0 1px 4px hsl(var(--foreground) / 0.05);
+      border: 1px solid hsl(var(--border));
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .activity-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 0.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .activity-icon svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .activity-icon.medication { background: hsl(var(--primary) / 0.1); color: hsl(var(--primary)); }
+    .activity-icon.vitals { background: hsl(var(--danger) / 0.1); color: hsl(var(--danger)); }
+    .activity-icon.water { background: hsl(215 100% 50% / 0.1); color: hsl(215 100% 50%); }
+    .activity-icon.symptom { background: hsl(var(--warning) / 0.1); color: hsl(var(--warning)); }
+
+    .activity-content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .activity-type {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: hsl(var(--foreground));
+    }
+
+    .activity-value {
+      font-size: 0.8125rem;
+      color: hsl(var(--muted-foreground));
+      margin-top: 0.125rem;
+    }
+
+    .activity-time {
+      font-size: 0.75rem;
+      color: hsl(var(--muted-foreground));
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    .activity-time svg {
+      width: 12px;
+      height: 12px;
+    }
+
+    /* Export Section */
+    .export-section {
+      background: hsl(var(--card));
+      border-radius: 1rem;
+      padding: 1.5rem;
+      margin: 0 1.25rem 1.5rem;
+      box-shadow: 0 2px 8px hsl(var(--foreground) / 0.05);
+      border: 1px solid hsl(var(--border));
+      text-align: center;
+    }
+
+    .export-header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .export-header svg {
+      width: 20px;
+      height: 20px;
+      color: hsl(var(--primary));
+    }
+
+    .export-note {
+      font-size: 0.875rem;
+      color: hsl(var(--muted-foreground));
+      margin-bottom: 1rem;
+    }
+
+    .export-buttons {
+      display: flex;
+      gap: 0.75rem;
+    }
+
+    .export-btn {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 1rem;
+      border: 2px solid hsl(var(--border));
+      border-radius: 0.75rem;
+      background: hsl(var(--card));
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: 'Kanit', sans-serif;
+    }
+
+    .export-btn:active {
+      transform: scale(0.97);
+    }
+
+    .export-btn .btn-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 0.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .export-btn .btn-icon svg {
+      width: 24px;
+      height: 24px;
+    }
+
+    .export-btn .btn-text {
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: hsl(var(--foreground));
+    }
+
+    .csv-btn .btn-icon { background: hsl(var(--success) / 0.1); color: hsl(var(--success)); }
+    .csv-btn:hover { border-color: hsl(var(--success)); background: hsl(var(--success) / 0.05); }
+
+    .pdf-btn .btn-icon { background: hsl(var(--danger) / 0.1); color: hsl(var(--danger)); }
+    .pdf-btn:hover { border-color: hsl(var(--danger)); background: hsl(var(--danger) / 0.05); }
+
+    /* Disclaimer */
+    .disclaimer {
+      text-align: center;
+      padding: 1rem 1.25rem;
+      margin: 0 1.25rem 2rem;
+      background: hsl(var(--warning) / 0.1);
+      border-radius: 0.75rem;
+      border: 1px solid hsl(var(--warning) / 0.2);
+    }
+
+    .disclaimer-content {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      text-align: left;
+    }
+
+    .disclaimer-icon {
+      width: 24px;
+      height: 24px;
+      color: hsl(var(--warning));
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .disclaimer p {
+      font-size: 0.8125rem;
+      color: hsl(var(--foreground));
+      line-height: 1.5;
+    }
+
+    /* Loading Overlay */
+    .loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: hsl(var(--background) / 0.95);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .loading-overlay.hidden {
+      display: none;
+    }
+
+    .loading-spinner {
+      width: 48px;
+      height: 48px;
+      border: 3px solid hsl(var(--muted));
+      border-top-color: hsl(var(--primary));
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    #loading-text {
+      margin-top: 1rem;
+      color: hsl(var(--muted-foreground));
+      font-size: 0.875rem;
+    }
+
+    /* No Data State */
+    .no-data {
+      text-align: center;
+      padding: 3rem 1.5rem;
+      color: hsl(var(--muted-foreground));
+    }
+
+    .no-data-icon {
+      width: 64px;
+      height: 64px;
+      margin: 0 auto 1rem;
+      color: hsl(var(--muted-foreground) / 0.5);
+    }
+
+    .no-data-text {
+      font-size: 0.875rem;
+    }
+
+    /* Error State */
+    .error-message {
+      background: hsl(var(--danger) / 0.1);
+      color: hsl(var(--danger));
+      padding: 1rem;
+      border-radius: 0.75rem;
+      text-align: center;
+      margin: 0 1.25rem 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    .error-message svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    /* Utility */
+    .hidden { display: none !important; }
+
+    /* Responsive */
+    @media (max-width: 380px) {
+      .summary-cards {
+        grid-template-columns: 1fr;
+      }
+
+      .date-presets {
+        flex-wrap: wrap;
+      }
+
+      .preset-btn {
+        flex: 0 0 calc(50% - 4px);
+      }
+
+      .export-buttons {
+        flex-direction: column;
+      }
+
+      .card-value {
+        font-size: 1.25rem;
+      }
+    }
+
+    /* Flatpickr Overrides */
+    .flatpickr-calendar {
+      font-family: 'Kanit', sans-serif;
+      border-radius: 0.75rem;
+      box-shadow: 0 4px 20px hsl(var(--foreground) / 0.15);
+    }
+
+    .flatpickr-day.selected {
+      background: hsl(var(--primary));
+      border-color: hsl(var(--primary));
+    }
+
+    .flatpickr-day:hover {
+      background: hsl(var(--primary) / 0.1);
+    }
+
+    /* Dark Mode Adjustments */
+    .dark .loading-overlay {
+      background: hsl(var(--background) / 0.98);
+    }
+
+    .dark .flatpickr-calendar {
+      background: hsl(var(--card));
+      border: 1px solid hsl(var(--border));
+    }
+
+    .dark .flatpickr-day {
+      color: hsl(var(--foreground));
+    }
+
+    .dark .flatpickr-day.prevMonthDay,
+    .dark .flatpickr-day.nextMonthDay {
+      color: hsl(var(--muted-foreground));
+    }
+  </style>
 </head>
 <body>
-  <div class="container">
+  <div class="app-container">
     <!-- Loading Overlay -->
     <div id="loading" class="loading-overlay">
       <div class="loading-spinner"></div>
@@ -37,16 +839,27 @@
     </div>
 
     <!-- Header -->
-    <header class="header">
+    <header class="page-header">
       <div class="header-content">
-        <button class="back-button" onclick="closeLiff()">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M19 12H5M12 19l-7-7 7-7"/>
-          </svg>
+        <button class="back-button" onclick="closeLiff()" aria-label="กลับ">
+          <span id="backIcon"></span>
         </button>
         <h1 class="page-title">รายงานสุขภาพ</h1>
       </div>
     </header>
+
+    <!-- Hero Section -->
+    <section class="hero-section">
+      <div class="hero-content">
+        <div class="hero-icon">
+          <span id="heroIcon"></span>
+        </div>
+        <div class="hero-text">
+          <h1>รายงานสุขภาพ</h1>
+          <p>ติดตามแนวโน้มและสรุปข้อมูลสุขภาพ</p>
+        </div>
+      </div>
+    </section>
 
     <!-- Patient Selector (if multiple patients) -->
     <div id="patient-selector" class="patient-selector hidden">
@@ -79,51 +892,75 @@
         <button class="apply-date-btn" onclick="applyCustomDateRange()">ใช้ช่วงเวลานี้</button>
       </div>
       <div class="date-display">
+        <span id="calendarIcon"></span>
         <span id="date-range-display">1 ม.ค. - 7 ม.ค. 2567</span>
       </div>
     </div>
 
     <!-- Summary Cards -->
     <div id="summary-section" class="summary-section">
-      <h2 class="section-title">ภาพรวม</h2>
+      <div class="section-header">
+        <span id="summaryIcon"></span>
+        <h2 class="section-title">ภาพรวม</h2>
+      </div>
       <div class="summary-cards">
         <!-- Blood Pressure Card -->
         <div class="summary-card bp-card">
-          <div class="card-icon">🩺</div>
-          <div class="card-content">
-            <div class="card-label">ความดันเฉลี่ย</div>
-            <div class="card-value" id="bp-value">--/--</div>
-            <div class="card-status" id="bp-status">กำลังโหลด...</div>
+          <div class="card-header">
+            <div class="card-icon">
+              <span id="bpIcon"></span>
+            </div>
+            <span class="card-label">ความดันเฉลี่ย</span>
+          </div>
+          <div class="card-value" id="bp-value">--/--</div>
+          <div class="card-status" id="bp-status">
+            <span id="bpStatusIcon"></span>
+            <span>กำลังโหลด...</span>
           </div>
         </div>
 
         <!-- Medication Card -->
         <div class="summary-card med-card">
-          <div class="card-icon">💊</div>
-          <div class="card-content">
-            <div class="card-label">การกินยา</div>
-            <div class="card-value" id="med-value">--%</div>
-            <div class="card-status" id="med-status">กำลังโหลด...</div>
+          <div class="card-header">
+            <div class="card-icon">
+              <span id="medIcon"></span>
+            </div>
+            <span class="card-label">การกินยา</span>
+          </div>
+          <div class="card-value" id="med-value">--%</div>
+          <div class="card-status" id="med-status">
+            <span id="medStatusIcon"></span>
+            <span>กำลังโหลด...</span>
           </div>
         </div>
 
         <!-- Water Card -->
         <div class="summary-card water-card">
-          <div class="card-icon">💧</div>
-          <div class="card-content">
-            <div class="card-label">ดื่มน้ำเฉลี่ย</div>
-            <div class="card-value" id="water-value">-- มล.</div>
-            <div class="card-status" id="water-status">กำลังโหลด...</div>
+          <div class="card-header">
+            <div class="card-icon">
+              <span id="waterIcon"></span>
+            </div>
+            <span class="card-label">ดื่มน้ำเฉลี่ย</span>
+          </div>
+          <div class="card-value" id="water-value">-- มล.</div>
+          <div class="card-status" id="water-status">
+            <span id="waterStatusIcon"></span>
+            <span>กำลังโหลด...</span>
           </div>
         </div>
 
         <!-- Activities Card -->
         <div class="summary-card activity-card">
-          <div class="card-icon">📊</div>
-          <div class="card-content">
-            <div class="card-label">กิจกรรม</div>
-            <div class="card-value" id="activity-value">-- รายการ</div>
-            <div class="card-status" id="activity-status">กำลังโหลด...</div>
+          <div class="card-header">
+            <div class="card-icon">
+              <span id="activityIcon"></span>
+            </div>
+            <span class="card-label">กิจกรรม</span>
+          </div>
+          <div class="card-value" id="activity-value">-- รายการ</div>
+          <div class="card-status" id="activity-status">
+            <span id="activityStatusIcon"></span>
+            <span>กำลังโหลด...</span>
           </div>
         </div>
       </div>
@@ -133,19 +970,31 @@
     <div id="charts-section" class="charts-section">
       <!-- Blood Pressure Chart -->
       <div class="chart-card">
-        <h3 class="chart-title">📈 ความดันโลหิต</h3>
+        <div class="chart-header">
+          <span id="chartBpIcon" style="color: hsl(var(--danger));"></span>
+          <h3 class="chart-title">ความดันโลหิต</h3>
+        </div>
         <div class="chart-container">
           <canvas id="bp-chart"></canvas>
         </div>
         <div class="chart-legend">
-          <span class="legend-item systolic">● Systolic</span>
-          <span class="legend-item diastolic">● Diastolic</span>
+          <span class="legend-item systolic">
+            <span class="legend-dot"></span>
+            Systolic
+          </span>
+          <span class="legend-item diastolic">
+            <span class="legend-dot"></span>
+            Diastolic
+          </span>
         </div>
       </div>
 
       <!-- Medication Compliance Chart -->
       <div class="chart-card">
-        <h3 class="chart-title">💊 การกินยา</h3>
+        <div class="chart-header">
+          <span id="chartMedIcon" style="color: hsl(var(--primary));"></span>
+          <h3 class="chart-title">การกินยา</h3>
+        </div>
         <div class="chart-container">
           <canvas id="med-chart"></canvas>
         </div>
@@ -153,7 +1002,10 @@
 
       <!-- Water Intake Chart -->
       <div class="chart-card">
-        <h3 class="chart-title">💧 การดื่มน้ำ</h3>
+        <div class="chart-header">
+          <span id="chartWaterIcon" style="color: hsl(215 100% 50%);"></span>
+          <h3 class="chart-title">การดื่มน้ำ</h3>
+        </div>
         <div class="chart-container">
           <canvas id="water-chart"></canvas>
         </div>
@@ -162,7 +1014,10 @@
 
     <!-- Activity Details Section -->
     <div id="activities-section" class="activities-section">
-      <h2 class="section-title">📋 รายละเอียดกิจกรรม</h2>
+      <div class="section-header">
+        <span id="activitiesIcon"></span>
+        <h2 class="section-title">รายละเอียดกิจกรรม</h2>
+      </div>
       <div id="activities-list" class="activities-list">
         <!-- Activities will be populated here -->
       </div>
@@ -170,15 +1025,18 @@
 
     <!-- Export Section -->
     <div class="export-section">
-      <h2 class="section-title">ส่งออกรายงาน</h2>
+      <div class="export-header">
+        <span id="exportIcon"></span>
+        <h2 class="section-title">ส่งออกรายงาน</h2>
+      </div>
       <p class="export-note">ส่งออกข้อมูลเพื่อแชร์กับแพทย์</p>
       <div class="export-buttons">
         <button class="export-btn csv-btn" onclick="exportCSV()">
-          <span class="btn-icon">📥</span>
+          <span class="btn-icon" id="csvIcon"></span>
           <span class="btn-text">ดาวน์โหลด CSV</span>
         </button>
         <button class="export-btn pdf-btn" onclick="exportPDF()">
-          <span class="btn-icon">📄</span>
+          <span class="btn-icon" id="pdfIcon"></span>
           <span class="btn-text">ดาวน์โหลด PDF</span>
         </button>
       </div>
@@ -186,31 +1044,114 @@
 
     <!-- Disclaimer -->
     <div class="disclaimer">
-      <p>⚠️ ข้อมูลนี้เพื่อการติดตามสุขภาพเบื้องต้น<br>กรุณาปรึกษาแพทย์สำหรับการวินิจฉัยและรักษา</p>
+      <div class="disclaimer-content">
+        <span class="disclaimer-icon" id="disclaimerIcon"></span>
+        <p>ข้อมูลนี้เพื่อการติดตามสุขภาพเบื้องต้น<br>กรุณาปรึกษาแพทย์สำหรับการวินิจฉัยและรักษา</p>
+      </div>
     </div>
   </div>
 
   <!-- Scripts -->
+  <script src="js/api.js"></script>
   <script src="js/liff-init.js"></script>
   <script src="js/utils.js"></script>
   <script src="js/reports.js"></script>
 
   <script>
-    // Phase 2.1: Show UI immediately with IIFE
-    (function showUIImmediately() {
-      // Hide loading, show main content immediately
-      const loading = document.getElementById('loading');
-      const summarySection = document.getElementById('summary-section');
-      const chartsSection = document.getElementById('charts-section');
-      const activitiesSection = document.getElementById('activities-section');
+    // Phase 2.1: Initialize UI immediately with IIFE
+    (function initUI() {
+      // Initialize dark mode
+      if (typeof darkMode !== 'undefined') {
+        darkMode.init();
+      }
 
+      // Set all icons using Lucide
+      const icons = {
+        'backIcon': 'arrowLeft',
+        'heroIcon': 'fileBarChart',
+        'calendarIcon': 'calendar',
+        'summaryIcon': 'layoutGrid',
+        'bpIcon': 'heartPulse',
+        'medIcon': 'pill',
+        'waterIcon': 'droplet',
+        'activityIcon': 'activity',
+        'bpStatusIcon': 'loader',
+        'medStatusIcon': 'loader',
+        'waterStatusIcon': 'loader',
+        'activityStatusIcon': 'loader',
+        'chartBpIcon': 'trendingUp',
+        'chartMedIcon': 'pill',
+        'chartWaterIcon': 'droplets',
+        'activitiesIcon': 'clipboardList',
+        'exportIcon': 'share2',
+        'csvIcon': 'fileSpreadsheet',
+        'pdfIcon': 'fileText',
+        'disclaimerIcon': 'alertTriangle'
+      };
+
+      Object.entries(icons).forEach(([id, iconName]) => {
+        const el = document.getElementById(id);
+        if (el && typeof icon === 'function') {
+          el.innerHTML = icon(iconName);
+        }
+      });
+
+      // Hide loading and show content
+      const loading = document.getElementById('loading');
       if (loading) loading.classList.add('hidden');
 
-      // Show sections with placeholder data
-      if (summarySection) summarySection.style.opacity = '1';
-      if (chartsSection) chartsSection.style.opacity = '1';
-      if (activitiesSection) activitiesSection.style.opacity = '1';
+      console.log('Reports UI initialized');
     })();
+
+    // Helper function to render activity items with icons
+    function renderActivityIcon(type) {
+      const iconMap = {
+        'medication': { icon: 'pill', class: 'medication' },
+        'vitals': { icon: 'heartPulse', class: 'vitals' },
+        'water': { icon: 'droplet', class: 'water' },
+        'symptom': { icon: 'thermometer', class: 'symptom' }
+      };
+
+      const config = iconMap[type] || { icon: 'activity', class: '' };
+      return `<div class="activity-icon ${config.class}">${icon(config.icon)}</div>`;
+    }
+
+    // Helper function to render activity date header
+    function renderActivityDateHeader(dateStr) {
+      return `
+        <div class="activity-date-header">
+          ${icon('calendar')}
+          ${dateStr}
+        </div>
+      `;
+    }
+
+    // Helper function to render activity time
+    function renderActivityTime(timeStr) {
+      return `
+        <div class="activity-time">
+          ${icon('clock')}
+          ${timeStr}
+        </div>
+      `;
+    }
+
+    // Update status with proper icon
+    function updateStatusWithIcon(elementId, status, text) {
+      const statusEl = document.getElementById(elementId);
+      if (!statusEl) return;
+
+      const iconMap = {
+        'normal': 'checkCircle',
+        'elevated': 'alertCircle',
+        'high': 'alertTriangle',
+        'crisis': 'xCircle'
+      };
+
+      const iconName = iconMap[status] || 'loader';
+      statusEl.className = `card-status ${status}`;
+      statusEl.innerHTML = `${icon(iconName)}<span>${text}</span>`;
+    }
   </script>
 </body>
 </html>
