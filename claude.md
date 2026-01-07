@@ -3,7 +3,7 @@
 > **Brand:** OONJAI (formerly Duulair)
 > **Model:** Group-Based Elderly Care via LINE
 > **AI Model:** Claude Sonnet 4.5 (Unified Pipeline)
-> **Last Updated:** 2025-12-26
+> **Last Updated:** 2025-01-07
 
 ---
 
@@ -63,6 +63,57 @@ User Message (LINE)
 | Intent Patterns (Legacy) | `src/agents/specialized/IntentAgent.ts` |
 | Supabase Service | `src/services/supabase.service.ts` |
 | Types | `src/types/nlu.types.ts`, `src/types/health.types.ts` |
+
+---
+
+## LIFF UI Design System
+
+> **Redesigned:** 2025-01-07 (Commit: 179ed4e)
+
+### Design System Files
+| File | Purpose |
+|------|---------|
+| `public/liff/css/oonjai-theme.css` | Tailwind-inspired CSS with HSL variables + Dark Mode |
+| `public/liff/js/lucide-icons.js` | 70+ Lucide SVG icons as inline strings |
+
+### Theme Colors (HSL Variables)
+```css
+--primary: 191 61% 36%      /* Teal #1E7B9C */
+--accent: 38 92% 50%        /* Orange #F59E0B */
+--success: 142 76% 36%      /* Green */
+--warning: 38 92% 50%       /* Amber */
+--danger: 0 84% 60%         /* Red */
+```
+
+### Key Features
+- **Kanit font** for Thai text
+- **Lucide SVG icons** (replaced all emojis)
+- **Dark mode** via `.dark` class on `<html>`
+- **IIFE pattern** for immediate UI display
+- **Gradient hero cards** with decorative circles
+
+### Pages Updated (18 total)
+```
+Health Logging: health-log, log-medication, log-symptom, vitals-tracking, water-tracking
+Dashboard:      dashboard
+Meds/Reminders: medications, reminders
+Profile:        patient-profile, my-profile, edit-profile
+Registration:   index, registration, success
+Group:          group-dashboard, group-registration
+Other:          settings, reports
+```
+
+### Icon Usage Pattern
+```javascript
+// In HTML
+<span id="myIcon"></span>
+
+// In IIFE
+(function initUI() {
+  document.getElementById('myIcon').innerHTML = icon('pill');
+  darkMode.init();
+})();
+```
 
 ---
 

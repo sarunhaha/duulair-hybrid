@@ -1,10 +1,49 @@
 # OONJ.AI - Task List
 
-> Last Updated: 2025-12-26
+> Last Updated: 2025-01-07
 
 ---
 
-## Current Focus: Natural Conversation AI
+## Current Focus: Natural Conversation AI + UI Redesign
+
+---
+
+## LIFF UI Redesign with OONJAI Design System ✅ COMPLETE
+
+> Completed: 2025-01-07 | Commit: 179ed4e
+
+### Overview
+ปรับปรุง UI ของ LIFF Pages ทั้งหมด 18 หน้าให้ใช้ Design System ใหม่
+
+### Design System Files Created
+- [x] `public/liff/css/oonjai-theme.css` - Tailwind-inspired CSS with HSL variables + Dark Mode
+- [x] `public/liff/js/lucide-icons.js` - 70+ Lucide SVG icons as inline strings
+
+### Design System Features
+- [x] Kanit font for Thai text
+- [x] Lucide SVG icons (replaced all emojis)
+- [x] Dark mode via `.dark` class on `<html>`
+- [x] HSL color variables for theming
+- [x] IIFE pattern for immediate UI display
+- [x] Gradient hero sections with decorative circles
+
+### Pages Updated (18 total)
+- [x] Health Logging: health-log, log-medication, log-symptom, vitals-tracking, water-tracking
+- [x] Dashboard: dashboard
+- [x] Medications & Reminders: medications, reminders
+- [x] Profile: patient-profile, my-profile, edit-profile
+- [x] Registration: index, registration, success
+- [x] Group: group-dashboard, group-registration
+- [x] Other: settings, reports
+
+### Theme Colors
+```css
+--primary: 191 61% 36%      /* Teal #1E7B9C */
+--accent: 38 92% 50%        /* Orange #F59E0B */
+--success: 142 76% 36%      /* Green */
+--warning: 38 92% 50%       /* Amber */
+--danger: 0 84% 60%         /* Red */
+```
 
 ---
 

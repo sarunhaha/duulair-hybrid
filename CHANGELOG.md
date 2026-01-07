@@ -1,5 +1,62 @@
 # OONJAI Changelog
 
+## [2025-01-07] - Complete LIFF UI Redesign with OONJAI Design System
+
+### Overview
+ปรับปรุง UI ของ LIFF Pages ทั้งหมด 18 หน้าให้ใช้ Design System ใหม่ที่เป็นมาตรฐานเดียวกัน
+
+### Design System Created
+
+**New Files:**
+- `public/liff/css/oonjai-theme.css` - Tailwind-inspired CSS with HSL variables
+- `public/liff/js/lucide-icons.js` - 70+ Lucide SVG icons as inline strings
+
+**Key Features:**
+- Kanit font for Thai text
+- Lucide SVG icons (replaced all emojis)
+- Dark mode support via `.dark` class
+- HSL color variables for consistent theming
+- IIFE pattern for immediate UI display
+- Gradient hero sections with decorative circles
+
+### Theme Colors
+```css
+--primary: 191 61% 36%      /* Teal #1E7B9C */
+--accent: 38 92% 50%        /* Orange #F59E0B */
+--success: 142 76% 36%      /* Green */
+--warning: 38 92% 50%       /* Amber */
+--danger: 0 84% 60%         /* Red */
+```
+
+### Pages Updated (18 total)
+
+| Category | Files |
+|----------|-------|
+| Health Logging | health-log, log-medication, log-symptom, vitals-tracking, water-tracking |
+| Dashboard | dashboard |
+| Medications & Reminders | medications, reminders |
+| Profile | patient-profile, my-profile, edit-profile |
+| Registration | index, registration, success |
+| Group | group-dashboard, group-registration |
+| Other | settings, reports |
+
+### Technical Changes
+
+- Replaced `minimal-theme.css` with `oonjai-theme.css`
+- Replaced all emoji icons with Lucide SVG icons
+- Added `darkMode.init()` to all pages
+- Added IIFE `initUI()` for immediate UI display
+- Updated all form inputs with focus states
+- Added gradient hero cards with decorative elements
+- Implemented consistent card styling with borders and shadows
+
+### Commit
+```
+179ed4e - UI: Complete LIFF pages redesign with OONJAI design system
+```
+
+---
+
 ## [2025-12-26] - Unified AI Flow: Sonnet 4.5 Only
 
 ### Major Architecture Change
