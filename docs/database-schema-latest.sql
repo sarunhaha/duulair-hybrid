@@ -1,6 +1,7 @@
 -- OONJAI Database Schema (Latest)
--- Generated: 2025-12-22
+-- Generated: 2026-01-11
 -- WARNING: This schema is for context only and is not meant to be run.
+-- Migrations: 001-008 applied
 
 -- =============================================
 -- CORE TABLES
@@ -44,6 +45,7 @@ CREATE TABLE public.patient_profiles (
   emergency_contact_relation character varying,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
+  -- Medical info (added in migration 008)
   medical_condition text,
   hospital_name character varying,
   hospital_address text,
@@ -70,10 +72,10 @@ CREATE TABLE public.groups (
   line_group_id character varying NOT NULL UNIQUE,
   group_name character varying,
   primary_caregiver_id uuid,
+  active_patient_id uuid,
   is_active boolean DEFAULT true,
   created_at timestamp without time zone DEFAULT now(),
   updated_at timestamp without time zone DEFAULT now(),
-  active_patient_id uuid,
   CONSTRAINT groups_pkey PRIMARY KEY (id)
 );
 
@@ -102,6 +104,46 @@ CREATE TABLE public.medications (
   CONSTRAINT medications_pkey PRIMARY KEY (id)
 );
 
+-- New table (migration 008)
+CREATE TABLE public.medication_logs (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  user_id uuid,
+  patient_id uuid,
+  medication_id uuid,
+  medication_name character varying,
+  dosage character varying,
+  taken_at timestamp with time zone DEFAULT now(),
+  scheduled_time time without time zone,
+  status character varying DEFAULT 'taken'::character varying,
+  note text,
+  ai_confidence numeric,
+  raw_text text,
+  activity_log_id uuid,
+  conversation_log_id uuid,
+  logged_by_line_user_id character varying,
+  skipped boolean DEFAULT false,
+  skipped_reason character varying,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT medication_logs_pkey PRIMARY KEY (id)
+);
+
+-- New table (migration 008)
+CREATE TABLE public.water_logs (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  patient_id uuid NOT NULL,
+  log_date date DEFAULT CURRENT_DATE,
+  amount_ml integer NOT NULL,
+  glasses integer,
+  logged_at timestamp with time zone DEFAULT now(),
+  note text,
+  ai_confidence numeric,
+  raw_text text,
+  activity_log_id uuid,
+  conversation_log_id uuid,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT water_logs_pkey PRIMARY KEY (id)
+);
+
 CREATE TABLE public.vitals_logs (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
   user_id uuid,
@@ -115,14 +157,14 @@ CREATE TABLE public.vitals_logs (
   spo2 integer,
   notes text,
   measured_at timestamp with time zone DEFAULT now(),
-  conversation_log_id uuid,
-  activity_log_id uuid,
-  source character varying DEFAULT 'manual'::character varying,
   measured_at_text character varying,
+  source character varying DEFAULT 'manual'::character varying,
   ai_confidence numeric,
   raw_text text,
   logged_by_line_user_id character varying,
   logged_by_display_name character varying,
+  conversation_log_id uuid,
+  activity_log_id uuid,
   CONSTRAINT vitals_logs_pkey PRIMARY KEY (id)
 );
 
@@ -133,17 +175,17 @@ CREATE TABLE public.activity_logs (
   message_id character varying,
   task_type character varying NOT NULL,
   value text,
-  metadata jsonb DEFAULT '{}'::jsonb,
   intent character varying,
+  metadata jsonb DEFAULT '{}'::jsonb,
   processing_result jsonb,
   timestamp timestamp with time zone DEFAULT now(),
   created_at timestamp with time zone DEFAULT now(),
   actor_line_user_id character varying,
   actor_display_name character varying,
   source character varying DEFAULT '1:1'::character varying,
-  conversation_log_id uuid,
   ai_confidence numeric,
   raw_text text,
+  conversation_log_id uuid,
   health_event_id uuid,
   CONSTRAINT activity_logs_pkey PRIMARY KEY (id)
 );
@@ -151,8 +193,6 @@ CREATE TABLE public.activity_logs (
 CREATE TABLE public.symptoms (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   patient_id uuid NOT NULL,
-  activity_log_id uuid,
-  conversation_log_id uuid,
   symptom_name character varying NOT NULL,
   symptom_name_en character varying,
   severity_1to5 integer CHECK (severity_1to5 >= 1 AND severity_1to5 <= 5),
@@ -164,9 +204,11 @@ CREATE TABLE public.symptoms (
   time_of_day character varying,
   triggers text,
   associated_symptoms ARRAY,
+  notes text,
   ai_confidence numeric,
   raw_text text,
-  notes text,
+  activity_log_id uuid,
+  conversation_log_id uuid,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
   CONSTRAINT symptoms_pkey PRIMARY KEY (id)
@@ -175,8 +217,6 @@ CREATE TABLE public.symptoms (
 CREATE TABLE public.sleep_logs (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   patient_id uuid NOT NULL,
-  activity_log_id uuid,
-  conversation_log_id uuid,
   sleep_date date DEFAULT CURRENT_DATE,
   sleep_time time without time zone,
   wake_time time without time zone,
@@ -189,6 +229,8 @@ CREATE TABLE public.sleep_logs (
   ai_confidence numeric,
   raw_text text,
   notes text,
+  activity_log_id uuid,
+  conversation_log_id uuid,
   created_at timestamp with time zone DEFAULT now(),
   CONSTRAINT sleep_logs_pkey PRIMARY KEY (id)
 );
@@ -196,8 +238,6 @@ CREATE TABLE public.sleep_logs (
 CREATE TABLE public.exercise_logs (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   patient_id uuid NOT NULL,
-  activity_log_id uuid,
-  conversation_log_id uuid,
   exercise_date date DEFAULT CURRENT_DATE,
   exercise_type character varying,
   exercise_type_th character varying,
@@ -212,6 +252,8 @@ CREATE TABLE public.exercise_logs (
   ai_confidence numeric,
   raw_text text,
   notes text,
+  activity_log_id uuid,
+  conversation_log_id uuid,
   created_at timestamp with time zone DEFAULT now(),
   CONSTRAINT exercise_logs_pkey PRIMARY KEY (id)
 );
@@ -222,17 +264,17 @@ CREATE TABLE public.mood_logs (
   patient_id uuid,
   mood character varying NOT NULL,
   mood_score integer CHECK (mood_score >= 1 AND mood_score <= 5),
-  note text,
-  activities jsonb DEFAULT '[]'::jsonb,
-  timestamp timestamp with time zone DEFAULT now(),
-  conversation_log_id uuid,
-  activity_log_id uuid,
   stress_level character varying,
   stress_cause text,
   energy_level character varying,
+  activities jsonb DEFAULT '[]'::jsonb,
+  note text,
+  timestamp timestamp with time zone DEFAULT now(),
   ai_confidence numeric,
   raw_text text,
   logged_by_line_user_id character varying,
+  conversation_log_id uuid,
+  activity_log_id uuid,
   CONSTRAINT mood_logs_pkey PRIMARY KEY (id)
 );
 
@@ -246,11 +288,11 @@ CREATE TABLE public.reminders (
   type character varying NOT NULL,
   title character varying NOT NULL,
   time time without time zone NOT NULL,
-  days ARRAY DEFAULT '{}'::text[],
-  note text,
   custom_time time without time zone,
-  days_of_week jsonb,
   frequency character varying DEFAULT 'daily'::character varying,
+  days ARRAY DEFAULT '{}'::text[],
+  days_of_week jsonb,
+  note text,
   is_active boolean DEFAULT true,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
@@ -285,7 +327,8 @@ CREATE TABLE public.group_members (
   is_active boolean DEFAULT true,
   joined_at timestamp without time zone DEFAULT now(),
   left_at timestamp without time zone,
-  CONSTRAINT group_members_pkey PRIMARY KEY (id)
+  CONSTRAINT group_members_pkey PRIMARY KEY (id),
+  CONSTRAINT group_members_unique UNIQUE (group_id, line_user_id)
 );
 
 CREATE TABLE public.group_patients (
@@ -295,7 +338,8 @@ CREATE TABLE public.group_patients (
   added_by_caregiver_id uuid,
   added_at timestamp without time zone DEFAULT now(),
   is_active boolean DEFAULT true,
-  CONSTRAINT group_patients_pkey PRIMARY KEY (id)
+  CONSTRAINT group_patients_pkey PRIMARY KEY (id),
+  CONSTRAINT group_patients_unique UNIQUE (group_id, patient_id)
 );
 
 CREATE TABLE public.patient_caregivers (
@@ -338,8 +382,6 @@ CREATE TABLE public.conversation_logs (
 CREATE TABLE public.health_events (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   patient_id uuid NOT NULL,
-  conversation_log_id uuid,
-  activity_log_id uuid,
   event_type character varying NOT NULL,
   event_subtype character varying,
   event_date date DEFAULT CURRENT_DATE,
@@ -352,6 +394,8 @@ CREATE TABLE public.health_events (
   extraction_model character varying,
   summary_text text,
   summary_json jsonb,
+  conversation_log_id uuid,
+  activity_log_id uuid,
   created_at timestamp with time zone DEFAULT now(),
   CONSTRAINT health_events_pkey PRIMARY KEY (id)
 );
@@ -376,7 +420,8 @@ CREATE TABLE public.daily_patient_summaries (
   has_data boolean DEFAULT false,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT daily_patient_summaries_pkey PRIMARY KEY (id)
+  CONSTRAINT daily_patient_summaries_pkey PRIMARY KEY (id),
+  CONSTRAINT daily_patient_summaries_unique UNIQUE (patient_id, summary_date)
 );
 
 CREATE TABLE public.daily_reports (
@@ -455,3 +500,98 @@ CREATE TABLE public.schema_migrations (
   executed_at timestamp with time zone DEFAULT now(),
   CONSTRAINT schema_migrations_pkey PRIMARY KEY (version)
 );
+
+-- =============================================
+-- INDEXES
+-- =============================================
+
+-- Medications
+CREATE INDEX idx_medications_patient ON medications(patient_id);
+CREATE INDEX idx_medications_active ON medications(patient_id, active);
+CREATE INDEX idx_medications_user ON medications(user_id);
+
+-- Medication Logs
+CREATE INDEX idx_medication_logs_patient ON medication_logs(patient_id);
+CREATE INDEX idx_medication_logs_taken_at ON medication_logs(taken_at);
+CREATE INDEX idx_medication_logs_patient_date ON medication_logs(patient_id, taken_at);
+CREATE INDEX idx_medication_logs_medication ON medication_logs(medication_id);
+
+-- Water Logs
+CREATE INDEX idx_water_logs_patient ON water_logs(patient_id);
+CREATE INDEX idx_water_logs_date ON water_logs(log_date);
+CREATE INDEX idx_water_logs_patient_date ON water_logs(patient_id, log_date);
+
+-- Vitals Logs
+CREATE INDEX idx_vitals_logs_patient ON vitals_logs(patient_id);
+CREATE INDEX idx_vitals_logs_measured_at ON vitals_logs(measured_at);
+CREATE INDEX idx_vitals_logs_patient_date ON vitals_logs(patient_id, measured_at);
+
+-- Activity Logs
+CREATE INDEX idx_activity_logs_patient ON activity_logs(patient_id);
+CREATE INDEX idx_activity_logs_task_type ON activity_logs(task_type);
+CREATE INDEX idx_activity_logs_timestamp ON activity_logs(timestamp);
+CREATE INDEX idx_activity_logs_patient_date ON activity_logs(patient_id, timestamp);
+CREATE INDEX idx_activity_logs_group ON activity_logs(group_id);
+
+-- Symptoms
+CREATE INDEX idx_symptoms_patient ON symptoms(patient_id);
+CREATE INDEX idx_symptoms_created ON symptoms(created_at);
+CREATE INDEX idx_symptoms_patient_date ON symptoms(patient_id, created_at);
+
+-- Sleep Logs
+CREATE INDEX idx_sleep_logs_patient ON sleep_logs(patient_id);
+CREATE INDEX idx_sleep_logs_date ON sleep_logs(sleep_date);
+CREATE INDEX idx_sleep_logs_patient_date ON sleep_logs(patient_id, sleep_date);
+
+-- Exercise Logs
+CREATE INDEX idx_exercise_logs_patient ON exercise_logs(patient_id);
+CREATE INDEX idx_exercise_logs_date ON exercise_logs(exercise_date);
+CREATE INDEX idx_exercise_logs_patient_date ON exercise_logs(patient_id, exercise_date);
+
+-- Mood Logs
+CREATE INDEX idx_mood_logs_patient ON mood_logs(patient_id);
+CREATE INDEX idx_mood_logs_timestamp ON mood_logs(timestamp);
+
+-- Health Events
+CREATE INDEX idx_health_events_patient ON health_events(patient_id);
+CREATE INDEX idx_health_events_type ON health_events(event_type);
+CREATE INDEX idx_health_events_date ON health_events(event_date);
+CREATE INDEX idx_health_events_patient_date ON health_events(patient_id, event_date);
+
+-- Reminders
+CREATE INDEX idx_reminders_patient ON reminders(patient_id);
+CREATE INDEX idx_reminders_patient_active ON reminders(patient_id, is_active);
+CREATE INDEX idx_reminders_type ON reminders(type);
+
+-- Groups
+CREATE INDEX idx_groups_line_id ON groups(line_group_id);
+CREATE INDEX idx_groups_active ON groups(is_active);
+
+-- Group Members
+CREATE INDEX idx_group_members_group ON group_members(group_id);
+CREATE INDEX idx_group_members_user ON group_members(line_user_id);
+CREATE INDEX idx_group_members_active ON group_members(group_id, is_active);
+
+-- Group Patients
+CREATE INDEX idx_group_patients_group ON group_patients(group_id);
+CREATE INDEX idx_group_patients_patient ON group_patients(patient_id);
+
+-- Conversation Logs
+CREATE INDEX idx_conversation_logs_patient ON conversation_logs(patient_id);
+CREATE INDEX idx_conversation_logs_user ON conversation_logs(user_id);
+CREATE INDEX idx_conversation_logs_timestamp ON conversation_logs(timestamp);
+CREATE INDEX idx_conversation_logs_group ON conversation_logs(group_id);
+
+-- Daily Summaries
+CREATE INDEX idx_daily_summaries_patient ON daily_patient_summaries(patient_id);
+CREATE INDEX idx_daily_summaries_date ON daily_patient_summaries(summary_date);
+CREATE INDEX idx_daily_summaries_patient_date ON daily_patient_summaries(patient_id, summary_date);
+
+-- Daily Reports
+CREATE INDEX idx_daily_reports_user ON daily_reports(user_id);
+CREATE INDEX idx_daily_reports_date ON daily_reports(report_date);
+
+-- Supporting Tables
+CREATE INDEX idx_allergies_patient ON allergies(patient_id);
+CREATE INDEX idx_emergency_contacts_patient ON emergency_contacts(patient_id);
+CREATE INDEX idx_medical_history_patient ON medical_history(patient_id);

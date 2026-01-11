@@ -1,17 +1,17 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../client';
 
-// Types
+// Types - matching database schema (database-schema-latest.sql)
 export interface PatientProfile {
   id: string;
-  user_id: string;
+  user_id: string | null; // Nullable for quick-register
+  // Basic Info
   first_name: string;
   last_name: string;
   nickname?: string;
   birth_date?: string;
   gender?: 'male' | 'female' | 'other';
-  phone_number?: string;
-  address?: string;
+  // Health Info
   weight_kg?: number;
   height_cm?: number;
   blood_type?: string;
@@ -19,12 +19,20 @@ export interface PatientProfile {
   drug_allergies?: string[];
   food_allergies?: string[];
   medical_condition?: string;
-  medical_notes?: string;
+  // Medical Contacts
   hospital_name?: string;
+  hospital_address?: string;
   hospital_phone?: string;
+  doctor_name?: string;
+  doctor_phone?: string;
+  medical_notes?: string;
+  // Contact Info
+  address?: string;
+  phone_number?: string;
   emergency_contact_name?: string;
-  emergency_contact_relation?: string;
   emergency_contact_phone?: string;
+  emergency_contact_relation?: string;
+  // Timestamps
   created_at: string;
   updated_at?: string;
 }
@@ -41,33 +49,47 @@ export interface CaregiverProfile {
 
 export interface Medication {
   id: string;
+  user_id?: string;
   patient_id: string;
+  // Medication info
   name: string;
+  dosage?: string; // Legacy: '500mg', '1 เม็ด'
   dosage_amount?: number;
-  dosage_unit?: string;
-  dosage_form?: string;
-  frequency?: string;
-  days_of_week?: string[];
-  times?: string[];
+  dosage_unit?: string; // 'mg', 'ml', 'tablet', 'capsule'
+  dosage_form?: string; // 'tablet', 'capsule', 'liquid', 'injection'
+  // Frequency
+  frequency?: string; // 'daily', 'twice_daily', 'as_needed'
+  times?: string[]; // ['08:00', '12:00', '18:00']
+  days_of_week?: string[]; // ['monday', 'wednesday', 'friday']
+  time_slots?: Record<string, unknown>; // complex scheduling
+  // Instructions
   instructions?: string;
   note?: string;
-  reminder_enabled?: boolean;
+  // Status
   active: boolean;
+  reminder_enabled?: boolean;
   created_at: string;
 }
 
 export interface Reminder {
   id: string;
   patient_id: string;
-  type: string;
+  // Reminder info
+  type: string; // 'medication', 'vitals', 'water', 'exercise', 'appointment', 'custom'
   title: string;
-  time?: string;
+  // Timing
+  time: string;
   custom_time?: string;
+  frequency?: string; // 'daily', 'weekly', 'custom'
+  // Days configuration
+  days?: string[]; // for backward compatibility
+  days_of_week?: string[]; // ['monday', 'wednesday', 'friday']
+  // Additional
   note?: string;
-  frequency?: string;
-  days_of_week?: string[];
   is_active: boolean;
+  // Timestamps
   created_at: string;
+  updated_at?: string;
 }
 
 export interface LinkCode {
