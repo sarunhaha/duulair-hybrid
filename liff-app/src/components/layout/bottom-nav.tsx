@@ -12,8 +12,9 @@ export function BottomNav() {
     { icon: Settings, label: 'ตั้งค่า', path: '/settings' },
   ];
 
+  // TODO: Re-enable when ready
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border py-2 px-4 pb-6 z-50">
+    <div className="hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border py-2 px-4 pb-6 z-50">
       <div className="max-w-md mx-auto flex justify-between items-center">
         {navItems.map((item) => {
           const isActive = location === item.path;
