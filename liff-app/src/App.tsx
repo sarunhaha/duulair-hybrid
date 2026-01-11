@@ -1,6 +1,9 @@
 import { lazy, Suspense } from 'react';
-import { Route, Switch } from 'wouter';
+import { Route, Switch, Router } from 'wouter';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+// Base path for the app (must match vite.config.ts base)
+const BASE_PATH = '/liff-v2';
 import { LiffProvider } from '@/lib/liff/provider';
 import { Toaster } from '@/components/ui/toaster';
 import { SkipLink } from '@/components/a11y/skip-link';
@@ -67,6 +70,7 @@ export default function App() {
         <SkipLink />
         <Suspense fallback={<PageLoader />}>
           <main id="main-content">
+          <Router base={BASE_PATH}>
           <Switch>
             {/* Entry Point */}
             <Route path="/" component={HomePage} />
@@ -102,6 +106,7 @@ export default function App() {
             {/* 404 */}
             <Route component={NotFoundPage} />
           </Switch>
+          </Router>
           </main>
         </Suspense>
         <Toaster />
