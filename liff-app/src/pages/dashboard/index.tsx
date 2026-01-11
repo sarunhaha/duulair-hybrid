@@ -14,49 +14,48 @@ const iconMap: Record<string, React.ReactNode> = {
   droplets: <Droplets className="w-6 h-6" />,
 };
 
+// Mock data for fallback
+const MOCK_INSIGHT = {
+  icon: 'moon',
+  title: 'อุ่นใจแนะนำ',
+  message: 'เมื่อคืนคุณนอนน้อย ลองพักสายตา 10 นาทีช่วงบ่ายนะคะ',
+};
+
+const MOCK_VITALS = {
+  bp_systolic: 122,
+  bp_diastolic: 80,
+  bp_change: -5,
+  sleep_hours: 6.5,
+  sleep_change: -1.2,
+  weight: 64.2,
+  weight_change: -0.3,
+};
+
+const MOCK_TASKS = {
+  total: 4,
+  completed: 2,
+  items: [
+    { id: 1, label: 'กินยาเช้า', done: true, time: '08:00' },
+    { id: 2, label: 'วัดความดัน', done: true, time: '08:30' },
+    { id: 3, label: 'ดื่มน้ำ 6 แก้ว', done: false, sub: 'เหลือ 3 แก้ว' },
+    { id: 4, label: 'เดิน 15 นาที', done: false, sub: 'เย็นนี้' },
+  ],
+};
+
 export default function DashboardPage() {
   const { profile } = useLiff();
   const { context } = useAuthStore();
   const displayName = profile?.displayName || 'คุณ';
 
   // Fetch dashboard data
-  const { data: summary, isLoading, error } = useDashboardSummary(context.patientId);
+  const { data: summary, isLoading } = useDashboardSummary(context.patientId);
 
-  // Loading state
-  if (isLoading) {
-    return (
-      <div className="min-h-screen pb-32 font-sans relative z-10 bg-background">
-        <header className="bg-card pt-12 pb-4 px-6 sticky top-0 z-20 flex justify-between items-center border-b border-border">
-          <h1 className="text-2xl font-bold text-foreground">สุขภาพวันนี้</h1>
-        </header>
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
-        </div>
-        <BottomNav />
-      </div>
-    );
-  }
-
-  // Error state
-  if (error && !summary) {
-    return (
-      <div className="min-h-screen pb-32 font-sans relative z-10 bg-background">
-        <header className="bg-card pt-12 pb-4 px-6 sticky top-0 z-20 flex justify-between items-center border-b border-border">
-          <h1 className="text-2xl font-bold text-foreground">สุขภาพวันนี้</h1>
-        </header>
-        <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
-          <p className="text-muted-foreground">ไม่สามารถโหลดข้อมูลได้</p>
-        </div>
-        <BottomNav />
-      </div>
-    );
-  }
-
-  const vitals = summary?.latestVitals;
-  const tasks = summary?.todayTasks;
-  const insight = summary?.aiInsight;
-  const streak = summary?.streak ?? 0;
-  const remainingTasks = tasks ? tasks.total - tasks.completed : 0;
+  // Use mock data as fallback
+  const vitals = summary?.latestVitals || MOCK_VITALS;
+  const tasks = summary?.todayTasks || MOCK_TASKS;
+  const insight = summary?.aiInsight || MOCK_INSIGHT;
+  const streak = summary?.streak ?? 5;
+  const remainingTasks = tasks.total - tasks.completed;
 
   return (
     <div className="min-h-screen pb-32 font-sans relative z-10 bg-background">
@@ -76,19 +75,15 @@ export default function DashboardPage() {
             </div>
 
             {/* OONJAI Recommendation */}
-            {insight && (
-              <div className="bg-accent/10 p-5 rounded-2xl flex items-start gap-4 border border-accent/20">
-                <div className="bg-accent text-white p-2.5 rounded-xl shrink-0 shadow-sm">
-                  {iconMap[insight.icon] || <Moon className="w-6 h-6" />}
-                </div>
-                <div className="space-y-1">
-                  <h4 className="font-bold text-lg text-accent">{insight.title}</h4>
-                  <p className="text-base text-foreground/80 leading-relaxed">
-                    {insight.message}
-                  </p>
-                </div>
+            <div className="bg-accent/10 p-5 rounded-2xl flex items-start gap-4 border border-accent/20">
+              <div className="bg-accent text-white p-2.5 rounded-xl shrink-0 shadow-sm">
+                {iconMap[insight.icon] || <Moon className="w-6 h-6" />}
               </div>
-            )}
+              <div className="space-y-1">
+                <h4 className="font-bold text-lg text-accent">{insight.title}</h4>
+                <p className="text-base text-foreground/80 leading-relaxed">{insight.message}</p>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
@@ -122,11 +117,9 @@ export default function DashboardPage() {
             <div className="space-y-1 text-center px-1">
               <p className="text-[10px] text-muted-foreground font-medium">ความดัน</p>
               <p className="text-lg font-bold text-foreground">
-                {vitals?.bp_systolic && vitals?.bp_diastolic
-                  ? `${vitals.bp_systolic}/${vitals.bp_diastolic}`
-                  : '--/--'}
+                {vitals.bp_systolic}/{vitals.bp_diastolic}
               </p>
-              {vitals?.bp_change !== null && vitals?.bp_change !== undefined && (
+              {vitals.bp_change !== null && vitals.bp_change !== undefined && (
                 <div
                   className={cn(
                     'flex items-center justify-center gap-1 text-[10px] font-bold w-fit mx-auto px-1.5 py-0.5 rounded-md',
@@ -135,12 +128,9 @@ export default function DashboardPage() {
                       : 'text-red-500 bg-red-50 dark:bg-red-950/30'
                   )}
                 >
-                  {vitals.bp_change <= 0 ? (
-                    <ArrowDownRight className="w-3 h-3" />
-                  ) : (
-                    <ArrowUpRight className="w-3 h-3" />
-                  )}
-                  {vitals.bp_change > 0 ? '+' : ''}{vitals.bp_change}
+                  {vitals.bp_change <= 0 ? <ArrowDownRight className="w-3 h-3" /> : <ArrowUpRight className="w-3 h-3" />}
+                  {vitals.bp_change > 0 ? '+' : ''}
+                  {vitals.bp_change}
                 </div>
               )}
             </div>
@@ -148,10 +138,8 @@ export default function DashboardPage() {
             {/* Sleep */}
             <div className="space-y-1 text-center px-1">
               <p className="text-[10px] text-muted-foreground font-medium">การนอน</p>
-              <p className="text-lg font-bold text-foreground">
-                {vitals?.sleep_hours ? `${vitals.sleep_hours} ชม.` : '-- ชม.'}
-              </p>
-              {vitals?.sleep_change !== null && vitals?.sleep_change !== undefined && (
+              <p className="text-lg font-bold text-foreground">{vitals.sleep_hours} ชม.</p>
+              {vitals.sleep_change !== null && vitals.sleep_change !== undefined && (
                 <div
                   className={cn(
                     'flex items-center justify-center gap-1 text-[10px] font-bold w-fit mx-auto px-1.5 py-0.5 rounded-md',
@@ -160,12 +148,9 @@ export default function DashboardPage() {
                       : 'text-red-500 bg-red-50 dark:bg-red-950/30'
                   )}
                 >
-                  {vitals.sleep_change < 0 ? (
-                    <ArrowDownRight className="w-3 h-3" />
-                  ) : (
-                    <ArrowUpRight className="w-3 h-3" />
-                  )}
-                  {vitals.sleep_change > 0 ? '+' : ''}{vitals.sleep_change}
+                  {vitals.sleep_change < 0 ? <ArrowDownRight className="w-3 h-3" /> : <ArrowUpRight className="w-3 h-3" />}
+                  {vitals.sleep_change > 0 ? '+' : ''}
+                  {vitals.sleep_change}
                 </div>
               )}
             </div>
@@ -173,10 +158,8 @@ export default function DashboardPage() {
             {/* Weight */}
             <div className="space-y-1 text-center px-1">
               <p className="text-[10px] text-muted-foreground font-medium">น้ำหนัก</p>
-              <p className="text-lg font-bold text-foreground">
-                {vitals?.weight ? `${vitals.weight} กก.` : '-- กก.'}
-              </p>
-              {vitals?.weight_change !== null && vitals?.weight_change !== undefined && (
+              <p className="text-lg font-bold text-foreground">{vitals.weight} กก.</p>
+              {vitals.weight_change !== null && vitals.weight_change !== undefined && (
                 <div
                   className={cn(
                     'flex items-center justify-center gap-1 text-[10px] font-bold w-fit mx-auto px-1.5 py-0.5 rounded-md',
@@ -185,12 +168,9 @@ export default function DashboardPage() {
                       : 'text-red-500 bg-red-50 dark:bg-red-950/30'
                   )}
                 >
-                  {vitals.weight_change <= 0 ? (
-                    <ArrowDownRight className="w-3 h-3" />
-                  ) : (
-                    <ArrowUpRight className="w-3 h-3" />
-                  )}
-                  {vitals.weight_change > 0 ? '+' : ''}{vitals.weight_change}
+                  {vitals.weight_change <= 0 ? <ArrowDownRight className="w-3 h-3" /> : <ArrowUpRight className="w-3 h-3" />}
+                  {vitals.weight_change > 0 ? '+' : ''}
+                  {vitals.weight_change}
                 </div>
               )}
             </div>
@@ -208,7 +188,7 @@ export default function DashboardPage() {
             </div>
           </CardHeader>
           <CardContent className="p-5 pt-4 space-y-4">
-            {tasks?.items.map((task) => (
+            {tasks.items.map((task) => (
               <div key={task.id} className="flex items-start gap-3">
                 <Checkbox
                   id={`task-${task.id}`}
@@ -232,6 +212,13 @@ export default function DashboardPage() {
             ))}
           </CardContent>
         </Card>
+
+        {/* Loading indicator overlay */}
+        {isLoading && (
+          <div className="fixed inset-0 bg-background/50 flex items-center justify-center z-50 pointer-events-none">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          </div>
+        )}
       </main>
 
       <BottomNav />

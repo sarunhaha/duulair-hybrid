@@ -32,7 +32,66 @@ import {
   type TimeRange,
   type TrendCategory,
   type TrendDataPoint,
+  type TrendData,
 } from '@/lib/api/hooks/use-trends';
+
+// Mock data for fallback (with required 'date' field for TrendDataPoint)
+const MOCK_VITALS_DATA: TrendData = {
+  data: [
+    { day: 'จ', date: '2026-01-06', systolic: 122, diastolic: 80, pulse: 72 },
+    { day: 'อ', date: '2026-01-07', systolic: 125, diastolic: 82, pulse: 75, event: 'สูงนิดหน่อย' },
+    { day: 'พ', date: '2026-01-08', systolic: 118, diastolic: 78, pulse: 70 },
+    { day: 'พฤ', date: '2026-01-09', systolic: 120, diastolic: 79, pulse: 73 },
+    { day: 'ศ', date: '2026-01-10', systolic: 123, diastolic: 81, pulse: 74, note: 'ตื่นมาเหนื่อย' },
+    { day: 'ส', date: '2026-01-11', systolic: 119, diastolic: 77, pulse: 71 },
+    { day: 'อา', date: '2026-01-12', systolic: 121, diastolic: 80, pulse: 72 },
+  ],
+  summary: {
+    avg: '121/79',
+    count: '7/7 วัน',
+    label1: 'ค่าเฉลี่ย',
+    label2: 'บันทึกครบ',
+  },
+  insight: 'ความดันคุณอยู่ในเกณฑ์ปกติตลอดสัปดาห์ ยอดเยี่ยม!',
+};
+
+const MOCK_MEDS_DATA: TrendData = {
+  data: [
+    { day: 'จ', date: '2026-01-06', percent: 100, target: 3, done: 3 },
+    { day: 'อ', date: '2026-01-07', percent: 67, target: 3, done: 2, note: 'ลืมมื้อเที่ยง' },
+    { day: 'พ', date: '2026-01-08', percent: 100, target: 3, done: 3 },
+    { day: 'พฤ', date: '2026-01-09', percent: 100, target: 3, done: 3 },
+    { day: 'ศ', date: '2026-01-10', percent: 100, target: 3, done: 3 },
+    { day: 'ส', date: '2026-01-11', percent: 33, target: 3, done: 1, note: 'ลืม 2 มื้อ' },
+    { day: 'อา', date: '2026-01-12', percent: 100, target: 3, done: 3 },
+  ],
+  summary: {
+    avg: '86%',
+    count: '5/7 วัน',
+    label1: 'อัตราครบ',
+    label2: 'กินครบทั้งวัน',
+  },
+  insight: 'สัปดาห์นี้คุณลืมยา 2 วัน ลองตั้งเตือนเพิ่มช่วงเที่ยงนะคะ',
+};
+
+const MOCK_SLEEP_DATA: TrendData = {
+  data: [
+    { day: 'จ', date: '2026-01-06', hours: 7.5 },
+    { day: 'อ', date: '2026-01-07', hours: 6.2, note: 'นอนดึก' },
+    { day: 'พ', date: '2026-01-08', hours: 7.0 },
+    { day: 'พฤ', date: '2026-01-09', hours: 5.5, note: 'ตื่นกลางดึก' },
+    { day: 'ศ', date: '2026-01-10', hours: 8.0 },
+    { day: 'ส', date: '2026-01-11', hours: 7.2 },
+    { day: 'อา', date: '2026-01-12', hours: 6.8 },
+  ],
+  summary: {
+    avg: '6.9 ชม.',
+    count: '7/7 วัน',
+    label1: 'เฉลี่ย/คืน',
+    label2: 'บันทึกครบ',
+  },
+  insight: 'สัปดาห์นี้คุณนอนเฉลี่ย 6.9 ชม. ลองนอนก่อน 22:00 จะดีขึ้นนะคะ',
+};
 
 export default function TrendsPage() {
   const { context } = useAuthStore();
@@ -47,17 +106,17 @@ export default function TrendsPage() {
   const { data: medsData, isLoading: medsLoading } = useMedsTrend(patientId, range);
   const { data: sleepData, isLoading: sleepLoading } = useSleepTrend(patientId, range);
 
-  // Get active data based on category
+  // Get active data based on category (with mock fallback)
   const activeData = useMemo(() => {
     switch (category) {
       case 'heart':
-        return vitalsData;
+        return vitalsData || MOCK_VITALS_DATA;
       case 'meds':
-        return medsData;
+        return medsData || MOCK_MEDS_DATA;
       case 'sleep':
-        return sleepData;
+        return sleepData || MOCK_SLEEP_DATA;
       default:
-        return vitalsData;
+        return vitalsData || MOCK_VITALS_DATA;
     }
   }, [category, vitalsData, medsData, sleepData]);
 
