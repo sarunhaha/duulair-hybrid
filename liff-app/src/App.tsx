@@ -37,6 +37,9 @@ const PackagePage = lazy(() => import('@/pages/settings/package'));
 // Reports - lazy (has heavy chart deps)
 const ReportsPage = lazy(() => import('@/pages/reports'));
 
+// History - lazy
+const HistoryPage = lazy(() => import('@/pages/history'));
+
 // Link pages - lazy
 const LinkPage = lazy(() => import('@/pages/link'));
 const EnterCodePage = lazy(() => import('@/pages/link/enter-code'));
@@ -98,6 +101,9 @@ export default function App() {
 
             {/* Reports */}
             <Route path="/reports" component={ReportsPage} />
+
+            {/* History */}
+            <Route path="/history" component={HistoryPage} />
 
             {/* Link Pages */}
             <Route path="/link" component={LinkPage} />
