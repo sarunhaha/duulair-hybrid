@@ -13,83 +13,83 @@
   "routes": [
     {
       "src": "/liff/?$",
-      "dest": "/public/liff/index.html"
+      "dest": "/liff/index.html"
     },
     {
       "src": "/liff/group-registration/?$",
-      "dest": "/public/liff/group-registration.html"
+      "dest": "/liff/group-registration.html"
     },
     {
       "src": "/liff/group-dashboard/?$",
-      "dest": "/public/liff/group-dashboard.html"
+      "dest": "/liff/group-dashboard.html"
     },
     {
       "src": "/liff/my-profile/?$",
-      "dest": "/public/liff/my-profile.html"
+      "dest": "/liff/my-profile.html"
     },
     {
       "src": "/liff/success/?$",
-      "dest": "/public/liff/success.html"
+      "dest": "/liff/success.html"
     },
     {
       "src": "/liff/water-tracking/?$",
-      "dest": "/public/liff/water-tracking.html"
+      "dest": "/liff/water-tracking.html"
     },
     {
       "src": "/liff/medications/?$",
-      "dest": "/public/liff/medications.html"
+      "dest": "/liff/medications.html"
     },
     {
       "src": "/liff/reminders/?$",
-      "dest": "/public/liff/reminders.html"
+      "dest": "/liff/reminders.html"
     },
     {
       "src": "/liff/patient-profile/?$",
-      "dest": "/public/liff/patient-profile.html"
+      "dest": "/liff/patient-profile.html"
     },
     {
       "src": "/liff/settings/?$",
-      "dest": "/public/liff/settings.html"
+      "dest": "/liff/settings.html"
     },
     {
       "src": "/liff/dashboard/?$",
-      "dest": "/public/liff/dashboard.html"
+      "dest": "/liff/dashboard.html"
     },
     {
       "src": "/liff/health-log/?$",
-      "dest": "/public/liff/health-log.html"
+      "dest": "/liff/health-log.html"
     },
     {
       "src": "/liff/log-medication/?$",
-      "dest": "/public/liff/log-medication.html"
+      "dest": "/liff/log-medication.html"
     },
     {
       "src": "/liff/log-symptom/?$",
-      "dest": "/public/liff/log-symptom.html"
+      "dest": "/liff/log-symptom.html"
     },
     {
       "src": "/liff/vitals-tracking/?$",
-      "dest": "/public/liff/vitals-tracking.html"
+      "dest": "/liff/vitals-tracking.html"
     },
     {
       "src": "/liff/(.*\\.(html|css|js|png|jpg|jpeg|gif|svg|ico))",
-      "dest": "/public/liff/$1"
+      "dest": "/liff/$1"
     },
     {
       "src": "/liff-v2/assets/(.*)",
-      "dest": "/public/liff-v2/assets/$1"
+      "dest": "/liff-v2/assets/$1"
     },
     {
       "src": "/liff-v2/(.*\\.(html|css|js|png|jpg|jpeg|gif|svg|ico|json))",
-      "dest": "/public/liff-v2/$1"
+      "dest": "/liff-v2/$1"
     },
     {
       "src": "/liff-v2/?$",
-      "dest": "/public/liff-v2/index.html"
+      "dest": "/liff-v2/index.html"
     },
     {
       "src": "/liff-v2/(.*)",
-      "dest": "/public/liff-v2/index.html"
+      "dest": "/liff-v2/index.html"
     },
     {
       "src": "/(.*)",
