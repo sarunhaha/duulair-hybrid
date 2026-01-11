@@ -76,6 +76,22 @@
       "dest": "/public/liff/$1"
     },
     {
+      "src": "/liff-v2/assets/(.*)",
+      "dest": "/public/liff-v2/assets/$1"
+    },
+    {
+      "src": "/liff-v2/(.*\\.(html|css|js|png|jpg|jpeg|gif|svg|ico|json))",
+      "dest": "/public/liff-v2/$1"
+    },
+    {
+      "src": "/liff-v2/?$",
+      "dest": "/public/liff-v2/index.html"
+    },
+    {
+      "src": "/liff-v2/(.*)",
+      "dest": "/public/liff-v2/index.html"
+    },
+    {
       "src": "/(.*)",
       "dest": "src/index.ts"
     }
