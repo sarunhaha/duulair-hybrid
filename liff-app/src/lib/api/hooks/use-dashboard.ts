@@ -56,25 +56,47 @@ export const dashboardKeys = {
   groupDashboard: (groupId: string) => [...dashboardKeys.all, 'group', groupId] as const,
 };
 
+// Empty dashboard data (no mock)
+function getEmptyDashboardSummary(): DashboardSummary {
+  return {
+    streak: 0,
+    todayTasks: {
+      total: 0,
+      completed: 0,
+      items: [],
+    },
+    latestVitals: {
+      bp_systolic: null,
+      bp_diastolic: null,
+      bp_change: null,
+      sleep_hours: null,
+      sleep_change: null,
+      weight: null,
+      weight_change: null,
+    },
+    aiInsight: null,
+  };
+}
+
 // Fetch dashboard summary for a patient
 export function useDashboardSummary(patientId: string | null) {
   return useQuery({
     queryKey: patientId ? dashboardKeys.summary(patientId) : ['dashboard', 'summary', 'none'],
     queryFn: async (): Promise<DashboardSummary> => {
       if (!patientId) {
-        // Return mock data when no patient ID
-        return getMockDashboardSummary();
+        // Return empty data when no patient ID
+        return getEmptyDashboardSummary();
       }
       try {
         const data = await apiClient.get<DashboardSummary>(`/dashboard/summary/${patientId}`);
         return data;
-      } catch {
-        // Return mock data on API error (for development)
-        console.warn('Dashboard API not available, using mock data');
-        return getMockDashboardSummary();
+      } catch (error) {
+        // Return empty data on API error
+        console.warn('Dashboard API error:', error);
+        return getEmptyDashboardSummary();
       }
     },
-    enabled: true, // Always enabled, uses mock data as fallback
+    enabled: true,
     staleTime: 30 * 1000, // 30 seconds
     refetchOnWindowFocus: true,
   });
