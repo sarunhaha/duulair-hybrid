@@ -92,11 +92,20 @@ export function useSaveVitals() {
       weight?: number;
       temperature?: number;
     }) => {
-      return await apiClient.post('/health/vitals', data);
+      // Map to backend field names (snake_case patient_id)
+      return await apiClient.post('/health/vitals', {
+        patient_id: data.patientId,
+        bp_systolic: data.bp_systolic,
+        bp_diastolic: data.bp_diastolic,
+        heart_rate: data.heart_rate,
+        weight: data.weight,
+        temperature: data.temperature,
+      });
     },
     onSuccess: (_, variables) => {
       const today = new Date().toISOString().split('T')[0];
       queryClient.invalidateQueries({ queryKey: healthKeys.vitals(variables.patientId, today) });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] }); // Refresh dashboard
     },
   });
 }
@@ -129,12 +138,17 @@ export function useAddWater() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (data: { patientId: string; amount_ml: number }) => {
-      return await apiClient.post('/health/water', data);
+    mutationFn: async (data: { patientId: string; glasses?: number; amount_ml?: number }) => {
+      return await apiClient.post('/health/water', {
+        patient_id: data.patientId,
+        glasses: data.glasses,
+        amount_ml: data.amount_ml,
+      });
     },
     onSuccess: (_, variables) => {
       const today = new Date().toISOString().split('T')[0];
       queryClient.invalidateQueries({ queryKey: healthKeys.water(variables.patientId, today) });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
 }
@@ -183,15 +197,29 @@ export function useLogMedication() {
   return useMutation({
     mutationFn: async (data: {
       patientId: string;
-      medicationIds: string[];
-      time_period: 'morning' | 'afternoon' | 'evening' | 'night';
+      medication_id?: string;
+      medication_name?: string;
+      dosage?: string;
+      scheduled_time?: string;
       note?: string;
+      skipped?: boolean;
+      skipped_reason?: string;
     }) => {
-      return await apiClient.post('/health/medication-logs', data);
+      return await apiClient.post('/health/medications', {
+        patient_id: data.patientId,
+        medication_id: data.medication_id,
+        medication_name: data.medication_name,
+        dosage: data.dosage,
+        scheduled_time: data.scheduled_time,
+        note: data.note,
+        skipped: data.skipped,
+        skipped_reason: data.skipped_reason,
+      });
     },
     onSuccess: (_, variables) => {
       const today = new Date().toISOString().split('T')[0];
       queryClient.invalidateQueries({ queryKey: healthKeys.medicationLogs(variables.patientId, today) });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
 }
@@ -203,17 +231,87 @@ export function useLogSymptom() {
   return useMutation({
     mutationFn: async (data: {
       patientId: string;
-      symptoms: string[];
-      severity: number;
-      location?: string;
-      duration?: string;
-      note?: string;
+      symptom_name: string;
+      severity_1to5?: number;
+      body_location?: string;
+      duration_text?: string;
+      notes?: string;
     }) => {
-      return await apiClient.post('/health/symptoms', data);
+      return await apiClient.post('/health/symptoms', {
+        patient_id: data.patientId,
+        symptom_name: data.symptom_name,
+        severity_1to5: data.severity_1to5,
+        body_location: data.body_location,
+        duration_text: data.duration_text,
+        notes: data.notes,
+      });
     },
     onSuccess: (_, variables) => {
       const today = new Date().toISOString().split('T')[0];
       queryClient.invalidateQueries({ queryKey: healthKeys.symptoms(variables.patientId, today) });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}
+
+// Sleep Hooks
+export function useLogSleep() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: {
+      patientId: string;
+      sleep_hours?: number;
+      sleep_quality?: string;
+      sleep_quality_score?: number;
+      sleep_time?: string;
+      wake_time?: string;
+      notes?: string;
+    }) => {
+      return await apiClient.post('/health/sleep', {
+        patient_id: data.patientId,
+        sleep_hours: data.sleep_hours,
+        sleep_quality: data.sleep_quality,
+        sleep_quality_score: data.sleep_quality_score,
+        sleep_time: data.sleep_time,
+        wake_time: data.wake_time,
+        notes: data.notes,
+      });
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['health', 'sleep', variables.patientId] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}
+
+// Exercise Hooks
+export function useLogExercise() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: {
+      patientId: string;
+      exercise_type?: string;
+      duration_minutes?: number;
+      intensity?: string;
+      distance_meters?: number;
+      calories_burned?: number;
+      notes?: string;
+    }) => {
+      return await apiClient.post('/health/exercise', {
+        patient_id: data.patientId,
+        exercise_type: data.exercise_type,
+        duration_minutes: data.duration_minutes,
+        intensity: data.intensity,
+        distance_meters: data.distance_meters,
+        calories_burned: data.calories_burned,
+        notes: data.notes,
+      });
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['health', 'exercise', variables.patientId] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
 }

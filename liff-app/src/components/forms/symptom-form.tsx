@@ -131,14 +131,17 @@ export function SymptomForm({ onSuccess, onCancel }: SymptomFormProps) {
       const symptomLabels = getSymptomLabels();
 
       if (patientId) {
-        await logSymptom.mutateAsync({
-          patientId,
-          symptoms: symptomLabels,
-          severity,
-          location: location || undefined,
-          duration: duration || undefined,
-          note: note.trim() || undefined,
-        });
+        // Log each symptom separately
+        for (const symptomName of symptomLabels) {
+          await logSymptom.mutateAsync({
+            patientId,
+            symptom_name: symptomName,
+            severity_1to5: severity,
+            body_location: location || undefined,
+            duration_text: duration || undefined,
+            notes: note.trim() || undefined,
+          });
+        }
       } else {
         // Save to localStorage for development
         const today = new Date().toISOString().split('T')[0];

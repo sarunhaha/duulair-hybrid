@@ -129,12 +129,17 @@ export function MedicationForm({ onSuccess, onCancel }: MedicationFormProps) {
 
     try {
       if (patientId) {
-        await logMedication.mutateAsync({
-          patientId,
-          medicationIds: Array.from(selectedMeds),
-          time_period: currentPeriod,
-          note: note.trim() || undefined,
-        });
+        // Log each medication separately
+        for (const medId of Array.from(selectedMeds)) {
+          const med = (medications || []).find(m => m.id === medId);
+          await logMedication.mutateAsync({
+            patientId,
+            medication_id: medId,
+            medication_name: med?.name,
+            dosage: med?.dosage_amount ? `${med.dosage_amount} ${med.dosage_unit}` : undefined,
+            note: note.trim() || undefined,
+          });
+        }
       } else {
         // Save to localStorage for development
         const today = new Date().toISOString().split('T')[0];

@@ -8,6 +8,8 @@ import { OrchestratorAgent } from './agents';
 import registrationRoutes from './routes/registration.routes';
 import groupRoutes from './routes/group.routes';
 import reportRoutes from './routes/report.routes';
+import dashboardRoutes from './routes/dashboard.routes';
+import healthRoutes from './routes/health.routes';
 import { groupWebhookService } from './services/group-webhook.service';
 import { commandHandlerService } from './services/command-handler.service';
 import { userService } from './services/user.service';
@@ -1401,6 +1403,12 @@ app.use('/api/groups', groupRoutes);
 
 // Report API routes (Download reports - Premium feature)
 app.use('/api/reports', reportRoutes);
+
+// Dashboard API routes (LIFF app)
+app.use('/api/dashboard', dashboardRoutes);
+
+// Health API routes (LIFF app - record vitals, medications, etc.)
+app.use('/api/health', healthRoutes);
 
 // LINE Webhook - with manual signature verification
 app.post('/webhook', async (req, res) => {
