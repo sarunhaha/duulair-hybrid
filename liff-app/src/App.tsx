@@ -1,10 +1,11 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, type ReactNode } from 'react';
 import { Route, Switch, Router } from 'wouter';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Base path for the app (must match vite.config.ts base)
 const BASE_PATH = '/liff-v2';
 import { LiffProvider } from '@/lib/liff/provider';
+import { AuthGuard } from '@/components/auth/auth-guard';
 import { Toaster } from '@/components/ui/toaster';
 import { SkipLink } from '@/components/a11y/skip-link';
 import { Loader2 } from 'lucide-react';
@@ -56,6 +57,11 @@ function PageLoader() {
   );
 }
 
+// Protected route wrapper - ensures user is authenticated
+function Protected({ children }: { children: ReactNode }) {
+  return <AuthGuard>{children}</AuthGuard>;
+}
+
 // Create React Query client
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -75,39 +81,67 @@ export default function App() {
           <main id="main-content">
           <Router base={BASE_PATH}>
           <Switch>
-            {/* Entry Point */}
+            {/* Entry Point - No auth guard needed, handles its own auth */}
             <Route path="/" component={HomePage} />
 
-            {/* Registration Routes */}
+            {/* Registration Routes - No auth guard needed */}
             <Route path="/registration/quick" component={QuickRegistrationPage} />
             <Route path="/registration/group" component={GroupRegistrationPage} />
             <Route path="/registration/success" component={RegistrationSuccessPage} />
 
-            {/* Main App Routes */}
-            <Route path="/dashboard" component={DashboardPage} />
-            <Route path="/dashboard/group" component={GroupDashboardPage} />
-            <Route path="/records" component={RecordsPage} />
-            <Route path="/trends" component={TrendsPage} />
-            <Route path="/settings" component={SettingsPage} />
+            {/* Main App Routes - Protected */}
+            <Route path="/dashboard">
+              <Protected><DashboardPage /></Protected>
+            </Route>
+            <Route path="/dashboard/group">
+              <Protected><GroupDashboardPage /></Protected>
+            </Route>
+            <Route path="/records">
+              <Protected><RecordsPage /></Protected>
+            </Route>
+            <Route path="/trends">
+              <Protected><TrendsPage /></Protected>
+            </Route>
+            <Route path="/settings">
+              <Protected><SettingsPage /></Protected>
+            </Route>
 
-            {/* Profile Routes */}
-            <Route path="/profile" component={ProfilePage} />
-            <Route path="/profile/edit" component={ProfileEditPage} />
+            {/* Profile Routes - Protected */}
+            <Route path="/profile">
+              <Protected><ProfilePage /></Protected>
+            </Route>
+            <Route path="/profile/edit">
+              <Protected><ProfileEditPage /></Protected>
+            </Route>
 
-            {/* Settings Subpages */}
-            <Route path="/settings/medications" component={MedicationsPage} />
-            <Route path="/settings/reminders" component={RemindersPage} />
-            <Route path="/settings/package" component={PackagePage} />
+            {/* Settings Subpages - Protected */}
+            <Route path="/settings/medications">
+              <Protected><MedicationsPage /></Protected>
+            </Route>
+            <Route path="/settings/reminders">
+              <Protected><RemindersPage /></Protected>
+            </Route>
+            <Route path="/settings/package">
+              <Protected><PackagePage /></Protected>
+            </Route>
 
-            {/* Reports */}
-            <Route path="/reports" component={ReportsPage} />
+            {/* Reports - Protected */}
+            <Route path="/reports">
+              <Protected><ReportsPage /></Protected>
+            </Route>
 
-            {/* History */}
-            <Route path="/history" component={HistoryPage} />
+            {/* History - Protected */}
+            <Route path="/history">
+              <Protected><HistoryPage /></Protected>
+            </Route>
 
-            {/* Link Pages */}
-            <Route path="/link" component={LinkPage} />
-            <Route path="/link/enter-code" component={EnterCodePage} />
+            {/* Link Pages - Protected */}
+            <Route path="/link">
+              <Protected><LinkPage /></Protected>
+            </Route>
+            <Route path="/link/enter-code">
+              <Protected><EnterCodePage /></Protected>
+            </Route>
 
             {/* 404 */}
             <Route component={NotFoundPage} />
