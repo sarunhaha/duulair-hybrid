@@ -152,7 +152,12 @@ export default function MedicationsPage() {
   };
 
   const handleSubmit = async () => {
-    if (!patientId) return;
+    console.log('[MedicationsPage] handleSubmit called, patientId:', patientId);
+
+    if (!patientId) {
+      toast({ title: 'ไม่พบข้อมูลผู้ป่วย กรุณาลงทะเบียนก่อน', variant: 'destructive' });
+      return;
+    }
     if (!formData.name.trim()) {
       toast({ title: 'กรุณาระบุชื่อยา', variant: 'destructive' });
       return;
@@ -163,6 +168,8 @@ export default function MedicationsPage() {
     }
 
     try {
+      console.log('[MedicationsPage] Submitting medication:', formData);
+
       if (editingId) {
         await updateMedication.mutateAsync({
           id: editingId,
@@ -178,7 +185,8 @@ export default function MedicationsPage() {
         toast({ title: 'เพิ่มรายการยาเรียบร้อยแล้ว' });
       }
       setDrawerOpen(false);
-    } catch {
+    } catch (error) {
+      console.error('[MedicationsPage] Error saving medication:', error);
       toast({ title: 'ไม่สามารถบันทึกรายการยาได้', variant: 'destructive' });
     }
   };
