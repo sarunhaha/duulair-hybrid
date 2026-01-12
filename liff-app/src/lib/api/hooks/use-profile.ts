@@ -208,10 +208,12 @@ export function usePatientMedicationsAll(patientId: string | null) {
     queryFn: async (): Promise<Medication[]> => {
       if (!patientId) return [];
       try {
-        const data = await apiClient.get<{ success: boolean; medications: Medication[] }>(`/medications/patient/${patientId}`);
+        // Backend endpoint: GET /api/medications/:patientId
+        const data = await apiClient.get<{ success: boolean; medications: Medication[] }>(`/medications/${patientId}`);
+        console.log('[usePatientMedicationsAll] API response:', data);
         return data.medications || [];
-      } catch {
-        console.warn('Medications API not available');
+      } catch (err) {
+        console.warn('[usePatientMedicationsAll] API error:', err);
         return [];
       }
     },
@@ -226,7 +228,9 @@ export function useAddMedication() {
 
   return useMutation({
     mutationFn: async (data: Omit<Medication, 'id' | 'created_at'>) => {
-      return apiClient.post('/medications', data);
+      // Backend endpoint: POST /api/medications/:patientId
+      console.log('[useAddMedication] Adding medication:', data);
+      return apiClient.post(`/medications/${data.patient_id}`, data);
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: profileKeys.medications(variables.patient_id) });
