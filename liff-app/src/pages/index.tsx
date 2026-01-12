@@ -62,6 +62,14 @@ export default function HomePage() {
               profileId: result.profile.id,
               lineUserId: profile.userId,
             });
+
+            // Set context with patientId for patient role
+            if (result.role === 'patient') {
+              setContext({
+                patientId: result.profile.id,
+              });
+            }
+
             setIsRegistered(true);
             setStatus('registered');
             setStatusMessage('พบข้อมูล กำลังเปลี่ยนหน้า...');
