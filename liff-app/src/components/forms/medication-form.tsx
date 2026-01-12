@@ -9,6 +9,8 @@ import {
   Check,
   Loader2,
   FileText,
+  Plus,
+  Settings,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -16,6 +18,7 @@ import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth';
 import { usePatientMedications, useTodayMedicationLogs, useLogMedication, type Medication } from '@/lib/api/hooks/use-health';
 import { useToast } from '@/hooks/use-toast';
+import { useLocation } from 'wouter';
 
 interface MedicationFormProps {
   onSuccess?: () => void;
@@ -68,6 +71,7 @@ export function MedicationForm({ onSuccess, onCancel }: MedicationFormProps) {
   const { context } = useAuthStore();
   const patientId = context.patientId;
   const { toast } = useToast();
+  const [, navigate] = useLocation();
 
   const { data: medications, isLoading: medsLoading } = usePatientMedications(patientId);
   const { data: todayLogs, refetch: refetchLogs } = useTodayMedicationLogs(patientId);
@@ -231,9 +235,21 @@ export function MedicationForm({ onSuccess, onCancel }: MedicationFormProps) {
             <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
           </div>
         ) : medsForPeriod.length === 0 ? (
-          <div className="text-center py-8 bg-muted/50 rounded-xl">
-            <Pill className="w-10 h-10 mx-auto mb-2 text-muted-foreground/30" />
-            <p className="text-sm text-muted-foreground">ไม่มียาสำหรับช่วงเวลานี้</p>
+          <div className="text-center py-8 bg-muted/50 rounded-xl space-y-4">
+            <Pill className="w-10 h-10 mx-auto text-muted-foreground/30" />
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">ไม่มียาสำหรับช่วงเวลานี้</p>
+              <p className="text-xs text-muted-foreground/70 mt-1">เพิ่มรายการยาเพื่อเริ่มบันทึก</p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              onClick={() => navigate('/settings/medications')}
+            >
+              <Plus className="w-4 h-4" />
+              เพิ่มรายการยา
+            </Button>
           </div>
         ) : (
           <div className="space-y-2">
@@ -286,6 +302,15 @@ export function MedicationForm({ onSuccess, onCancel }: MedicationFormProps) {
                 </button>
               );
             })}
+
+            {/* Link to manage medications */}
+            <button
+              onClick={() => navigate('/settings/medications')}
+              className="w-full flex items-center justify-center gap-2 py-3 text-sm text-primary hover:text-primary/80 transition-colors"
+            >
+              <Settings className="w-4 h-4" />
+              จัดการรายการยา
+            </button>
           </div>
         )}
       </div>

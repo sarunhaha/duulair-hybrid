@@ -208,11 +208,11 @@ export function usePatientMedicationsAll(patientId: string | null) {
     queryFn: async (): Promise<Medication[]> => {
       if (!patientId) return [];
       try {
-        const data = await apiClient.get<{ success: boolean; medications: Medication[] }>(`/patient/${patientId}/medications`);
+        const data = await apiClient.get<{ success: boolean; medications: Medication[] }>(`/medications/patient/${patientId}`);
         return data.medications || [];
       } catch {
         console.warn('Medications API not available');
-        return getMockMedications(patientId);
+        return [];
       }
     },
     enabled: !!patientId,
@@ -383,39 +383,6 @@ function getMockPatientProfile(patientId: string): PatientProfile {
     emergency_contact_phone: '089-876-5432',
     created_at: '2024-01-15T00:00:00Z',
   };
-}
-
-function getMockMedications(patientId: string): Medication[] {
-  return [
-    {
-      id: 'med-1',
-      patient_id: patientId,
-      name: 'ยาลดความดัน Amlodipine',
-      dosage_amount: 1,
-      dosage_unit: 'tablet',
-      dosage_form: 'tablet',
-      frequency: 'daily',
-      times: ['morning'],
-      instructions: 'หลังอาหาร',
-      reminder_enabled: true,
-      active: true,
-      created_at: '2024-01-15T00:00:00Z',
-    },
-    {
-      id: 'med-2',
-      patient_id: patientId,
-      name: 'Metformin 500mg',
-      dosage_amount: 1,
-      dosage_unit: 'tablet',
-      dosage_form: 'tablet',
-      frequency: 'daily',
-      times: ['morning', 'evening'],
-      instructions: 'หลังอาหาร',
-      reminder_enabled: true,
-      active: true,
-      created_at: '2024-01-15T00:00:00Z',
-    },
-  ];
 }
 
 function getMockReminders(patientId: string): Reminder[] {

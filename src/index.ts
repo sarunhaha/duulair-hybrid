@@ -10,6 +10,7 @@ import groupRoutes from './routes/group.routes';
 import reportRoutes from './routes/report.routes';
 import dashboardRoutes from './routes/dashboard.routes';
 import healthRoutes from './routes/health.routes';
+import medicationRoutes from './routes/medication.routes';
 import { groupWebhookService } from './services/group-webhook.service';
 import { commandHandlerService } from './services/command-handler.service';
 import { userService } from './services/user.service';
@@ -1409,6 +1410,9 @@ app.use('/api/dashboard', dashboardRoutes);
 
 // Health API routes (LIFF app - record vitals, medications, etc.)
 app.use('/api/health', healthRoutes);
+
+// Medication CRUD routes (LIFF app - manage medications list)
+app.use('/api/medications', medicationRoutes);
 
 // LINE Webhook - with manual signature verification
 app.post('/webhook', async (req, res) => {
