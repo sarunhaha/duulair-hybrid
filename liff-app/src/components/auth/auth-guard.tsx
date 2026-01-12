@@ -1,8 +1,8 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState, useRef, type ReactNode } from 'react';
 import { useLocation } from 'wouter';
 import { Loader2, AlertTriangle, RefreshCw } from 'lucide-react';
 import { useLiff } from '@/lib/liff/provider';
-import { useAuthStore } from '@/stores/auth';
+import { useAuthStore, waitForHydration } from '@/stores/auth';
 import { registrationApi } from '@/lib/api/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -26,27 +26,24 @@ interface AuthGuardProps {
 export function AuthGuard({ children }: AuthGuardProps) {
   const [, navigate] = useLocation();
   const { isInitialized, isLoading: liffLoading, profile, error: liffError } = useLiff();
-  const { _hasHydrated, setUser, setContext, setIsRegistered } = useAuthStore();
+  const { setUser, setContext, setIsRegistered } = useAuthStore();
 
   const [status, setStatus] = useState<AuthStatus>('loading');
   const [error, setError] = useState<string | null>(null);
+  const hasCheckedRef = useRef(false);
 
   useEffect(() => {
     async function checkAuth() {
+      // Prevent double execution
+      if (hasCheckedRef.current) return;
+
       console.log('[AuthGuard] checkAuth called', {
-        _hasHydrated,
         isInitialized,
         liffLoading,
         hasProfile: !!profile?.userId,
       });
 
-      // Wait for Zustand hydration to complete
-      if (!_hasHydrated) {
-        console.log('[AuthGuard] Waiting for Zustand hydration...');
-        return;
-      }
-
-      // Wait for LIFF to be ready
+      // Wait for LIFF to be ready first
       if (!isInitialized || liffLoading) {
         console.log('[AuthGuard] Waiting for LIFF...');
         return;
@@ -65,6 +62,14 @@ export function AuthGuard({ children }: AuthGuardProps) {
         setError('ไม่พบข้อมูลผู้ใช้ LINE');
         return;
       }
+
+      // Mark as checked to prevent double execution
+      hasCheckedRef.current = true;
+
+      // Wait for Zustand hydration
+      console.log('[AuthGuard] Waiting for Zustand hydration...');
+      await waitForHydration();
+      console.log('[AuthGuard] Hydration complete');
 
       // ALWAYS fetch from API to verify auth (don't trust cached data)
       console.log('[AuthGuard] Fetching from API to verify auth...');
@@ -112,7 +117,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
     }
 
     checkAuth();
-  }, [_hasHydrated, isInitialized, liffLoading, liffError, profile, setUser, setContext, setIsRegistered, navigate]);
+  }, [isInitialized, liffLoading, liffError, profile, setUser, setContext, setIsRegistered, navigate]);
 
   // Loading state
   if (status === 'loading') {

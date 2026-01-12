@@ -14,11 +14,9 @@ interface AuthState {
     groupId: string | null;
   };
   isRegistered: boolean;
-  _hasHydrated: boolean;
   setUser: (user: Partial<AuthState['user']>) => void;
   setContext: (context: Partial<AuthState['context']>) => void;
   setIsRegistered: (value: boolean) => void;
-  setHasHydrated: (value: boolean) => void;
   clear: () => void;
 }
 
@@ -34,7 +32,6 @@ const initialState = {
     groupId: null as string | null,
   },
   isRegistered: false,
-  _hasHydrated: false,
 };
 
 export const useAuthStore = create<AuthState>()(
@@ -50,20 +47,28 @@ export const useAuthStore = create<AuthState>()(
           context: { ...state.context, ...context },
         })),
       setIsRegistered: (value) => set({ isRegistered: value }),
-      setHasHydrated: (value) => set({ _hasHydrated: value }),
-      clear: () => set({ ...initialState, _hasHydrated: true }),
+      clear: () => set(initialState),
     }),
     {
       name: 'oonjai_auth',
-      onRehydrateStorage: () => (state) => {
-        // Mark hydration as complete
-        console.log('[AuthStore] Hydration complete, state:', {
-          patientId: state?.context.patientId,
-          role: state?.user.role,
-          profileId: state?.user.profileId,
-        });
-        useAuthStore.setState({ _hasHydrated: true });
-      },
     }
   )
 );
+
+// Helper to check if store has hydrated (use this instead of _hasHydrated flag)
+export const waitForHydration = (): Promise<void> => {
+  return new Promise((resolve) => {
+    // Check if already hydrated
+    if (useAuthStore.persist.hasHydrated()) {
+      console.log('[AuthStore] Already hydrated');
+      resolve();
+      return;
+    }
+    // Wait for hydration
+    const unsub = useAuthStore.persist.onFinishHydration(() => {
+      console.log('[AuthStore] Hydration finished');
+      unsub();
+      resolve();
+    });
+  });
+};
