@@ -17,30 +17,38 @@ interface AuthGuardProps {
  * AuthGuard - Ensures user is authenticated before rendering children
  *
  * This component:
- * 1. Waits for LIFF to initialize
- * 2. Checks if patientId exists in auth store
- * 3. If not, fetches from API using lineUserId
+ * 1. Waits for Zustand hydration to complete
+ * 2. Waits for LIFF to initialize
+ * 3. ALWAYS fetches from API to verify auth (don't trust cached data)
  * 4. Sets auth state and renders children
  * 5. Redirects to registration if user not found
  */
 export function AuthGuard({ children }: AuthGuardProps) {
   const [, navigate] = useLocation();
   const { isInitialized, isLoading: liffLoading, profile, error: liffError } = useLiff();
-  const { user, context, setUser, setContext, setIsRegistered } = useAuthStore();
+  const { _hasHydrated, setUser, setContext, setIsRegistered } = useAuthStore();
 
   const [status, setStatus] = useState<AuthStatus>('loading');
   const [error, setError] = useState<string | null>(null);
 
-  // Check if we have patientId from any source
-  const hasPatientId = !!(
-    context.patientId ||
-    (user.role === 'patient' && user.profileId)
-  );
-
   useEffect(() => {
     async function checkAuth() {
+      console.log('[AuthGuard] checkAuth called', {
+        _hasHydrated,
+        isInitialized,
+        liffLoading,
+        hasProfile: !!profile?.userId,
+      });
+
+      // Wait for Zustand hydration to complete
+      if (!_hasHydrated) {
+        console.log('[AuthGuard] Waiting for Zustand hydration...');
+        return;
+      }
+
       // Wait for LIFF to be ready
       if (!isInitialized || liffLoading) {
+        console.log('[AuthGuard] Waiting for LIFF...');
         return;
       }
 
@@ -58,15 +66,8 @@ export function AuthGuard({ children }: AuthGuardProps) {
         return;
       }
 
-      // Already have patientId - we're good
-      if (hasPatientId) {
-        console.log('[AuthGuard] Already have patientId, authenticated');
-        setStatus('authenticated');
-        return;
-      }
-
-      // Need to fetch from API
-      console.log('[AuthGuard] No patientId, fetching from API...');
+      // ALWAYS fetch from API to verify auth (don't trust cached data)
+      console.log('[AuthGuard] Fetching from API to verify auth...');
 
       try {
         const result = await registrationApi.checkUser(profile.userId);
@@ -80,9 +81,10 @@ export function AuthGuard({ children }: AuthGuardProps) {
             lineUserId: profile.userId,
           });
 
-          // Set patientId in context
+          // Set patientId in context for patient role
           if (result.role === 'patient') {
             setContext({ patientId: result.profile.id });
+            console.log('[AuthGuard] Set patientId:', result.profile.id);
           }
 
           // Also save to localStorage for backwards compatibility
@@ -95,7 +97,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
 
           setIsRegistered(true);
           setStatus('authenticated');
-          console.log('[AuthGuard] Auth state set, patientId:', result.profile.id);
+          console.log('[AuthGuard] Auth complete, role:', result.role);
         } else {
           // User not registered - redirect to registration
           console.log('[AuthGuard] User not registered');
@@ -110,7 +112,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
     }
 
     checkAuth();
-  }, [isInitialized, liffLoading, liffError, profile, hasPatientId, setUser, setContext, setIsRegistered, navigate]);
+  }, [_hasHydrated, isInitialized, liffLoading, liffError, profile, setUser, setContext, setIsRegistered, navigate]);
 
   // Loading state
   if (status === 'loading') {

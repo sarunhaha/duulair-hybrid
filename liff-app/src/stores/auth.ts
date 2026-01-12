@@ -14,9 +14,11 @@ interface AuthState {
     groupId: string | null;
   };
   isRegistered: boolean;
+  _hasHydrated: boolean;
   setUser: (user: Partial<AuthState['user']>) => void;
   setContext: (context: Partial<AuthState['context']>) => void;
   setIsRegistered: (value: boolean) => void;
+  setHasHydrated: (value: boolean) => void;
   clear: () => void;
 }
 
@@ -32,6 +34,7 @@ const initialState = {
     groupId: null as string | null,
   },
   isRegistered: false,
+  _hasHydrated: false,
 };
 
 export const useAuthStore = create<AuthState>()(
@@ -47,10 +50,20 @@ export const useAuthStore = create<AuthState>()(
           context: { ...state.context, ...context },
         })),
       setIsRegistered: (value) => set({ isRegistered: value }),
-      clear: () => set(initialState),
+      setHasHydrated: (value) => set({ _hasHydrated: value }),
+      clear: () => set({ ...initialState, _hasHydrated: true }),
     }),
     {
       name: 'oonjai_auth',
+      onRehydrateStorage: () => (state) => {
+        // Mark hydration as complete
+        console.log('[AuthStore] Hydration complete, state:', {
+          patientId: state?.context.patientId,
+          role: state?.user.role,
+          profileId: state?.user.profileId,
+        });
+        useAuthStore.setState({ _hasHydrated: true });
+      },
     }
   )
 );
