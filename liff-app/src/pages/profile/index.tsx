@@ -35,9 +35,10 @@ import {
 import { cn } from '@/lib/utils';
 
 export default function ProfilePage() {
-  const { context } = useAuthStore();
+  const { context, user } = useAuthStore();
   const { profile: liffProfile } = useLiff();
-  const patientId = context.patientId;
+  // Fallback to user.profileId if context.patientId is null (for patient role)
+  const patientId = context.patientId || (user.role === 'patient' ? user.profileId : null);
 
   const { data: profile, isLoading } = usePatientProfile(patientId);
   const { data: linkCode } = useLinkCode(patientId);

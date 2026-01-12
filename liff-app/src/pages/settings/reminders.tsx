@@ -79,8 +79,9 @@ const defaultFormData: ReminderForm = {
 
 export default function RemindersPage() {
   const [, navigate] = useLocation();
-  const { context } = useAuthStore();
-  const patientId = context.patientId;
+  const { context, user } = useAuthStore();
+  // Fallback to user.profileId if context.patientId is null (for patient role)
+  const patientId = context.patientId || (user.role === 'patient' ? user.profileId : null);
   const { toast } = useToast();
 
   const { data: reminders, isLoading } = usePatientReminders(patientId);

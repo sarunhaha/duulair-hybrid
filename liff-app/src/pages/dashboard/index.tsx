@@ -25,12 +25,15 @@ const DEFAULT_INSIGHT = {
 
 export default function DashboardPage() {
   const { profile } = useLiff();
-  const { context } = useAuthStore();
+  const { context, user } = useAuthStore();
   const [, setLocation] = useLocation();
   const displayName = profile?.displayName || 'คุณ';
 
+  // Fallback to user.profileId if context.patientId is null (for patient role)
+  const patientId = context.patientId || (user.role === 'patient' ? user.profileId : null);
+
   // Fetch dashboard data
-  const { data: summary, isLoading } = useDashboardSummary(context.patientId);
+  const { data: summary, isLoading } = useDashboardSummary(patientId);
 
   // Use real data with proper empty states
   const vitals = summary?.latestVitals;

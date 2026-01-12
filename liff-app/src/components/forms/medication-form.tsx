@@ -68,8 +68,9 @@ function formatDosage(med: Medication): string {
 }
 
 export function MedicationForm({ onSuccess, onCancel }: MedicationFormProps) {
-  const { context } = useAuthStore();
-  const patientId = context.patientId;
+  const { context, user } = useAuthStore();
+  // Fallback to user.profileId if context.patientId is null (for patient role)
+  const patientId = context.patientId || (user.role === 'patient' ? user.profileId : null);
   const { toast } = useToast();
   const [, navigate] = useLocation();
 
