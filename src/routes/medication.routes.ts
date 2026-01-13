@@ -95,6 +95,8 @@ router.put('/:id', async (req: Request, res: Response) => {
       reminder_enabled,
     } = req.body;
 
+    console.log('[PUT /medications/:id] Updating medication:', { id, body: req.body });
+
     const updateData: Record<string, unknown> = { updated_at: new Date().toISOString() };
 
     if (name !== undefined) updateData.name = name;
@@ -114,12 +116,21 @@ router.put('/:id', async (req: Request, res: Response) => {
       .from('medications')
       .update(updateData)
       .eq('id', id)
-      .select()
-      .single();
+      .select();
 
-    if (error) throw error;
+    if (error) {
+      console.error('[PUT /medications/:id] Supabase error:', error);
+      throw error;
+    }
 
-    res.json({ success: true, medication: data });
+    // Check if any row was updated
+    if (!data || data.length === 0) {
+      console.warn('[PUT /medications/:id] No medication found with id:', id);
+      return res.status(404).json({ success: false, error: 'Medication not found' });
+    }
+
+    console.log('[PUT /medications/:id] Updated successfully:', data[0]);
+    res.json({ success: true, medication: data[0] });
   } catch (error) {
     console.error('Error updating medication:', error);
     res.status(500).json({ success: false, error: 'Failed to update medication' });

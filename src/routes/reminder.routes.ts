@@ -98,6 +98,8 @@ router.put('/:id', async (req: Request, res: Response) => {
       is_active,
     } = req.body;
 
+    console.log('[PUT /reminders/:id] Updating reminder:', { id, body: req.body });
+
     const updateData: Record<string, unknown> = { updated_at: new Date().toISOString() };
 
     if (type !== undefined) updateData.type = type;
@@ -114,12 +116,21 @@ router.put('/:id', async (req: Request, res: Response) => {
       .from('reminders')
       .update(updateData)
       .eq('id', id)
-      .select()
-      .single();
+      .select();
 
-    if (error) throw error;
+    if (error) {
+      console.error('[PUT /reminders/:id] Supabase error:', error);
+      throw error;
+    }
 
-    res.json({ success: true, reminder: data });
+    // Check if any row was updated
+    if (!data || data.length === 0) {
+      console.warn('[PUT /reminders/:id] No reminder found with id:', id);
+      return res.status(404).json({ success: false, error: 'Reminder not found' });
+    }
+
+    console.log('[PUT /reminders/:id] Updated successfully:', data[0]);
+    res.json({ success: true, reminder: data[0] });
   } catch (error) {
     console.error('Error updating reminder:', error);
     res.status(500).json({ success: false, error: 'Failed to update reminder' });
