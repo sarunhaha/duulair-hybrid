@@ -100,7 +100,7 @@ router.put('/:id', async (req: Request, res: Response) => {
 
     console.log('[PUT /reminders/:id] Updating reminder:', { id, body: req.body });
 
-    const updateData: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    const updateData: Record<string, unknown> = {};
 
     if (type !== undefined) updateData.type = type;
     if (title !== undefined) updateData.title = title;

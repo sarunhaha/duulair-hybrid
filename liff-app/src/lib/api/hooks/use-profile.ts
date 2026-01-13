@@ -239,9 +239,15 @@ export function useAddMedication() {
     mutationFn: async (data: Omit<Medication, 'id' | 'created_at'>) => {
       // Backend endpoint: POST /api/medications/ (patient_id in body) - medication.routes.ts
       console.log('[useAddMedication] Adding medication:', data);
-      return apiClient.post('/medications', data);
+      const result = await apiClient.post('/medications', data);
+      console.log('[useAddMedication] Result:', result);
+      return result;
+    },
+    onError: (error) => {
+      console.error('[useAddMedication] Error:', error);
     },
     onSuccess: (_, variables) => {
+      console.log('[useAddMedication] Success, invalidating queries');
       queryClient.invalidateQueries({ queryKey: profileKeys.medications(variables.patient_id) });
     },
   });
@@ -253,9 +259,16 @@ export function useUpdateMedication() {
 
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<Medication> }) => {
-      return apiClient.put(`/medications/${id}`, data);
+      console.log('[useUpdateMedication] Updating:', { id, data });
+      const result = await apiClient.put(`/medications/${id}`, data);
+      console.log('[useUpdateMedication] Result:', result);
+      return result;
+    },
+    onError: (error) => {
+      console.error('[useUpdateMedication] Error:', error);
     },
     onSuccess: (_, { data }) => {
+      console.log('[useUpdateMedication] Success, invalidating queries');
       if (data.patient_id) {
         queryClient.invalidateQueries({ queryKey: profileKeys.medications(data.patient_id) });
       }

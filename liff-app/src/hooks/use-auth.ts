@@ -3,11 +3,14 @@
  *
  * This hook bypasses Zustand complexity and fetches auth data directly
  * using LIFF profile.userId
+ *
+ * OPTIMIZATION: Uses localStorage cache for instant loading on subsequent visits
  */
 
 import { useQuery } from '@tanstack/react-query';
 import { useLiff } from '@/lib/liff/provider';
 import { registrationApi } from '@/lib/api/client';
+import type { RegistrationCheckResponse } from '@/lib/api/client';
 
 interface AuthData {
   isLoading: boolean;
@@ -20,10 +23,57 @@ interface AuthData {
   lineUserId: string | null;
 }
 
+// Cache key and duration
+const AUTH_CACHE_KEY = 'oonjai_auth_cache';
+const AUTH_CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
+
+interface CachedAuth {
+  data: RegistrationCheckResponse;
+  lineUserId: string;
+  timestamp: number;
+}
+
+// Get cached auth data
+function getCachedAuth(lineUserId: string): RegistrationCheckResponse | null {
+  try {
+    const cached = localStorage.getItem(AUTH_CACHE_KEY);
+    if (!cached) return null;
+
+    const parsed: CachedAuth = JSON.parse(cached);
+
+    // Check if same user and not expired
+    if (parsed.lineUserId !== lineUserId) return null;
+    if (Date.now() - parsed.timestamp > AUTH_CACHE_DURATION) return null;
+
+    console.log('[useAuth] Using cached auth data');
+    return parsed.data;
+  } catch {
+    return null;
+  }
+}
+
+// Save auth data to cache
+function setCachedAuth(lineUserId: string, data: RegistrationCheckResponse): void {
+  try {
+    const cached: CachedAuth = {
+      data,
+      lineUserId,
+      timestamp: Date.now(),
+    };
+    localStorage.setItem(AUTH_CACHE_KEY, JSON.stringify(cached));
+    console.log('[useAuth] Cached auth data');
+  } catch {
+    // Ignore storage errors
+  }
+}
+
 export function useAuth(): AuthData {
   const { isInitialized, isLoading: liffLoading, profile, error: liffError } = useLiff();
 
   const lineUserId = profile?.userId || null;
+
+  // Get initial data from cache for instant loading
+  const initialData = lineUserId ? getCachedAuth(lineUserId) : undefined;
 
   const { data, isLoading: queryLoading, error: queryError } = useQuery({
     queryKey: ['auth', 'check', lineUserId],
@@ -34,11 +84,18 @@ export function useAuth(): AuthData {
       console.log('[useAuth] Fetching auth data for:', lineUserId);
       const result = await registrationApi.checkUser(lineUserId);
       console.log('[useAuth] API response:', result);
+
+      // Cache the result
+      setCachedAuth(lineUserId, result);
+
       return result;
     },
     enabled: isInitialized && !liffLoading && !!lineUserId,
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    initialData, // Use cached data for instant display
+    staleTime: 5 * 60 * 1000, // Consider fresh for 5 minutes
+    gcTime: 30 * 60 * 1000, // Keep in memory for 30 minutes
     retry: 2,
+    refetchOnMount: true, // Always refetch to ensure fresh data
   });
 
   // Still initializing LIFF
@@ -83,8 +140,9 @@ export function useAuth(): AuthData {
     };
   }
 
-  // Query loading
-  if (queryLoading) {
+  // Query loading - only show loading if NO cached data
+  // With cached data, we display immediately and refresh in background
+  if (queryLoading && !data) {
     return {
       isLoading: true,
       isAuthenticated: false,
@@ -97,8 +155,9 @@ export function useAuth(): AuthData {
     };
   }
 
-  // Query error
-  if (queryError) {
+  // Query error - only show error if NO cached data
+  // With cached data, continue using it even if refresh fails
+  if (queryError && !data) {
     return {
       isLoading: false,
       isAuthenticated: false,

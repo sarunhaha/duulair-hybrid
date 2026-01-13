@@ -97,7 +97,7 @@ router.put('/:id', async (req: Request, res: Response) => {
 
     console.log('[PUT /medications/:id] Updating medication:', { id, body: req.body });
 
-    const updateData: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    const updateData: Record<string, unknown> = {};
 
     if (name !== undefined) updateData.name = name;
     if (dosage !== undefined) updateData.dosage = dosage;

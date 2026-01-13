@@ -32,6 +32,8 @@ async function request<T>(endpoint: string, config: RequestConfig = {}): Promise
     url += `?${searchParams.toString()}`;
   }
 
+  console.log(`[API] ${config.method || 'GET'} ${url}`);
+
   const defaultHeaders: HeadersInit = {
     'Content-Type': 'application/json',
   };
@@ -46,8 +48,13 @@ async function request<T>(endpoint: string, config: RequestConfig = {}): Promise
 
   const data = await response.json();
 
+  console.log(`[API] Response ${response.status}:`, data);
+
   if (!response.ok) {
-    const error: ApiError = new Error(data.message || 'API request failed');
+    // Backend returns { error: '...' } not { message: '...' }
+    const errorMessage = data.message || data.error || 'API request failed';
+    console.error(`[API] Error: ${errorMessage}`);
+    const error: ApiError = new Error(errorMessage);
     error.status = response.status;
     error.data = data;
     throw error;
