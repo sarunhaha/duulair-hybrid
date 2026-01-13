@@ -22,6 +22,7 @@ const GroupDashboardPage = lazy(() => import('@/pages/dashboard/group'));
 const TrendsPage = lazy(() => import('@/pages/trends'));
 
 // Registration - lazy
+const WelcomeRegistrationPage = lazy(() => import('@/pages/registration/welcome'));
 const QuickRegistrationPage = lazy(() => import('@/pages/registration/quick'));
 const GroupRegistrationPage = lazy(() => import('@/pages/registration/group'));
 const RegistrationSuccessPage = lazy(() => import('@/pages/registration/success'));
@@ -85,6 +86,8 @@ export default function App() {
             <Route path="/" component={HomePage} />
 
             {/* Registration Routes - No auth guard needed */}
+            <Route path="/registration" component={WelcomeRegistrationPage} />
+            <Route path="/registration/welcome" component={WelcomeRegistrationPage} />
             <Route path="/registration/quick" component={QuickRegistrationPage} />
             <Route path="/registration/group" component={GroupRegistrationPage} />
             <Route path="/registration/success" component={RegistrationSuccessPage} />

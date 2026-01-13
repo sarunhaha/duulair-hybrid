@@ -81,15 +81,17 @@ export class UnifiedNLUAgent extends BaseAgent {
         groupId: message.context.groupId,
         isGroupChat: message.context.source === 'group' || !!message.context.groupId,
         voiceConfirmed: message.context.confirmedVoice === true, // Voice already confirmed - execute immediately
+        onboardingCompleted: message.metadata?.onboardingContext?.completed ?? true,
+        onboardingStep: message.metadata?.onboardingContext?.step ?? 'complete',
         patientData: message.metadata?.patientData,
         conversationHistory: message.metadata?.conversationHistory
       };
 
-      // Process message through NLU
+      // Process message through NLU (pass onboarding context)
       const nluResult = await this.processNLU({
         message: message.content,
         context: nluContext
-      });
+      }, message.metadata?.onboardingContext);
 
       return {
         success: true,
@@ -119,7 +121,10 @@ export class UnifiedNLUAgent extends BaseAgent {
   /**
    * Process message through Claude-first NLU
    */
-  async processNLU(input: NLUInput): Promise<NLUResult> {
+  async processNLU(
+    input: NLUInput,
+    onboardingContext?: { completed: boolean; step: string } | null
+  ): Promise<NLUResult> {
     const { message, context } = input;
 
     // Build context strings for the prompt
@@ -135,12 +140,13 @@ export class UnifiedNLUAgent extends BaseAgent {
       ? buildConversationHistoryString(context.conversationHistory)
       : 'ไม่มีประวัติการสนทนา';
 
-    // Build the user prompt
+    // Build the user prompt (with onboarding context if provided)
     let userPrompt = buildUnifiedNLUPrompt(
       message,
       patientContext,
       recentActivities,
-      conversationHistory
+      conversationHistory,
+      onboardingContext
     );
 
     // If voice was already confirmed, add instruction to execute immediately
@@ -232,7 +238,8 @@ ${userPrompt}`;
       'query',
       'emergency',
       'greeting',
-      'general_chat'
+      'general_chat',
+      'onboarding'
     ];
 
     const normalized = (intent || '').toLowerCase().replace(/-/g, '_');

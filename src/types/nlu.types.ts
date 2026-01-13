@@ -12,7 +12,20 @@ export type MainIntent =
   | 'query'
   | 'emergency'
   | 'greeting'
-  | 'general_chat';
+  | 'general_chat'
+  | 'onboarding';
+
+/**
+ * Sub-intents for onboarding flow
+ */
+export type OnboardingSubIntent =
+  | 'start'
+  | 'provide_name'
+  | 'provide_nickname'
+  | 'provide_birthdate'
+  | 'provide_conditions'
+  | 'skip'
+  | 'complete';
 
 /**
  * Sub-intents for health_log
@@ -77,6 +90,7 @@ export type SubIntent =
   | MedicationManageSubIntent
   | ReminderManageSubIntent
   | QuerySubIntent
+  | OnboardingSubIntent
   | null;
 
 /**
@@ -228,7 +242,8 @@ export type ActionTarget =
   | 'medications'
   | 'reminders'
   | 'patient_profiles'
-  | 'health_events';
+  | 'health_events'
+  | 'users';
 
 /**
  * Action to be executed based on NLU result
@@ -263,6 +278,9 @@ export interface NLUContext {
   groupId?: string;
   isGroupChat: boolean;
   voiceConfirmed?: boolean; // Voice transcription already confirmed by user - execute immediately
+  // Onboarding state
+  onboardingCompleted?: boolean;
+  onboardingStep?: 'welcome' | 'ask_name' | 'ask_birthdate' | 'ask_conditions' | 'complete';
   patientData?: {
     profile?: any;
     medications?: any[];

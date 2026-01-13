@@ -101,12 +101,20 @@ export class OrchestratorAgent extends BaseAgent {
         patientData = await this.fetchPatientDataForQuery(message.context.patientId, '');
       }
 
+      // Check onboarding status for new users (1:1 chat only)
+      let onboardingContext: { completed: boolean; step: string } | null = null;
+      if (!isGroupChat && message.context.userId) {
+        onboardingContext = await this.getOnboardingStatus(message.context.userId);
+      }
+
       // Build NLU context
       const nluContext: NLUContext = {
         userId: message.context.userId || '',
         patientId: message.context.patientId,
         groupId: message.context.groupId,
         isGroupChat,
+        onboardingCompleted: onboardingContext?.completed ?? true,
+        onboardingStep: (onboardingContext?.step as any) ?? 'complete',
         patientData: patientData ? {
           profile: patientData,
           medications: patientData.medications,
@@ -138,7 +146,8 @@ export class OrchestratorAgent extends BaseAgent {
         metadata: {
           ...message.metadata,
           patientData: nluContext.patientData,
-          conversationHistory: nluContext.conversationHistory
+          conversationHistory: nluContext.conversationHistory,
+          onboardingContext: onboardingContext
         }
       });
 
@@ -152,6 +161,11 @@ export class OrchestratorAgent extends BaseAgent {
       // Special case: emergency - also notify alert agent
       if (nluResult.intent === 'emergency') {
         await this.checkAlerts(message, { combined: { emergency: true } });
+      }
+
+      // Special case: onboarding - handle onboarding flow
+      if (nluResult.intent === 'onboarding' && onboardingContext && !onboardingContext.completed) {
+        return this.handleOnboardingResponse(message, nluResult, onboardingContext, startTime);
       }
 
       // Special case: health_log_menu - show health logging menu
@@ -1284,5 +1298,177 @@ export class OrchestratorAgent extends BaseAgent {
         metadata: data.data
       });
     });
+  }
+
+  // ========================================
+  // Onboarding Flow Methods
+  // ========================================
+
+  /**
+   * Get onboarding status for a user
+   */
+  private async getOnboardingStatus(userId: string): Promise<{ completed: boolean; step: string } | null> {
+    try {
+      const { data: user, error } = await this.supabase.getClient()
+        .from('users')
+        .select('onboarding_completed, onboarding_step')
+        .eq('id', userId)
+        .single();
+
+      if (error || !user) {
+        // User not found - assume new user, start onboarding
+        return { completed: false, step: 'welcome' };
+      }
+
+      return {
+        completed: user.onboarding_completed ?? false,
+        step: user.onboarding_step ?? 'welcome'
+      };
+    } catch (error) {
+      this.log('error', 'Failed to get onboarding status', error);
+      // Default to completed to prevent blocking
+      return { completed: true, step: 'complete' };
+    }
+  }
+
+  /**
+   * Handle onboarding response and update state
+   */
+  private async handleOnboardingResponse(
+    message: Message,
+    nluResult: NLUResult,
+    onboardingContext: { completed: boolean; step: string },
+    startTime: number
+  ): Promise<Response> {
+    try {
+      const userId = message.context.userId;
+      const patientId = message.context.patientId;
+
+      // Determine next step based on current step and subIntent
+      const currentStep = onboardingContext.step;
+      let nextStep = currentStep;
+      let shouldComplete = false;
+
+      // Process based on subIntent
+      switch (nluResult.subIntent) {
+        case 'provide_name':
+        case 'provide_nickname':
+          nextStep = 'ask_birthdate';
+          // Save name to patient_profiles if we have patientId
+          if (patientId && nluResult.action?.data) {
+            await this.saveOnboardingData(patientId, nluResult.action.data);
+          }
+          break;
+        case 'provide_birthdate':
+          nextStep = 'ask_conditions';
+          if (patientId && nluResult.action?.data) {
+            await this.saveOnboardingData(patientId, nluResult.action.data);
+          }
+          break;
+        case 'provide_conditions':
+          nextStep = 'complete';
+          shouldComplete = true;
+          if (patientId && nluResult.action?.data) {
+            await this.saveOnboardingData(patientId, nluResult.action.data);
+          }
+          break;
+        case 'skip':
+          // User wants to skip - move to next step or complete
+          if (currentStep === 'ask_name') {
+            nextStep = 'ask_birthdate';
+          } else if (currentStep === 'ask_birthdate') {
+            nextStep = 'ask_conditions';
+          } else {
+            nextStep = 'complete';
+            shouldComplete = true;
+          }
+          break;
+        case 'start':
+          nextStep = 'ask_name';
+          break;
+      }
+
+      // Update onboarding step in database
+      if (userId) {
+        await this.updateOnboardingStep(userId, nextStep, shouldComplete);
+      }
+
+      return {
+        success: true,
+        data: {
+          response: nluResult.response,
+          intent: 'onboarding',
+          subIntent: nluResult.subIntent,
+          onboardingStep: nextStep,
+          onboardingCompleted: shouldComplete
+        },
+        agentName: this.config.name,
+        processingTime: Date.now() - startTime,
+        metadata: {
+          intent: 'onboarding',
+          mode: 'onboarding_flow',
+          onboardingStep: nextStep,
+          onboardingCompleted: shouldComplete
+        }
+      };
+    } catch (error) {
+      this.log('error', 'Failed to handle onboarding response', error);
+      return {
+        success: false,
+        error: 'Onboarding processing failed',
+        agentName: this.config.name,
+        processingTime: Date.now() - startTime
+      };
+    }
+  }
+
+  /**
+   * Update onboarding step in users table
+   */
+  private async updateOnboardingStep(userId: string, step: string, completed: boolean): Promise<void> {
+    try {
+      await this.supabase.getClient()
+        .from('users')
+        .update({
+          onboarding_step: step,
+          onboarding_completed: completed,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', userId);
+
+      this.log('info', `Updated onboarding: step=${step}, completed=${completed}`);
+    } catch (error) {
+      this.log('error', 'Failed to update onboarding step', error);
+    }
+  }
+
+  /**
+   * Save onboarding data to patient_profiles
+   */
+  private async saveOnboardingData(patientId: string, data: Record<string, any>): Promise<void> {
+    try {
+      // Map NLU data to database fields
+      const updateData: Record<string, any> = {};
+
+      if (data.nickname) updateData.nickname = data.nickname;
+      if (data.firstName) updateData.first_name = data.firstName;
+      if (data.lastName) updateData.last_name = data.lastName;
+      if (data.birth_date) updateData.birth_date = data.birth_date;
+      if (data.medical_condition) updateData.medical_condition = data.medical_condition;
+      if (data.chronic_diseases) updateData.chronic_diseases = data.chronic_diseases;
+
+      if (Object.keys(updateData).length > 0) {
+        updateData.updated_at = new Date().toISOString();
+
+        await this.supabase.getClient()
+          .from('patient_profiles')
+          .update(updateData)
+          .eq('id', patientId);
+
+        this.log('info', 'Saved onboarding data', updateData);
+      }
+    } catch (error) {
+      this.log('error', 'Failed to save onboarding data', error);
+    }
   }
 }

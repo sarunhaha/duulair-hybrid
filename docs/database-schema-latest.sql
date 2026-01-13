@@ -21,6 +21,9 @@ CREATE TABLE public.users (
   updated_at timestamp with time zone DEFAULT now(),
   primary_group_id uuid,
   role character varying NOT NULL CHECK (role::text = ANY (ARRAY['patient'::character varying, 'caregiver'::character varying]::text[])),
+  -- Onboarding fields (migration 009)
+  onboarding_completed boolean DEFAULT false,
+  onboarding_step character varying DEFAULT 'welcome',
   CONSTRAINT users_pkey PRIMARY KEY (id)
 );
 
