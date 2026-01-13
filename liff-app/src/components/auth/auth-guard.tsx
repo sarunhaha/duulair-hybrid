@@ -1,8 +1,8 @@
 import { useEffect, type ReactNode } from 'react';
-import { useLocation } from 'wouter';
-import { Loader2, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Loader2, AlertTriangle, RefreshCw, MessageCircle } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useAuthStore } from '@/stores/auth';
+import { useLiff } from '@/lib/liff/provider';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 
@@ -11,28 +11,21 @@ interface AuthGuardProps {
 }
 
 /**
- * AuthGuard - Simplified auth guard using useAuth hook
+ * AuthGuard - Lightweight auth guard for LIFF feature pages
  *
- * This component:
- * 1. Uses useAuth hook which handles LIFF + API checks
- * 2. Shows loading while checking
- * 3. Redirects to registration if not registered
- * 4. Syncs auth state to Zustand store for backwards compatibility
+ * Design: LIFF pages should load FAST
+ * - No heavy redirects or registration flows
+ * - If not registered, show simple message to chat with น้องอุ่น
+ * - Registration/onboarding happens in LINE Chat, not LIFF
  */
 export function AuthGuard({ children }: AuthGuardProps) {
-  const [, navigate] = useLocation();
   const auth = useAuth();
   const { setUser, setContext, setIsRegistered } = useAuthStore();
+  const { isInClient, closeWindow } = useLiff();
 
   // Sync auth data to Zustand store when it changes
   useEffect(() => {
     if (auth.isRegistered && auth.profileId) {
-      console.log('[AuthGuard] Syncing to Zustand:', {
-        role: auth.role,
-        profileId: auth.profileId,
-        patientId: auth.patientId,
-      });
-
       setUser({
         role: auth.role,
         profileId: auth.profileId,
@@ -45,7 +38,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
 
       setIsRegistered(true);
 
-      // Also save to localStorage for backwards compatibility
+      // Save to localStorage for backwards compatibility
       const userData = {
         role: auth.role,
         profile_id: auth.profileId,
@@ -55,22 +48,11 @@ export function AuthGuard({ children }: AuthGuardProps) {
     }
   }, [auth.isRegistered, auth.profileId, auth.patientId, auth.role, auth.lineUserId, setUser, setContext, setIsRegistered]);
 
-  // Redirect to registration if authenticated but not registered
-  useEffect(() => {
-    if (!auth.isLoading && auth.isAuthenticated && !auth.isRegistered && !auth.error) {
-      console.log('[AuthGuard] Not registered, redirecting to welcome');
-      navigate('/registration/welcome');
-    }
-  }, [auth.isLoading, auth.isAuthenticated, auth.isRegistered, auth.error, navigate]);
-
-  // Loading state - keep it simple and fast
+  // Loading state - minimal
   if (auth.isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto" />
-          <p className="text-sm text-muted-foreground mt-3">กำลังตรวจสอบ...</p>
-        </div>
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -81,10 +63,8 @@ export function AuthGuard({ children }: AuthGuardProps) {
       <div className="min-h-screen flex items-center justify-center p-6 bg-background">
         <Card className="w-full max-w-sm border-destructive/20">
           <CardContent className="pt-6 text-center space-y-4">
-            <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto">
-              <AlertTriangle className="w-8 h-8 text-destructive" />
-            </div>
-            <h1 className="text-xl font-bold text-foreground">เกิดข้อผิดพลาด</h1>
+            <AlertTriangle className="w-12 h-12 text-destructive mx-auto" />
+            <h1 className="text-lg font-bold">เกิดข้อผิดพลาด</h1>
             <p className="text-sm text-muted-foreground">{auth.error}</p>
             <Button onClick={() => window.location.reload()} className="w-full gap-2">
               <RefreshCw className="w-4 h-4" />
@@ -96,18 +76,35 @@ export function AuthGuard({ children }: AuthGuardProps) {
     );
   }
 
-  // Not registered - show redirect message (will redirect via useEffect)
+  // Not registered - show simple message to go chat (no redirect, no heavy UI)
   if (!auth.isRegistered) {
+    const handleGoToChat = () => {
+      if (isInClient) {
+        closeWindow();
+      } else {
+        window.location.href = 'https://lin.ee/oonjai';
+      }
+    };
+
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto" />
-          <p className="text-sm text-muted-foreground mt-3">กำลังนำไปหน้าลงทะเบียน...</p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center p-6 bg-background">
+        <Card className="w-full max-w-sm">
+          <CardContent className="pt-6 text-center space-y-4">
+            <MessageCircle className="w-12 h-12 text-primary mx-auto" />
+            <h1 className="text-lg font-bold">ลงทะเบียนก่อนนะคะ</h1>
+            <p className="text-sm text-muted-foreground">
+              พิมพ์ "สวัสดี" คุยกับน้องอุ่นใน LINE Chat เพื่อเริ่มต้นใช้งาน
+            </p>
+            <Button onClick={handleGoToChat} className="w-full gap-2">
+              <MessageCircle className="w-4 h-4" />
+              ไปที่ LINE Chat
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
-  // Authenticated and registered - render children
+  // Authenticated and registered - render children immediately
   return <>{children}</>;
 }
