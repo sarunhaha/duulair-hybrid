@@ -98,7 +98,8 @@ export default function HomePage() {
           if (isGroup && groupId) {
             setLocation('/registration/group');
           } else {
-            setLocation('/registration/quick');
+            // Redirect to conversational onboarding welcome page
+            setLocation('/registration/welcome');
           }
         }, 500);
       } catch (err) {
