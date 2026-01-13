@@ -1,32 +1,531 @@
--- OONJAI Database Schema (Latest)
--- Generated: 2026-01-11
 -- WARNING: This schema is for context only and is not meant to be run.
--- Migrations: 001-008 applied
+-- Table order and constraints may not be valid for execution.
+-- Last updated: 2026-01-13
+-- Migrations: 001-009 applied
 
--- =============================================
--- CORE TABLES
--- =============================================
-
-CREATE TABLE public.users (
-  id uuid NOT NULL DEFAULT uuid_generate_v4(),
-  line_user_id character varying NOT NULL UNIQUE,
+CREATE TABLE public._backup_analytics_settings (
+  id uuid,
+  group_id uuid,
+  show_medication_adherence boolean,
+  show_vitals_trends boolean,
+  show_water_intake_chart boolean,
+  show_activity_heatmap boolean,
+  ai_insights_enabled boolean,
+  ai_suggestion_frequency character varying,
+  low_adherence_threshold integer,
+  consecutive_missed_threshold integer,
+  created_at timestamp with time zone,
+  updated_at timestamp with time zone
+);
+CREATE TABLE public._backup_caregiver_patient_preferences (
+  id uuid,
+  group_id uuid,
+  caregiver_line_user_id character varying,
+  default_patient_id uuid,
+  created_at timestamp without time zone,
+  updated_at timestamp without time zone
+);
+CREATE TABLE public._backup_caregivers (
+  id uuid,
+  user_id uuid,
+  line_user_id character varying,
   display_name character varying,
-  picture_url text,
-  language character varying DEFAULT 'th'::character varying,
-  persona character varying DEFAULT 'friendly'::character varying,
-  conditions jsonb DEFAULT '[]'::jsonb,
-  timezone character varying DEFAULT 'Asia/Bangkok'::character varying,
-  opt_in boolean DEFAULT true,
+  relationship character varying,
+  is_primary boolean,
+  receive_daily_report boolean,
+  receive_alerts boolean,
+  created_at timestamp with time zone
+);
+CREATE TABLE public._backup_medication_history (
+  id uuid,
+  patient_id uuid,
+  medication_name character varying,
+  start_date date,
+  end_date date,
+  reason text,
+  prescribed_by character varying,
+  notes text,
+  created_at timestamp with time zone
+);
+CREATE TABLE public._backup_missed_activity_alerts (
+  id uuid,
+  patient_id uuid,
+  group_id uuid,
+  sent_at timestamp with time zone,
+  last_activity_at timestamp with time zone,
+  created_at timestamp with time zone
+);
+CREATE TABLE public._backup_patient_medications (
+  id uuid,
+  patient_id uuid,
+  name character varying,
+  dosage character varying,
+  frequency ARRAY,
+  started_at date,
+  notes text,
+  is_active boolean,
+  created_at timestamp with time zone,
+  updated_at timestamp with time zone,
+  dosage_amount numeric,
+  dosage_form character varying,
+  dosage_unit character varying,
+  days_of_week jsonb,
+  frequency_type character varying
+);
+CREATE TABLE public._backup_schedules (
+  id uuid,
+  user_id uuid,
+  type character varying,
+  time_of_day time without time zone,
+  days_of_week ARRAY,
+  active boolean,
+  next_send_at timestamp with time zone,
+  created_at timestamp with time zone
+);
+CREATE TABLE public._backup_subscription_packages (
+  id uuid,
+  package_name character varying,
+  display_name character varying,
+  price_monthly numeric,
+  features jsonb,
+  data_retention_days integer,
+  max_daily_notifications integer,
+  created_at timestamp with time zone
+);
+CREATE TABLE public._backup_user_subscriptions (
+  id uuid,
+  group_id uuid,
+  package_id uuid,
+  status character varying,
+  started_at timestamp with time zone,
+  expires_at timestamp with time zone,
+  auto_renew boolean,
+  payment_method character varying,
+  created_at timestamp with time zone,
+  updated_at timestamp with time zone
+);
+CREATE TABLE public._backup_water_intake_goals (
+  id uuid,
+  patient_id uuid,
+  daily_goal_ml integer,
+  reminder_enabled boolean,
+  reminder_times jsonb,
+  created_at timestamp with time zone,
+  updated_at timestamp with time zone
+);
+CREATE TABLE public._backup_water_intake_logs (
+  id uuid,
+  patient_id uuid,
+  group_id uuid,
+  amount_ml integer,
+  logged_at timestamp with time zone,
+  logged_by_line_user_id character varying,
+  logged_by_display_name character varying,
+  notes text,
+  created_at timestamp with time zone,
+  updated_at timestamp with time zone
+);
+CREATE TABLE public.activity_logs (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  patient_id uuid,
+  message_id character varying,
+  task_type character varying NOT NULL,
+  value text,
+  metadata jsonb DEFAULT '{}'::jsonb,
+  intent character varying,
+  processing_result jsonb,
+  timestamp timestamp with time zone DEFAULT now(),
+  created_at timestamp with time zone DEFAULT now(),
+  group_id uuid,
+  actor_line_user_id character varying,
+  actor_display_name character varying,
+  source character varying DEFAULT '1:1'::character varying CHECK (source::text = ANY (ARRAY['1:1'::character varying, 'group'::character varying]::text[])),
+  conversation_log_id uuid,
+  ai_confidence numeric,
+  raw_text text,
+  health_event_id uuid,
+  CONSTRAINT activity_logs_pkey PRIMARY KEY (id),
+  CONSTRAINT activity_logs_patient_id_fkey FOREIGN KEY (patient_id) REFERENCES public.patient_profiles(id),
+  CONSTRAINT activity_logs_group_id_fkey FOREIGN KEY (group_id) REFERENCES public.groups(id),
+  CONSTRAINT activity_logs_conversation_log_id_fkey FOREIGN KEY (conversation_log_id) REFERENCES public.conversation_logs(id)
+);
+CREATE TABLE public.alert_logs (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  user_id uuid,
+  alert_type character varying NOT NULL,
+  severity character varying NOT NULL,
+  message text NOT NULL,
+  trigger_data jsonb,
+  notified_users ARRAY,
+  resolved boolean DEFAULT false,
+  resolved_at timestamp with time zone,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT alert_logs_pkey PRIMARY KEY (id),
+  CONSTRAINT alert_logs_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.allergies (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  patient_id uuid NOT NULL,
+  allergy_type character varying NOT NULL CHECK (allergy_type::text = ANY (ARRAY['medication'::character varying, 'food'::character varying, 'other'::character varying]::text[])),
+  allergen_name character varying NOT NULL,
+  severity character varying CHECK (severity::text = ANY (ARRAY['mild'::character varying, 'moderate'::character varying, 'severe'::character varying]::text[])),
+  reaction_symptoms text,
+  notes text,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
-  primary_group_id uuid,
-  role character varying NOT NULL CHECK (role::text = ANY (ARRAY['patient'::character varying, 'caregiver'::character varying]::text[])),
-  -- Onboarding fields (migration 009)
-  onboarding_completed boolean DEFAULT false,
-  onboarding_step character varying DEFAULT 'welcome',
-  CONSTRAINT users_pkey PRIMARY KEY (id)
+  created_by_line_user_id character varying,
+  CONSTRAINT allergies_pkey PRIMARY KEY (id),
+  CONSTRAINT allergies_patient_id_fkey FOREIGN KEY (patient_id) REFERENCES public.patient_profiles(id)
 );
-
+CREATE TABLE public.app_config (
+  key text NOT NULL,
+  value text NOT NULL,
+  CONSTRAINT app_config_pkey PRIMARY KEY (key)
+);
+CREATE TABLE public.caregiver_profiles (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  user_id uuid NOT NULL UNIQUE,
+  first_name character varying NOT NULL,
+  last_name character varying NOT NULL,
+  phone_number character varying,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT caregiver_profiles_pkey PRIMARY KEY (id),
+  CONSTRAINT caregiver_profiles_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.conversation_logs (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  user_id uuid,
+  role character varying NOT NULL,
+  text text NOT NULL,
+  intent character varying,
+  flags jsonb DEFAULT '[]'::jsonb,
+  timestamp timestamp with time zone DEFAULT now(),
+  patient_id uuid,
+  group_id uuid,
+  message_id character varying,
+  reply_token character varying,
+  media_url text,
+  media_type character varying,
+  ai_extracted_data jsonb,
+  ai_confidence numeric,
+  ai_model character varying,
+  source character varying DEFAULT '1:1'::character varying CHECK (source::text = ANY (ARRAY['1:1'::character varying, 'group'::character varying]::text[])),
+  CONSTRAINT conversation_logs_pkey PRIMARY KEY (id),
+  CONSTRAINT conversation_logs_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT conversation_logs_patient_id_fkey FOREIGN KEY (patient_id) REFERENCES public.patient_profiles(id),
+  CONSTRAINT conversation_logs_group_id_fkey FOREIGN KEY (group_id) REFERENCES public.groups(id)
+);
+CREATE TABLE public.daily_patient_summaries (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  patient_id uuid NOT NULL,
+  summary_date date NOT NULL,
+  bp_readings_count integer DEFAULT 0,
+  bp_systolic_avg numeric,
+  bp_systolic_min integer,
+  bp_systolic_max integer,
+  bp_diastolic_avg numeric,
+  bp_diastolic_min integer,
+  bp_diastolic_max integer,
+  bp_status character varying,
+  heart_rate_avg integer,
+  heart_rate_min integer,
+  heart_rate_max integer,
+  medications_scheduled integer DEFAULT 0,
+  medications_taken integer DEFAULT 0,
+  medications_missed integer DEFAULT 0,
+  medication_compliance_percent numeric,
+  water_intake_ml integer DEFAULT 0,
+  water_goal_ml integer DEFAULT 2000,
+  water_compliance_percent numeric,
+  activities_count integer DEFAULT 0,
+  exercise_minutes integer DEFAULT 0,
+  mood_avg numeric,
+  has_data boolean DEFAULT false,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT daily_patient_summaries_pkey PRIMARY KEY (id),
+  CONSTRAINT daily_patient_summaries_patient_id_fkey FOREIGN KEY (patient_id) REFERENCES public.patient_profiles(id)
+);
+CREATE TABLE public.daily_reports (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  user_id uuid,
+  report_date date NOT NULL,
+  mood_summary jsonb,
+  medication_compliance numeric,
+  vitals_summary jsonb,
+  conversation_highlights ARRAY,
+  ai_insights text,
+  suggestions ARRAY,
+  risk_level character varying DEFAULT 'normal'::character varying,
+  flex_message_json jsonb,
+  sent_to_caregivers boolean DEFAULT false,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT daily_reports_pkey PRIMARY KEY (id),
+  CONSTRAINT daily_reports_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.emergency_contacts (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  patient_id uuid NOT NULL,
+  name character varying NOT NULL,
+  relationship character varying,
+  phone_number character varying NOT NULL,
+  email character varying,
+  address text,
+  priority integer DEFAULT 1,
+  is_primary boolean DEFAULT false,
+  notes text,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT emergency_contacts_pkey PRIMARY KEY (id),
+  CONSTRAINT emergency_contacts_patient_id_fkey FOREIGN KEY (patient_id) REFERENCES public.patient_profiles(id)
+);
+CREATE TABLE public.exercise_logs (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  patient_id uuid NOT NULL,
+  activity_log_id uuid,
+  conversation_log_id uuid,
+  exercise_date date DEFAULT CURRENT_DATE,
+  exercise_type character varying,
+  exercise_type_th character varying,
+  duration_minutes integer,
+  intensity character varying CHECK (intensity::text = ANY (ARRAY['light'::character varying, 'medium'::character varying, 'intense'::character varying]::text[])),
+  distance_meters integer,
+  calories_burned integer,
+  steps integer,
+  time_of_day character varying,
+  started_at timestamp with time zone,
+  ended_at timestamp with time zone,
+  ai_confidence numeric,
+  raw_text text,
+  notes text,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT exercise_logs_pkey PRIMARY KEY (id),
+  CONSTRAINT exercise_logs_patient_id_fkey FOREIGN KEY (patient_id) REFERENCES public.patient_profiles(id),
+  CONSTRAINT exercise_logs_conversation_log_id_fkey FOREIGN KEY (conversation_log_id) REFERENCES public.conversation_logs(id)
+);
+CREATE TABLE public.group_members (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  group_id uuid NOT NULL,
+  line_user_id character varying NOT NULL,
+  display_name character varying,
+  picture_url text,
+  role character varying CHECK (role::text = ANY (ARRAY['caregiver'::character varying, 'patient'::character varying, 'family'::character varying]::text[])),
+  is_active boolean DEFAULT true,
+  joined_at timestamp without time zone DEFAULT now(),
+  left_at timestamp without time zone,
+  CONSTRAINT group_members_pkey PRIMARY KEY (id),
+  CONSTRAINT group_members_group_id_fkey FOREIGN KEY (group_id) REFERENCES public.groups(id)
+);
+CREATE TABLE public.group_patients (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  group_id uuid NOT NULL,
+  patient_id uuid NOT NULL,
+  added_by_caregiver_id uuid,
+  added_at timestamp without time zone DEFAULT now(),
+  is_active boolean DEFAULT true,
+  CONSTRAINT group_patients_pkey PRIMARY KEY (id),
+  CONSTRAINT group_patients_group_id_fkey FOREIGN KEY (group_id) REFERENCES public.groups(id),
+  CONSTRAINT group_patients_patient_id_fkey FOREIGN KEY (patient_id) REFERENCES public.patient_profiles(id),
+  CONSTRAINT group_patients_caregiver_id_fkey FOREIGN KEY (added_by_caregiver_id) REFERENCES public.caregiver_profiles(id)
+);
+CREATE TABLE public.groups (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  line_group_id character varying NOT NULL UNIQUE,
+  group_name character varying,
+  primary_caregiver_id uuid,
+  is_active boolean DEFAULT true,
+  created_at timestamp without time zone DEFAULT now(),
+  updated_at timestamp without time zone DEFAULT now(),
+  active_patient_id uuid,
+  CONSTRAINT groups_pkey PRIMARY KEY (id),
+  CONSTRAINT groups_caregiver_id_fkey FOREIGN KEY (primary_caregiver_id) REFERENCES public.caregiver_profiles(id),
+  CONSTRAINT groups_active_patient_id_fkey FOREIGN KEY (active_patient_id) REFERENCES public.patient_profiles(id)
+);
+CREATE TABLE public.health_events (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  patient_id uuid NOT NULL,
+  conversation_log_id uuid,
+  activity_log_id uuid,
+  event_type character varying NOT NULL,
+  event_subtype character varying,
+  event_date date DEFAULT CURRENT_DATE,
+  event_time time without time zone,
+  event_timestamp timestamp with time zone DEFAULT now(),
+  reference_table character varying,
+  reference_id uuid,
+  raw_text text,
+  ai_confidence numeric,
+  extraction_model character varying,
+  summary_text text,
+  summary_json jsonb,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT health_events_pkey PRIMARY KEY (id),
+  CONSTRAINT health_events_patient_id_fkey FOREIGN KEY (patient_id) REFERENCES public.patient_profiles(id),
+  CONSTRAINT health_events_conversation_log_id_fkey FOREIGN KEY (conversation_log_id) REFERENCES public.conversation_logs(id),
+  CONSTRAINT health_events_activity_log_id_fkey FOREIGN KEY (activity_log_id) REFERENCES public.activity_logs(id)
+);
+CREATE TABLE public.health_goals (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  patient_id uuid NOT NULL UNIQUE,
+  target_bp_systolic integer DEFAULT 120,
+  target_bp_diastolic integer DEFAULT 80,
+  target_blood_sugar_fasting integer DEFAULT 100,
+  target_blood_sugar_post_meal integer DEFAULT 140,
+  target_water_ml integer DEFAULT 2000,
+  target_exercise_minutes integer DEFAULT 30,
+  target_exercise_days_per_week integer DEFAULT 5,
+  target_weight_kg numeric,
+  updated_at timestamp with time zone DEFAULT now(),
+  target_sleep_hours numeric DEFAULT 7,
+  target_water_glasses integer DEFAULT 8,
+  target_steps integer DEFAULT 6000,
+  CONSTRAINT health_goals_pkey PRIMARY KEY (id),
+  CONSTRAINT health_goals_patient_id_fkey FOREIGN KEY (patient_id) REFERENCES public.patient_profiles(id)
+);
+CREATE TABLE public.link_codes (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  patient_id uuid NOT NULL,
+  code character varying NOT NULL UNIQUE,
+  expires_at timestamp with time zone NOT NULL,
+  used boolean DEFAULT false,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT link_codes_pkey PRIMARY KEY (id),
+  CONSTRAINT link_codes_patient_id_fkey FOREIGN KEY (patient_id) REFERENCES public.patient_profiles(id)
+);
+CREATE TABLE public.medical_history (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  patient_id uuid NOT NULL,
+  event_date date NOT NULL,
+  event_type character varying NOT NULL,
+  description text NOT NULL,
+  hospital_name character varying,
+  doctor_name character varying,
+  outcome text,
+  documents jsonb,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  created_by_line_user_id character varying,
+  CONSTRAINT medical_history_pkey PRIMARY KEY (id),
+  CONSTRAINT medical_history_patient_id_fkey FOREIGN KEY (patient_id) REFERENCES public.patient_profiles(id)
+);
+CREATE TABLE public.medication_logs (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  user_id uuid,
+  medication_id uuid,
+  scheduled_time timestamp with time zone,
+  taken_at timestamp with time zone,
+  skipped boolean DEFAULT false,
+  skipped_reason character varying,
+  created_at timestamp with time zone DEFAULT now(),
+  patient_id uuid,
+  medication_name character varying,
+  dosage character varying,
+  status character varying DEFAULT 'taken'::character varying,
+  note text,
+  ai_confidence numeric,
+  raw_text text,
+  activity_log_id uuid,
+  conversation_log_id uuid,
+  logged_by_line_user_id character varying,
+  CONSTRAINT medication_logs_pkey PRIMARY KEY (id),
+  CONSTRAINT medication_logs_patient_id_fkey FOREIGN KEY (patient_id) REFERENCES public.patient_profiles(id),
+  CONSTRAINT medication_logs_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT medication_logs_medication_id_fkey FOREIGN KEY (medication_id) REFERENCES public.medications(id)
+);
+CREATE TABLE public.medication_notification_logs (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  medication_id uuid NOT NULL,
+  patient_id uuid NOT NULL,
+  time_period character varying NOT NULL,
+  sent_at timestamp with time zone NOT NULL DEFAULT now(),
+  status character varying DEFAULT 'sent'::character varying,
+  channel character varying DEFAULT 'group'::character varying,
+  error_message text,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT medication_notification_logs_pkey PRIMARY KEY (id),
+  CONSTRAINT medication_notification_logs_medication_id_fkey FOREIGN KEY (medication_id) REFERENCES public.medications(id),
+  CONSTRAINT medication_notification_logs_patient_id_fkey FOREIGN KEY (patient_id) REFERENCES public.patient_profiles(id)
+);
+CREATE TABLE public.medications (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  user_id uuid,
+  name character varying NOT NULL,
+  dosage character varying,
+  frequency character varying,
+  time_slots jsonb DEFAULT '[]'::jsonb,
+  active boolean DEFAULT true,
+  created_at timestamp with time zone DEFAULT now(),
+  dosage_form character varying,
+  days_of_week ARRAY,
+  reminder_enabled boolean DEFAULT true,
+  patient_id uuid,
+  dosage_amount numeric,
+  dosage_unit character varying,
+  times ARRAY,
+  instructions character varying,
+  note text,
+  CONSTRAINT medications_pkey PRIMARY KEY (id),
+  CONSTRAINT medications_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT medications_patient_id_fkey FOREIGN KEY (patient_id) REFERENCES public.patient_profiles(id)
+);
+CREATE TABLE public.mood_logs (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  user_id uuid,
+  mood character varying NOT NULL,
+  mood_score integer CHECK (mood_score >= 1 AND mood_score <= 5),
+  note text,
+  activities jsonb DEFAULT '[]'::jsonb,
+  timestamp timestamp with time zone DEFAULT now(),
+  patient_id uuid,
+  conversation_log_id uuid,
+  activity_log_id uuid,
+  stress_level character varying CHECK (stress_level::text = ANY (ARRAY['low'::character varying, 'medium'::character varying, 'high'::character varying]::text[])),
+  stress_cause text,
+  energy_level character varying CHECK (energy_level::text = ANY (ARRAY['low'::character varying, 'medium'::character varying, 'high'::character varying]::text[])),
+  ai_confidence numeric,
+  raw_text text,
+  logged_by_line_user_id character varying,
+  CONSTRAINT mood_logs_pkey PRIMARY KEY (id),
+  CONSTRAINT mood_logs_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT mood_logs_patient_id_fkey FOREIGN KEY (patient_id) REFERENCES public.patient_profiles(id)
+);
+CREATE TABLE public.notification_settings (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  patient_id uuid NOT NULL UNIQUE,
+  medication_reminder_times ARRAY,
+  water_reminder_interval_hours integer DEFAULT 2,
+  water_reminder_start time without time zone DEFAULT '07:00:00'::time without time zone,
+  water_reminder_end time without time zone DEFAULT '21:00:00'::time without time zone,
+  exercise_reminder_time time without time zone DEFAULT '08:00:00'::time without time zone,
+  daily_report_time time without time zone DEFAULT '20:00:00'::time without time zone,
+  medication_reminders_enabled boolean DEFAULT true,
+  water_reminders_enabled boolean DEFAULT true,
+  exercise_reminders_enabled boolean DEFAULT true,
+  daily_reports_enabled boolean DEFAULT true,
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT notification_settings_pkey PRIMARY KEY (id),
+  CONSTRAINT notification_settings_patient_id_fkey FOREIGN KEY (patient_id) REFERENCES public.patient_profiles(id)
+);
+CREATE TABLE public.patient_caregivers (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  patient_id uuid NOT NULL,
+  caregiver_id uuid NOT NULL,
+  relationship character varying,
+  is_primary boolean DEFAULT false,
+  access_level character varying DEFAULT 'full'::character varying,
+  notify_emergency boolean DEFAULT true,
+  notify_medication boolean DEFAULT true,
+  notify_daily_report boolean DEFAULT true,
+  notify_abnormal_vitals boolean DEFAULT true,
+  status character varying DEFAULT 'pending'::character varying CHECK (status::text = ANY (ARRAY['pending'::character varying, 'active'::character varying, 'rejected'::character varying]::text[])),
+  approved_at timestamp with time zone,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT patient_caregivers_pkey PRIMARY KEY (id),
+  CONSTRAINT patient_caregivers_patient_id_fkey FOREIGN KEY (patient_id) REFERENCES public.patient_profiles(id),
+  CONSTRAINT patient_caregivers_caregiver_id_fkey FOREIGN KEY (caregiver_id) REFERENCES public.caregiver_profiles(id)
+);
 CREATE TABLE public.patient_profiles (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
   user_id uuid UNIQUE,
@@ -48,7 +547,6 @@ CREATE TABLE public.patient_profiles (
   emergency_contact_relation character varying,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
-  -- Medical info (added in migration 008)
   medical_condition text,
   hospital_name character varying,
   hospital_address text,
@@ -56,81 +554,198 @@ CREATE TABLE public.patient_profiles (
   doctor_name character varying,
   doctor_phone character varying,
   medical_notes text,
-  CONSTRAINT patient_profiles_pkey PRIMARY KEY (id)
+  CONSTRAINT patient_profiles_pkey PRIMARY KEY (id),
+  CONSTRAINT patient_profiles_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
-
-CREATE TABLE public.caregiver_profiles (
+CREATE TABLE public.pending_voice_confirmations (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  line_user_id text NOT NULL,
+  patient_id uuid,
+  transcribed_text text NOT NULL,
+  context jsonb DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone DEFAULT now(),
+  expires_at timestamp with time zone DEFAULT (now() + '00:05:00'::interval),
+  status text DEFAULT 'pending'::text CHECK (status = ANY (ARRAY['pending'::text, 'confirmed'::text, 'rejected'::text, 'expired'::text])),
+  CONSTRAINT pending_voice_confirmations_pkey PRIMARY KEY (id),
+  CONSTRAINT pending_voice_confirmations_patient_id_fkey FOREIGN KEY (patient_id) REFERENCES public.patient_profiles(id)
+);
+CREATE TABLE public.reminder_logs (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  reminder_id uuid NOT NULL,
+  patient_id uuid NOT NULL,
+  sent_at timestamp with time zone NOT NULL DEFAULT now(),
+  status character varying DEFAULT 'sent'::character varying,
+  channel character varying DEFAULT 'direct'::character varying,
+  error_message text,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT reminder_logs_pkey PRIMARY KEY (id),
+  CONSTRAINT reminder_logs_reminder_id_fkey FOREIGN KEY (reminder_id) REFERENCES public.reminders(id),
+  CONSTRAINT reminder_logs_patient_id_fkey FOREIGN KEY (patient_id) REFERENCES public.patient_profiles(id)
+);
+CREATE TABLE public.reminders (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
-  user_id uuid NOT NULL UNIQUE,
-  first_name character varying NOT NULL,
-  last_name character varying NOT NULL,
-  phone_number character varying,
+  patient_id uuid NOT NULL,
+  type character varying NOT NULL,
+  title character varying NOT NULL,
+  time time without time zone NOT NULL,
+  days ARRAY DEFAULT '{}'::text[],
+  note text,
+  custom_time time without time zone,
+  days_of_week jsonb,
+  frequency character varying DEFAULT 'daily'::character varying,
+  is_active boolean DEFAULT true,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT caregiver_profiles_pkey PRIMARY KEY (id)
+  CONSTRAINT reminders_pkey PRIMARY KEY (id),
+  CONSTRAINT reminders_patient_id_fkey FOREIGN KEY (patient_id) REFERENCES public.patient_profiles(id)
 );
-
-CREATE TABLE public.groups (
-  id uuid NOT NULL DEFAULT uuid_generate_v4(),
-  line_group_id character varying NOT NULL UNIQUE,
-  group_name character varying,
-  primary_caregiver_id uuid,
-  active_patient_id uuid,
-  is_active boolean DEFAULT true,
-  created_at timestamp without time zone DEFAULT now(),
-  updated_at timestamp without time zone DEFAULT now(),
-  CONSTRAINT groups_pkey PRIMARY KEY (id)
+CREATE TABLE public.report_access_logs (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  patient_id uuid NOT NULL,
+  accessed_by_line_user_id character varying NOT NULL,
+  access_type character varying NOT NULL,
+  date_from date NOT NULL,
+  date_to date NOT NULL,
+  ip_address character varying,
+  user_agent text,
+  accessed_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT report_access_logs_pkey PRIMARY KEY (id),
+  CONSTRAINT report_access_logs_patient_id_fkey FOREIGN KEY (patient_id) REFERENCES public.patient_profiles(id)
 );
-
--- =============================================
--- HEALTH TRACKING TABLES
--- =============================================
-
-CREATE TABLE public.medications (
+CREATE TABLE public.report_downloads (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
-  user_id uuid,
-  patient_id uuid,
-  name character varying NOT NULL,
-  dosage character varying,
-  dosage_amount numeric,
-  dosage_unit character varying,
-  dosage_form character varying,
-  frequency character varying,
-  times ARRAY,
-  days_of_week ARRAY,
-  time_slots jsonb DEFAULT '[]'::jsonb,
-  instructions character varying,
-  note text,
-  active boolean DEFAULT true,
-  reminder_enabled boolean DEFAULT true,
+  group_id uuid NOT NULL,
+  patient_id uuid NOT NULL,
+  report_type character varying NOT NULL,
+  date_from date NOT NULL,
+  date_to date NOT NULL,
+  format character varying NOT NULL CHECK (format::text = ANY (ARRAY['pdf'::character varying, 'csv'::character varying]::text[])),
+  file_path character varying,
+  file_size_bytes integer,
+  downloaded_by_line_user_id character varying,
+  downloaded_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT report_downloads_pkey PRIMARY KEY (id),
+  CONSTRAINT report_downloads_group_id_fkey FOREIGN KEY (group_id) REFERENCES public.groups(id),
+  CONSTRAINT report_downloads_patient_id_fkey FOREIGN KEY (patient_id) REFERENCES public.patient_profiles(id)
+);
+CREATE TABLE public.report_settings (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  group_id uuid NOT NULL UNIQUE,
+  daily_report_enabled boolean DEFAULT true,
+  daily_report_time time without time zone DEFAULT '20:00:00'::time without time zone,
+  weekly_report_enabled boolean DEFAULT false,
+  weekly_report_day integer DEFAULT 0 CHECK (weekly_report_day >= 0 AND weekly_report_day <= 6),
+  weekly_report_time time without time zone DEFAULT '20:00:00'::time without time zone,
+  monthly_report_enabled boolean DEFAULT false,
+  monthly_report_day integer DEFAULT 1 CHECK (monthly_report_day >= 1 AND monthly_report_day <= 28),
+  monthly_report_time time without time zone DEFAULT '20:00:00'::time without time zone,
+  send_via_line boolean DEFAULT true,
+  send_via_email boolean DEFAULT false,
+  email_recipients jsonb,
   created_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT medications_pkey PRIMARY KEY (id)
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT report_settings_pkey PRIMARY KEY (id),
+  CONSTRAINT report_settings_group_id_fkey FOREIGN KEY (group_id) REFERENCES public.groups(id)
 );
-
--- New table (migration 008)
-CREATE TABLE public.medication_logs (
-  id uuid NOT NULL DEFAULT uuid_generate_v4(),
-  user_id uuid,
-  patient_id uuid,
-  medication_id uuid,
-  medication_name character varying,
-  dosage character varying,
-  taken_at timestamp with time zone DEFAULT now(),
-  scheduled_time time without time zone,
-  status character varying DEFAULT 'taken'::character varying,
-  note text,
-  ai_confidence numeric,
-  raw_text text,
+CREATE TABLE public.schema_migrations (
+  version character varying NOT NULL,
+  description text,
+  executed_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT schema_migrations_pkey PRIMARY KEY (version)
+);
+CREATE TABLE public.sleep_logs (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  patient_id uuid NOT NULL,
   activity_log_id uuid,
   conversation_log_id uuid,
-  logged_by_line_user_id character varying,
-  skipped boolean DEFAULT false,
-  skipped_reason character varying,
+  sleep_date date DEFAULT CURRENT_DATE,
+  sleep_time time without time zone,
+  wake_time time without time zone,
+  sleep_hours numeric,
+  sleep_quality character varying CHECK (sleep_quality::text = ANY (ARRAY['poor'::character varying, 'fair'::character varying, 'good'::character varying, 'excellent'::character varying]::text[])),
+  sleep_quality_score integer CHECK (sleep_quality_score >= 1 AND sleep_quality_score <= 5),
+  wake_ups integer DEFAULT 0,
+  sleep_issues ARRAY,
+  factors ARRAY,
+  ai_confidence numeric,
+  raw_text text,
+  notes text,
   created_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT medication_logs_pkey PRIMARY KEY (id)
+  CONSTRAINT sleep_logs_pkey PRIMARY KEY (id),
+  CONSTRAINT sleep_logs_patient_id_fkey FOREIGN KEY (patient_id) REFERENCES public.patient_profiles(id),
+  CONSTRAINT sleep_logs_conversation_log_id_fkey FOREIGN KEY (conversation_log_id) REFERENCES public.conversation_logs(id)
 );
-
--- New table (migration 008)
+CREATE TABLE public.symptoms (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  patient_id uuid NOT NULL,
+  activity_log_id uuid,
+  conversation_log_id uuid,
+  symptom_name character varying NOT NULL,
+  symptom_name_en character varying,
+  severity_1to5 integer CHECK (severity_1to5 >= 1 AND severity_1to5 <= 5),
+  body_location character varying,
+  body_location_th character varying,
+  duration_text character varying,
+  duration_minutes integer,
+  started_at timestamp with time zone,
+  time_of_day character varying,
+  triggers text,
+  associated_symptoms ARRAY,
+  ai_confidence numeric,
+  raw_text text,
+  notes text,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT symptoms_pkey PRIMARY KEY (id),
+  CONSTRAINT symptoms_patient_id_fkey FOREIGN KEY (patient_id) REFERENCES public.patient_profiles(id),
+  CONSTRAINT symptoms_conversation_log_id_fkey FOREIGN KEY (conversation_log_id) REFERENCES public.conversation_logs(id),
+  CONSTRAINT symptoms_activity_log_id_fkey FOREIGN KEY (activity_log_id) REFERENCES public.activity_logs(id)
+);
+CREATE TABLE public.users (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  line_user_id character varying NOT NULL UNIQUE,
+  display_name character varying,
+  picture_url text,
+  language character varying DEFAULT 'th'::character varying,
+  persona character varying DEFAULT 'friendly'::character varying,
+  conditions jsonb DEFAULT '[]'::jsonb,
+  timezone character varying DEFAULT 'Asia/Bangkok'::character varying,
+  opt_in boolean DEFAULT true,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  primary_group_id uuid,
+  role character varying NOT NULL CHECK (role::text = ANY (ARRAY['patient'::character varying, 'caregiver'::character varying]::text[])),
+  onboarding_completed boolean DEFAULT false,
+  onboarding_step character varying DEFAULT 'welcome'::character varying,
+  CONSTRAINT users_pkey PRIMARY KEY (id),
+  CONSTRAINT users_primary_group_id_fkey FOREIGN KEY (primary_group_id) REFERENCES public.groups(id)
+);
+CREATE TABLE public.vitals_logs (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  user_id uuid,
+  bp_systolic integer,
+  bp_diastolic integer,
+  heart_rate integer,
+  glucose integer,
+  weight numeric,
+  temperature numeric,
+  spo2 integer,
+  notes text,
+  measured_at timestamp with time zone DEFAULT now(),
+  patient_id uuid,
+  conversation_log_id uuid,
+  activity_log_id uuid,
+  source character varying DEFAULT 'manual'::character varying CHECK (source::text = ANY (ARRAY['manual'::character varying, 'text'::character varying, 'image'::character varying, 'device'::character varying]::text[])),
+  measured_at_text character varying,
+  ai_confidence numeric,
+  raw_text text,
+  logged_by_line_user_id character varying,
+  logged_by_display_name character varying,
+  CONSTRAINT vitals_logs_pkey PRIMARY KEY (id),
+  CONSTRAINT vitals_logs_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT vitals_logs_patient_id_fkey FOREIGN KEY (patient_id) REFERENCES public.patient_profiles(id),
+  CONSTRAINT vitals_logs_conversation_log_id_fkey FOREIGN KEY (conversation_log_id) REFERENCES public.conversation_logs(id)
+);
 CREATE TABLE public.water_logs (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
   patient_id uuid NOT NULL,
@@ -144,457 +759,6 @@ CREATE TABLE public.water_logs (
   activity_log_id uuid,
   conversation_log_id uuid,
   created_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT water_logs_pkey PRIMARY KEY (id)
+  CONSTRAINT water_logs_pkey PRIMARY KEY (id),
+  CONSTRAINT water_logs_patient_id_fkey FOREIGN KEY (patient_id) REFERENCES public.patient_profiles(id)
 );
-
-CREATE TABLE public.vitals_logs (
-  id uuid NOT NULL DEFAULT uuid_generate_v4(),
-  user_id uuid,
-  patient_id uuid,
-  bp_systolic integer,
-  bp_diastolic integer,
-  heart_rate integer,
-  glucose integer,
-  weight numeric,
-  temperature numeric,
-  spo2 integer,
-  notes text,
-  measured_at timestamp with time zone DEFAULT now(),
-  measured_at_text character varying,
-  source character varying DEFAULT 'manual'::character varying,
-  ai_confidence numeric,
-  raw_text text,
-  logged_by_line_user_id character varying,
-  logged_by_display_name character varying,
-  conversation_log_id uuid,
-  activity_log_id uuid,
-  CONSTRAINT vitals_logs_pkey PRIMARY KEY (id)
-);
-
-CREATE TABLE public.activity_logs (
-  id uuid NOT NULL DEFAULT uuid_generate_v4(),
-  patient_id uuid,
-  group_id uuid,
-  message_id character varying,
-  task_type character varying NOT NULL,
-  value text,
-  intent character varying,
-  metadata jsonb DEFAULT '{}'::jsonb,
-  processing_result jsonb,
-  timestamp timestamp with time zone DEFAULT now(),
-  created_at timestamp with time zone DEFAULT now(),
-  actor_line_user_id character varying,
-  actor_display_name character varying,
-  source character varying DEFAULT '1:1'::character varying,
-  ai_confidence numeric,
-  raw_text text,
-  conversation_log_id uuid,
-  health_event_id uuid,
-  CONSTRAINT activity_logs_pkey PRIMARY KEY (id)
-);
-
-CREATE TABLE public.symptoms (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  patient_id uuid NOT NULL,
-  symptom_name character varying NOT NULL,
-  symptom_name_en character varying,
-  severity_1to5 integer CHECK (severity_1to5 >= 1 AND severity_1to5 <= 5),
-  body_location character varying,
-  body_location_th character varying,
-  duration_text character varying,
-  duration_minutes integer,
-  started_at timestamp with time zone,
-  time_of_day character varying,
-  triggers text,
-  associated_symptoms ARRAY,
-  notes text,
-  ai_confidence numeric,
-  raw_text text,
-  activity_log_id uuid,
-  conversation_log_id uuid,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT symptoms_pkey PRIMARY KEY (id)
-);
-
-CREATE TABLE public.sleep_logs (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  patient_id uuid NOT NULL,
-  sleep_date date DEFAULT CURRENT_DATE,
-  sleep_time time without time zone,
-  wake_time time without time zone,
-  sleep_hours numeric,
-  sleep_quality character varying,
-  sleep_quality_score integer CHECK (sleep_quality_score >= 1 AND sleep_quality_score <= 5),
-  wake_ups integer DEFAULT 0,
-  sleep_issues ARRAY,
-  factors ARRAY,
-  ai_confidence numeric,
-  raw_text text,
-  notes text,
-  activity_log_id uuid,
-  conversation_log_id uuid,
-  created_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT sleep_logs_pkey PRIMARY KEY (id)
-);
-
-CREATE TABLE public.exercise_logs (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  patient_id uuid NOT NULL,
-  exercise_date date DEFAULT CURRENT_DATE,
-  exercise_type character varying,
-  exercise_type_th character varying,
-  duration_minutes integer,
-  intensity character varying,
-  distance_meters integer,
-  calories_burned integer,
-  steps integer,
-  time_of_day character varying,
-  started_at timestamp with time zone,
-  ended_at timestamp with time zone,
-  ai_confidence numeric,
-  raw_text text,
-  notes text,
-  activity_log_id uuid,
-  conversation_log_id uuid,
-  created_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT exercise_logs_pkey PRIMARY KEY (id)
-);
-
-CREATE TABLE public.mood_logs (
-  id uuid NOT NULL DEFAULT uuid_generate_v4(),
-  user_id uuid,
-  patient_id uuid,
-  mood character varying NOT NULL,
-  mood_score integer CHECK (mood_score >= 1 AND mood_score <= 5),
-  stress_level character varying,
-  stress_cause text,
-  energy_level character varying,
-  activities jsonb DEFAULT '[]'::jsonb,
-  note text,
-  timestamp timestamp with time zone DEFAULT now(),
-  ai_confidence numeric,
-  raw_text text,
-  logged_by_line_user_id character varying,
-  conversation_log_id uuid,
-  activity_log_id uuid,
-  CONSTRAINT mood_logs_pkey PRIMARY KEY (id)
-);
-
--- =============================================
--- REMINDERS & NOTIFICATIONS
--- =============================================
-
-CREATE TABLE public.reminders (
-  id uuid NOT NULL DEFAULT uuid_generate_v4(),
-  patient_id uuid NOT NULL,
-  type character varying NOT NULL,
-  title character varying NOT NULL,
-  time time without time zone NOT NULL,
-  custom_time time without time zone,
-  frequency character varying DEFAULT 'daily'::character varying,
-  days ARRAY DEFAULT '{}'::text[],
-  days_of_week jsonb,
-  note text,
-  is_active boolean DEFAULT true,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT reminders_pkey PRIMARY KEY (id)
-);
-
-CREATE TABLE public.health_goals (
-  id uuid NOT NULL DEFAULT uuid_generate_v4(),
-  patient_id uuid NOT NULL UNIQUE,
-  target_bp_systolic integer DEFAULT 120,
-  target_bp_diastolic integer DEFAULT 80,
-  target_water_ml integer DEFAULT 2000,
-  target_exercise_minutes integer DEFAULT 30,
-  target_sleep_hours numeric DEFAULT 7,
-  target_water_glasses integer DEFAULT 8,
-  target_steps integer DEFAULT 6000,
-  updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT health_goals_pkey PRIMARY KEY (id)
-);
-
--- =============================================
--- GROUP & RELATIONSHIP TABLES
--- =============================================
-
-CREATE TABLE public.group_members (
-  id uuid NOT NULL DEFAULT uuid_generate_v4(),
-  group_id uuid NOT NULL,
-  line_user_id character varying NOT NULL,
-  display_name character varying,
-  picture_url text,
-  role character varying,
-  is_active boolean DEFAULT true,
-  joined_at timestamp without time zone DEFAULT now(),
-  left_at timestamp without time zone,
-  CONSTRAINT group_members_pkey PRIMARY KEY (id),
-  CONSTRAINT group_members_unique UNIQUE (group_id, line_user_id)
-);
-
-CREATE TABLE public.group_patients (
-  id uuid NOT NULL DEFAULT uuid_generate_v4(),
-  group_id uuid NOT NULL,
-  patient_id uuid NOT NULL,
-  added_by_caregiver_id uuid,
-  added_at timestamp without time zone DEFAULT now(),
-  is_active boolean DEFAULT true,
-  CONSTRAINT group_patients_pkey PRIMARY KEY (id),
-  CONSTRAINT group_patients_unique UNIQUE (group_id, patient_id)
-);
-
-CREATE TABLE public.patient_caregivers (
-  id uuid NOT NULL DEFAULT uuid_generate_v4(),
-  patient_id uuid NOT NULL,
-  caregiver_id uuid NOT NULL,
-  relationship character varying,
-  is_primary boolean DEFAULT false,
-  access_level character varying DEFAULT 'full'::character varying,
-  status character varying DEFAULT 'pending'::character varying,
-  created_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT patient_caregivers_pkey PRIMARY KEY (id)
-);
-
--- =============================================
--- CONVERSATION & LOGS
--- =============================================
-
-CREATE TABLE public.conversation_logs (
-  id uuid NOT NULL DEFAULT uuid_generate_v4(),
-  user_id uuid,
-  patient_id uuid,
-  group_id uuid,
-  role character varying NOT NULL,
-  text text NOT NULL,
-  intent character varying,
-  flags jsonb DEFAULT '[]'::jsonb,
-  timestamp timestamp with time zone DEFAULT now(),
-  message_id character varying,
-  reply_token character varying,
-  media_url text,
-  media_type character varying,
-  ai_extracted_data jsonb,
-  ai_confidence numeric,
-  ai_model character varying,
-  source character varying DEFAULT '1:1'::character varying,
-  CONSTRAINT conversation_logs_pkey PRIMARY KEY (id)
-);
-
-CREATE TABLE public.health_events (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  patient_id uuid NOT NULL,
-  event_type character varying NOT NULL,
-  event_subtype character varying,
-  event_date date DEFAULT CURRENT_DATE,
-  event_time time without time zone,
-  event_timestamp timestamp with time zone DEFAULT now(),
-  reference_table character varying,
-  reference_id uuid,
-  raw_text text,
-  ai_confidence numeric,
-  extraction_model character varying,
-  summary_text text,
-  summary_json jsonb,
-  conversation_log_id uuid,
-  activity_log_id uuid,
-  created_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT health_events_pkey PRIMARY KEY (id)
-);
-
--- =============================================
--- REPORTS & SUMMARIES
--- =============================================
-
-CREATE TABLE public.daily_patient_summaries (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  patient_id uuid NOT NULL,
-  summary_date date NOT NULL,
-  bp_readings_count integer DEFAULT 0,
-  bp_systolic_avg numeric,
-  medications_scheduled integer DEFAULT 0,
-  medications_taken integer DEFAULT 0,
-  medication_compliance_percent numeric,
-  water_intake_ml integer DEFAULT 0,
-  water_goal_ml integer DEFAULT 2000,
-  activities_count integer DEFAULT 0,
-  exercise_minutes integer DEFAULT 0,
-  has_data boolean DEFAULT false,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT daily_patient_summaries_pkey PRIMARY KEY (id),
-  CONSTRAINT daily_patient_summaries_unique UNIQUE (patient_id, summary_date)
-);
-
-CREATE TABLE public.daily_reports (
-  id uuid NOT NULL DEFAULT uuid_generate_v4(),
-  user_id uuid,
-  report_date date NOT NULL,
-  mood_summary jsonb,
-  medication_compliance numeric,
-  vitals_summary jsonb,
-  ai_insights text,
-  risk_level character varying DEFAULT 'normal'::character varying,
-  flex_message_json jsonb,
-  sent_to_caregivers boolean DEFAULT false,
-  created_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT daily_reports_pkey PRIMARY KEY (id)
-);
-
--- =============================================
--- SUPPORTING TABLES
--- =============================================
-
-CREATE TABLE public.link_codes (
-  id uuid NOT NULL DEFAULT uuid_generate_v4(),
-  patient_id uuid NOT NULL,
-  code character varying NOT NULL UNIQUE,
-  expires_at timestamp with time zone NOT NULL,
-  used boolean DEFAULT false,
-  created_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT link_codes_pkey PRIMARY KEY (id)
-);
-
-CREATE TABLE public.allergies (
-  id uuid NOT NULL DEFAULT uuid_generate_v4(),
-  patient_id uuid NOT NULL,
-  allergy_type character varying NOT NULL,
-  allergen_name character varying NOT NULL,
-  severity character varying,
-  reaction_symptoms text,
-  notes text,
-  created_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT allergies_pkey PRIMARY KEY (id)
-);
-
-CREATE TABLE public.emergency_contacts (
-  id uuid NOT NULL DEFAULT uuid_generate_v4(),
-  patient_id uuid NOT NULL,
-  name character varying NOT NULL,
-  relationship character varying,
-  phone_number character varying NOT NULL,
-  is_primary boolean DEFAULT false,
-  created_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT emergency_contacts_pkey PRIMARY KEY (id)
-);
-
-CREATE TABLE public.medical_history (
-  id uuid NOT NULL DEFAULT uuid_generate_v4(),
-  patient_id uuid NOT NULL,
-  event_date date NOT NULL,
-  event_type character varying NOT NULL,
-  description text NOT NULL,
-  hospital_name character varying,
-  doctor_name character varying,
-  created_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT medical_history_pkey PRIMARY KEY (id)
-);
-
-CREATE TABLE public.app_config (
-  key text NOT NULL,
-  value text NOT NULL,
-  CONSTRAINT app_config_pkey PRIMARY KEY (key)
-);
-
-CREATE TABLE public.schema_migrations (
-  version character varying NOT NULL,
-  description text,
-  executed_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT schema_migrations_pkey PRIMARY KEY (version)
-);
-
--- =============================================
--- INDEXES
--- =============================================
-
--- Medications
-CREATE INDEX idx_medications_patient ON medications(patient_id);
-CREATE INDEX idx_medications_active ON medications(patient_id, active);
-CREATE INDEX idx_medications_user ON medications(user_id);
-
--- Medication Logs
-CREATE INDEX idx_medication_logs_patient ON medication_logs(patient_id);
-CREATE INDEX idx_medication_logs_taken_at ON medication_logs(taken_at);
-CREATE INDEX idx_medication_logs_patient_date ON medication_logs(patient_id, taken_at);
-CREATE INDEX idx_medication_logs_medication ON medication_logs(medication_id);
-
--- Water Logs
-CREATE INDEX idx_water_logs_patient ON water_logs(patient_id);
-CREATE INDEX idx_water_logs_date ON water_logs(log_date);
-CREATE INDEX idx_water_logs_patient_date ON water_logs(patient_id, log_date);
-
--- Vitals Logs
-CREATE INDEX idx_vitals_logs_patient ON vitals_logs(patient_id);
-CREATE INDEX idx_vitals_logs_measured_at ON vitals_logs(measured_at);
-CREATE INDEX idx_vitals_logs_patient_date ON vitals_logs(patient_id, measured_at);
-
--- Activity Logs
-CREATE INDEX idx_activity_logs_patient ON activity_logs(patient_id);
-CREATE INDEX idx_activity_logs_task_type ON activity_logs(task_type);
-CREATE INDEX idx_activity_logs_timestamp ON activity_logs(timestamp);
-CREATE INDEX idx_activity_logs_patient_date ON activity_logs(patient_id, timestamp);
-CREATE INDEX idx_activity_logs_group ON activity_logs(group_id);
-
--- Symptoms
-CREATE INDEX idx_symptoms_patient ON symptoms(patient_id);
-CREATE INDEX idx_symptoms_created ON symptoms(created_at);
-CREATE INDEX idx_symptoms_patient_date ON symptoms(patient_id, created_at);
-
--- Sleep Logs
-CREATE INDEX idx_sleep_logs_patient ON sleep_logs(patient_id);
-CREATE INDEX idx_sleep_logs_date ON sleep_logs(sleep_date);
-CREATE INDEX idx_sleep_logs_patient_date ON sleep_logs(patient_id, sleep_date);
-
--- Exercise Logs
-CREATE INDEX idx_exercise_logs_patient ON exercise_logs(patient_id);
-CREATE INDEX idx_exercise_logs_date ON exercise_logs(exercise_date);
-CREATE INDEX idx_exercise_logs_patient_date ON exercise_logs(patient_id, exercise_date);
-
--- Mood Logs
-CREATE INDEX idx_mood_logs_patient ON mood_logs(patient_id);
-CREATE INDEX idx_mood_logs_timestamp ON mood_logs(timestamp);
-
--- Health Events
-CREATE INDEX idx_health_events_patient ON health_events(patient_id);
-CREATE INDEX idx_health_events_type ON health_events(event_type);
-CREATE INDEX idx_health_events_date ON health_events(event_date);
-CREATE INDEX idx_health_events_patient_date ON health_events(patient_id, event_date);
-
--- Reminders
-CREATE INDEX idx_reminders_patient ON reminders(patient_id);
-CREATE INDEX idx_reminders_patient_active ON reminders(patient_id, is_active);
-CREATE INDEX idx_reminders_type ON reminders(type);
-
--- Groups
-CREATE INDEX idx_groups_line_id ON groups(line_group_id);
-CREATE INDEX idx_groups_active ON groups(is_active);
-
--- Group Members
-CREATE INDEX idx_group_members_group ON group_members(group_id);
-CREATE INDEX idx_group_members_user ON group_members(line_user_id);
-CREATE INDEX idx_group_members_active ON group_members(group_id, is_active);
-
--- Group Patients
-CREATE INDEX idx_group_patients_group ON group_patients(group_id);
-CREATE INDEX idx_group_patients_patient ON group_patients(patient_id);
-
--- Conversation Logs
-CREATE INDEX idx_conversation_logs_patient ON conversation_logs(patient_id);
-CREATE INDEX idx_conversation_logs_user ON conversation_logs(user_id);
-CREATE INDEX idx_conversation_logs_timestamp ON conversation_logs(timestamp);
-CREATE INDEX idx_conversation_logs_group ON conversation_logs(group_id);
-
--- Daily Summaries
-CREATE INDEX idx_daily_summaries_patient ON daily_patient_summaries(patient_id);
-CREATE INDEX idx_daily_summaries_date ON daily_patient_summaries(summary_date);
-CREATE INDEX idx_daily_summaries_patient_date ON daily_patient_summaries(patient_id, summary_date);
-
--- Daily Reports
-CREATE INDEX idx_daily_reports_user ON daily_reports(user_id);
-CREATE INDEX idx_daily_reports_date ON daily_reports(report_date);
-
--- Supporting Tables
-CREATE INDEX idx_allergies_patient ON allergies(patient_id);
-CREATE INDEX idx_emergency_contacts_patient ON emergency_contacts(patient_id);
-CREATE INDEX idx_medical_history_patient ON medical_history(patient_id);
