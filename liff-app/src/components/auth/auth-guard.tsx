@@ -58,8 +58,8 @@ export function AuthGuard({ children }: AuthGuardProps) {
   // Redirect to registration if authenticated but not registered
   useEffect(() => {
     if (!auth.isLoading && auth.isAuthenticated && !auth.isRegistered && !auth.error) {
-      console.log('[AuthGuard] Not registered, redirecting to registration');
-      navigate('/registration/quick');
+      console.log('[AuthGuard] Not registered, redirecting to welcome');
+      navigate('/registration/welcome');
     }
   }, [auth.isLoading, auth.isAuthenticated, auth.isRegistered, auth.error, navigate]);
 
