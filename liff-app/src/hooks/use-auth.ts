@@ -128,7 +128,14 @@ export function useAuth(): AuthData {
   // Registered - return data
   const role = data.role || null;
   const profileId = data.profile.id;
-  const patientId = role === 'patient' ? profileId : null;
+
+  // For patients: patientId = their profile id
+  // For caregivers: patientId = their linked_patient_id
+  const patientId = role === 'patient'
+    ? profileId
+    : data.profile.linked_patient_id || null;
+
+  console.log('[useAuth] Resolved:', { role, profileId, patientId, linked_patient_id: data.profile.linked_patient_id });
 
   return {
     isLoading: false,

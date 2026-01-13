@@ -3,6 +3,26 @@ import { supabase } from '../services/supabase.service';
 
 const router = Router();
 
+// Type for dashboard summary
+interface DashboardSummary {
+  streak: number;
+  todayTasks: {
+    total: number;
+    completed: number;
+    items: Array<{ id: string; label: string; done: boolean; time?: string; sub?: string }>;
+  };
+  latestVitals: {
+    bp_systolic: number | null;
+    bp_diastolic: number | null;
+    bp_change: number | null;
+    sleep_hours: number | null;
+    sleep_change: number | null;
+    weight: number | null;
+    weight_change: number | null;
+  };
+  aiInsight: { title: string; message: string; icon: string } | null;
+}
+
 /**
  * GET /api/dashboard/summary/:patientId
  * Get dashboard summary for a patient
@@ -343,7 +363,7 @@ router.get('/group/:groupId', async (req: Request, res: Response) => {
 });
 
 // Helper: Get empty dashboard summary
-function getEmptyDashboardSummary() {
+function getEmptyDashboardSummary(): DashboardSummary {
   return {
     streak: 0,
     todayTasks: {
@@ -365,7 +385,7 @@ function getEmptyDashboardSummary() {
 }
 
 // Helper: Get dashboard summary for a patient (reuse logic from /summary/:patientId)
-async function getPatientDashboardSummary(patientId: string) {
+async function getPatientDashboardSummary(patientId: string): Promise<DashboardSummary> {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const todayStr = today.toISOString().split('T')[0];

@@ -116,6 +116,7 @@ export interface RegistrationCheckResponse {
     user_id?: string;
     first_name?: string;
     last_name?: string;
+    linked_patient_id?: string; // For caregivers: the patient they're linked to
   };
 }
 
