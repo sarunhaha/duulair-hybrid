@@ -1,162 +1,82 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { useLocation } from 'wouter';
 import { Loader2, AlertTriangle, RefreshCw } from 'lucide-react';
-import { useLiff } from '@/lib/liff/provider';
-import { useAuthStore, waitForHydration } from '@/stores/auth';
-import { registrationApi } from '@/lib/api/client';
+import { useAuth } from '@/hooks/use-auth';
+import { useAuthStore } from '@/stores/auth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-
-type AuthStatus = 'loading' | 'checking' | 'authenticated' | 'unauthenticated' | 'error';
 
 interface AuthGuardProps {
   children: ReactNode;
 }
 
 /**
- * AuthGuard - Ensures user is authenticated before rendering children
+ * AuthGuard - Simplified auth guard using useAuth hook
  *
  * This component:
- * 1. Waits for LIFF to initialize
- * 2. Waits for Zustand hydration
- * 3. ALWAYS fetches from API to verify auth (don't trust cached data)
- * 4. Sets auth state and renders children
- * 5. Redirects to registration if user not found
+ * 1. Uses useAuth hook which handles LIFF + API checks
+ * 2. Shows loading while checking
+ * 3. Redirects to registration if not registered
+ * 4. Syncs auth state to Zustand store for backwards compatibility
  */
 export function AuthGuard({ children }: AuthGuardProps) {
   const [, navigate] = useLocation();
-  const { isInitialized, isLoading: liffLoading, profile, error: liffError } = useLiff();
+  const auth = useAuth();
   const { setUser, setContext, setIsRegistered } = useAuthStore();
 
-  const [status, setStatus] = useState<AuthStatus>('loading');
-  const [error, setError] = useState<string | null>(null);
-
+  // Sync auth data to Zustand store when it changes
   useEffect(() => {
-    let cancelled = false;
-
-    async function checkAuth() {
-      console.log('[AuthGuard] checkAuth called', {
-        status,
-        isInitialized,
-        liffLoading,
-        hasProfile: !!profile?.userId,
-        liffError: liffError?.message,
+    if (auth.isRegistered && auth.profileId) {
+      console.log('[AuthGuard] Syncing to Zustand:', {
+        role: auth.role,
+        profileId: auth.profileId,
+        patientId: auth.patientId,
       });
 
-      // Already checking or done
-      if (status !== 'loading') {
-        console.log('[AuthGuard] Already processed, status:', status);
-        return;
+      setUser({
+        role: auth.role,
+        profileId: auth.profileId,
+        lineUserId: auth.lineUserId,
+      });
+
+      if (auth.patientId) {
+        setContext({ patientId: auth.patientId });
       }
 
-      // Wait for LIFF to be ready first
-      if (!isInitialized || liffLoading) {
-        console.log('[AuthGuard] Waiting for LIFF...');
-        return;
-      }
+      setIsRegistered(true);
 
-      // LIFF error
-      if (liffError) {
-        console.log('[AuthGuard] LIFF error:', liffError.message);
-        setStatus('error');
-        setError('ไม่สามารถเชื่อมต่อกับ LINE ได้: ' + liffError.message);
-        return;
-      }
-
-      // No profile from LIFF
-      if (!profile?.userId) {
-        console.log('[AuthGuard] No LIFF profile');
-        setStatus('error');
-        setError('ไม่พบข้อมูลผู้ใช้ LINE');
-        return;
-      }
-
-      // Mark as checking to prevent duplicate calls
-      setStatus('checking');
-
-      // Wait for Zustand hydration
-      console.log('[AuthGuard] Waiting for Zustand hydration...');
-      await waitForHydration();
-
-      if (cancelled) return;
-      console.log('[AuthGuard] Hydration complete');
-
-      // ALWAYS fetch from API to verify auth (don't trust cached data)
-      console.log('[AuthGuard] Fetching from API, userId:', profile.userId);
-
-      try {
-        const result = await registrationApi.checkUser(profile.userId);
-
-        if (cancelled) return;
-        console.log('[AuthGuard] API response:', JSON.stringify(result));
-
-        if (result.exists && result.profile) {
-          // User is registered - set auth state
-          const patientId = result.role === 'patient' ? result.profile.id : null;
-
-          setUser({
-            role: result.role || null,
-            profileId: result.profile.id,
-            lineUserId: profile.userId,
-          });
-
-          // Set patientId in context for patient role
-          if (patientId) {
-            setContext({ patientId });
-            console.log('[AuthGuard] Set patientId:', patientId);
-          }
-
-          // Also save to localStorage for backwards compatibility
-          const userData = {
-            role: result.role,
-            profile_id: result.profile.id,
-            line_user_id: profile.userId,
-          };
-          localStorage.setItem('oonjai_user', JSON.stringify(userData));
-
-          setIsRegistered(true);
-          setStatus('authenticated');
-          console.log('[AuthGuard] Auth complete, role:', result.role, 'patientId:', patientId);
-        } else {
-          // User not registered - redirect to registration
-          console.log('[AuthGuard] User not registered');
-          setStatus('unauthenticated');
-          navigate('/registration/quick');
-        }
-      } catch (err) {
-        if (cancelled) return;
-        console.error('[AuthGuard] API error:', err);
-        setStatus('error');
-        setError(err instanceof Error ? err.message : 'เกิดข้อผิดพลาดในการตรวจสอบ');
-      }
+      // Also save to localStorage for backwards compatibility
+      const userData = {
+        role: auth.role,
+        profile_id: auth.profileId,
+        line_user_id: auth.lineUserId,
+      };
+      localStorage.setItem('oonjai_user', JSON.stringify(userData));
     }
+  }, [auth.isRegistered, auth.profileId, auth.patientId, auth.role, auth.lineUserId, setUser, setContext, setIsRegistered]);
 
-    checkAuth();
+  // Redirect to registration if authenticated but not registered
+  useEffect(() => {
+    if (!auth.isLoading && auth.isAuthenticated && !auth.isRegistered && !auth.error) {
+      console.log('[AuthGuard] Not registered, redirecting to registration');
+      navigate('/registration/quick');
+    }
+  }, [auth.isLoading, auth.isAuthenticated, auth.isRegistered, auth.error, navigate]);
 
-    return () => {
-      cancelled = true;
-    };
-  }, [isInitialized, liffLoading, liffError, profile, status, setUser, setContext, setIsRegistered, navigate]);
-
-  // Loading or checking state
-  if (status === 'loading' || status === 'checking') {
+  // Loading state - keep it simple and fast
+  if (auth.isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
           <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto" />
-          <p className="text-sm text-muted-foreground mt-3">
-            {status === 'loading' ? 'กำลังเริ่มต้น...' : 'กำลังตรวจสอบสิทธิ์...'}
-          </p>
-          <p className="text-xs text-muted-foreground/50 mt-1">
-            LIFF: {isInitialized ? '✓' : '...'} | Profile: {profile?.userId ? '✓' : '...'}
-          </p>
+          <p className="text-sm text-muted-foreground mt-3">กำลังตรวจสอบ...</p>
         </div>
       </div>
     );
   }
 
   // Error state
-  if (status === 'error') {
+  if (auth.error) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6 bg-background">
         <Card className="w-full max-w-sm border-destructive/20">
@@ -165,7 +85,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
               <AlertTriangle className="w-8 h-8 text-destructive" />
             </div>
             <h1 className="text-xl font-bold text-foreground">เกิดข้อผิดพลาด</h1>
-            <p className="text-sm text-muted-foreground">{error}</p>
+            <p className="text-sm text-muted-foreground">{auth.error}</p>
             <Button onClick={() => window.location.reload()} className="w-full gap-2">
               <RefreshCw className="w-4 h-4" />
               ลองอีกครั้ง
@@ -176,8 +96,8 @@ export function AuthGuard({ children }: AuthGuardProps) {
     );
   }
 
-  // Unauthenticated - already redirected
-  if (status === 'unauthenticated') {
+  // Not registered - show redirect message (will redirect via useEffect)
+  if (!auth.isRegistered) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
@@ -188,6 +108,6 @@ export function AuthGuard({ children }: AuthGuardProps) {
     );
   }
 
-  // Authenticated - render children
+  // Authenticated and registered - render children
   return <>{children}</>;
 }

@@ -20,9 +20,11 @@ export default function EnterCodePage() {
   const linkMutation = useMutation({
     mutationFn: async (linkCode: string) => {
       if (!caregiverId) throw new Error('ไม่พบข้อมูลผู้ดูแล');
-      return apiClient.post('/link-code/use', {
-        code: linkCode,
+      // Backend endpoint: POST /api/registration/link-patient
+      return apiClient.post('/registration/link-patient', {
+        link_code: linkCode,
         caregiver_id: caregiverId,
+        relationship: 'family', // Default relationship
       });
     },
     onSuccess: () => {

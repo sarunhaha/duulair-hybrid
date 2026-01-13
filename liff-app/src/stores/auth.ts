@@ -55,18 +55,28 @@ export const useAuthStore = create<AuthState>()(
   )
 );
 
-// Helper to check if store has hydrated (use this instead of _hasHydrated flag)
+// Helper to check if store has hydrated with timeout
 export const waitForHydration = (): Promise<void> => {
   return new Promise((resolve) => {
+    console.log('[AuthStore] waitForHydration called, hasHydrated:', useAuthStore.persist.hasHydrated());
+
     // Check if already hydrated
     if (useAuthStore.persist.hasHydrated()) {
       console.log('[AuthStore] Already hydrated');
       resolve();
       return;
     }
+
+    // Set timeout to prevent infinite waiting
+    const timeout = setTimeout(() => {
+      console.log('[AuthStore] Hydration timeout, continuing anyway');
+      resolve();
+    }, 2000); // 2 second timeout
+
     // Wait for hydration
     const unsub = useAuthStore.persist.onFinishHydration(() => {
       console.log('[AuthStore] Hydration finished');
+      clearTimeout(timeout);
       unsub();
       resolve();
     });

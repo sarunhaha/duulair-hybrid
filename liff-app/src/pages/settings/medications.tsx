@@ -43,7 +43,7 @@ import {
 } from '@/lib/api/hooks/use-profile';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { usePatientId } from '@/hooks/use-patient-id';
+import { useAuth } from '@/hooks/use-auth';
 
 const TIME_OPTIONS = [
   { value: 'morning', label: 'เช้า (08:00)' },
@@ -103,11 +103,21 @@ const defaultFormData: MedicationForm = {
 
 export default function MedicationsPage() {
   const [, navigate] = useLocation();
-  const { patientId, source } = usePatientId();
+  const auth = useAuth();
   const { toast } = useToast();
 
-  // Debug: Log patientId source
-  console.log('[MedicationsPage] patientId:', patientId, 'source:', source);
+  // Use patientId from auth hook
+  const patientId = auth.patientId;
+
+  // Debug: Log auth state
+  console.log('[MedicationsPage] auth:', {
+    isLoading: auth.isLoading,
+    isAuthenticated: auth.isAuthenticated,
+    isRegistered: auth.isRegistered,
+    patientId: auth.patientId,
+    role: auth.role,
+    error: auth.error,
+  });
 
   const { data: medications, isLoading } = usePatientMedicationsAll(patientId);
   const addMedication = useAddMedication();
@@ -219,8 +229,29 @@ export default function MedicationsPage() {
     return `${amount} เม็ด`;
   };
 
-  // If no patientId, show error state with re-auth option
-  if (!patientId) {
+  // Show loading state while auth is checking
+  if (auth.isLoading) {
+    return (
+      <div className="min-h-screen pb-8 font-sans bg-background">
+        <header className="bg-card pt-12 pb-4 px-6 sticky top-0 z-20 flex items-center gap-4 border-b border-border">
+          <Button variant="ghost" size="icon" onClick={() => navigate('/settings')}>
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <h1 className="text-xl font-bold text-foreground flex-1">รายการยา</h1>
+        </header>
+
+        <main className="max-w-md mx-auto px-4 py-6">
+          <div className="flex flex-col items-center justify-center py-12 space-y-3">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground">กำลังโหลด...</p>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  // Show error or not registered state
+  if (auth.error || !auth.isRegistered || !patientId) {
     return (
       <div className="min-h-screen pb-8 font-sans bg-background">
         <header className="bg-card pt-12 pb-4 px-6 sticky top-0 z-20 flex items-center gap-4 border-b border-border">
@@ -237,9 +268,11 @@ export default function MedicationsPage() {
                 <Pill className="w-8 h-8 text-destructive" />
               </div>
               <div>
-                <h2 className="font-bold text-lg text-foreground">ไม่พบข้อมูลผู้ป่วย</h2>
+                <h2 className="font-bold text-lg text-foreground">
+                  {auth.error ? 'เกิดข้อผิดพลาด' : 'ไม่พบข้อมูลผู้ป่วย'}
+                </h2>
                 <p className="text-sm text-muted-foreground mt-1">
-                  กรุณากลับไปหน้าแรกเพื่อตรวจสอบการลงทะเบียน
+                  {auth.error || 'กรุณากลับไปหน้าแรกเพื่อตรวจสอบการลงทะเบียน'}
                 </p>
               </div>
               <div className="pt-2 space-y-2">
@@ -255,7 +288,7 @@ export default function MedicationsPage() {
                   ไปหน้าแรก (ล้างข้อมูล)
                 </Button>
                 <p className="text-xs text-muted-foreground">
-                  Debug: source={source}
+                  Debug: role={auth.role || 'none'}, registered={String(auth.isRegistered)}
                 </p>
               </div>
             </CardContent>

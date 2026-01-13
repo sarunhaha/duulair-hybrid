@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { supabaseAdmin } from '../services/supabase.service';
+import { supabase } from '../services/supabase.service';
 
 const router = Router();
 
@@ -26,7 +26,7 @@ router.post('/vitals', async (req: Request, res: Response) => {
   }
 
   try {
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await supabase
       .from('vitals_logs')
       .insert({
         patient_id,
@@ -73,7 +73,7 @@ router.post('/water', async (req: Request, res: Response) => {
   try {
     const today = new Date().toISOString().split('T')[0];
 
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await supabase
       .from('water_logs')
       .insert({
         patient_id,
@@ -89,7 +89,7 @@ router.post('/water', async (req: Request, res: Response) => {
     if (error) throw error;
 
     // Get today's total
-    const { data: todayLogs } = await supabaseAdmin
+    const { data: todayLogs } = await supabase
       .from('water_logs')
       .select('glasses, amount_ml')
       .eq('patient_id', patient_id)
@@ -133,7 +133,7 @@ router.post('/medications', async (req: Request, res: Response) => {
   }
 
   try {
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await supabase
       .from('medication_logs')
       .insert({
         patient_id,
@@ -182,7 +182,7 @@ router.post('/symptoms', async (req: Request, res: Response) => {
   }
 
   try {
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await supabase
       .from('symptoms')
       .insert({
         patient_id,
@@ -230,7 +230,7 @@ router.post('/sleep', async (req: Request, res: Response) => {
   try {
     const today = new Date().toISOString().split('T')[0];
 
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await supabase
       .from('sleep_logs')
       .insert({
         patient_id,
@@ -279,7 +279,7 @@ router.post('/exercise', async (req: Request, res: Response) => {
   try {
     const today = new Date().toISOString().split('T')[0];
 
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await supabase
       .from('exercise_logs')
       .insert({
         patient_id,
@@ -323,41 +323,41 @@ router.get('/today/:patientId', async (req: Request, res: Response) => {
     todayStart.setHours(0, 0, 0, 0);
 
     const [vitals, water, medications, symptoms, sleep, exercise] = await Promise.all([
-      supabaseAdmin
+      supabase
         .from('vitals_logs')
         .select('*')
         .eq('patient_id', patientId)
         .gte('measured_at', todayStart.toISOString())
         .order('measured_at', { ascending: false }),
 
-      supabaseAdmin
+      supabase
         .from('water_logs')
         .select('*')
         .eq('patient_id', patientId)
         .eq('log_date', today)
         .order('logged_at', { ascending: false }),
 
-      supabaseAdmin
+      supabase
         .from('medication_logs')
         .select('*')
         .eq('patient_id', patientId)
         .gte('taken_at', todayStart.toISOString())
         .order('taken_at', { ascending: false }),
 
-      supabaseAdmin
+      supabase
         .from('symptoms')
         .select('*')
         .eq('patient_id', patientId)
         .gte('created_at', todayStart.toISOString())
         .order('created_at', { ascending: false }),
 
-      supabaseAdmin
+      supabase
         .from('sleep_logs')
         .select('*')
         .eq('patient_id', patientId)
         .eq('sleep_date', today),
 
-      supabaseAdmin
+      supabase
         .from('exercise_logs')
         .select('*')
         .eq('patient_id', patientId)
@@ -389,19 +389,19 @@ async function updateDailySummary(patientId: string) {
 
     // Get today's data
     const [vitals, water, medications] = await Promise.all([
-      supabaseAdmin
+      supabase
         .from('vitals_logs')
         .select('bp_systolic')
         .eq('patient_id', patientId)
         .gte('measured_at', todayStart.toISOString()),
 
-      supabaseAdmin
+      supabase
         .from('water_logs')
         .select('amount_ml')
         .eq('patient_id', patientId)
         .eq('log_date', today),
 
-      supabaseAdmin
+      supabase
         .from('medication_logs')
         .select('status')
         .eq('patient_id', patientId)
@@ -417,7 +417,7 @@ async function updateDailySummary(patientId: string) {
     const medsTaken = medications.data?.filter(m => m.status === 'taken').length || 0;
 
     // Upsert daily summary
-    await supabaseAdmin
+    await supabase
       .from('daily_patient_summaries')
       .upsert({
         patient_id: patientId,

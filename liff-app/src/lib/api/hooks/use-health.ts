@@ -68,10 +68,12 @@ export function useTodayVitals(patientId: string | null) {
     queryFn: async (): Promise<VitalsLog[]> => {
       if (!patientId) return [];
       try {
-        const data = await apiClient.get<VitalsLog[]>(`/health/vitals/${patientId}?date=${today}`);
-        return data;
-      } catch {
-        console.warn('Vitals API not available, using empty data');
+        // Backend endpoint: GET /api/health/today/:patientId (returns all health data)
+        const data = await apiClient.get<{ vitals: VitalsLog[] }>(`/health/today/${patientId}`);
+        console.log('[useTodayVitals] API response:', data);
+        return data.vitals || [];
+      } catch (err) {
+        console.warn('[useTodayVitals] API error:', err);
         return [];
       }
     },
@@ -119,14 +121,15 @@ export function useTodayWater(patientId: string | null) {
     queryFn: async (): Promise<{ total: number; goal: number; logs: WaterLog[] }> => {
       if (!patientId) return { total: 0, goal: 2000, logs: [] };
       try {
-        const data = await apiClient.get<{ total: number; goal: number; logs: WaterLog[] }>(
-          `/health/water/${patientId}?date=${today}`
-        );
-        return data;
-      } catch {
-        // Return from localStorage as fallback
-        const savedData = JSON.parse(localStorage.getItem(`water_${today}`) || '{"total": 0, "goal": 2000, "logs": []}');
-        return savedData;
+        // Backend endpoint: GET /api/health/today/:patientId (returns all health data)
+        const data = await apiClient.get<{ water: WaterLog[] }>(`/health/today/${patientId}`);
+        console.log('[useTodayWater] API response:', data);
+        const logs = data.water || [];
+        const total = logs.reduce((sum, log) => sum + (log.amount_ml || 0), 0);
+        return { total, goal: 2000, logs };
+      } catch (err) {
+        console.warn('[useTodayWater] API error:', err);
+        return { total: 0, goal: 2000, logs: [] };
       }
     },
     enabled: !!patientId,
@@ -160,10 +163,12 @@ export function usePatientMedications(patientId: string | null) {
     queryFn: async (): Promise<Medication[]> => {
       if (!patientId) return [];
       try {
-        const data = await apiClient.get<Medication[]>(`/health/medications/${patientId}`);
-        return data;
-      } catch {
-        console.warn('Medications API not available');
+        // Backend endpoint: GET /api/medications/patient/:patientId (medication.routes.ts)
+        const data = await apiClient.get<{ success: boolean; medications: Medication[] }>(`/medications/patient/${patientId}`);
+        console.log('[usePatientMedications] API response:', data);
+        return data.medications || [];
+      } catch (err) {
+        console.warn('[usePatientMedications] API error:', err);
         return getMockMedications();
       }
     },
@@ -180,9 +185,12 @@ export function useTodayMedicationLogs(patientId: string | null) {
     queryFn: async (): Promise<MedicationLog[]> => {
       if (!patientId) return [];
       try {
-        const data = await apiClient.get<MedicationLog[]>(`/health/medication-logs/${patientId}?date=${today}`);
-        return data;
-      } catch {
+        // Backend endpoint: GET /api/health/today/:patientId (returns all health data)
+        const data = await apiClient.get<{ medications: MedicationLog[] }>(`/health/today/${patientId}`);
+        console.log('[useTodayMedicationLogs] API response:', data);
+        return data.medications || [];
+      } catch (err) {
+        console.warn('[useTodayMedicationLogs] API error:', err);
         return [];
       }
     },

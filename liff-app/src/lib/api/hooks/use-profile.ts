@@ -118,10 +118,12 @@ export function usePatientProfile(patientId: string | null) {
     queryFn: async (): Promise<PatientProfile | null> => {
       if (!patientId) return null;
       try {
-        const data = await apiClient.get<{ success: boolean; profile: PatientProfile }>(`/patient/${patientId}`);
+        // Backend endpoint: GET /api/registration/profile/patient/:id
+        const data = await apiClient.get<{ success: boolean; profile: PatientProfile }>(`/registration/profile/patient/${patientId}`);
+        console.log('[usePatientProfile] API response:', data);
         return data.profile;
-      } catch {
-        console.warn('Patient profile API not available');
+      } catch (err) {
+        console.warn('[usePatientProfile] API error:', err);
         return getMockPatientProfile(patientId);
       }
     },
@@ -136,7 +138,8 @@ export function useUpdatePatientProfile() {
 
   return useMutation({
     mutationFn: async ({ patientId, data }: { patientId: string; data: Partial<PatientProfile> }) => {
-      return apiClient.put(`/patient/${patientId}`, data);
+      // Backend endpoint: PUT /api/registration/profile/patient/:id
+      return apiClient.put(`/registration/profile/patient/${patientId}`, data);
     },
     onSuccess: (_, { patientId }) => {
       queryClient.invalidateQueries({ queryKey: profileKeys.patient(patientId) });
@@ -151,11 +154,13 @@ export function useLinkCode(patientId: string | null) {
     queryFn: async (): Promise<LinkCode | null> => {
       if (!patientId) return null;
       try {
-        const data = await apiClient.post<LinkCode>('/link-code/generate', { patient_id: patientId });
+        // Backend endpoint: POST /api/registration/generate-link-code
+        const data = await apiClient.post<LinkCode>('/registration/generate-link-code', { patient_id: patientId });
+        console.log('[useLinkCode] API response:', data);
         return data;
-      } catch {
-        console.warn('Link code API not available');
-        return { code: 'ABC123', patient_id: patientId, expires_at: new Date(Date.now() + 86400000).toISOString(), used: false };
+      } catch (err) {
+        console.warn('[useLinkCode] API error:', err);
+        return null;
       }
     },
     enabled: !!patientId,
@@ -170,10 +175,12 @@ export function usePatientCaregivers(patientId: string | null) {
     queryFn: async (): Promise<CaregiverProfile[]> => {
       if (!patientId) return [];
       try {
-        const data = await apiClient.get<{ success: boolean; caregivers: CaregiverProfile[] }>(`/patient/${patientId}/caregivers`);
+        // Backend endpoint: GET /api/registration/patient/:patientId/caregivers
+        const data = await apiClient.get<{ success: boolean; caregivers: CaregiverProfile[] }>(`/registration/patient/${patientId}/caregivers`);
+        console.log('[usePatientCaregivers] API response:', data);
         return data.caregivers || [];
-      } catch {
-        console.warn('Caregivers API not available');
+      } catch (err) {
+        console.warn('[usePatientCaregivers] API error:', err);
         return [];
       }
     },
@@ -189,10 +196,12 @@ export function useCaregiverPatients(caregiverId: string | null) {
     queryFn: async (): Promise<PatientProfile[]> => {
       if (!caregiverId) return [];
       try {
-        const data = await apiClient.get<{ success: boolean; patients: PatientProfile[] }>(`/caregiver/${caregiverId}/patients`);
+        // Backend endpoint: GET /api/registration/caregiver/:caregiverId/patients
+        const data = await apiClient.get<{ success: boolean; patients: PatientProfile[] }>(`/registration/caregiver/${caregiverId}/patients`);
+        console.log('[useCaregiverPatients] API response:', data);
         return data.patients || [];
-      } catch {
-        console.warn('Patients API not available');
+      } catch (err) {
+        console.warn('[useCaregiverPatients] API error:', err);
         return [];
       }
     },
@@ -208,8 +217,8 @@ export function usePatientMedicationsAll(patientId: string | null) {
     queryFn: async (): Promise<Medication[]> => {
       if (!patientId) return [];
       try {
-        // Backend endpoint: GET /api/medications/:patientId
-        const data = await apiClient.get<{ success: boolean; medications: Medication[] }>(`/medications/${patientId}`);
+        // Backend endpoint: GET /api/medications/patient/:patientId (medication.routes.ts)
+        const data = await apiClient.get<{ success: boolean; medications: Medication[] }>(`/medications/patient/${patientId}`);
         console.log('[usePatientMedicationsAll] API response:', data);
         return data.medications || [];
       } catch (err) {
@@ -228,9 +237,9 @@ export function useAddMedication() {
 
   return useMutation({
     mutationFn: async (data: Omit<Medication, 'id' | 'created_at'>) => {
-      // Backend endpoint: POST /api/medications/:patientId
+      // Backend endpoint: POST /api/medications/ (patient_id in body) - medication.routes.ts
       console.log('[useAddMedication] Adding medication:', data);
-      return apiClient.post(`/medications/${data.patient_id}`, data);
+      return apiClient.post('/medications', data);
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: profileKeys.medications(variables.patient_id) });
@@ -275,11 +284,13 @@ export function usePatientReminders(patientId: string | null) {
     queryFn: async (): Promise<Reminder[]> => {
       if (!patientId) return [];
       try {
-        const data = await apiClient.get<{ success: boolean; reminders: Reminder[] }>(`/patient/${patientId}/reminders`);
+        // Backend endpoint: GET /api/reminders/patient/:patientId (reminder.routes.ts)
+        const data = await apiClient.get<{ success: boolean; reminders: Reminder[] }>(`/reminders/patient/${patientId}`);
+        console.log('[usePatientReminders] API response:', data);
         return data.reminders || [];
-      } catch {
-        console.warn('Reminders API not available');
-        return getMockReminders(patientId);
+      } catch (err) {
+        console.warn('[usePatientReminders] API error:', err);
+        return [];
       }
     },
     enabled: !!patientId,
@@ -389,40 +400,3 @@ function getMockPatientProfile(patientId: string): PatientProfile {
   };
 }
 
-function getMockReminders(patientId: string): Reminder[] {
-  return [
-    {
-      id: 'rem-1',
-      patient_id: patientId,
-      type: 'medication',
-      title: 'กินยาเช้า',
-      time: '08:00',
-      custom_time: '08:00',
-      frequency: 'daily',
-      is_active: true,
-      created_at: '2024-01-15T00:00:00Z',
-    },
-    {
-      id: 'rem-2',
-      patient_id: patientId,
-      type: 'vitals',
-      title: 'วัดความดัน',
-      time: '07:00',
-      custom_time: '07:00',
-      frequency: 'daily',
-      is_active: true,
-      created_at: '2024-01-15T00:00:00Z',
-    },
-    {
-      id: 'rem-3',
-      patient_id: patientId,
-      type: 'water',
-      title: 'ดื่มน้ำ',
-      time: '10:00',
-      custom_time: '10:00',
-      frequency: 'daily',
-      is_active: true,
-      created_at: '2024-01-15T00:00:00Z',
-    },
-  ];
-}

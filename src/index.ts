@@ -11,6 +11,8 @@ import reportRoutes from './routes/report.routes';
 import dashboardRoutes from './routes/dashboard.routes';
 import healthRoutes from './routes/health.routes';
 import medicationRoutes from './routes/medication.routes';
+import reminderRoutes from './routes/reminder.routes';
+import trendsRoutes from './routes/trends.routes';
 import { groupWebhookService } from './services/group-webhook.service';
 import { commandHandlerService } from './services/command-handler.service';
 import { userService } from './services/user.service';
@@ -1413,6 +1415,12 @@ app.use('/api/health', healthRoutes);
 
 // Medication CRUD routes (LIFF app - manage medications list)
 app.use('/api/medications', medicationRoutes);
+
+// Reminder CRUD routes (LIFF app - manage reminders list)
+app.use('/api/reminders', reminderRoutes);
+
+// Trends API routes (LIFF app - charts & analytics)
+app.use('/api/trends', trendsRoutes);
 
 // LINE Webhook - with manual signature verification
 app.post('/webhook', async (req, res) => {

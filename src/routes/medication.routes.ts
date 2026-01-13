@@ -1,6 +1,6 @@
 // Medication CRUD Routes
 import { Router, Request, Response } from 'express';
-import { supabaseService } from '../services/supabase.service';
+import { supabase } from '../services/supabase.service';
 
 const router = Router();
 
@@ -9,7 +9,7 @@ router.get('/patient/:patientId', async (req: Request, res: Response) => {
   try {
     const { patientId } = req.params;
 
-    const { data, error } = await supabaseService.supabase
+    const { data, error } = await supabase
       .from('medications')
       .select('*')
       .eq('patient_id', patientId)
@@ -47,7 +47,7 @@ router.post('/', async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, error: 'patient_id and name are required' });
     }
 
-    const { data, error } = await supabaseService.supabase
+    const { data, error } = await supabase
       .from('medications')
       .insert({
         patient_id,
@@ -110,7 +110,7 @@ router.put('/:id', async (req: Request, res: Response) => {
     if (active !== undefined) updateData.active = active;
     if (reminder_enabled !== undefined) updateData.reminder_enabled = reminder_enabled;
 
-    const { data, error } = await supabaseService.supabase
+    const { data, error } = await supabase
       .from('medications')
       .update(updateData)
       .eq('id', id)
@@ -131,7 +131,7 @@ router.delete('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
-    const { error } = await supabaseService.supabase
+    const { error } = await supabase
       .from('medications')
       .delete()
       .eq('id', id);
