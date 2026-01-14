@@ -618,9 +618,16 @@ export class UserService {
     // Remove fields that shouldn't be updated (including calculated fields)
     const { id, user_id, created_at, age, bmi, profile_id, ...safeData } = updateData as any;
 
+    // Convert empty strings to null for fields with check constraints
+    const sanitizedData: Record<string, any> = {};
+    for (const [key, value] of Object.entries(safeData)) {
+      // Convert empty string to null (for enum fields like gender, blood_type)
+      sanitizedData[key] = value === '' ? null : value;
+    }
+
     // Add updated_at timestamp
     const dataToUpdate = {
-      ...safeData,
+      ...sanitizedData,
       updated_at: new Date().toISOString()
     };
 
