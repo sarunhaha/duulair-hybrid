@@ -14,6 +14,8 @@ import {
   Heart,
   Utensils,
   Footprints,
+  BellOff,
+  Calendar,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,13 +24,19 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   Drawer,
   DrawerContent,
   DrawerHeader,
   DrawerTitle,
   DrawerFooter,
 } from '@/components/ui/drawer';
-import { useAuthStore } from '@/stores/auth';
 import {
   usePatientReminders,
   useAddReminder,
@@ -38,23 +46,24 @@ import {
 } from '@/lib/api/hooks/use-profile';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/hooks/use-auth';
 
 const REMINDER_TYPES = [
-  { value: 'medication', label: 'กินยา', icon: Pill, color: 'bg-purple-500/10 text-purple-500' },
-  { value: 'water', label: 'ดื่มน้ำ', icon: Droplet, color: 'bg-blue-500/10 text-blue-500' },
-  { value: 'vitals', label: 'วัดความดัน', icon: Heart, color: 'bg-red-500/10 text-red-500' },
-  { value: 'food', label: 'ทานอาหาร', icon: Utensils, color: 'bg-orange-500/10 text-orange-500' },
-  { value: 'exercise', label: 'ออกกำลังกาย', icon: Footprints, color: 'bg-green-500/10 text-green-500' },
+  { value: 'medication', label: 'กินยา', icon: Pill, color: 'bg-purple-500/10 text-purple-500', gradient: 'from-purple-500 to-purple-600' },
+  { value: 'water', label: 'ดื่มน้ำ', icon: Droplet, color: 'bg-blue-500/10 text-blue-500', gradient: 'from-blue-500 to-blue-600' },
+  { value: 'vitals', label: 'วัดความดัน', icon: Heart, color: 'bg-red-500/10 text-red-500', gradient: 'from-red-500 to-red-600' },
+  { value: 'food', label: 'ทานอาหาร', icon: Utensils, color: 'bg-orange-500/10 text-orange-500', gradient: 'from-orange-500 to-orange-600' },
+  { value: 'exercise', label: 'ออกกำลังกาย', icon: Footprints, color: 'bg-green-500/10 text-green-500', gradient: 'from-green-500 to-green-600' },
 ];
 
 const DAY_OPTIONS = [
-  { value: 'monday', label: 'จ' },
-  { value: 'tuesday', label: 'อ' },
-  { value: 'wednesday', label: 'พ' },
-  { value: 'thursday', label: 'พฤ' },
-  { value: 'friday', label: 'ศ' },
-  { value: 'saturday', label: 'ส' },
-  { value: 'sunday', label: 'อา' },
+  { value: 'monday', label: 'จ', fullLabel: 'จันทร์' },
+  { value: 'tuesday', label: 'อ', fullLabel: 'อังคาร' },
+  { value: 'wednesday', label: 'พ', fullLabel: 'พุธ' },
+  { value: 'thursday', label: 'พฤ', fullLabel: 'พฤหัสบดี' },
+  { value: 'friday', label: 'ศ', fullLabel: 'ศุกร์' },
+  { value: 'saturday', label: 'ส', fullLabel: 'เสาร์' },
+  { value: 'sunday', label: 'อา', fullLabel: 'อาทิตย์' },
 ];
 
 interface ReminderForm {
@@ -79,10 +88,11 @@ const defaultFormData: ReminderForm = {
 
 export default function RemindersPage() {
   const [, navigate] = useLocation();
-  const { context, user } = useAuthStore();
-  // Fallback to user.profileId if context.patientId is null (for patient role)
-  const patientId = context.patientId || (user.role === 'patient' ? user.profileId : null);
+  const auth = useAuth();
   const { toast } = useToast();
+
+  // Use patientId from auth hook
+  const patientId = auth.patientId;
 
   const { data: reminders, isLoading } = usePatientReminders(patientId);
   const addReminder = useAddReminder();
@@ -93,15 +103,9 @@ export default function RemindersPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<ReminderForm>(defaultFormData);
 
-  // Group reminders by type
-  const groupedReminders = REMINDER_TYPES.map((type) => ({
-    ...type,
-    reminders: (reminders || []).filter((r) => r.type === type.value),
-  }));
-
-  const handleOpenAdd = (type: string) => {
+  const handleOpenAdd = () => {
     setEditingId(null);
-    setFormData({ ...defaultFormData, type });
+    setFormData(defaultFormData);
     setDrawerOpen(true);
   };
 
@@ -145,7 +149,10 @@ export default function RemindersPage() {
   };
 
   const handleSubmit = async () => {
-    if (!patientId) return;
+    if (!patientId) {
+      toast({ title: 'กรุณาคุยกับน้องอุ่นใน LINE Chat ก่อนนะคะ', variant: 'destructive' });
+      return;
+    }
     if (!formData.title.trim()) {
       toast({ title: 'กรุณาระบุชื่อเตือน', variant: 'destructive' });
       return;
@@ -199,6 +206,27 @@ export default function RemindersPage() {
     return REMINDER_TYPES.find((t) => t.value === type) || REMINDER_TYPES[0];
   };
 
+  // Show minimal loading state only while auth is checking
+  if (auth.isLoading) {
+    return (
+      <div className="min-h-screen pb-8 font-sans bg-background">
+        <header className="bg-card pt-12 pb-4 px-6 sticky top-0 z-20 flex items-center gap-4 border-b border-border">
+          <Button variant="ghost" size="icon" onClick={() => navigate('/settings')}>
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <h1 className="text-xl font-bold text-foreground flex-1">ตั้งเวลาเตือน</h1>
+        </header>
+
+        <main className="max-w-md mx-auto px-4 py-6">
+          <div className="flex flex-col items-center justify-center py-12 space-y-3">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground">กำลังโหลด...</p>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen pb-8 font-sans bg-background">
       {/* Header */}
@@ -209,7 +237,29 @@ export default function RemindersPage() {
         <h1 className="text-xl font-bold text-foreground flex-1">ตั้งเวลาเตือน</h1>
       </header>
 
-      <main className="max-w-md mx-auto px-4 py-6 space-y-6">
+      <main className="max-w-md mx-auto px-4 py-6 space-y-4">
+        {/* Summary */}
+        <Card className="border-none shadow-lg bg-gradient-to-br from-teal-500 to-teal-600 text-white overflow-hidden">
+          <CardContent className="p-6 relative">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+            <div className="relative z-10">
+              <p className="text-sm text-white/80">การเตือนทั้งหมด</p>
+              <p className="text-4xl font-bold mt-1">
+                {reminders?.length || 0} <span className="text-lg font-normal">รายการ</span>
+              </p>
+              <p className="text-sm text-white/80 mt-1">
+                เปิดใช้งาน {reminders?.filter(r => r.is_active).length || 0} รายการ
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Add Button */}
+        <Button className="w-full gap-2" size="lg" onClick={handleOpenAdd}>
+          <Plus className="w-5 h-5" />
+          เพิ่มการเตือน
+        </Button>
+
         {/* Loading */}
         {isLoading && (
           <div className="flex items-center justify-center py-12">
@@ -217,118 +267,125 @@ export default function RemindersPage() {
           </div>
         )}
 
-        {/* Reminder Sections by Type */}
-        {!isLoading &&
-          groupedReminders.map((group) => {
-            const Icon = group.icon;
-            return (
-              <Card key={group.value} className="border-none shadow-sm bg-card overflow-hidden">
-                <CardContent className="p-0">
-                  <div className="p-4 border-b border-border flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className={cn('p-2 rounded-xl', group.color)}>
-                        <Icon className="w-5 h-5" />
-                      </div>
-                      <span className="font-bold text-foreground">{group.label}</span>
-                    </div>
-                    <Button
-                      variant="default"
-                      size="sm"
-                      className="gap-1"
-                      onClick={() => handleOpenAdd(group.value)}
-                    >
-                      <Plus className="w-4 h-4" />
-                      เพิ่มเตือน
-                    </Button>
-                  </div>
+        {/* Empty State */}
+        {!isLoading && (!reminders || reminders.length === 0) && (
+          <Card className="border-none shadow-sm bg-card">
+            <CardContent className="p-8 text-center">
+              <div className="w-16 h-16 mx-auto mb-4 bg-muted rounded-full flex items-center justify-center">
+                <Bell className="w-8 h-8 text-muted-foreground" />
+              </div>
+              <p className="font-bold text-foreground">ยังไม่มีการเตือน</p>
+              <p className="text-sm text-muted-foreground mt-1">กดปุ่มด้านบนเพื่อเพิ่มการเตือน</p>
+            </CardContent>
+          </Card>
+        )}
 
-                  <div className="p-4">
-                    {group.reminders.length === 0 ? (
-                      <div className="text-center py-4 text-muted-foreground">
-                        <Bell className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                        <p className="text-sm">ยังไม่มีการเตือน</p>
+        {/* Reminder List */}
+        {reminders && reminders.length > 0 && (
+          <div className="space-y-3">
+            {reminders.map((reminder) => {
+              const typeConfig = getTypeConfig(reminder.type);
+              const Icon = typeConfig.icon;
+
+              return (
+                <Card key={reminder.id} className="border-none shadow-sm bg-card overflow-hidden">
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className={cn('p-2 rounded-xl', typeConfig.color)}>
+                          <Icon className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-foreground">{reminder.title}</h3>
+                          <p className="text-sm text-muted-foreground">{typeConfig.label}</p>
+                        </div>
                       </div>
-                    ) : (
-                      <div className="space-y-3">
-                        {group.reminders.map((reminder) => (
-                          <div
-                            key={reminder.id}
+                      <div className={cn(
+                        'p-1.5 rounded-full',
+                        reminder.is_active ? 'bg-green-100 dark:bg-green-950/30' : 'bg-muted'
+                      )}>
+                        {reminder.is_active ? (
+                          <Bell className="w-4 h-4 text-green-600 dark:text-green-400" />
+                        ) : (
+                          <BellOff className="w-4 h-4 text-muted-foreground" />
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Time Display */}
+                    <div className="flex items-center gap-2 mb-3">
+                      <p className="text-2xl font-bold text-primary">
+                        {reminder.custom_time || reminder.time}
+                      </p>
+                      <Switch
+                        checked={reminder.is_active}
+                        onCheckedChange={() => handleToggleActive(reminder)}
+                      />
+                    </div>
+
+                    {/* Frequency */}
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
+                      <Calendar className="w-4 h-4" />
+                      <span>
+                        {reminder.frequency === 'daily'
+                          ? 'ทุกวัน'
+                          : reminder.days_of_week
+                              ?.map((d) => DAY_OPTIONS.find((opt) => opt.value === d)?.fullLabel)
+                              .join(', ') || 'ตามกำหนด'}
+                      </span>
+                    </div>
+
+                    {/* Day badges for specific days */}
+                    {reminder.frequency === 'specific_days' && reminder.days_of_week && (
+                      <div className="flex gap-1 mb-3">
+                        {DAY_OPTIONS.map((day) => (
+                          <span
+                            key={day.value}
                             className={cn(
-                              'p-3 bg-muted/50 rounded-xl border-l-4 transition-opacity',
-                              reminder.is_active ? 'border-primary' : 'border-muted-foreground opacity-50'
+                              'w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold',
+                              reminder.days_of_week?.includes(day.value)
+                                ? 'bg-primary text-white'
+                                : 'bg-muted text-muted-foreground'
                             )}
                           >
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="flex-1">
-                                <p className="font-medium text-foreground text-sm">{reminder.title}</p>
-                                <p className="text-xl font-bold text-primary mt-1">
-                                  {reminder.custom_time || reminder.time}
-                                </p>
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  {reminder.frequency === 'daily'
-                                    ? 'ทุกวัน'
-                                    : reminder.days_of_week
-                                        ?.map((d) => DAY_OPTIONS.find((opt) => opt.value === d)?.label)
-                                        .join(', ') || 'ตามกำหนด'}
-                                </p>
-                                {reminder.note && (
-                                  <p className="text-xs text-muted-foreground mt-1">{reminder.note}</p>
-                                )}
-                              </div>
-                              <Switch
-                                checked={reminder.is_active}
-                                onCheckedChange={() => handleToggleActive(reminder)}
-                              />
-                            </div>
-
-                            {/* Day badges for specific days */}
-                            {reminder.frequency === 'specific_days' && reminder.days_of_week && (
-                              <div className="flex gap-1 mt-2">
-                                {DAY_OPTIONS.map((day) => (
-                                  <span
-                                    key={day.value}
-                                    className={cn(
-                                      'w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold',
-                                      reminder.days_of_week?.includes(day.value)
-                                        ? 'bg-primary text-white'
-                                        : 'bg-muted text-muted-foreground'
-                                    )}
-                                  >
-                                    {day.label}
-                                  </span>
-                                ))}
-                              </div>
-                            )}
-
-                            <div className="flex gap-2 mt-3">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="flex-1 gap-1 h-8"
-                                onClick={() => handleOpenEdit(reminder)}
-                              >
-                                <Edit2 className="w-3 h-3" />
-                                แก้ไข
-                              </Button>
-                              <Button
-                                variant="destructive"
-                                size="sm"
-                                className="flex-1 gap-1 h-8"
-                                onClick={() => handleDelete(reminder.id)}
-                              >
-                                <Trash2 className="w-3 h-3" />
-                                ลบ
-                              </Button>
-                            </div>
-                          </div>
+                            {day.label}
+                          </span>
                         ))}
                       </div>
                     )}
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+
+                    {reminder.note && (
+                      <div className="p-2 bg-accent/10 border-l-2 border-accent rounded text-xs text-muted-foreground mb-3">
+                        {reminder.note}
+                      </div>
+                    )}
+
+                    <div className="flex gap-2">
+                      <Button
+                        variant="default"
+                        size="sm"
+                        className="flex-1 gap-1"
+                        onClick={() => handleOpenEdit(reminder)}
+                      >
+                        <Edit2 className="w-4 h-4" />
+                        แก้ไข
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        className="flex-1 gap-1"
+                        onClick={() => handleDelete(reminder.id)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        ลบ
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
       </main>
 
       {/* Add/Edit Drawer */}
@@ -338,7 +395,7 @@ export default function RemindersPage() {
             <div className="flex items-center justify-between">
               <DrawerTitle className="flex items-center gap-2">
                 <Bell className="w-5 h-5 text-primary" />
-                {editingId ? 'แก้ไขการเตือน' : `เพิ่มเตือน${getTypeConfig(formData.type).label}`}
+                {editingId ? 'แก้ไขการเตือน' : 'เพิ่มการเตือน'}
               </DrawerTitle>
               <Button variant="ghost" size="icon" onClick={() => setDrawerOpen(false)}>
                 <X className="w-5 h-5" />
@@ -347,6 +404,25 @@ export default function RemindersPage() {
           </DrawerHeader>
 
           <div className="p-4 space-y-4 overflow-y-auto max-h-[60vh]">
+            <div className="space-y-2">
+              <Label>ประเภท</Label>
+              <Select
+                value={formData.type}
+                onValueChange={(v) => setFormData((p) => ({ ...p, type: v }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {REMINDER_TYPES.map((type) => (
+                    <SelectItem key={type.value} value={type.value}>
+                      {type.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="reminder_title">ชื่อเตือน *</Label>
               <Input
