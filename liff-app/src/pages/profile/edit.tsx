@@ -48,7 +48,7 @@ export default function ProfileEditPage() {
         title: 'บันทึกสำเร็จ',
         description: 'อัพเดทข้อมูลโปรไฟล์เรียบร้อยแล้ว',
       });
-      navigate('/profile');
+      navigate('/settings');
     } catch {
       toast({
         title: 'เกิดข้อผิดพลาด',
@@ -89,7 +89,7 @@ export default function ProfileEditPage() {
     <div className="min-h-screen pb-8 font-sans bg-background">
       {/* Header */}
       <header className="bg-card pt-12 pb-4 px-6 sticky top-0 z-20 flex items-center gap-4 border-b border-border">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/profile')}>
+        <Button variant="ghost" size="icon" onClick={() => navigate('/settings')}>
           <ArrowLeft className="w-5 h-5" />
         </Button>
         <h1 className="text-xl font-bold text-foreground flex-1">แก้ไขโปรไฟล์</h1>
