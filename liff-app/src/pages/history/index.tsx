@@ -9,11 +9,12 @@ import {
   MoreHorizontal,
   ChevronLeft,
   Clock,
-  CalendarDays,
   Camera,
   Droplet,
   Check,
   X,
+  FileText,
+  ClipboardList,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -45,8 +46,8 @@ export default function HistoryPage() {
   const [editingItem, setEditingItem] = useState<HistoryItem | null>(null);
   const [success, setSuccess] = useState(false);
 
-  // Mock History Data
-  const historyData: HistoryItem[] = [
+  // Mock History Data - แสดงเฉพาะใน tab "ตัวอย่างข้อมูล"
+  const mockHistoryData: HistoryItem[] = [
     { id: 1, type: 'symptoms', title: 'อาการ', detail: 'ปวดหัว (ระดับ 3)', time: '10:30 น.', date: 'วันนี้', icon: Stethoscope, color: 'text-red-500', bg: 'bg-red-50 dark:bg-red-950/30' },
     { id: 2, type: 'health', title: 'ความดัน', detail: '128/82 mmHg', time: '08:15 น.', date: 'วันนี้', icon: Activity, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-950/30' },
     { id: 3, type: 'meds', title: 'ยาเช้า', detail: 'ทานครบตามรายการ', time: '08:00 น.', date: 'วันนี้', icon: Pill, color: 'text-orange-500', bg: 'bg-orange-50 dark:bg-orange-950/30' },
@@ -59,7 +60,15 @@ export default function HistoryPage() {
     { id: 10, type: 'symptoms', title: 'อาการ', detail: 'เวียนหัว บ้านหมุน', time: '15:00 น.', date: '14 ม.ค.', icon: Stethoscope, color: 'text-red-500', bg: 'bg-red-50 dark:bg-red-950/30' },
   ];
 
-  const filteredData = filter === 'all' ? historyData : historyData.filter((item) => item.type === filter);
+  // Real data from database - TODO: Replace with actual API call
+  const realHistoryData: HistoryItem[] = [];
+
+  // เลือก data ตาม filter
+  const isExampleTab = filter === 'example';
+  const dataSource = isExampleTab ? mockHistoryData : realHistoryData;
+  const filteredData = filter === 'all' || filter === 'example'
+    ? dataSource
+    : dataSource.filter((item) => item.type === filter);
 
   const handleSave = () => {
     setSuccess(true);
@@ -76,7 +85,7 @@ export default function HistoryPage() {
 
   return (
     <div className="min-h-screen bg-background pb-8 font-sans relative z-10">
-      {/* Header */}
+      {/* Header - ไม่มี calendar icon เพราะ user อาจสับสนว่ากดได้ */}
       <header className="bg-card pt-12 pb-4 px-6 sticky top-0 z-20 flex items-center gap-4 border-b border-border">
         <Button
           variant="ghost"
@@ -87,11 +96,6 @@ export default function HistoryPage() {
           <ChevronLeft className="w-6 h-6 text-foreground" />
         </Button>
         <h1 className="text-xl font-bold text-foreground">ประวัติการบันทึก</h1>
-        <div className="ml-auto">
-          <Button variant="ghost" size="icon" className="text-muted-foreground">
-            <CalendarDays className="w-5 h-5" />
-          </Button>
-        </div>
       </header>
 
       <main className="max-w-md mx-auto px-4 py-6 space-y-6">
@@ -128,6 +132,19 @@ export default function HistoryPage() {
               {f.label}
             </button>
           ))}
+          {/* Tab ตัวอย่างข้อมูล - แสดง mock data */}
+          <button
+            onClick={() => setFilter('example')}
+            className={cn(
+              'px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all border flex items-center gap-1',
+              filter === 'example'
+                ? 'bg-amber-500 text-white border-amber-500 shadow-md shadow-amber-500/20'
+                : 'bg-card text-muted-foreground border-border'
+            )}
+          >
+            <FileText className="w-3 h-3" />
+            ตัวอย่าง
+          </button>
         </div>
 
         {/* List */}
@@ -165,9 +182,56 @@ export default function HistoryPage() {
           ))}
         </div>
 
+        {/* Empty State - แยกตาม tab */}
         {filteredData.length === 0 && (
-          <div className="text-center py-12 text-muted-foreground">
-            <p>ไม่พบประวัติการบันทึกในหมวดนี้</p>
+          <Card className="border-none shadow-sm">
+            <CardContent className="py-12 flex flex-col items-center text-center space-y-4">
+              {isExampleTab ? (
+                <>
+                  <div className="w-16 h-16 bg-amber-100 dark:bg-amber-950/30 rounded-full flex items-center justify-center">
+                    <FileText className="w-8 h-8 text-amber-500" />
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className="font-bold text-foreground">ข้อมูลตัวอย่าง</h3>
+                    <p className="text-sm text-muted-foreground max-w-[250px]">
+                      นี่คือตัวอย่างข้อมูลที่จะแสดงเมื่อมีการบันทึกจริง
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center">
+                    <ClipboardList className="w-8 h-8 text-muted-foreground" />
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className="font-bold text-foreground">ยังไม่มีข้อมูล</h3>
+                    <p className="text-sm text-muted-foreground max-w-[250px]">
+                      {filter === 'all'
+                        ? 'เริ่มบันทึกสุขภาพประจำวันโดยพิมพ์คุยกับน้องอุ่นใน LINE Chat'
+                        : 'ยังไม่มีประวัติการบันทึกในหมวดนี้'}
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    className="mt-2"
+                    onClick={() => setFilter('example')}
+                  >
+                    <FileText className="w-4 h-4 mr-2" />
+                    ดูตัวอย่างข้อมูล
+                  </Button>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Example tab banner */}
+        {isExampleTab && filteredData.length > 0 && (
+          <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-xl p-3 flex items-center gap-3">
+            <FileText className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
+            <p className="text-xs text-amber-700 dark:text-amber-300">
+              นี่คือข้อมูลตัวอย่าง ไม่ใช่ข้อมูลจริงจากการบันทึกของคุณ
+            </p>
           </div>
         )}
       </main>

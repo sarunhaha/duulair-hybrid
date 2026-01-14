@@ -615,8 +615,8 @@ export class UserService {
   async updatePatientProfile(patientId: string, updateData: Partial<PatientProfile>): Promise<PatientProfile | null> {
     console.log(`📝 Updating patient profile: ${patientId}`, updateData);
 
-    // Remove fields that shouldn't be updated
-    const { id, user_id, created_at, ...safeData } = updateData as any;
+    // Remove fields that shouldn't be updated (including calculated fields)
+    const { id, user_id, created_at, age, bmi, profile_id, ...safeData } = updateData as any;
 
     // Add updated_at timestamp
     const dataToUpdate = {
