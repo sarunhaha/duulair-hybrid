@@ -167,7 +167,7 @@ export default function MedicationsPage() {
     console.log('[MedicationsPage] handleSubmit called, patientId:', patientId);
 
     if (!patientId) {
-      toast({ title: 'ไม่พบข้อมูลผู้ป่วย กรุณาลงทะเบียนก่อน', variant: 'destructive' });
+      toast({ title: 'กรุณาคุยกับน้องอุ่นใน LINE Chat ก่อนนะคะ', variant: 'destructive' });
       return;
     }
     if (!formData.name.trim()) {
@@ -229,7 +229,7 @@ export default function MedicationsPage() {
     return `${amount} เม็ด`;
   };
 
-  // Show loading state while auth is checking
+  // Show minimal loading state only while auth is checking
   if (auth.isLoading) {
     return (
       <div className="min-h-screen pb-8 font-sans bg-background">
@@ -250,53 +250,8 @@ export default function MedicationsPage() {
     );
   }
 
-  // Show error or not registered state
-  if (auth.error || !auth.isRegistered || !patientId) {
-    return (
-      <div className="min-h-screen pb-8 font-sans bg-background">
-        <header className="bg-card pt-12 pb-4 px-6 sticky top-0 z-20 flex items-center gap-4 border-b border-border">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/settings')}>
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          <h1 className="text-xl font-bold text-foreground flex-1">รายการยา</h1>
-        </header>
-
-        <main className="max-w-md mx-auto px-4 py-6">
-          <Card className="border-destructive/20">
-            <CardContent className="p-6 text-center space-y-4">
-              <div className="w-16 h-16 mx-auto rounded-full bg-destructive/10 flex items-center justify-center">
-                <Pill className="w-8 h-8 text-destructive" />
-              </div>
-              <div>
-                <h2 className="font-bold text-lg text-foreground">
-                  {auth.error ? 'เกิดข้อผิดพลาด' : 'ไม่พบข้อมูลผู้ป่วย'}
-                </h2>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {auth.error || 'กรุณากลับไปหน้าแรกเพื่อตรวจสอบการลงทะเบียน'}
-                </p>
-              </div>
-              <div className="pt-2 space-y-2">
-                <Button
-                  className="w-full"
-                  onClick={() => {
-                    // Clear auth and redirect to home
-                    localStorage.removeItem('oonjai_auth');
-                    localStorage.removeItem('oonjai_user');
-                    navigate('/');
-                  }}
-                >
-                  ไปหน้าแรก (ล้างข้อมูล)
-                </Button>
-                <p className="text-xs text-muted-foreground">
-                  Debug: role={auth.role || 'none'}, registered={String(auth.isRegistered)}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </main>
-      </div>
-    );
-  }
+  // NOTE: No blocking for registration status!
+  // Just need patientId for CRUD - if available, allow operations
 
   return (
     <div className="min-h-screen pb-8 font-sans bg-background">
