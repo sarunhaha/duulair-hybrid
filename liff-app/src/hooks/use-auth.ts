@@ -170,16 +170,19 @@ export function useAuth(): AuthData {
     };
   }
 
-  // Not registered
+  // Not registered - but still try to get patientId if profile exists
   if (!data?.exists || !data?.profile) {
+    // Even if not fully registered, profile.id can be used as patientId for CRUD
+    const fallbackPatientId = data?.profile?.id || null;
+
     return {
       isLoading: false,
       isAuthenticated: true, // LIFF auth OK
       isRegistered: false,
       error: null,
-      role: null,
-      profileId: null,
-      patientId: null,
+      role: data?.role || null,
+      profileId: fallbackPatientId,
+      patientId: fallbackPatientId, // Use profile.id for CRUD operations
       lineUserId,
     };
   }
