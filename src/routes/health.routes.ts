@@ -39,7 +39,7 @@ router.post('/vitals', async (req: Request, res: Response) => {
         glucose: glucose || null,
         notes: notes || null,
         measured_at: measured_at || new Date().toISOString(),
-        source: 'liff',
+        source: 'manual',
       })
       .select()
       .single();
