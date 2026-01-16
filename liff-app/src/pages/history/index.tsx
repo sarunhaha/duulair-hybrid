@@ -194,37 +194,39 @@ export default function HistoryPage() {
 
         {/* List */}
         {(!isLoading || isExampleTab) && (
-          <div className="space-y-3">
+          <div className="space-y-2">
             {filteredData.map((item) => (
-              <Card
+              <div
                 key={item.id}
-                className="border-none shadow-sm overflow-hidden active:scale-[0.99] transition-transform cursor-pointer"
+                className="flex items-center justify-between bg-muted/50 rounded-xl p-3 cursor-pointer active:scale-[0.99] transition-transform"
                 onClick={() => setEditingItem(item)}
               >
-                <CardContent className="p-4 flex items-center gap-4">
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  {/* Icon */}
                   <div
                     className={cn(
-                      'w-12 h-12 rounded-2xl flex items-center justify-center shrink-0',
+                      'w-10 h-10 rounded-xl flex items-center justify-center shrink-0',
                       item.bg
                     )}
                   >
-                    <item.icon className={cn('w-6 h-6', item.color)} />
+                    <item.icon className={cn('w-5 h-5', item.color)} />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-start mb-0.5">
-                      <h4 className="font-bold text-sm text-foreground truncate">{item.title}</h4>
-                      <span className="text-[10px] font-bold text-muted-foreground bg-muted/30 px-2 py-0.5 rounded-full whitespace-nowrap">
+                  {/* Content */}
+                  <div className="space-y-1 flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-3 h-3 text-muted-foreground shrink-0" />
+                      <span className="text-xs text-muted-foreground">{item.time}</span>
+                      <span className="text-[10px] font-medium text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-full whitespace-nowrap">
                         {item.date}
                       </span>
                     </div>
-                    <p className="text-sm text-foreground/80 truncate">{item.detail}</p>
-                    <div className="flex items-center gap-1 mt-1">
-                      <Clock className="w-3 h-3 text-muted-foreground" />
-                      <span className="text-[10px] text-muted-foreground">{item.time}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-medium text-muted-foreground">{item.title}</span>
+                      <span className="text-sm font-bold text-foreground truncate">{item.detail}</span>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             ))}
           </div>
         )}

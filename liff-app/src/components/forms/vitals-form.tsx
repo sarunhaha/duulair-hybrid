@@ -305,14 +305,14 @@ export function VitalsForm({ onSuccess, onCancel }: VitalsFormProps) {
 
         {/* Date/Time editing - only shown when editing */}
         {editingLog && (
-          <div className="space-y-3 pt-2 border-t border-border">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <div className="mt-4 pt-4 border-t border-border space-y-3">
+            <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
               <Calendar className="w-4 h-4" />
               <span>วันที่และเวลาบันทึก</span>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label htmlFor="editDate" className="text-xs text-muted-foreground">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="editDate" className="text-xs text-muted-foreground block">
                   วันที่
                 </Label>
                 <Input
@@ -320,11 +320,11 @@ export function VitalsForm({ onSuccess, onCancel }: VitalsFormProps) {
                   type="date"
                   value={editDate}
                   onChange={(e) => setEditDate(e.target.value)}
-                  className="h-10"
+                  className="h-11 w-full"
                 />
               </div>
-              <div className="space-y-1">
-                <Label htmlFor="editTime" className="text-xs text-muted-foreground">
+              <div className="space-y-2">
+                <Label htmlFor="editTime" className="text-xs text-muted-foreground block">
                   เวลา
                 </Label>
                 <Input
@@ -332,7 +332,7 @@ export function VitalsForm({ onSuccess, onCancel }: VitalsFormProps) {
                   type="time"
                   value={editTime}
                   onChange={(e) => setEditTime(e.target.value)}
-                  className="h-10"
+                  className="h-11 w-full"
                 />
               </div>
             </div>

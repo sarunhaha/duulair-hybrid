@@ -359,6 +359,12 @@ export function SleepForm({ onSuccess, onCancel }: SleepFormProps) {
               const qualityOpt = QUALITY_OPTIONS.find(q => q.value === log.sleep_quality);
               const isDeleting = deleteConfirmId === log.id;
 
+              // Format date for display
+              const dateDisplay = new Date(log.sleep_date).toLocaleDateString('th-TH', {
+                day: 'numeric',
+                month: 'short',
+              });
+
               return (
                 <div
                   key={log.id}
@@ -368,6 +374,17 @@ export function SleepForm({ onSuccess, onCancel }: SleepFormProps) {
                   )}
                 >
                   <div className="space-y-1 flex-1">
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <Clock className="w-3 h-3" />
+                      <span>{dateDisplay}</span>
+                      {(log.sleep_time || log.wake_time) && (
+                        <span className="text-muted-foreground/70">
+                          • {log.sleep_time && `นอน ${log.sleep_time}`}
+                          {log.sleep_time && log.wake_time && ' '}
+                          {log.wake_time && `ตื่น ${log.wake_time}`}
+                        </span>
+                      )}
+                    </div>
                     <div className="flex items-center gap-2">
                       <Moon className="w-4 h-4 text-indigo-500" />
                       <span className="text-lg font-bold">
@@ -379,13 +396,6 @@ export function SleepForm({ onSuccess, onCancel }: SleepFormProps) {
                         </span>
                       )}
                     </div>
-                    {(log.sleep_time || log.wake_time) && (
-                      <p className="text-xs text-muted-foreground">
-                        {log.sleep_time && `เข้านอน ${log.sleep_time}`}
-                        {log.sleep_time && log.wake_time && ' - '}
-                        {log.wake_time && `ตื่น ${log.wake_time}`}
-                      </p>
-                    )}
                     {log.notes && (
                       <p className="text-xs text-muted-foreground italic">{log.notes}</p>
                     )}
