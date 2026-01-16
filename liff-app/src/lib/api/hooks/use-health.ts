@@ -262,7 +262,41 @@ export function useLogSymptom() {
   });
 }
 
+// Sleep Types
+export interface SleepLog {
+  id: string;
+  sleep_date: string;
+  sleep_hours: number | null;
+  sleep_quality: string | null;
+  sleep_quality_score: number | null;
+  sleep_time: string | null;
+  wake_time: string | null;
+  notes: string | null;
+  created_at: string;
+}
+
 // Sleep Hooks
+export function useTodaySleep(patientId: string | null) {
+  const today = new Date().toISOString().split('T')[0];
+
+  return useQuery({
+    queryKey: patientId ? ['health', 'sleep', patientId, today] : ['sleep', 'none'],
+    queryFn: async (): Promise<SleepLog[]> => {
+      if (!patientId) return [];
+      try {
+        const data = await apiClient.get<{ sleep: SleepLog[] }>(`/health/today/${patientId}`);
+        console.log('[useTodaySleep] API response:', data);
+        return data.sleep || [];
+      } catch (err) {
+        console.warn('[useTodaySleep] API error:', err);
+        return [];
+      }
+    },
+    enabled: !!patientId,
+    staleTime: 30 * 1000,
+  });
+}
+
 export function useLogSleep() {
   const queryClient = useQueryClient();
 
@@ -287,7 +321,8 @@ export function useLogSleep() {
       });
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['health', 'sleep', variables.patientId] });
+      const today = new Date().toISOString().split('T')[0];
+      queryClient.invalidateQueries({ queryKey: ['health', 'sleep', variables.patientId, today] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
@@ -339,6 +374,128 @@ export function getBloodPressureStatus(systolic: number, diastolic: number) {
   } else {
     return { label: 'ปกติ', status: 'normal', color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400' };
   }
+}
+
+// Health History Hook - for History page
+export interface HealthHistoryItem {
+  id: string;
+  type: 'vitals' | 'sleep' | 'symptoms' | 'medications' | 'water' | 'exercise';
+  title: string;
+  detail: string;
+  time: string;
+  date: string;
+  raw: unknown;
+}
+
+export function useHealthHistory(patientId: string | null) {
+  return useQuery({
+    queryKey: patientId ? ['health', 'history', patientId] : ['history', 'none'],
+    queryFn: async (): Promise<HealthHistoryItem[]> => {
+      if (!patientId) return [];
+      try {
+        // Get today's data
+        const data = await apiClient.get<{
+          vitals: VitalsLog[];
+          sleep: SleepLog[];
+          symptoms: { id: string; symptom_name: string; severity_1to5: number | null; created_at: string }[];
+          medications: MedicationLog[];
+          water: WaterLog[];
+          exercise: { id: string; exercise_type: string | null; duration_minutes: number | null; created_at: string }[];
+        }>(`/health/today/${patientId}`);
+
+        const items: HealthHistoryItem[] = [];
+        const today = new Date().toISOString().split('T')[0];
+
+        // Format vitals
+        (data.vitals || []).forEach(v => {
+          items.push({
+            id: v.id,
+            type: 'vitals',
+            title: 'ความดัน',
+            detail: `${v.bp_systolic}/${v.bp_diastolic} mmHg${v.heart_rate ? ` (ชีพจร ${v.heart_rate})` : ''}`,
+            time: new Date(v.measured_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.',
+            date: v.measured_at.split('T')[0] === today ? 'วันนี้' : formatDate(v.measured_at),
+            raw: v,
+          });
+        });
+
+        // Format sleep
+        (data.sleep || []).forEach(s => {
+          const quality = s.sleep_quality ? `(${getQualityLabel(s.sleep_quality)})` : '';
+          items.push({
+            id: s.id,
+            type: 'sleep',
+            title: 'การนอน',
+            detail: `${s.sleep_hours || 0} ชม. ${quality}`.trim(),
+            time: s.wake_time ? `ตื่น ${s.wake_time} น.` : new Date(s.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.',
+            date: s.sleep_date === today ? 'วันนี้' : formatDate(s.sleep_date),
+            raw: s,
+          });
+        });
+
+        // Format symptoms
+        (data.symptoms || []).forEach(s => {
+          items.push({
+            id: s.id,
+            type: 'symptoms',
+            title: 'อาการ',
+            detail: `${s.symptom_name}${s.severity_1to5 ? ` (ระดับ ${s.severity_1to5})` : ''}`,
+            time: new Date(s.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.',
+            date: s.created_at.split('T')[0] === today ? 'วันนี้' : formatDate(s.created_at),
+            raw: s,
+          });
+        });
+
+        // Format medications
+        (data.medications || []).forEach(m => {
+          items.push({
+            id: m.id,
+            type: 'medications',
+            title: 'ยา',
+            detail: m.medication_name || 'ทานยาแล้ว',
+            time: new Date(m.taken_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.',
+            date: m.taken_at.split('T')[0] === today ? 'วันนี้' : formatDate(m.taken_at),
+            raw: m,
+          });
+        });
+
+        // Sort by time (most recent first)
+        items.sort((a, b) => {
+          const timeA = (a.raw as any).created_at || (a.raw as any).measured_at || (a.raw as any).taken_at;
+          const timeB = (b.raw as any).created_at || (b.raw as any).measured_at || (b.raw as any).taken_at;
+          return new Date(timeB).getTime() - new Date(timeA).getTime();
+        });
+
+        return items;
+      } catch (err) {
+        console.warn('[useHealthHistory] API error:', err);
+        return [];
+      }
+    },
+    enabled: !!patientId,
+    staleTime: 30 * 1000,
+  });
+}
+
+function formatDate(dateStr: string): string {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  if (date.toDateString() === now.toDateString()) return 'วันนี้';
+  if (date.toDateString() === yesterday.toDateString()) return 'เมื่อวาน';
+  return date.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
+}
+
+function getQualityLabel(quality: string): string {
+  const labels: Record<string, string> = {
+    poor: 'แย่',
+    fair: 'พอใช้',
+    good: 'ดี',
+    excellent: 'ดีมาก',
+  };
+  return labels[quality] || quality;
 }
 
 // Mock data for development

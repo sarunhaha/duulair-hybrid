@@ -5,12 +5,13 @@ import {
   Clock,
   Loader2,
   Star,
+  Check,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { useLogSleep } from '@/lib/api/hooks/use-health';
+import { useLogSleep, useTodaySleep } from '@/lib/api/hooks/use-health';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { useEnsurePatient } from '@/hooks/use-ensure-patient';
@@ -56,11 +57,13 @@ interface SleepFormProps {
 }
 
 export function SleepForm({ onSuccess, onCancel }: SleepFormProps) {
-  const { isLoading: authLoading, ensurePatient } = useEnsurePatient();
+  const { patientId, isLoading: authLoading, ensurePatient } = useEnsurePatient();
   const { toast } = useToast();
   const logSleep = useLogSleep();
+  const { data: todayLogs, refetch } = useTodaySleep(patientId);
 
   const [formData, setFormData] = useState<SleepForm>(defaultFormData);
+  const allLogs = todayLogs || [];
 
   // Calculate sleep hours from times
   const calculateHours = (sleepTime: string, wakeTime: string): number => {
@@ -124,6 +127,8 @@ export function SleepForm({ onSuccess, onCancel }: SleepFormProps) {
       });
 
       toast({ title: 'บันทึกการนอนเรียบร้อยแล้ว' });
+      setFormData(defaultFormData);
+      refetch();
       onSuccess?.();
     } catch (error) {
       console.error('Error logging sleep:', error);
@@ -258,6 +263,51 @@ export function SleepForm({ onSuccess, onCancel }: SleepFormProps) {
           rows={2}
         />
       </div>
+
+      {/* Today's Logs */}
+      {allLogs.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+            <Check className="w-4 h-4" />
+            บันทึกวันนี้
+          </div>
+          <div className="space-y-2">
+            {allLogs.map((log) => {
+              const qualityOpt = QUALITY_OPTIONS.find(q => q.value === log.sleep_quality);
+              return (
+                <div
+                  key={log.id}
+                  className="flex items-center justify-between bg-muted/50 rounded-xl p-3"
+                >
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <Moon className="w-4 h-4 text-indigo-500" />
+                      <span className="text-lg font-bold">
+                        {log.sleep_hours ? `${log.sleep_hours} ชม.` : '-'}
+                      </span>
+                      {qualityOpt && (
+                        <span className={cn('px-2 py-0.5 rounded text-xs font-medium', qualityOpt.color)}>
+                          {qualityOpt.icon} {qualityOpt.label}
+                        </span>
+                      )}
+                    </div>
+                    {(log.sleep_time || log.wake_time) && (
+                      <p className="text-xs text-muted-foreground">
+                        {log.sleep_time && `เข้านอน ${log.sleep_time}`}
+                        {log.sleep_time && log.wake_time && ' - '}
+                        {log.wake_time && `ตื่น ${log.wake_time}`}
+                      </p>
+                    )}
+                    {log.notes && (
+                      <p className="text-xs text-muted-foreground italic">{log.notes}</p>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Action Buttons */}
       <div className="flex gap-3 pt-2">

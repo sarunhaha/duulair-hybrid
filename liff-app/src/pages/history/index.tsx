@@ -15,6 +15,7 @@ import {
   X,
   FileText,
   ClipboardList,
+  Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -27,6 +28,8 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from '@/components/ui/drawer';
+import { useHealthHistory } from '@/lib/api/hooks/use-health';
+import { useEnsurePatient } from '@/hooks/use-ensure-patient';
 
 interface HistoryItem {
   id: number;
@@ -40,11 +43,27 @@ interface HistoryItem {
   bg: string;
 }
 
+// Icon and color mapping for history types
+const TYPE_CONFIG: Record<string, { icon: React.ComponentType<{ className?: string }>; color: string; bg: string }> = {
+  vitals: { icon: Activity, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-950/30' },
+  health: { icon: Activity, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-950/30' },
+  sleep: { icon: Moon, color: 'text-indigo-500', bg: 'bg-indigo-50 dark:bg-indigo-950/30' },
+  symptoms: { icon: Stethoscope, color: 'text-red-500', bg: 'bg-red-50 dark:bg-red-950/30' },
+  medications: { icon: Pill, color: 'text-orange-500', bg: 'bg-orange-50 dark:bg-orange-950/30' },
+  meds: { icon: Pill, color: 'text-orange-500', bg: 'bg-orange-50 dark:bg-orange-950/30' },
+  water: { icon: Droplet, color: 'text-sky-500', bg: 'bg-sky-50 dark:bg-sky-950/30' },
+  exercise: { icon: Dumbbell, color: 'text-purple-500', bg: 'bg-purple-50 dark:bg-purple-950/30' },
+};
+
 export default function HistoryPage() {
   const [, setLocation] = useLocation();
   const [filter, setFilter] = useState('all');
   const [editingItem, setEditingItem] = useState<HistoryItem | null>(null);
   const [success, setSuccess] = useState(false);
+
+  // Fetch real data
+  const { patientId, isLoading: authLoading } = useEnsurePatient();
+  const { data: healthHistory, isLoading: historyLoading } = useHealthHistory(patientId);
 
   // Mock History Data - แสดงเฉพาะใน tab "ตัวอย่างข้อมูล"
   const mockHistoryData: HistoryItem[] = [
@@ -60,11 +79,29 @@ export default function HistoryPage() {
     { id: 10, type: 'symptoms', title: 'อาการ', detail: 'เวียนหัว บ้านหมุน', time: '15:00 น.', date: '14 ม.ค.', icon: Stethoscope, color: 'text-red-500', bg: 'bg-red-50 dark:bg-red-950/30' },
   ];
 
-  // Real data from database - TODO: Replace with actual API call
-  const realHistoryData: HistoryItem[] = [];
+  // Convert API data to display format
+  const realHistoryData: HistoryItem[] = (healthHistory || []).map((item, index) => {
+    const config = TYPE_CONFIG[item.type] || TYPE_CONFIG.health;
+    const typeMapping: Record<string, string> = {
+      vitals: 'health',
+      medications: 'meds',
+    };
+    return {
+      id: index + 1,
+      type: typeMapping[item.type] || item.type,
+      title: item.title,
+      detail: item.detail,
+      time: item.time,
+      date: item.date,
+      icon: config.icon,
+      color: config.color,
+      bg: config.bg,
+    };
+  });
 
   // เลือก data ตาม filter
   const isExampleTab = filter === 'example';
+  const isLoading = authLoading || historyLoading;
   const dataSource = isExampleTab ? mockHistoryData : realHistoryData;
   const filteredData = filter === 'all' || filter === 'example'
     ? dataSource
@@ -147,43 +184,53 @@ export default function HistoryPage() {
           </button>
         </div>
 
+        {/* Loading State */}
+        {isLoading && !isExampleTab && (
+          <div className="flex flex-col items-center justify-center py-12 space-y-3">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground">กำลังโหลด...</p>
+          </div>
+        )}
+
         {/* List */}
-        <div className="space-y-3">
-          {filteredData.map((item) => (
-            <Card
-              key={item.id}
-              className="border-none shadow-sm overflow-hidden active:scale-[0.99] transition-transform cursor-pointer"
-              onClick={() => setEditingItem(item)}
-            >
-              <CardContent className="p-4 flex items-center gap-4">
-                <div
-                  className={cn(
-                    'w-12 h-12 rounded-2xl flex items-center justify-center shrink-0',
-                    item.bg
-                  )}
-                >
-                  <item.icon className={cn('w-6 h-6', item.color)} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex justify-between items-start mb-0.5">
-                    <h4 className="font-bold text-sm text-foreground truncate">{item.title}</h4>
-                    <span className="text-[10px] font-bold text-muted-foreground bg-muted/30 px-2 py-0.5 rounded-full whitespace-nowrap">
-                      {item.date}
-                    </span>
+        {(!isLoading || isExampleTab) && (
+          <div className="space-y-3">
+            {filteredData.map((item) => (
+              <Card
+                key={item.id}
+                className="border-none shadow-sm overflow-hidden active:scale-[0.99] transition-transform cursor-pointer"
+                onClick={() => setEditingItem(item)}
+              >
+                <CardContent className="p-4 flex items-center gap-4">
+                  <div
+                    className={cn(
+                      'w-12 h-12 rounded-2xl flex items-center justify-center shrink-0',
+                      item.bg
+                    )}
+                  >
+                    <item.icon className={cn('w-6 h-6', item.color)} />
                   </div>
-                  <p className="text-sm text-foreground/80 truncate">{item.detail}</p>
-                  <div className="flex items-center gap-1 mt-1">
-                    <Clock className="w-3 h-3 text-muted-foreground" />
-                    <span className="text-[10px] text-muted-foreground">{item.time}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-start mb-0.5">
+                      <h4 className="font-bold text-sm text-foreground truncate">{item.title}</h4>
+                      <span className="text-[10px] font-bold text-muted-foreground bg-muted/30 px-2 py-0.5 rounded-full whitespace-nowrap">
+                        {item.date}
+                      </span>
+                    </div>
+                    <p className="text-sm text-foreground/80 truncate">{item.detail}</p>
+                    <div className="flex items-center gap-1 mt-1">
+                      <Clock className="w-3 h-3 text-muted-foreground" />
+                      <span className="text-[10px] text-muted-foreground">{item.time}</span>
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
 
         {/* Empty State - แยกตาม tab */}
-        {filteredData.length === 0 && (
+        {filteredData.length === 0 && !isLoading && (
           <Card className="border-none shadow-sm">
             <CardContent className="py-12 flex flex-col items-center text-center space-y-4">
               {isExampleTab ? (
