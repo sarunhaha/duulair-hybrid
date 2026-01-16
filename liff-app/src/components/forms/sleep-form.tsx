@@ -8,6 +8,7 @@ import {
   Check,
   Pencil,
   Trash2,
+  Calendar,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -70,6 +71,7 @@ export function SleepForm({ onSuccess, onCancel }: SleepFormProps) {
   const [formData, setFormData] = useState<SleepFormData>(defaultFormData);
   const [editingLog, setEditingLog] = useState<SleepLog | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [editDate, setEditDate] = useState('');
   const allLogs = todayLogs || [];
 
   // Load log data into form for editing
@@ -83,12 +85,15 @@ export function SleepForm({ onSuccess, onCancel }: SleepFormProps) {
       wake_time: log.wake_time || '06:00',
       notes: log.notes || '',
     });
+    // Set the date for editing
+    setEditDate(log.sleep_date || new Date().toISOString().split('T')[0]);
   };
 
   // Cancel editing
   const handleCancelEdit = () => {
     setEditingLog(null);
     setFormData(defaultFormData);
+    setEditDate('');
   };
 
   // Delete log
@@ -167,10 +172,12 @@ export function SleepForm({ onSuccess, onCancel }: SleepFormProps) {
           sleep_quality_score: formData.sleep_quality_score || undefined,
           sleep_time: formData.sleep_time || undefined,
           wake_time: formData.wake_time || undefined,
+          sleep_date: editDate || undefined,
           notes: formData.notes || undefined,
         });
         toast({ title: 'แก้ไขข้อมูลเรียบร้อยแล้ว' });
         setEditingLog(null);
+        setEditDate('');
       } else {
         // Create new record
         await logSleep.mutateAsync({
@@ -323,6 +330,22 @@ export function SleepForm({ onSuccess, onCancel }: SleepFormProps) {
           rows={2}
         />
       </div>
+
+      {/* Date editing - only shown when editing */}
+      {editingLog && (
+        <div className="bg-muted/30 rounded-2xl p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <Calendar className="w-5 h-5 text-primary" />
+            <Label className="text-base font-bold">วันที่บันทึก</Label>
+          </div>
+          <Input
+            type="date"
+            value={editDate}
+            onChange={(e) => setEditDate(e.target.value)}
+            className="h-12"
+          />
+        </div>
+      )}
 
       {/* Today's Logs */}
       {allLogs.length > 0 && (

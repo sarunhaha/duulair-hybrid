@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Activity, HeartPulse, ArrowUp, ArrowDown, Minus, AlertTriangle, Check, Loader2, Save, Clock, Pencil, Trash2, X } from 'lucide-react';
+import { Activity, HeartPulse, ArrowUp, ArrowDown, Minus, AlertTriangle, Check, Loader2, Save, Clock, Pencil, Trash2, X, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -26,6 +26,8 @@ export function VitalsForm({ onSuccess, onCancel }: VitalsFormProps) {
   const [systolic, setSystolic] = useState('');
   const [diastolic, setDiastolic] = useState('');
   const [pulse, setPulse] = useState('');
+  const [editDate, setEditDate] = useState('');
+  const [editTime, setEditTime] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [editingLog, setEditingLog] = useState<VitalsLog | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
@@ -39,6 +41,11 @@ export function VitalsForm({ onSuccess, onCancel }: VitalsFormProps) {
     setSystolic(log.bp_systolic?.toString() || '');
     setDiastolic(log.bp_diastolic?.toString() || '');
     setPulse(log.heart_rate?.toString() || '');
+
+    // Parse datetime for editing
+    const dt = new Date(log.measured_at);
+    setEditDate(dt.toISOString().split('T')[0]);
+    setEditTime(dt.toTimeString().slice(0, 5));
   };
 
   // Cancel editing
@@ -47,6 +54,8 @@ export function VitalsForm({ onSuccess, onCancel }: VitalsFormProps) {
     setSystolic('');
     setDiastolic('');
     setPulse('');
+    setEditDate('');
+    setEditTime('');
   };
 
   // Delete log
@@ -111,6 +120,11 @@ export function VitalsForm({ onSuccess, onCancel }: VitalsFormProps) {
       }
 
       if (editingLog) {
+        // Build measured_at from date and time
+        const measuredAt = editDate && editTime
+          ? new Date(`${editDate}T${editTime}:00`).toISOString()
+          : undefined;
+
         // Update existing record
         await updateVitals.mutateAsync({
           id: editingLog.id,
@@ -118,9 +132,12 @@ export function VitalsForm({ onSuccess, onCancel }: VitalsFormProps) {
           bp_systolic: sys,
           bp_diastolic: dia,
           heart_rate: hr,
+          measured_at: measuredAt,
         });
         toast({ description: 'แก้ไขข้อมูลเรียบร้อยแล้ว' });
         setEditingLog(null);
+        setEditDate('');
+        setEditTime('');
       } else {
         // Create new record
         await saveVitals.mutateAsync({
@@ -285,6 +302,42 @@ export function VitalsForm({ onSuccess, onCancel }: VitalsFormProps) {
           />
           <p className="text-[10px] text-muted-foreground text-center">ครั้ง/นาที</p>
         </div>
+
+        {/* Date/Time editing - only shown when editing */}
+        {editingLog && (
+          <div className="space-y-3 pt-2 border-t border-border">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Calendar className="w-4 h-4" />
+              <span>วันที่และเวลาบันทึก</span>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label htmlFor="editDate" className="text-xs text-muted-foreground">
+                  วันที่
+                </Label>
+                <Input
+                  id="editDate"
+                  type="date"
+                  value={editDate}
+                  onChange={(e) => setEditDate(e.target.value)}
+                  className="h-10"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="editTime" className="text-xs text-muted-foreground">
+                  เวลา
+                </Label>
+                <Input
+                  id="editTime"
+                  type="time"
+                  value={editTime}
+                  onChange={(e) => setEditTime(e.target.value)}
+                  className="h-10"
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Today's Logs */}
