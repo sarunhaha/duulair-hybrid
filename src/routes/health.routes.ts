@@ -521,6 +521,87 @@ router.get('/today/:patientId', async (req: Request, res: Response) => {
 });
 
 /**
+ * GET /api/health/history/:patientId
+ * Get all health data history (last 30 days)
+ */
+router.get('/history/:patientId', async (req: Request, res: Response) => {
+  const { patientId } = req.params;
+  const { days = '30' } = req.query;
+
+  if (!patientId) {
+    return res.status(400).json({ error: 'Patient ID is required' });
+  }
+
+  try {
+    const daysAgo = new Date();
+    daysAgo.setDate(daysAgo.getDate() - parseInt(days as string));
+    const startDate = daysAgo.toISOString().split('T')[0];
+
+    const [vitals, water, medications, symptoms, sleep, exercise] = await Promise.all([
+      supabase
+        .from('vitals_logs')
+        .select('*')
+        .eq('patient_id', patientId)
+        .gte('measured_at', daysAgo.toISOString())
+        .order('measured_at', { ascending: false })
+        .limit(100),
+
+      supabase
+        .from('water_logs')
+        .select('*')
+        .eq('patient_id', patientId)
+        .gte('log_date', startDate)
+        .order('logged_at', { ascending: false })
+        .limit(100),
+
+      supabase
+        .from('medication_logs')
+        .select('*')
+        .eq('patient_id', patientId)
+        .gte('taken_at', daysAgo.toISOString())
+        .order('taken_at', { ascending: false })
+        .limit(100),
+
+      supabase
+        .from('symptoms')
+        .select('*')
+        .eq('patient_id', patientId)
+        .gte('created_at', daysAgo.toISOString())
+        .order('created_at', { ascending: false })
+        .limit(100),
+
+      supabase
+        .from('sleep_logs')
+        .select('*')
+        .eq('patient_id', patientId)
+        .gte('sleep_date', startDate)
+        .order('sleep_date', { ascending: false })
+        .limit(100),
+
+      supabase
+        .from('exercise_logs')
+        .select('*')
+        .eq('patient_id', patientId)
+        .gte('exercise_date', startDate)
+        .order('exercise_date', { ascending: false })
+        .limit(100),
+    ]);
+
+    return res.json({
+      vitals: vitals.data || [],
+      water: water.data || [],
+      medications: medications.data || [],
+      symptoms: symptoms.data || [],
+      sleep: sleep.data || [],
+      exercise: exercise.data || [],
+    });
+  } catch (error: any) {
+    console.error('Get health history error:', error);
+    return res.status(500).json({ error: error.message || 'Failed to get health history' });
+  }
+});
+
+/**
  * Helper: Update daily patient summary
  */
 async function updateDailySummary(patientId: string) {

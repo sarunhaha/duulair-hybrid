@@ -489,7 +489,7 @@ export function useHealthHistory(patientId: string | null) {
     queryFn: async (): Promise<HealthHistoryItem[]> => {
       if (!patientId) return [];
       try {
-        // Get today's data
+        // Get historical data (last 30 days)
         const data = await apiClient.get<{
           vitals: VitalsLog[];
           sleep: SleepLog[];
@@ -497,7 +497,7 @@ export function useHealthHistory(patientId: string | null) {
           medications: MedicationLog[];
           water: WaterLog[];
           exercise: { id: string; exercise_type: string | null; duration_minutes: number | null; created_at: string }[];
-        }>(`/health/today/${patientId}`);
+        }>(`/health/history/${patientId}`);
 
         const items: HealthHistoryItem[] = [];
         const today = new Date().toISOString().split('T')[0];
