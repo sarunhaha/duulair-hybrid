@@ -512,13 +512,13 @@ async function createHealthEvent(event: HealthEventInsert): Promise<string> {
 }
 
 function hasVitalsData(vitals: ExtractedVitals): boolean {
-  return (
-    vitals.bpSystolic !== null ||
-    vitals.bpDiastolic !== null ||
-    vitals.heartRate !== null ||
-    vitals.weight !== null ||
-    vitals.temperature !== null ||
-    vitals.glucose !== null ||
-    vitals.spo2 !== null
+  return !!(
+    vitals.bpSystolic ||
+    vitals.bpDiastolic ||
+    vitals.heartRate ||
+    vitals.weight ||
+    vitals.temperature ||
+    vitals.glucose ||
+    vitals.spo2
   );
 }

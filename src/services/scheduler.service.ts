@@ -138,7 +138,7 @@ class SchedulerService {
   }
 
   /**
-   * Send notification for a reminder
+   * Send notification for a reminder (using Flex Message)
    */
   private async sendReminderNotification(reminder: any) {
     try {
@@ -148,22 +148,31 @@ class SchedulerService {
         return;
       }
 
-      const message = this.formatReminderMessage(reminder);
+      // Create Flex Message with action buttons
+      const flexMessage = this.createReminderFlexMessage(reminder);
 
       // Get the group for this patient to notify caregivers
       const groupInfo = await groupService.getGroupByPatientId(patient.id);
 
       if (groupInfo && groupInfo.group.lineGroupId) {
-        // Send to LINE group
-        await this.lineService.sendMessage(groupInfo.group.lineGroupId, message);
-        console.log(`✅ Reminder sent to group for patient ${patient.first_name}`);
+        // Send Flex Message to LINE group
+        await this.lineService.sendFlexMessage(
+          groupInfo.group.lineGroupId,
+          flexMessage.altText,
+          flexMessage.contents
+        );
+        console.log(`✅ Reminder (Flex) sent to group for patient ${patient.first_name}`);
       }
 
       // Also send to patient's LINE if they have it
       const patientLineUserId = patient.users?.line_user_id;
       if (patientLineUserId) {
-        await this.lineService.sendMessage(patientLineUserId, message);
-        console.log(`✅ Reminder sent to patient ${patient.first_name}`);
+        await this.lineService.sendFlexMessage(
+          patientLineUserId,
+          flexMessage.altText,
+          flexMessage.contents
+        );
+        console.log(`✅ Reminder (Flex) sent to patient ${patient.first_name}`);
       }
 
       // Log the sent reminder
@@ -180,7 +189,7 @@ class SchedulerService {
   }
 
   /**
-   * Format reminder message
+   * Format reminder message (text fallback)
    */
   private formatReminderMessage(reminder: any): string {
     const patient = reminder.patient_profiles;
@@ -220,6 +229,212 @@ class SchedulerService {
     message += `\n✅ พิมพ์ "@oonjai ${this.getConfirmCommand(reminder.type)}" เพื่อบันทึก`;
 
     return message;
+  }
+
+  /**
+   * Create Flex Message for reminder with action buttons
+   */
+  private createReminderFlexMessage(reminder: any): { altText: string; contents: any } {
+    const patient = reminder.patient_profiles;
+    const patientName = patient?.first_name || 'ผู้ป่วย';
+
+    const typeConfig: Record<string, { emoji: string; name: string; color: string; confirmText: string; declineText: string }> = {
+      medication: {
+        emoji: '💊',
+        name: 'กินยา',
+        color: '#9333EA',
+        confirmText: `กินยาแล้ว ${patientName}`,
+        declineText: `ยังไม่ได้กินยา ${patientName}`
+      },
+      vitals: {
+        emoji: '🩺',
+        name: 'วัดความดัน',
+        color: '#EF4444',
+        confirmText: `วัดความดันแล้ว ${patientName}`,
+        declineText: `ยังไม่ได้วัดความดัน ${patientName}`
+      },
+      water: {
+        emoji: '💧',
+        name: 'ดื่มน้ำ',
+        color: '#3B82F6',
+        confirmText: `ดื่มน้ำแล้ว ${patientName}`,
+        declineText: `ยังไม่ได้ดื่มน้ำ ${patientName}`
+      },
+      exercise: {
+        emoji: '🏃',
+        name: 'ออกกำลังกาย',
+        color: '#22C55E',
+        confirmText: `ออกกำลังกายแล้ว ${patientName}`,
+        declineText: `ยังไม่ได้ออกกำลังกาย ${patientName}`
+      },
+      food: {
+        emoji: '🍽️',
+        name: 'ทานอาหาร',
+        color: '#F97316',
+        confirmText: `ทานอาหารแล้ว ${patientName}`,
+        declineText: `ยังไม่ได้ทานอาหาร ${patientName}`
+      }
+    };
+
+    const config = typeConfig[reminder.type] || {
+      emoji: '🔔',
+      name: reminder.type,
+      color: '#1E7B9C',
+      confirmText: `ทำแล้ว ${patientName}`,
+      declineText: `ยังไม่ได้ทำ ${patientName}`
+    };
+
+    const timeDisplay = reminder.time?.substring(0, 5) || '00:00';
+
+    const flexContents = {
+      type: 'bubble',
+      size: 'kilo',
+      header: {
+        type: 'box',
+        layout: 'vertical',
+        contents: [
+          {
+            type: 'box',
+            layout: 'horizontal',
+            contents: [
+              {
+                type: 'text',
+                text: config.emoji,
+                size: 'xl',
+                flex: 0
+              },
+              {
+                type: 'text',
+                text: `แจ้งเตือน${config.name}`,
+                weight: 'bold',
+                size: 'lg',
+                color: '#FFFFFF',
+                margin: 'sm'
+              }
+            ],
+            alignItems: 'center'
+          }
+        ],
+        backgroundColor: config.color,
+        paddingAll: 'lg'
+      },
+      body: {
+        type: 'box',
+        layout: 'vertical',
+        contents: [
+          {
+            type: 'box',
+            layout: 'horizontal',
+            contents: [
+              {
+                type: 'text',
+                text: '👤',
+                flex: 0
+              },
+              {
+                type: 'text',
+                text: `ผู้ป่วย: ${patientName}`,
+                color: '#555555',
+                margin: 'sm',
+                weight: 'bold'
+              }
+            ]
+          },
+          {
+            type: 'box',
+            layout: 'horizontal',
+            contents: [
+              {
+                type: 'text',
+                text: '🕐',
+                flex: 0
+              },
+              {
+                type: 'text',
+                text: `เวลา: ${timeDisplay} น.`,
+                color: '#555555',
+                margin: 'sm'
+              }
+            ],
+            margin: 'md'
+          },
+          ...(reminder.title ? [{
+            type: 'box',
+            layout: 'horizontal',
+            contents: [
+              {
+                type: 'text',
+                text: '📝',
+                flex: 0
+              },
+              {
+                type: 'text',
+                text: reminder.title,
+                color: '#555555',
+                margin: 'sm',
+                wrap: true
+              }
+            ],
+            margin: 'md'
+          }] : []),
+          ...(reminder.note ? [{
+            type: 'box',
+            layout: 'horizontal',
+            contents: [
+              {
+                type: 'text',
+                text: '💬',
+                flex: 0
+              },
+              {
+                type: 'text',
+                text: reminder.note,
+                color: '#888888',
+                margin: 'sm',
+                wrap: true,
+                size: 'sm'
+              }
+            ],
+            margin: 'md'
+          }] : [])
+        ],
+        paddingAll: 'lg'
+      },
+      footer: {
+        type: 'box',
+        layout: 'vertical',
+        contents: [
+          {
+            type: 'button',
+            action: {
+              type: 'message',
+              label: `✅ ${config.name}แล้ว`,
+              text: config.confirmText
+            },
+            style: 'primary',
+            color: config.color,
+            height: 'sm'
+          },
+          {
+            type: 'button',
+            action: {
+              type: 'message',
+              label: '⏰ ยังไม่ได้ทำ',
+              text: config.declineText
+            },
+            style: 'secondary',
+            height: 'sm',
+            margin: 'sm'
+          }
+        ],
+        paddingAll: 'lg'
+      }
+    };
+
+    return {
+      altText: `${config.emoji} แจ้งเตือน${config.name} - ${patientName} เวลา ${timeDisplay} น.`,
+      contents: flexContents
+    };
   }
 
   /**

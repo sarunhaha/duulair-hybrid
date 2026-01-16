@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Droplet, Plus, Clock, Trash2, Target, Settings, Zap } from 'lucide-react';
+import { Droplet, Plus, Clock, Trash2, Target, Settings, Zap, Pencil, Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
@@ -28,8 +28,11 @@ export function WaterForm({ onSuccess, onCancel }: WaterFormProps) {
   const [dailyGoal, setDailyGoal] = useState(2000);
   const [todayLogs, setTodayLogs] = useState<WaterLog[]>([]);
   const [customAmount, setCustomAmount] = useState('');
+  const [customTime, setCustomTime] = useState('');
   const [showSettings, setShowSettings] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [editingLogId, setEditingLogId] = useState<string | null>(null);
+  const [editingTime, setEditingTime] = useState('');
 
   // Load data on mount
   useEffect(() => {
@@ -49,18 +52,34 @@ export function WaterForm({ onSuccess, onCancel }: WaterFormProps) {
     }));
   };
 
-  const addWater = async (amount: number) => {
+  const addWater = async (amount: number, timeOverride?: string) => {
     if (amount < 1) return;
 
     setIsSaving(true);
 
     try {
       const now = new Date();
+      let displayTime: string;
+      let timestamp: string;
+
+      if (timeOverride) {
+        // Use the custom time provided
+        displayTime = timeOverride;
+        // Create timestamp with custom time for today
+        const [hours, minutes] = timeOverride.split(':').map(Number);
+        const customDate = new Date();
+        customDate.setHours(hours, minutes, 0, 0);
+        timestamp = customDate.toISOString();
+      } else {
+        displayTime = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+        timestamp = now.toISOString();
+      }
+
       const log: WaterLog = {
         id: Date.now().toString(),
         amount,
-        time: now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
-        timestamp: now.toISOString(),
+        time: displayTime,
+        timestamp,
       };
 
       const newTotal = totalToday + amount;
@@ -71,6 +90,7 @@ export function WaterForm({ onSuccess, onCancel }: WaterFormProps) {
       saveData(newTotal, newLogs, dailyGoal);
 
       toast({ description: `เพิ่ม ${amount} ml เรียบร้อยแล้ว` });
+      setCustomTime(''); // Reset custom time after adding
     } catch (error) {
       console.error('Error adding water:', error);
       toast({ description: 'เกิดข้อผิดพลาดในการบันทึก', variant: 'destructive' });
@@ -85,8 +105,48 @@ export function WaterForm({ onSuccess, onCancel }: WaterFormProps) {
       toast({ description: 'กรุณาระบุปริมาณระหว่าง 1-5000 ml', variant: 'destructive' });
       return;
     }
-    addWater(amount);
+    addWater(amount, customTime || undefined);
     setCustomAmount('');
+  };
+
+  const startEditingTime = (log: WaterLog) => {
+    setEditingLogId(log.id);
+    // Convert display time to input format (HH:mm)
+    setEditingTime(log.time);
+  };
+
+  const cancelEditingTime = () => {
+    setEditingLogId(null);
+    setEditingTime('');
+  };
+
+  const saveEditedTime = (logId: string) => {
+    if (!editingTime) {
+      cancelEditingTime();
+      return;
+    }
+
+    const newLogs = todayLogs.map((log) => {
+      if (log.id === logId) {
+        // Update timestamp with new time
+        const [hours, minutes] = editingTime.split(':').map(Number);
+        const newDate = new Date();
+        newDate.setHours(hours, minutes, 0, 0);
+
+        return {
+          ...log,
+          time: editingTime,
+          timestamp: newDate.toISOString(),
+        };
+      }
+      return log;
+    });
+
+    setTodayLogs(newLogs);
+    saveData(totalToday, newLogs, dailyGoal);
+    setEditingLogId(null);
+    setEditingTime('');
+    toast({ description: 'อัพเดทเวลาเรียบร้อยแล้ว' });
   };
 
   const deleteLog = (logId: string) => {
@@ -185,6 +245,13 @@ export function WaterForm({ onSuccess, onCancel }: WaterFormProps) {
             onChange={(e) => setCustomAmount(e.target.value)}
             className="flex-1"
           />
+          <Input
+            type="time"
+            value={customTime}
+            onChange={(e) => setCustomTime(e.target.value)}
+            className="w-24"
+            placeholder="เวลา"
+          />
           <Button
             variant="default"
             onClick={addCustomWater}
@@ -195,6 +262,9 @@ export function WaterForm({ onSuccess, onCancel }: WaterFormProps) {
             เพิ่ม
           </Button>
         </div>
+        <p className="text-xs text-muted-foreground">
+          * ถ้าไม่ระบุเวลา จะใช้เวลาปัจจุบัน
+        </p>
       </div>
 
       {/* Today's Logs */}
@@ -210,21 +280,55 @@ export function WaterForm({ onSuccess, onCancel }: WaterFormProps) {
                 key={log.id}
                 className="flex items-center justify-between bg-muted/50 rounded-xl p-3"
               >
-                <div className="space-y-0.5">
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <Clock className="w-3 h-3" />
-                    {log.time}
-                  </div>
+                <div className="space-y-0.5 flex-1">
+                  {editingLogId === log.id ? (
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="time"
+                        value={editingTime}
+                        onChange={(e) => setEditingTime(e.target.value)}
+                        className="w-24 h-8 text-sm"
+                        autoFocus
+                      />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
+                        onClick={() => saveEditedTime(log.id)}
+                      >
+                        <Check className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+                        onClick={cancelEditingTime}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <button
+                      className="flex items-center gap-2 text-xs text-muted-foreground hover:text-blue-600 transition-colors px-2 py-1 -ml-2 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/30"
+                      onClick={() => startEditingTime(log)}
+                    >
+                      <Clock className="w-3.5 h-3.5" />
+                      <span className="font-medium">{log.time}</span>
+                      <Pencil className="w-3.5 h-3.5 text-blue-500" />
+                    </button>
+                  )}
                   <p className="text-base font-semibold text-blue-600">+{log.amount} ml</p>
                 </div>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  className="h-8"
-                  onClick={() => deleteLog(log.id)}
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </Button>
+                {editingLogId !== log.id && (
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="h-8"
+                    onClick={() => deleteLog(log.id)}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </Button>
+                )}
               </div>
             ))}
           </div>

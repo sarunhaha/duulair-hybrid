@@ -23,7 +23,7 @@ import {
   DrawerTitle,
 } from '@/components/ui/drawer';
 import { BottomNav } from '@/components/layout/bottom-nav';
-import { VitalsForm, WaterForm, MedicationForm, SymptomForm } from '@/components/forms';
+import { VitalsForm, WaterForm, MedicationForm, SymptomForm, SleepForm } from '@/components/forms';
 import { cn } from '@/lib/utils';
 import { useLocation } from 'wouter';
 
@@ -61,7 +61,7 @@ const categories: Category[] = [
     icon: Moon,
     color: 'bg-indigo-50 text-indigo-600 dark:bg-indigo-950/30 dark:text-indigo-400',
     desc: 'ชม.นอน, คุณภาพการหลับ',
-    hasForm: false,
+    hasForm: true,
   },
   {
     id: 'water',
@@ -138,6 +138,8 @@ export default function RecordsPage() {
         return <MedicationForm onSuccess={handleSuccess} onCancel={handleClose} />;
       case 'symptoms':
         return <SymptomForm onSuccess={handleSuccess} onCancel={handleClose} />;
+      case 'sleep':
+        return <SleepForm onSuccess={handleSuccess} onCancel={handleClose} />;
       default:
         return (
           <div className="space-y-6 pb-8">

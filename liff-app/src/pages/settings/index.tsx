@@ -69,6 +69,13 @@ export default function SettingsPage() {
       ],
     },
     {
+      id: 'A2',
+      title: 'บันทึกประจำวัน',
+      items: [
+        { id: 'A2-1', title: 'บันทึกการนอน', icon: Moon, description: 'ชั่วโมงนอน, คุณภาพการนอน', href: '/health/sleep' },
+      ],
+    },
+    {
       id: 'B',
       title: 'ข้อมูลสุขภาพส่วนตัว',
       items: [
