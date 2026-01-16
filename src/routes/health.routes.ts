@@ -57,6 +57,79 @@ router.post('/vitals', async (req: Request, res: Response) => {
 });
 
 /**
+ * PUT /api/health/vitals/:id
+ * Update vitals record
+ */
+router.put('/vitals/:id', async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const {
+    bp_systolic,
+    bp_diastolic,
+    heart_rate,
+    weight,
+    temperature,
+    spo2,
+    glucose,
+    notes,
+    measured_at,
+  } = req.body;
+
+  try {
+    const updateData: Record<string, unknown> = {
+      bp_systolic: bp_systolic ?? null,
+      bp_diastolic: bp_diastolic ?? null,
+      heart_rate: heart_rate ?? null,
+      weight: weight ?? null,
+      temperature: temperature ?? null,
+      spo2: spo2 ?? null,
+      glucose: glucose ?? null,
+      notes: notes ?? null,
+    };
+
+    // Allow updating measured_at if provided
+    if (measured_at) {
+      updateData.measured_at = measured_at;
+    }
+
+    const { data, error } = await supabase
+      .from('vitals_logs')
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return res.json({ success: true, data });
+  } catch (error: any) {
+    console.error('Update vitals error:', error);
+    return res.status(500).json({ error: error.message || 'Failed to update vitals' });
+  }
+});
+
+/**
+ * DELETE /api/health/vitals/:id
+ * Delete vitals record
+ */
+router.delete('/vitals/:id', async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  try {
+    const { error } = await supabase
+      .from('vitals_logs')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+
+    return res.json({ success: true });
+  } catch (error: any) {
+    console.error('Delete vitals error:', error);
+    return res.status(500).json({ error: error.message || 'Failed to delete vitals' });
+  }
+});
+
+/**
  * POST /api/health/water
  * Record water intake
  */
@@ -254,6 +327,75 @@ router.post('/sleep', async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error('Record sleep error:', error);
     return res.status(500).json({ error: error.message || 'Failed to record sleep' });
+  }
+});
+
+/**
+ * PUT /api/health/sleep/:id
+ * Update sleep record
+ */
+router.put('/sleep/:id', async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const {
+    sleep_hours,
+    sleep_quality,
+    sleep_quality_score,
+    sleep_time,
+    wake_time,
+    sleep_date,
+    notes,
+  } = req.body;
+
+  try {
+    const updateData: Record<string, unknown> = {
+      sleep_hours: sleep_hours ?? null,
+      sleep_quality: sleep_quality ?? null,
+      sleep_quality_score: sleep_quality_score ?? null,
+      sleep_time: sleep_time ?? null,
+      wake_time: wake_time ?? null,
+      notes: notes ?? null,
+    };
+
+    // Allow updating sleep_date if provided
+    if (sleep_date) {
+      updateData.sleep_date = sleep_date;
+    }
+
+    const { data, error } = await supabase
+      .from('sleep_logs')
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return res.json({ success: true, data });
+  } catch (error: any) {
+    console.error('Update sleep error:', error);
+    return res.status(500).json({ error: error.message || 'Failed to update sleep' });
+  }
+});
+
+/**
+ * DELETE /api/health/sleep/:id
+ * Delete sleep record
+ */
+router.delete('/sleep/:id', async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  try {
+    const { error } = await supabase
+      .from('sleep_logs')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+
+    return res.json({ success: true });
+  } catch (error: any) {
+    console.error('Delete sleep error:', error);
+    return res.status(500).json({ error: error.message || 'Failed to delete sleep' });
   }
 });
 

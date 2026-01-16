@@ -112,6 +112,54 @@ export function useSaveVitals() {
   });
 }
 
+export function useUpdateVitals() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: {
+      id: string;
+      patientId: string;
+      bp_systolic?: number;
+      bp_diastolic?: number;
+      heart_rate?: number;
+      weight?: number;
+      temperature?: number;
+      measured_at?: string;
+      notes?: string;
+    }) => {
+      return await apiClient.put(`/health/vitals/${data.id}`, {
+        bp_systolic: data.bp_systolic,
+        bp_diastolic: data.bp_diastolic,
+        heart_rate: data.heart_rate,
+        weight: data.weight,
+        temperature: data.temperature,
+        measured_at: data.measured_at,
+        notes: data.notes,
+      });
+    },
+    onSuccess: (_, variables) => {
+      const today = new Date().toISOString().split('T')[0];
+      queryClient.invalidateQueries({ queryKey: healthKeys.vitals(variables.patientId, today) });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}
+
+export function useDeleteVitals() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: { id: string; patientId: string }) => {
+      return await apiClient.delete(`/health/vitals/${data.id}`);
+    },
+    onSuccess: (_, variables) => {
+      const today = new Date().toISOString().split('T')[0];
+      queryClient.invalidateQueries({ queryKey: healthKeys.vitals(variables.patientId, today) });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}
+
 // Water Tracking Hooks
 export function useTodayWater(patientId: string | null) {
   const today = new Date().toISOString().split('T')[0];
@@ -319,6 +367,54 @@ export function useLogSleep() {
         wake_time: data.wake_time,
         notes: data.notes,
       });
+    },
+    onSuccess: (_, variables) => {
+      const today = new Date().toISOString().split('T')[0];
+      queryClient.invalidateQueries({ queryKey: ['health', 'sleep', variables.patientId, today] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}
+
+export function useUpdateSleep() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: {
+      id: string;
+      patientId: string;
+      sleep_hours?: number;
+      sleep_quality?: string;
+      sleep_quality_score?: number;
+      sleep_time?: string;
+      wake_time?: string;
+      sleep_date?: string;
+      notes?: string;
+    }) => {
+      return await apiClient.put(`/health/sleep/${data.id}`, {
+        sleep_hours: data.sleep_hours,
+        sleep_quality: data.sleep_quality,
+        sleep_quality_score: data.sleep_quality_score,
+        sleep_time: data.sleep_time,
+        wake_time: data.wake_time,
+        sleep_date: data.sleep_date,
+        notes: data.notes,
+      });
+    },
+    onSuccess: (_, variables) => {
+      const today = new Date().toISOString().split('T')[0];
+      queryClient.invalidateQueries({ queryKey: ['health', 'sleep', variables.patientId, today] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}
+
+export function useDeleteSleep() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: { id: string; patientId: string }) => {
+      return await apiClient.delete(`/health/sleep/${data.id}`);
     },
     onSuccess: (_, variables) => {
       const today = new Date().toISOString().split('T')[0];

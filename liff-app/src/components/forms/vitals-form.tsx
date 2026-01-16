@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { Activity, HeartPulse, ArrowUp, ArrowDown, Minus, AlertTriangle, Check, Loader2, Save, Clock } from 'lucide-react';
+import { Activity, HeartPulse, ArrowUp, ArrowDown, Minus, AlertTriangle, Check, Loader2, Save, Clock, Pencil, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { useEnsurePatient } from '@/hooks/use-ensure-patient';
-import { useTodayVitals, useSaveVitals, getBloodPressureStatus } from '@/lib/api/hooks/use-health';
+import { useTodayVitals, useSaveVitals, useUpdateVitals, useDeleteVitals, getBloodPressureStatus } from '@/lib/api/hooks/use-health';
+import type { VitalsLog } from '@/lib/api/hooks/use-health';
 import { useToast } from '@/hooks/use-toast';
 
 interface VitalsFormProps {
@@ -19,14 +20,49 @@ export function VitalsForm({ onSuccess, onCancel }: VitalsFormProps) {
 
   const { data: todayLogs, isLoading: logsLoading, refetch } = useTodayVitals(patientId);
   const saveVitals = useSaveVitals();
+  const updateVitals = useUpdateVitals();
+  const deleteVitals = useDeleteVitals();
 
   const [systolic, setSystolic] = useState('');
   const [diastolic, setDiastolic] = useState('');
   const [pulse, setPulse] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [editingLog, setEditingLog] = useState<VitalsLog | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   const allLogs = todayLogs || [];
   const latestLog = allLogs[0];
+
+  // Load log data into form for editing
+  const handleEdit = (log: VitalsLog) => {
+    setEditingLog(log);
+    setSystolic(log.bp_systolic?.toString() || '');
+    setDiastolic(log.bp_diastolic?.toString() || '');
+    setPulse(log.heart_rate?.toString() || '');
+  };
+
+  // Cancel editing
+  const handleCancelEdit = () => {
+    setEditingLog(null);
+    setSystolic('');
+    setDiastolic('');
+    setPulse('');
+  };
+
+  // Delete log
+  const handleDelete = async (id: string) => {
+    if (!patientId) return;
+
+    try {
+      await deleteVitals.mutateAsync({ id, patientId });
+      toast({ description: 'ลบข้อมูลเรียบร้อยแล้ว' });
+      setDeleteConfirmId(null);
+      refetch();
+    } catch (error) {
+      console.error('Error deleting vitals:', error);
+      toast({ description: 'เกิดข้อผิดพลาดในการลบข้อมูล', variant: 'destructive' });
+    }
+  };
 
   // BP Status
   const bpStatus = latestLog?.bp_systolic && latestLog?.bp_diastolic
@@ -74,14 +110,27 @@ export function VitalsForm({ onSuccess, onCancel }: VitalsFormProps) {
         return;
       }
 
-      await saveVitals.mutateAsync({
-        patientId: resolvedPatientId,
-        bp_systolic: sys,
-        bp_diastolic: dia,
-        heart_rate: hr,
-      });
-
-      toast({ description: 'บันทึกความดันเรียบร้อยแล้ว' });
+      if (editingLog) {
+        // Update existing record
+        await updateVitals.mutateAsync({
+          id: editingLog.id,
+          patientId: resolvedPatientId,
+          bp_systolic: sys,
+          bp_diastolic: dia,
+          heart_rate: hr,
+        });
+        toast({ description: 'แก้ไขข้อมูลเรียบร้อยแล้ว' });
+        setEditingLog(null);
+      } else {
+        // Create new record
+        await saveVitals.mutateAsync({
+          patientId: resolvedPatientId,
+          bp_systolic: sys,
+          bp_diastolic: dia,
+          heart_rate: hr,
+        });
+        toast({ description: 'บันทึกความดันเรียบร้อยแล้ว' });
+      }
 
       // Clear form
       setSystolic('');
@@ -90,7 +139,9 @@ export function VitalsForm({ onSuccess, onCancel }: VitalsFormProps) {
 
       // Refetch data
       refetch();
-      onSuccess?.();
+      if (!editingLog) {
+        onSuccess?.();
+      }
     } catch (error) {
       console.error('Error saving vitals:', error);
       toast({ description: 'เกิดข้อผิดพลาดในการบันทึก', variant: 'destructive' });
@@ -158,10 +209,26 @@ export function VitalsForm({ onSuccess, onCancel }: VitalsFormProps) {
       )}
 
       {/* Input Form */}
-      <div className="bg-card border border-border rounded-2xl p-4 space-y-4">
-        <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-          <Activity className="w-4 h-4 text-primary" />
-          บันทึกค่าใหม่
+      <div className={cn(
+        "bg-card border rounded-2xl p-4 space-y-4",
+        editingLog ? "border-primary" : "border-border"
+      )}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+            <Activity className="w-4 h-4 text-primary" />
+            {editingLog ? 'แก้ไขข้อมูล' : 'บันทึกค่าใหม่'}
+          </div>
+          {editingLog && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleCancelEdit}
+              className="h-8 px-2 text-muted-foreground"
+            >
+              <X className="w-4 h-4 mr-1" />
+              ยกเลิก
+            </Button>
+          )}
         </div>
 
         <div className="grid grid-cols-2 gap-4">
@@ -236,12 +303,17 @@ export function VitalsForm({ onSuccess, onCancel }: VitalsFormProps) {
                 hour: '2-digit',
                 minute: '2-digit',
               });
+              const isDeleting = deleteConfirmId === log.id;
+
               return (
                 <div
                   key={log.id}
-                  className="flex items-center justify-between bg-muted/50 rounded-xl p-3"
+                  className={cn(
+                    "flex items-center justify-between bg-muted/50 rounded-xl p-3",
+                    editingLog?.id === log.id && "ring-2 ring-primary"
+                  )}
                 >
-                  <div className="space-y-1">
+                  <div className="space-y-1 flex-1">
                     <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                       <Clock className="w-3 h-3" />
                       {time}
@@ -260,6 +332,54 @@ export function VitalsForm({ onSuccess, onCancel }: VitalsFormProps) {
                         {getStatusIcon(status.status)}
                         {status.label}
                       </div>
+                    )}
+                  </div>
+
+                  {/* Edit/Delete Buttons */}
+                  <div className="flex items-center gap-1 ml-2">
+                    {isDeleting ? (
+                      <>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleDelete(log.id)}
+                          disabled={deleteVitals.isPending}
+                          className="h-8 px-2 text-xs"
+                        >
+                          {deleteVitals.isPending ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : (
+                            'ยืนยัน'
+                          )}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setDeleteConfirmId(null)}
+                          className="h-8 px-2 text-xs"
+                        >
+                          ยกเลิก
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleEdit(log)}
+                          className="h-8 w-8 text-muted-foreground hover:text-primary"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setDeleteConfirmId(log.id)}
+                          className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </>
                     )}
                   </div>
                 </div>
@@ -282,9 +402,9 @@ export function VitalsForm({ onSuccess, onCancel }: VitalsFormProps) {
         <Button
           variant="ghost"
           className="flex-1 h-14 rounded-2xl font-bold text-muted-foreground"
-          onClick={onCancel}
+          onClick={editingLog ? handleCancelEdit : onCancel}
         >
-          ยกเลิก
+          {editingLog ? 'ยกเลิกแก้ไข' : 'ยกเลิก'}
         </Button>
         <Button
           className="flex-[2] h-14 rounded-2xl bg-primary text-primary-foreground font-bold text-lg shadow-xl shadow-primary/20 hover:scale-[1.02] transition-all gap-2"
@@ -296,7 +416,7 @@ export function VitalsForm({ onSuccess, onCancel }: VitalsFormProps) {
           ) : (
             <Save className="w-5 h-5" />
           )}
-          บันทึก
+          {editingLog ? 'อัปเดต' : 'บันทึก'}
         </Button>
       </div>
     </div>

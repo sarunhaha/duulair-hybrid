@@ -6,12 +6,15 @@ import {
   Loader2,
   Star,
   Check,
+  Pencil,
+  Trash2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { useLogSleep, useTodaySleep } from '@/lib/api/hooks/use-health';
+import { useLogSleep, useTodaySleep, useUpdateSleep, useDeleteSleep } from '@/lib/api/hooks/use-health';
+import type { SleepLog } from '@/lib/api/hooks/use-health';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { useEnsurePatient } from '@/hooks/use-ensure-patient';
@@ -33,7 +36,7 @@ const HOURS_OPTIONS = [
   { value: 10, label: '10+ ชม.' },
 ];
 
-interface SleepForm {
+interface SleepFormData {
   sleep_hours: number | null;
   sleep_quality: string;
   sleep_quality_score: number | null;
@@ -42,7 +45,7 @@ interface SleepForm {
   notes: string;
 }
 
-const defaultFormData: SleepForm = {
+const defaultFormData: SleepFormData = {
   sleep_hours: null,
   sleep_quality: '',
   sleep_quality_score: null,
@@ -60,10 +63,48 @@ export function SleepForm({ onSuccess, onCancel }: SleepFormProps) {
   const { patientId, isLoading: authLoading, ensurePatient } = useEnsurePatient();
   const { toast } = useToast();
   const logSleep = useLogSleep();
+  const updateSleep = useUpdateSleep();
+  const deleteSleep = useDeleteSleep();
   const { data: todayLogs, refetch } = useTodaySleep(patientId);
 
-  const [formData, setFormData] = useState<SleepForm>(defaultFormData);
+  const [formData, setFormData] = useState<SleepFormData>(defaultFormData);
+  const [editingLog, setEditingLog] = useState<SleepLog | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const allLogs = todayLogs || [];
+
+  // Load log data into form for editing
+  const handleEdit = (log: SleepLog) => {
+    setEditingLog(log);
+    setFormData({
+      sleep_hours: log.sleep_hours,
+      sleep_quality: log.sleep_quality || '',
+      sleep_quality_score: log.sleep_quality_score,
+      sleep_time: log.sleep_time || '22:00',
+      wake_time: log.wake_time || '06:00',
+      notes: log.notes || '',
+    });
+  };
+
+  // Cancel editing
+  const handleCancelEdit = () => {
+    setEditingLog(null);
+    setFormData(defaultFormData);
+  };
+
+  // Delete log
+  const handleDelete = async (id: string) => {
+    if (!patientId) return;
+
+    try {
+      await deleteSleep.mutateAsync({ id, patientId });
+      toast({ title: 'ลบข้อมูลเรียบร้อยแล้ว' });
+      setDeleteConfirmId(null);
+      refetch();
+    } catch (error) {
+      console.error('Error deleting sleep:', error);
+      toast({ title: 'เกิดข้อผิดพลาดในการลบข้อมูล', variant: 'destructive' });
+    }
+  };
 
   // Calculate sleep hours from times
   const calculateHours = (sleepTime: string, wakeTime: string): number => {
@@ -116,20 +157,39 @@ export function SleepForm({ onSuccess, onCancel }: SleepFormProps) {
         return;
       }
 
-      await logSleep.mutateAsync({
-        patientId: resolvedPatientId,
-        sleep_hours: formData.sleep_hours || undefined,
-        sleep_quality: formData.sleep_quality || undefined,
-        sleep_quality_score: formData.sleep_quality_score || undefined,
-        sleep_time: formData.sleep_time || undefined,
-        wake_time: formData.wake_time || undefined,
-        notes: formData.notes || undefined,
-      });
+      if (editingLog) {
+        // Update existing record
+        await updateSleep.mutateAsync({
+          id: editingLog.id,
+          patientId: resolvedPatientId,
+          sleep_hours: formData.sleep_hours || undefined,
+          sleep_quality: formData.sleep_quality || undefined,
+          sleep_quality_score: formData.sleep_quality_score || undefined,
+          sleep_time: formData.sleep_time || undefined,
+          wake_time: formData.wake_time || undefined,
+          notes: formData.notes || undefined,
+        });
+        toast({ title: 'แก้ไขข้อมูลเรียบร้อยแล้ว' });
+        setEditingLog(null);
+      } else {
+        // Create new record
+        await logSleep.mutateAsync({
+          patientId: resolvedPatientId,
+          sleep_hours: formData.sleep_hours || undefined,
+          sleep_quality: formData.sleep_quality || undefined,
+          sleep_quality_score: formData.sleep_quality_score || undefined,
+          sleep_time: formData.sleep_time || undefined,
+          wake_time: formData.wake_time || undefined,
+          notes: formData.notes || undefined,
+        });
+        toast({ title: 'บันทึกการนอนเรียบร้อยแล้ว' });
+      }
 
-      toast({ title: 'บันทึกการนอนเรียบร้อยแล้ว' });
       setFormData(defaultFormData);
       refetch();
-      onSuccess?.();
+      if (!editingLog) {
+        onSuccess?.();
+      }
     } catch (error) {
       console.error('Error logging sleep:', error);
       toast({ title: 'ไม่สามารถบันทึกได้', variant: 'destructive' });
@@ -274,12 +334,17 @@ export function SleepForm({ onSuccess, onCancel }: SleepFormProps) {
           <div className="space-y-2">
             {allLogs.map((log) => {
               const qualityOpt = QUALITY_OPTIONS.find(q => q.value === log.sleep_quality);
+              const isDeleting = deleteConfirmId === log.id;
+
               return (
                 <div
                   key={log.id}
-                  className="flex items-center justify-between bg-muted/50 rounded-xl p-3"
+                  className={cn(
+                    "flex items-center justify-between bg-muted/50 rounded-xl p-3",
+                    editingLog?.id === log.id && "ring-2 ring-primary"
+                  )}
                 >
-                  <div className="space-y-1">
+                  <div className="space-y-1 flex-1">
                     <div className="flex items-center gap-2">
                       <Moon className="w-4 h-4 text-indigo-500" />
                       <span className="text-lg font-bold">
@@ -302,6 +367,54 @@ export function SleepForm({ onSuccess, onCancel }: SleepFormProps) {
                       <p className="text-xs text-muted-foreground italic">{log.notes}</p>
                     )}
                   </div>
+
+                  {/* Edit/Delete Buttons */}
+                  <div className="flex items-center gap-1 ml-2">
+                    {isDeleting ? (
+                      <>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleDelete(log.id)}
+                          disabled={deleteSleep.isPending}
+                          className="h-8 px-2 text-xs"
+                        >
+                          {deleteSleep.isPending ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : (
+                            'ยืนยัน'
+                          )}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setDeleteConfirmId(null)}
+                          className="h-8 px-2 text-xs"
+                        >
+                          ยกเลิก
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleEdit(log)}
+                          className="h-8 w-8 text-muted-foreground hover:text-primary"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setDeleteConfirmId(log.id)}
+                          className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </>
+                    )}
+                  </div>
                 </div>
               );
             })}
@@ -314,19 +427,19 @@ export function SleepForm({ onSuccess, onCancel }: SleepFormProps) {
         <Button
           variant="ghost"
           className="flex-1 h-14 rounded-2xl font-bold text-muted-foreground"
-          onClick={onCancel}
+          onClick={editingLog ? handleCancelEdit : onCancel}
         >
-          ยกเลิก
+          {editingLog ? 'ยกเลิกแก้ไข' : 'ยกเลิก'}
         </Button>
         <Button
           className="flex-[2] h-14 rounded-2xl bg-primary text-primary-foreground font-bold text-lg shadow-xl shadow-primary/20 hover:scale-[1.02] transition-all"
           onClick={handleSubmit}
-          disabled={logSleep.isPending}
+          disabled={logSleep.isPending || updateSleep.isPending}
         >
-          {logSleep.isPending ? (
+          {(logSleep.isPending || updateSleep.isPending) ? (
             <Loader2 className="w-5 h-5 animate-spin" />
           ) : (
-            'บันทึกการนอน'
+            editingLog ? 'อัปเดต' : 'บันทึกการนอน'
           )}
         </Button>
       </div>
