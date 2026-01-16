@@ -13,7 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useLogSleep } from '@/lib/api/hooks/use-health';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { useAuth } from '@/hooks/use-auth';
+import { useEnsurePatient } from '@/hooks/use-ensure-patient';
 
 const QUALITY_OPTIONS = [
   { value: 'poor', label: 'แย่', score: 1, icon: '😴', color: 'bg-red-100 text-red-600 border-red-300' },
@@ -56,10 +56,8 @@ interface SleepFormProps {
 }
 
 export function SleepForm({ onSuccess, onCancel }: SleepFormProps) {
-  const auth = useAuth();
+  const { isLoading: authLoading, ensurePatient } = useEnsurePatient();
   const { toast } = useToast();
-
-  const patientId = auth.patientId;
   const logSleep = useLogSleep();
 
   const [formData, setFormData] = useState<SleepForm>(defaultFormData);
@@ -102,19 +100,21 @@ export function SleepForm({ onSuccess, onCancel }: SleepFormProps) {
   };
 
   const handleSubmit = async () => {
-    if (!patientId) {
-      toast({ title: 'กรุณาคุยกับน้องอุ่นใน LINE Chat ก่อนนะคะ', variant: 'destructive' });
-      return;
-    }
-
     if (!formData.sleep_hours && !formData.sleep_time) {
       toast({ title: 'กรุณาระบุจำนวนชั่วโมงนอน', variant: 'destructive' });
       return;
     }
 
     try {
+      // Ensure patient profile exists (auto-create if needed)
+      const resolvedPatientId = await ensurePatient();
+      if (!resolvedPatientId) {
+        toast({ title: 'ไม่สามารถสร้างโปรไฟล์ได้ กรุณาลองใหม่อีกครั้ง', variant: 'destructive' });
+        return;
+      }
+
       await logSleep.mutateAsync({
-        patientId,
+        patientId: resolvedPatientId,
         sleep_hours: formData.sleep_hours || undefined,
         sleep_quality: formData.sleep_quality || undefined,
         sleep_quality_score: formData.sleep_quality_score || undefined,
@@ -132,7 +132,7 @@ export function SleepForm({ onSuccess, onCancel }: SleepFormProps) {
   };
 
   // Show loading state
-  if (auth.isLoading) {
+  if (authLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-12 space-y-3">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -158,41 +158,46 @@ export function SleepForm({ onSuccess, onCancel }: SleepFormProps) {
       </div>
 
       {/* Sleep Time */}
-      <div className="space-y-4">
+      <div className="bg-muted/30 rounded-2xl p-4 space-y-4">
         <div className="flex items-center gap-2">
           <Clock className="w-5 h-5 text-primary" />
           <Label className="text-base font-bold">เวลานอน - เวลาตื่น</Label>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label className="text-sm text-muted-foreground flex items-center gap-1">
-              <Moon className="w-4 h-4" /> เข้านอน
+        <div className="space-y-4">
+          {/* เข้านอน */}
+          <div className="bg-card rounded-xl p-4 space-y-2">
+            <Label className="text-sm text-muted-foreground flex items-center gap-2">
+              <Moon className="w-4 h-4 text-indigo-500" />
+              <span>เข้านอน</span>
             </Label>
             <Input
               type="time"
               value={formData.sleep_time}
               onChange={(e) => handleTimeChange('sleep_time', e.target.value)}
-              className="text-lg"
+              className="text-xl h-12 font-medium"
             />
           </div>
-          <div className="space-y-2">
-            <Label className="text-sm text-muted-foreground flex items-center gap-1">
-              <Sun className="w-4 h-4" /> ตื่นนอน
+
+          {/* ตื่นนอน */}
+          <div className="bg-card rounded-xl p-4 space-y-2">
+            <Label className="text-sm text-muted-foreground flex items-center gap-2">
+              <Sun className="w-4 h-4 text-amber-500" />
+              <span>ตื่นนอน</span>
             </Label>
             <Input
               type="time"
               value={formData.wake_time}
               onChange={(e) => handleTimeChange('wake_time', e.target.value)}
-              className="text-lg"
+              className="text-xl h-12 font-medium"
             />
           </div>
         </div>
 
         {formData.sleep_time && formData.wake_time && (
-          <div className="text-center p-3 bg-primary/10 rounded-lg">
+          <div className="text-center p-4 bg-primary/10 rounded-xl">
             <p className="text-sm text-muted-foreground">รวมเวลานอน</p>
-            <p className="text-2xl font-bold text-primary">
+            <p className="text-3xl font-bold text-primary">
               {calculateHours(formData.sleep_time, formData.wake_time)} ชั่วโมง
             </p>
           </div>

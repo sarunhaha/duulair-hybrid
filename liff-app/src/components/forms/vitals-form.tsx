@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
-import { Activity, HeartPulse, ArrowUp, ArrowDown, Minus, AlertTriangle, Check, Loader2, Save, Clock, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import { Activity, HeartPulse, ArrowUp, ArrowDown, Minus, AlertTriangle, Check, Loader2, Save, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
-import { useAuthStore } from '@/stores/auth';
-import { useTodayVitals, useSaveVitals, getBloodPressureStatus, type VitalsLog } from '@/lib/api/hooks/use-health';
+import { useEnsurePatient } from '@/hooks/use-ensure-patient';
+import { useTodayVitals, useSaveVitals, getBloodPressureStatus } from '@/lib/api/hooks/use-health';
 import { useToast } from '@/hooks/use-toast';
 
 interface VitalsFormProps {
@@ -14,9 +14,7 @@ interface VitalsFormProps {
 }
 
 export function VitalsForm({ onSuccess, onCancel }: VitalsFormProps) {
-  const { context, user } = useAuthStore();
-  // Fallback to user.profileId if context.patientId is null (for patient role)
-  const patientId = context.patientId || (user.role === 'patient' ? user.profileId : null);
+  const { patientId, isLoading: authLoading, ensurePatient } = useEnsurePatient();
   const { toast } = useToast();
 
   const { data: todayLogs, isLoading: logsLoading, refetch } = useTodayVitals(patientId);
@@ -27,28 +25,7 @@ export function VitalsForm({ onSuccess, onCancel }: VitalsFormProps) {
   const [pulse, setPulse] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
-  // Local logs for development mode (when API not available)
-  const [localLogs, setLocalLogs] = useState<VitalsLog[]>([]);
-
-  // Load local logs on mount
-  useEffect(() => {
-    const today = new Date().toISOString().split('T')[0];
-    const savedData = JSON.parse(localStorage.getItem(`vitals_${today}`) || '{"readings": []}');
-    const logs = (savedData.readings || []).map((r: any, i: number) => ({
-      id: r.id || `local-${i}`,
-      bp_systolic: r.systolic,
-      bp_diastolic: r.diastolic,
-      heart_rate: r.pulse,
-      weight: null,
-      temperature: null,
-      measured_at: r.timestamp || new Date().toISOString(),
-      source: 'manual' as const,
-    }));
-    setLocalLogs(logs);
-  }, []);
-
-  // Combine API logs with local logs
-  const allLogs = todayLogs && todayLogs.length > 0 ? todayLogs : localLogs;
+  const allLogs = todayLogs || [];
   const latestLog = allLogs[0];
 
   // BP Status
@@ -90,42 +67,19 @@ export function VitalsForm({ onSuccess, onCancel }: VitalsFormProps) {
     setIsSaving(true);
 
     try {
-      if (patientId) {
-        await saveVitals.mutateAsync({
-          patientId,
-          bp_systolic: sys,
-          bp_diastolic: dia,
-          heart_rate: hr,
-        });
-      } else {
-        // Save to localStorage for development
-        const now = new Date();
-        const today = now.toISOString().split('T')[0];
-        const reading = {
-          id: Date.now().toString(),
-          systolic: sys,
-          diastolic: dia,
-          pulse: hr,
-          timestamp: now.toISOString(),
-        };
-
-        const savedData = JSON.parse(localStorage.getItem(`vitals_${today}`) || '{"readings": []}');
-        savedData.readings.unshift(reading);
-        localStorage.setItem(`vitals_${today}`, JSON.stringify(savedData));
-
-        // Update local logs
-        const newLog: VitalsLog = {
-          id: reading.id,
-          bp_systolic: sys,
-          bp_diastolic: dia,
-          heart_rate: hr || null,
-          weight: null,
-          temperature: null,
-          measured_at: reading.timestamp,
-          source: 'manual',
-        };
-        setLocalLogs((prev) => [newLog, ...prev]);
+      // Ensure patient profile exists (auto-create if needed)
+      const resolvedPatientId = await ensurePatient();
+      if (!resolvedPatientId) {
+        toast({ description: 'ไม่สามารถสร้างโปรไฟล์ได้ กรุณาลองใหม่อีกครั้ง', variant: 'destructive' });
+        return;
       }
+
+      await saveVitals.mutateAsync({
+        patientId: resolvedPatientId,
+        bp_systolic: sys,
+        bp_diastolic: dia,
+        heart_rate: hr,
+      });
 
       toast({ description: 'บันทึกความดันเรียบร้อยแล้ว' });
 
@@ -145,15 +99,6 @@ export function VitalsForm({ onSuccess, onCancel }: VitalsFormProps) {
     }
   };
 
-  const handleDeleteLog = (logId: string) => {
-    const today = new Date().toISOString().split('T')[0];
-    const savedData = JSON.parse(localStorage.getItem(`vitals_${today}`) || '{"readings": []}');
-    savedData.readings = savedData.readings.filter((r: any) => r.id !== logId);
-    localStorage.setItem(`vitals_${today}`, JSON.stringify(savedData));
-    setLocalLogs((prev) => prev.filter((l) => l.id !== logId));
-    toast({ description: 'ลบรายการเรียบร้อยแล้ว' });
-  };
-
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'normal':
@@ -171,6 +116,16 @@ export function VitalsForm({ onSuccess, onCancel }: VitalsFormProps) {
         return null;
     }
   };
+
+  // Show loading state
+  if (authLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 space-y-3">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <p className="text-sm text-muted-foreground">กำลังโหลด...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 pb-4">
@@ -307,16 +262,6 @@ export function VitalsForm({ onSuccess, onCancel }: VitalsFormProps) {
                       </div>
                     )}
                   </div>
-                  {!patientId && (
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      className="h-8"
-                      onClick={() => handleDeleteLog(log.id)}
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </Button>
-                  )}
                 </div>
               );
             })}

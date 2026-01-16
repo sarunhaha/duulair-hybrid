@@ -52,6 +52,41 @@ router.post('/check', async (req: Request, res: Response) => {
 });
 
 /**
+ * POST /api/registration/auto-create
+ * Auto-create minimal patient profile for LIFF health recording
+ * สร้าง patient profile อัตโนมัติ เมื่อ user ต้องการบันทึกข้อมูลสุขภาพ
+ */
+router.post('/auto-create', async (req: Request, res: Response) => {
+  try {
+    const { line_user_id, display_name, picture_url } = req.body;
+
+    if (!line_user_id || !display_name) {
+      return res.status(400).json({
+        success: false,
+        error: 'line_user_id and display_name are required'
+      });
+    }
+
+    const result = await userService.autoCreatePatient(
+      line_user_id,
+      display_name,
+      picture_url
+    );
+
+    res.json({
+      success: true,
+      ...result
+    });
+  } catch (error: any) {
+    console.error('Auto-create patient error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'สร้าง patient profile ไม่สำเร็จ'
+    });
+  }
+});
+
+/**
  * POST /api/registration/patient
  * ลงทะเบียน Patient
  */

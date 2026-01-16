@@ -21,7 +21,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
-import { useAuthStore } from '@/stores/auth';
+import { useEnsurePatient } from '@/hooks/use-ensure-patient';
 import { useLogSymptom } from '@/lib/api/hooks/use-health';
 import { useToast } from '@/hooks/use-toast';
 
@@ -62,9 +62,7 @@ const SEVERITY_LEVELS = [
 ];
 
 export function SymptomForm({ onSuccess, onCancel }: SymptomFormProps) {
-  const { context, user } = useAuthStore();
-  // Fallback to user.profileId if context.patientId is null (for patient role)
-  const patientId = context.patientId || (user.role === 'patient' ? user.profileId : null);
+  const { isLoading: authLoading, ensurePatient } = useEnsurePatient();
   const { toast } = useToast();
   const logSymptom = useLogSymptom();
 
@@ -129,34 +127,25 @@ export function SymptomForm({ onSuccess, onCancel }: SymptomFormProps) {
     setIsSaving(true);
 
     try {
+      // Ensure patient profile exists (auto-create if needed)
+      const resolvedPatientId = await ensurePatient();
+      if (!resolvedPatientId) {
+        toast({ description: 'ไม่สามารถสร้างโปรไฟล์ได้ กรุณาลองใหม่อีกครั้ง', variant: 'destructive' });
+        return;
+      }
+
       const symptomLabels = getSymptomLabels();
 
-      if (patientId) {
-        // Log each symptom separately
-        for (const symptomName of symptomLabels) {
-          await logSymptom.mutateAsync({
-            patientId,
-            symptom_name: symptomName,
-            severity_1to5: severity,
-            body_location: location || undefined,
-            duration_text: duration || undefined,
-            notes: note.trim() || undefined,
-          });
-        }
-      } else {
-        // Save to localStorage for development
-        const today = new Date().toISOString().split('T')[0];
-        const log = {
-          symptoms: symptomLabels,
-          severity,
-          location,
-          duration,
-          note: note.trim() || null,
-          logged_at: new Date().toISOString(),
-        };
-        const savedData = JSON.parse(localStorage.getItem(`symptoms_${today}`) || '{"logs": []}');
-        savedData.logs.push(log);
-        localStorage.setItem(`symptoms_${today}`, JSON.stringify(savedData));
+      // Log each symptom separately
+      for (const symptomName of symptomLabels) {
+        await logSymptom.mutateAsync({
+          patientId: resolvedPatientId,
+          symptom_name: symptomName,
+          severity_1to5: severity,
+          body_location: location || undefined,
+          duration_text: duration || undefined,
+          notes: note.trim() || undefined,
+        });
       }
 
       toast({ description: `บันทึก ${symptomLabels.length} อาการเรียบร้อย` });
@@ -182,6 +171,16 @@ export function SymptomForm({ onSuccess, onCancel }: SymptomFormProps) {
 
   const allSelectedLabels = getSymptomLabels();
   const canSubmit = selectedSymptoms.size > 0 && severity !== null;
+
+  // Show loading state
+  if (authLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 space-y-3">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <p className="text-sm text-muted-foreground">กำลังโหลด...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 pb-4">

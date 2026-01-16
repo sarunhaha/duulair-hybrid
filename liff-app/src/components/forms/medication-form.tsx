@@ -15,7 +15,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
-import { useAuthStore } from '@/stores/auth';
+import { useEnsurePatient } from '@/hooks/use-ensure-patient';
 import { usePatientMedications, useTodayMedicationLogs, useLogMedication, type Medication } from '@/lib/api/hooks/use-health';
 import { useToast } from '@/hooks/use-toast';
 import { useLocation } from 'wouter';
@@ -68,9 +68,7 @@ function formatDosage(med: Medication): string {
 }
 
 export function MedicationForm({ onSuccess, onCancel }: MedicationFormProps) {
-  const { context, user } = useAuthStore();
-  // Fallback to user.profileId if context.patientId is null (for patient role)
-  const patientId = context.patientId || (user.role === 'patient' ? user.profileId : null);
+  const { patientId, isLoading: authLoading, ensurePatient } = useEnsurePatient();
   const { toast } = useToast();
   const [, navigate] = useLocation();
 
@@ -133,30 +131,23 @@ export function MedicationForm({ onSuccess, onCancel }: MedicationFormProps) {
     setIsSaving(true);
 
     try {
-      if (patientId) {
-        // Log each medication separately
-        for (const medId of Array.from(selectedMeds)) {
-          const med = (medications || []).find(m => m.id === medId);
-          await logMedication.mutateAsync({
-            patientId,
-            medication_id: medId,
-            medication_name: med?.name,
-            dosage: med?.dosage_amount ? `${med.dosage_amount} ${med.dosage_unit}` : undefined,
-            note: note.trim() || undefined,
-          });
-        }
-      } else {
-        // Save to localStorage for development
-        const today = new Date().toISOString().split('T')[0];
-        const logs = Array.from(selectedMeds).map((medId) => ({
+      // Ensure patient profile exists (auto-create if needed)
+      const resolvedPatientId = await ensurePatient();
+      if (!resolvedPatientId) {
+        toast({ description: 'ไม่สามารถสร้างโปรไฟล์ได้ กรุณาลองใหม่อีกครั้ง', variant: 'destructive' });
+        return;
+      }
+
+      // Log each medication separately
+      for (const medId of Array.from(selectedMeds)) {
+        const med = (medications || []).find(m => m.id === medId);
+        await logMedication.mutateAsync({
+          patientId: resolvedPatientId,
           medication_id: medId,
-          time_period: currentPeriod,
-          note: note.trim() || null,
-          logged_at: new Date().toISOString(),
-        }));
-        const savedData = JSON.parse(localStorage.getItem(`meds_${today}`) || '{"logs": []}');
-        savedData.logs.push(...logs);
-        localStorage.setItem(`meds_${today}`, JSON.stringify(savedData));
+          medication_name: med?.name,
+          dosage: med?.dosage_amount ? `${med.dosage_amount} ${med.dosage_unit}` : undefined,
+          note: note.trim() || undefined,
+        });
       }
 
       toast({ description: `บันทึกกินยา ${selectedMeds.size} รายการเรียบร้อย` });
@@ -178,6 +169,16 @@ export function MedicationForm({ onSuccess, onCancel }: MedicationFormProps) {
     evening: 'เย็น',
     night: 'ก่อนนอน',
   };
+
+  // Show loading state
+  if (authLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 space-y-3">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <p className="text-sm text-muted-foreground">กำลังโหลด...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 pb-4">

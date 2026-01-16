@@ -130,6 +130,102 @@ export class UserService {
   }
 
   /**
+   * Auto-create minimal patient profile for LIFF health recording
+   * Creates user and patient_profile with minimal info (just display name from LINE)
+   * Returns existing patientId if already exists
+   */
+  async autoCreatePatient(
+    lineUserId: string,
+    displayName: string,
+    pictureUrl?: string
+  ): Promise<{ patientId: string; isNew: boolean }> {
+    console.log(`🔄 UserService.autoCreatePatient() - lineUserId: ${lineUserId}`);
+
+    // 1. Check if user already exists
+    const { data: existingUser, error: checkError } = await supabase
+      .from('users')
+      .select('id, role')
+      .eq('line_user_id', lineUserId)
+      .maybeSingle();
+
+    if (checkError) {
+      console.error('❌ Error checking existing user:', checkError);
+      throw new Error('เกิดข้อผิดพลาดในการตรวจสอบข้อมูล');
+    }
+
+    // 2. If user exists, get their patient profile
+    if (existingUser) {
+      console.log('📬 User exists:', existingUser);
+
+      // Check for patient profile
+      const { data: patientProfile } = await supabase
+        .from('patient_profiles')
+        .select('id')
+        .eq('user_id', existingUser.id)
+        .maybeSingle();
+
+      if (patientProfile) {
+        console.log('✅ Patient profile exists:', patientProfile.id);
+        return { patientId: patientProfile.id, isNew: false };
+      }
+
+      // User exists but no patient profile - create one
+      const { data: newProfile, error: profileError } = await supabase
+        .from('patient_profiles')
+        .insert({
+          user_id: existingUser.id,
+          first_name: displayName,
+          last_name: '',
+        })
+        .select('id')
+        .single();
+
+      if (profileError || !newProfile) {
+        throw new Error('สร้าง patient profile ไม่สำเร็จ: ' + profileError?.message);
+      }
+
+      console.log('✅ Created new patient profile for existing user:', newProfile.id);
+      return { patientId: newProfile.id, isNew: true };
+    }
+
+    // 3. User doesn't exist - create user and patient profile
+    console.log('📭 User not found, creating new user and profile');
+
+    const { data: newUser, error: userError } = await supabase
+      .from('users')
+      .insert({
+        line_user_id: lineUserId,
+        display_name: displayName,
+        picture_url: pictureUrl || null,
+        role: 'patient',
+        language: 'th'
+      })
+      .select('id')
+      .single();
+
+    if (userError || !newUser) {
+      throw new Error('สร้าง user ไม่สำเร็จ: ' + userError?.message);
+    }
+
+    const { data: newProfile, error: profileError } = await supabase
+      .from('patient_profiles')
+      .insert({
+        user_id: newUser.id,
+        first_name: displayName,
+        last_name: '',
+      })
+      .select('id')
+      .single();
+
+    if (profileError || !newProfile) {
+      throw new Error('สร้าง patient profile ไม่สำเร็จ: ' + profileError?.message);
+    }
+
+    console.log('✅ Created new user and patient profile:', newProfile.id);
+    return { patientId: newProfile.id, isNew: true };
+  }
+
+  /**
    * ลงทะเบียน Patient
    */
   async registerPatient(

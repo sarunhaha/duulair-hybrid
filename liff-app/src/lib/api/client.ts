@@ -186,4 +186,16 @@ export const registrationApi = {
   async generateLinkCode(patientId: string): Promise<LinkCodeResponse> {
     return apiClient.post(endpoints.registration.generateLinkCode, { patient_id: patientId });
   },
+
+  /**
+   * Auto-create patient profile for health recording
+   * Creates minimal profile if user doesn't have one yet
+   */
+  async autoCreatePatient(lineUserId: string, displayName: string, pictureUrl?: string): Promise<{ success: boolean; patientId: string; isNew: boolean }> {
+    return apiClient.post('/registration/auto-create', {
+      line_user_id: lineUserId,
+      display_name: displayName,
+      picture_url: pictureUrl,
+    });
+  },
 };
