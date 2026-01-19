@@ -660,6 +660,142 @@ function createReportMenuFlexMessage(): FlexMessage {
   };
 }
 
+// Flex Message for Medication Response (ตอบกลับเมื่อบันทึกยา)
+function createMedicationResponseFlexMessage(
+  responseText: string,
+  medicationName?: string,
+  taken: boolean = true,
+  patientName?: string
+): FlexMessage {
+  const status = taken ? 'taken' : 'not_taken';
+  const config = {
+    taken: {
+      emoji: '✅',
+      title: 'บันทึกเรียบร้อย',
+      color: '#22C55E', // Green
+      bgColor: '#DCFCE7',
+      statusText: 'กินยาแล้ว'
+    },
+    not_taken: {
+      emoji: '⏰',
+      title: 'รับทราบ',
+      color: '#F59E0B', // Amber
+      bgColor: '#FEF3C7',
+      statusText: 'ยังไม่ได้กินยา'
+    }
+  };
+  const c = config[status];
+
+  // Build optional content boxes
+  const optionalContents: any[] = [];
+
+  if (medicationName) {
+    optionalContents.push({
+      type: 'box' as const,
+      layout: 'horizontal' as const,
+      contents: [
+        { type: 'text' as const, text: '💊', flex: 0 },
+        { type: 'text' as const, text: medicationName, color: '#555555', margin: 'sm' as const, wrap: true }
+      ]
+    });
+  }
+
+  if (patientName) {
+    optionalContents.push({
+      type: 'box' as const,
+      layout: 'horizontal' as const,
+      contents: [
+        { type: 'text' as const, text: '👤', flex: 0 },
+        { type: 'text' as const, text: patientName, color: '#555555', margin: 'sm' as const }
+      ]
+    });
+  }
+
+  // Build footer buttons
+  const footerButtons: any[] = taken
+    ? [{
+        type: 'button' as const,
+        action: { type: 'message' as const, label: '⏰ ยังไม่ได้กินยา', text: 'ยังไม่ได้กินยา' },
+        style: 'secondary' as const,
+        height: 'sm' as const
+      }]
+    : [{
+        type: 'button' as const,
+        action: { type: 'message' as const, label: '✅ กินยาแล้ว', text: 'กินยาแล้ว' },
+        style: 'primary' as const,
+        color: '#9333EA',
+        height: 'sm' as const
+      }];
+
+  footerButtons.push({
+    type: 'button' as const,
+    action: { type: 'message' as const, label: '📋 ดูรายการยา', text: 'ดูรายการยา' },
+    style: 'secondary' as const,
+    height: 'sm' as const
+  });
+
+  return {
+    type: 'flex',
+    altText: `💊 ${c.statusText}`,
+    contents: {
+      type: 'bubble',
+      size: 'kilo',
+      header: {
+        type: 'box',
+        layout: 'horizontal',
+        backgroundColor: c.color,
+        paddingAll: 'lg',
+        contents: [
+          { type: 'text', text: '💊', size: 'xl', flex: 0 },
+          { type: 'text', text: c.title, weight: 'bold', size: 'lg', color: '#FFFFFF', margin: 'sm' }
+        ],
+        alignItems: 'center'
+      },
+      body: {
+        type: 'box',
+        layout: 'vertical',
+        paddingAll: 'lg',
+        spacing: 'md',
+        contents: [
+          // Status badge
+          {
+            type: 'box',
+            layout: 'horizontal',
+            backgroundColor: c.bgColor,
+            cornerRadius: 'lg',
+            paddingAll: 'md',
+            contents: [
+              { type: 'text', text: c.emoji, flex: 0 },
+              { type: 'text', text: c.statusText, weight: 'bold', color: c.color, margin: 'sm' }
+            ],
+            justifyContent: 'center'
+          },
+          // Optional: Medication name & Patient name
+          ...optionalContents,
+          // Time
+          {
+            type: 'box',
+            layout: 'horizontal',
+            contents: [
+              { type: 'text', text: '🕐', flex: 0 },
+              { type: 'text', text: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.', color: '#888888', margin: 'sm', size: 'sm' }
+            ]
+          },
+          // Response text from AI
+          { type: 'text', text: responseText, wrap: true, color: '#333333', margin: 'lg', size: 'sm' }
+        ]
+      },
+      footer: {
+        type: 'box',
+        layout: 'vertical',
+        spacing: 'sm',
+        paddingAll: 'lg',
+        contents: footerButtons
+      }
+    }
+  };
+}
+
 // Flex Message for Health Logging Menu (บันทึกสุขภาพ)
 function createHealthLogMenuFlexMessage(): FlexMessage {
   return {
@@ -1923,6 +2059,56 @@ async function handleTextMessage(event: any) {
     // Support both Natural Conversation mode (result.data.response) and legacy mode (result.data.combined.response)
     const responseText = result.data?.response || result.data?.combined?.response;
     if (result.success && responseText) {
+      // Check if this is a medication-related intent - send Flex Message instead of text
+      const healthDataType = result.metadata?.healthData?.type || result.data?.nluResult?.healthData?.type;
+      const isMedicationIntent =
+        intent === 'health_log' && healthDataType === 'medication' ||
+        originalMessage.match(/กินยา|ทานยา|ยังไม่ได้กิน|ไม่ได้กินยา/i);
+
+      if (isMedicationIntent) {
+        // Extract medication info from result
+        const medicationData = result.metadata?.healthData?.medication || result.data?.nluResult?.healthData?.medication;
+        const taken = medicationData?.taken !== false; // Default to true if not specified
+        const medicationName = medicationData?.medicationName;
+
+        // Get patient name if in group context
+        let patientNameForFlex: string | undefined;
+        if (context.patientId) {
+          try {
+            const { createClient } = await import('@supabase/supabase-js');
+            const supabase = createClient(
+              process.env.SUPABASE_URL || '',
+              process.env.SUPABASE_SERVICE_KEY || ''
+            );
+            const { data: patient } = await supabase
+              .from('patient_profiles')
+              .select('first_name')
+              .eq('id', context.patientId)
+              .single();
+            patientNameForFlex = patient?.first_name;
+          } catch (err) {
+            // Ignore - patient name is optional
+          }
+        }
+
+        const medicationFlexMessage = createMedicationResponseFlexMessage(
+          responseText,
+          medicationName,
+          taken,
+          patientNameForFlex
+        );
+
+        try {
+          await lineClient.replyMessage(replyToken, medicationFlexMessage);
+          console.log('✅ Medication Flex Message sent');
+          return result;
+        } catch (flexError) {
+          console.error('❌ Failed to send Medication Flex, falling back to text:', flexError);
+          // Fall through to send text message
+        }
+      }
+
+      // Send text reply (default or fallback)
       const replyMessage: TextMessage = {
         type: 'text',
         text: responseText

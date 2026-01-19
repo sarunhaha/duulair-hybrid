@@ -460,9 +460,14 @@ router.get('/today/:patientId', async (req: Request, res: Response) => {
   }
 
   try {
-    const today = new Date().toISOString().split('T')[0];
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
+    // Use Thailand timezone (GMT+7) for date calculations
+    const nowInThailand = new Date(new Date().getTime() + (7 * 60 * 60 * 1000));
+    const today = nowInThailand.toISOString().split('T')[0];
+
+    // Start of today in Thailand timezone, converted to UTC for DB query
+    const todayStart = new Date(today + 'T00:00:00+07:00');
+
+    console.log('[/health/today] patientId:', patientId, 'today:', today, 'todayStart:', todayStart.toISOString());
 
     const [vitals, water, medications, symptoms, sleep, exercise] = await Promise.all([
       supabase
@@ -533,16 +538,25 @@ router.get('/history/:patientId', async (req: Request, res: Response) => {
   }
 
   try {
-    const daysAgo = new Date();
+    // Use Thailand timezone (GMT+7) for date calculations
+    const nowInThailand = new Date(new Date().getTime() + (7 * 60 * 60 * 1000));
+    const daysAgo = new Date(nowInThailand.getTime());
     daysAgo.setDate(daysAgo.getDate() - parseInt(days as string));
+
+    // Start of the day X days ago in Thailand timezone
     const startDate = daysAgo.toISOString().split('T')[0];
+    const startDateTime = new Date(startDate + 'T00:00:00+07:00');
+
+    console.log('[/health/history] patientId:', patientId, 'days:', days, 'startDate:', startDate, 'startDateTime:', startDateTime.toISOString());
+
+    const startDateTimeISO = startDateTime.toISOString();
 
     const [vitals, water, medications, symptoms, sleep, exercise] = await Promise.all([
       supabase
         .from('vitals_logs')
         .select('*')
         .eq('patient_id', patientId)
-        .gte('measured_at', daysAgo.toISOString())
+        .gte('measured_at', startDateTimeISO)
         .order('measured_at', { ascending: false })
         .limit(100),
 
@@ -558,7 +572,7 @@ router.get('/history/:patientId', async (req: Request, res: Response) => {
         .from('medication_logs')
         .select('*')
         .eq('patient_id', patientId)
-        .gte('taken_at', daysAgo.toISOString())
+        .gte('taken_at', startDateTimeISO)
         .order('taken_at', { ascending: false })
         .limit(100),
 
@@ -566,7 +580,7 @@ router.get('/history/:patientId', async (req: Request, res: Response) => {
         .from('symptoms')
         .select('*')
         .eq('patient_id', patientId)
-        .gte('created_at', daysAgo.toISOString())
+        .gte('created_at', startDateTimeISO)
         .order('created_at', { ascending: false })
         .limit(100),
 
@@ -586,6 +600,8 @@ router.get('/history/:patientId', async (req: Request, res: Response) => {
         .order('exercise_date', { ascending: false })
         .limit(100),
     ]);
+
+    console.log('[/health/history] Results - vitals:', vitals.data?.length || 0, 'sleep:', sleep.data?.length || 0);
 
     return res.json({
       vitals: vitals.data || [],
