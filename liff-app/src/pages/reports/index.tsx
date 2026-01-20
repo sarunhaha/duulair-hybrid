@@ -49,6 +49,7 @@ import {
   exportToCSV,
   exportToPDF,
 } from '@/lib/api/hooks/use-reports';
+import { BottomNav } from '@/components/layout/bottom-nav';
 
 // --- Helper for Dates ---
 const getLastNDays = (n: number) => {
@@ -237,7 +238,7 @@ export default function ReportsPage() {
   };
 
   return (
-    <div className="min-h-screen pb-8 font-sans relative z-10 bg-background">
+    <div className="min-h-screen pb-32 font-sans relative z-10 bg-background">
       {/* Top Bar */}
       <header className="bg-card pt-12 pb-4 px-4 sticky top-0 z-20 flex justify-between items-center border-b border-border shadow-sm">
         <div className="flex items-center gap-3">
@@ -714,6 +715,8 @@ export default function ReportsPage() {
           </div>
         </DrawerContent>
       </Drawer>
+
+      <BottomNav />
     </div>
   );
 }

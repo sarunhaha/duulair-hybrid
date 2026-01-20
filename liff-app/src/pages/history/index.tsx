@@ -16,6 +16,8 @@ import {
   FileText,
   ClipboardList,
   Loader2,
+  Calendar,
+  ChevronDown,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -30,6 +32,7 @@ import {
 } from '@/components/ui/drawer';
 import { useHealthHistory } from '@/lib/api/hooks/use-health';
 import { useEnsurePatient } from '@/hooks/use-ensure-patient';
+import { BottomNav } from '@/components/layout/bottom-nav';
 
 interface HistoryItem {
   id: number;
@@ -55,15 +58,25 @@ const TYPE_CONFIG: Record<string, { icon: React.ComponentType<{ className?: stri
   exercise: { icon: Dumbbell, color: 'text-purple-500', bg: 'bg-purple-50 dark:bg-purple-950/30' },
 };
 
+// Date range options
+const DATE_RANGES = [
+  { id: 7, label: '7 วัน', shortLabel: '7 วัน' },
+  { id: 14, label: '14 วัน', shortLabel: '14 วัน' },
+  { id: 30, label: '30 วัน', shortLabel: '30 วัน' },
+  { id: 90, label: '3 เดือน', shortLabel: '3 เดือน' },
+];
+
 export default function HistoryPage() {
   const [, setLocation] = useLocation();
   const [filter, setFilter] = useState('all');
+  const [dateRange, setDateRange] = useState(7); // Default 7 days
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [editingItem, setEditingItem] = useState<HistoryItem | null>(null);
   const [success, setSuccess] = useState(false);
 
-  // Fetch real data
+  // Fetch real data with date range
   const { patientId, isLoading: authLoading } = useEnsurePatient();
-  const { data: healthHistory, isLoading: historyLoading } = useHealthHistory(patientId);
+  const { data: healthHistory, isLoading: historyLoading } = useHealthHistory(patientId, dateRange);
 
   // Mock History Data - แสดงเฉพาะใน tab "ตัวอย่างข้อมูล"
   const mockHistoryData: HistoryItem[] = [
@@ -121,18 +134,58 @@ export default function HistoryPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-8 font-sans relative z-10">
-      {/* Header - ไม่มี calendar icon เพราะ user อาจสับสนว่ากดได้ */}
-      <header className="bg-card pt-12 pb-4 px-6 sticky top-0 z-20 flex items-center gap-4 border-b border-border">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="rounded-full -ml-2"
-          onClick={() => setLocation('/records')}
-        >
-          <ChevronLeft className="w-6 h-6 text-foreground" />
-        </Button>
-        <h1 className="text-xl font-bold text-foreground">ประวัติการบันทึก</h1>
+    <div className="min-h-screen bg-background pb-32 font-sans relative z-10">
+      {/* Header with date range selector */}
+      <header className="bg-card pt-12 pb-4 px-6 sticky top-0 z-20 border-b border-border">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="rounded-full -ml-2"
+              onClick={() => setLocation('/records')}
+            >
+              <ChevronLeft className="w-6 h-6 text-foreground" />
+            </Button>
+            <h1 className="text-xl font-bold text-foreground">ประวัติการบันทึก</h1>
+          </div>
+          {/* Date Range Button */}
+          <Button
+            variant="outline"
+            size="sm"
+            className="rounded-full gap-1.5 px-3 h-9"
+            onClick={() => setShowDatePicker(!showDatePicker)}
+          >
+            <Calendar className="w-4 h-4" />
+            <span className="text-xs font-medium">
+              {DATE_RANGES.find(d => d.id === dateRange)?.shortLabel}
+            </span>
+            <ChevronDown className={cn("w-3 h-3 transition-transform", showDatePicker && "rotate-180")} />
+          </Button>
+        </div>
+
+        {/* Date Range Dropdown */}
+        {showDatePicker && (
+          <div className="mt-3 flex gap-2 animate-in slide-in-from-top-2 duration-200">
+            {DATE_RANGES.map((range) => (
+              <button
+                key={range.id}
+                onClick={() => {
+                  setDateRange(range.id);
+                  setShowDatePicker(false);
+                }}
+                className={cn(
+                  'flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all border',
+                  dateRange === range.id
+                    ? 'bg-primary text-primary-foreground border-primary shadow-md shadow-primary/20'
+                    : 'bg-card text-muted-foreground border-border hover:border-primary/50'
+                )}
+              >
+                {range.label}
+              </button>
+            ))}
+          </div>
+        )}
       </header>
 
       <main className="max-w-md mx-auto px-4 py-6 space-y-6">
@@ -424,6 +477,8 @@ export default function HistoryPage() {
           </div>
         </DrawerContent>
       </Drawer>
+
+      <BottomNav />
     </div>
   );
 }

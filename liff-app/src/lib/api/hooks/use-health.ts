@@ -483,13 +483,13 @@ export interface HealthHistoryItem {
   raw: unknown;
 }
 
-export function useHealthHistory(patientId: string | null) {
+export function useHealthHistory(patientId: string | null, days: number = 7) {
   return useQuery({
-    queryKey: patientId ? ['health', 'history', patientId] : ['history', 'none'],
+    queryKey: patientId ? ['health', 'history', patientId, days] : ['history', 'none'],
     queryFn: async (): Promise<HealthHistoryItem[]> => {
       if (!patientId) return [];
       try {
-        // Get historical data (last 30 days)
+        // Get historical data (configurable days, default 7)
         const data = await apiClient.get<{
           vitals: VitalsLog[];
           sleep: SleepLog[];
@@ -497,7 +497,7 @@ export function useHealthHistory(patientId: string | null) {
           medications: MedicationLog[];
           water: WaterLog[];
           exercise: { id: string; exercise_type: string | null; duration_minutes: number | null; created_at: string }[];
-        }>(`/health/history/${patientId}`);
+        }>(`/health/history/${patientId}?days=${days}`);
 
         const items: HealthHistoryItem[] = [];
         const today = new Date().toISOString().split('T')[0];
