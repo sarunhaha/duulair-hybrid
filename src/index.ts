@@ -2061,9 +2061,12 @@ async function handleTextMessage(event: any) {
     if (result.success && responseText) {
       // Check if this is a medication-related intent - send Flex Message instead of text
       const healthDataType = result.metadata?.healthData?.type || result.data?.nluResult?.healthData?.type;
+      const messageMatchesMedication = /กินยา|ทานยา|ยังไม่ได้กิน|ไม่ได้กินยา/i.test(originalMessage);
       const isMedicationIntent =
-        intent === 'health_log' && healthDataType === 'medication' ||
-        originalMessage.match(/กินยา|ทานยา|ยังไม่ได้กิน|ไม่ได้กินยา/i);
+        (intent === 'health_log' && healthDataType === 'medication') ||
+        messageMatchesMedication;
+
+      console.log('[Medication Check]', { intent, healthDataType, messageMatchesMedication, isMedicationIntent, originalMessage: originalMessage.substring(0, 50) });
 
       if (isMedicationIntent) {
         // Extract medication info from result
