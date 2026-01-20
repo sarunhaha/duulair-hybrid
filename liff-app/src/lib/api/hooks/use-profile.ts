@@ -212,17 +212,24 @@ export function useCaregiverPatients(caregiverId: string | null) {
 
 // Medications Hook
 export function usePatientMedicationsAll(patientId: string | null) {
+  console.log('[usePatientMedicationsAll] Called with patientId:', patientId);
   return useQuery({
     queryKey: patientId ? profileKeys.medications(patientId) : ['profile', 'medications', 'none'],
     queryFn: async (): Promise<Medication[]> => {
-      if (!patientId) return [];
+      console.log('[usePatientMedicationsAll] queryFn executing, patientId:', patientId);
+      if (!patientId) {
+        console.warn('[usePatientMedicationsAll] No patientId, returning empty array');
+        return [];
+      }
       try {
         // Backend endpoint: GET /api/medications/patient/:patientId (medication.routes.ts)
+        console.log('[usePatientMedicationsAll] Calling API:', `/medications/patient/${patientId}`);
         const data = await apiClient.get<{ success: boolean; medications: Medication[] }>(`/medications/patient/${patientId}`);
         console.log('[usePatientMedicationsAll] API response:', data);
+        console.log('[usePatientMedicationsAll] Medications count:', data.medications?.length || 0);
         return data.medications || [];
       } catch (err) {
-        console.warn('[usePatientMedicationsAll] API error:', err);
+        console.error('[usePatientMedicationsAll] API error:', err);
         return [];
       }
     },
@@ -292,17 +299,24 @@ export function useDeleteMedication() {
 
 // Reminders Hook
 export function usePatientReminders(patientId: string | null) {
+  console.log('[usePatientReminders] Called with patientId:', patientId);
   return useQuery({
     queryKey: patientId ? profileKeys.reminders(patientId) : ['profile', 'reminders', 'none'],
     queryFn: async (): Promise<Reminder[]> => {
-      if (!patientId) return [];
+      console.log('[usePatientReminders] queryFn executing, patientId:', patientId);
+      if (!patientId) {
+        console.warn('[usePatientReminders] No patientId, returning empty array');
+        return [];
+      }
       try {
         // Backend endpoint: GET /api/reminders/patient/:patientId (reminder.routes.ts)
+        console.log('[usePatientReminders] Calling API:', `/reminders/patient/${patientId}`);
         const data = await apiClient.get<{ success: boolean; reminders: Reminder[] }>(`/reminders/patient/${patientId}`);
         console.log('[usePatientReminders] API response:', data);
+        console.log('[usePatientReminders] Reminders count:', data.reminders?.length || 0);
         return data.reminders || [];
       } catch (err) {
-        console.warn('[usePatientReminders] API error:', err);
+        console.error('[usePatientReminders] API error:', err);
         return [];
       }
     },
