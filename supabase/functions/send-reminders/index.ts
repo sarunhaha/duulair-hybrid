@@ -202,14 +202,13 @@ serve(async (req) => {
       }
     }
 
-    // Send to LINE groups - each reminder separately with Quick Reply
+    // Send to LINE groups - each reminder separately with Flex Message
     for (const [groupId, messages] of groupMessages) {
       for (const { message, reminder } of messages) {
         try {
-          const patientName = reminder.patient_profiles?.first_name || 'ผู้ป่วย'
-          const quickReplyItems = createQuickReplyItems(reminder.type, patientName)
-
-          await sendLineMessage(groupId, message, quickReplyItems)
+          // Use Flex Message instead of text
+          const flexMessage = createReminderFlexMessage(reminder)
+          await sendFlexMessage(groupId, flexMessage.contents, flexMessage.altText)
 
           // Log reminder as sent
           await supabase.from('reminder_logs').insert({
@@ -341,18 +340,19 @@ serve(async (req) => {
             .eq('patient_id', medication.patient_id)
             .eq('is_active', true)
 
-          // Send to ALL groups that have this patient
+          // Send to ALL groups that have this patient with Flex Message
           if (groupPatients && groupPatients.length > 0) {
             const patientName = medication.patient_profiles?.first_name || 'ผู้ป่วย'
-            const quickReplyItems = createQuickReplyItems('medication', patientName)
+            // Use Flex Message for medication reminders
+            const flexMessage = createMedicationFlexMessage(medication, currentTimePeriod!)
 
             for (const groupPatient of groupPatients) {
               if (groupPatient?.groups) {
                 const group = groupPatient.groups as unknown as GroupInfo
                 if (group.line_group_id) {
                   try {
-                    await sendLineMessage(group.line_group_id, message, quickReplyItems)
-                    console.log(`[Medication] Sent: ${medication.name} for ${patientName} to group ${group.line_group_id}`)
+                    await sendFlexMessage(group.line_group_id, flexMessage.contents, flexMessage.altText)
+                    console.log(`[Medication] Sent Flex: ${medication.name} for ${patientName} to group ${group.line_group_id}`)
                   } catch (err) {
                     console.error(`Error sending medication reminder to group ${group.line_group_id}:`, err)
                     medicationResults.errors++
@@ -518,6 +518,32 @@ async function sendLineMessage(to: string, message: string, quickReplyItems?: Qu
   }
 }
 
+// Send Flex Message for reminders
+async function sendFlexMessage(to: string, flexContent: any, altText: string): Promise<void> {
+  const messageObj = {
+    type: 'flex',
+    altText: altText,
+    contents: flexContent
+  }
+
+  const response = await fetch('https://api.line.me/v2/bot/message/push', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${LINE_CHANNEL_ACCESS_TOKEN}`
+    },
+    body: JSON.stringify({
+      to,
+      messages: [messageObj]
+    })
+  })
+
+  if (!response.ok) {
+    const error = await response.text()
+    throw new Error(`LINE API error: ${response.status} - ${error}`)
+  }
+}
+
 // ============================================
 // MEDICATION HELPER FUNCTIONS
 // ============================================
@@ -566,4 +592,215 @@ function formatMedicationMessage(medication: Medication, timePeriod: string): st
   message += `\n✅ กดปุ่มด้านล่าง หรือพิมพ์ "กินยาแล้ว ${patientName}"`
 
   return message
+}
+
+// Create Flex Message for medication reminder
+function createMedicationFlexMessage(medication: Medication, timePeriod: string): { contents: any, altText: string } {
+  const patient = medication.patient_profiles
+  const patientName = patient?.first_name || 'ผู้ป่วย'
+
+  const periodLabels: Record<string, string> = {
+    morning: 'เช้า',
+    afternoon: 'กลางวัน',
+    evening: 'เย็น',
+    night: 'ก่อนนอน'
+  }
+  const periodLabel = periodLabels[timePeriod] || timePeriod
+
+  const contents = {
+    type: 'bubble',
+    size: 'kilo',
+    header: {
+      type: 'box',
+      layout: 'vertical',
+      contents: [
+        {
+          type: 'box',
+          layout: 'horizontal',
+          contents: [
+            { type: 'text', text: '💊', size: 'xl', flex: 0 },
+            { type: 'text', text: `แจ้งเตือนกินยา (${periodLabel})`, weight: 'bold', size: 'md', color: '#FFFFFF', margin: 'sm', wrap: true }
+          ],
+          alignItems: 'center'
+        }
+      ],
+      backgroundColor: '#9333EA',
+      paddingAll: 'lg'
+    },
+    body: {
+      type: 'box',
+      layout: 'vertical',
+      contents: [
+        {
+          type: 'box',
+          layout: 'horizontal',
+          contents: [
+            { type: 'text', text: '👤', flex: 0 },
+            { type: 'text', text: patientName, color: '#555555', margin: 'sm', weight: 'bold' }
+          ]
+        },
+        {
+          type: 'box',
+          layout: 'horizontal',
+          contents: [
+            { type: 'text', text: '💊', flex: 0 },
+            { type: 'text', text: medication.name, color: '#555555', margin: 'sm', weight: 'bold' }
+          ],
+          margin: 'md'
+        },
+        ...(medication.dosage_amount && medication.dosage_unit ? [{
+          type: 'box',
+          layout: 'horizontal',
+          contents: [
+            { type: 'text', text: '📏', flex: 0 },
+            { type: 'text', text: `${medication.dosage_amount} ${medication.dosage_unit}`, color: '#888888', margin: 'sm', size: 'sm' }
+          ],
+          margin: 'md'
+        }] : []),
+        ...(medication.instructions ? [{
+          type: 'box',
+          layout: 'horizontal',
+          contents: [
+            { type: 'text', text: '📝', flex: 0 },
+            { type: 'text', text: medication.instructions, color: '#888888', margin: 'sm', size: 'sm', wrap: true }
+          ],
+          margin: 'md'
+        }] : [])
+      ],
+      paddingAll: 'lg'
+    },
+    footer: {
+      type: 'box',
+      layout: 'vertical',
+      contents: [
+        {
+          type: 'button',
+          action: { type: 'message', label: '✅ กินยาแล้ว', text: `กินยาแล้ว ${patientName}` },
+          style: 'primary',
+          color: '#9333EA',
+          height: 'sm'
+        },
+        {
+          type: 'button',
+          action: { type: 'message', label: '⏰ ยังไม่ได้กิน', text: `ยังไม่ได้กินยา ${patientName}` },
+          style: 'secondary',
+          height: 'sm',
+          margin: 'sm'
+        }
+      ],
+      paddingAll: 'lg'
+    }
+  }
+
+  return {
+    contents,
+    altText: `💊 แจ้งเตือนกินยา${periodLabel} - ${patientName}: ${medication.name}`
+  }
+}
+
+// Create Flex Message for general reminder
+function createReminderFlexMessage(reminder: Reminder): { contents: any, altText: string } {
+  const patient = reminder.patient_profiles
+  const patientName = patient?.first_name || 'ผู้ป่วย'
+
+  const typeConfig: Record<string, { emoji: string, name: string, color: string }> = {
+    medication: { emoji: '💊', name: 'กินยา', color: '#9333EA' },
+    vitals: { emoji: '🩺', name: 'วัดความดัน', color: '#EF4444' },
+    water: { emoji: '💧', name: 'ดื่มน้ำ', color: '#3B82F6' },
+    exercise: { emoji: '🏃', name: 'ออกกำลังกาย', color: '#22C55E' },
+    food: { emoji: '🍽️', name: 'ทานอาหาร', color: '#F97316' }
+  }
+
+  const config = typeConfig[reminder.type] || { emoji: '🔔', name: reminder.type, color: '#1E7B9C' }
+  const timeDisplay = reminder.time?.substring(0, 5) || '00:00'
+
+  const contents = {
+    type: 'bubble',
+    size: 'kilo',
+    header: {
+      type: 'box',
+      layout: 'vertical',
+      contents: [
+        {
+          type: 'box',
+          layout: 'horizontal',
+          contents: [
+            { type: 'text', text: config.emoji, size: 'xl', flex: 0 },
+            { type: 'text', text: `แจ้งเตือน${config.name}`, weight: 'bold', size: 'lg', color: '#FFFFFF', margin: 'sm' }
+          ],
+          alignItems: 'center'
+        }
+      ],
+      backgroundColor: config.color,
+      paddingAll: 'lg'
+    },
+    body: {
+      type: 'box',
+      layout: 'vertical',
+      contents: [
+        {
+          type: 'box',
+          layout: 'horizontal',
+          contents: [
+            { type: 'text', text: '👤', flex: 0 },
+            { type: 'text', text: `ผู้ป่วย: ${patientName}`, color: '#555555', margin: 'sm', weight: 'bold' }
+          ]
+        },
+        {
+          type: 'box',
+          layout: 'horizontal',
+          contents: [
+            { type: 'text', text: '🕐', flex: 0 },
+            { type: 'text', text: `เวลา: ${timeDisplay} น.`, color: '#555555', margin: 'sm' }
+          ],
+          margin: 'md'
+        },
+        ...(reminder.title ? [{
+          type: 'box',
+          layout: 'horizontal',
+          contents: [
+            { type: 'text', text: '📝', flex: 0 },
+            { type: 'text', text: reminder.title, color: '#555555', margin: 'sm', wrap: true }
+          ],
+          margin: 'md'
+        }] : []),
+        ...(reminder.description ? [{
+          type: 'box',
+          layout: 'horizontal',
+          contents: [
+            { type: 'text', text: '💬', flex: 0 },
+            { type: 'text', text: reminder.description, color: '#888888', margin: 'sm', wrap: true, size: 'sm' }
+          ],
+          margin: 'md'
+        }] : [])
+      ],
+      paddingAll: 'lg'
+    },
+    footer: {
+      type: 'box',
+      layout: 'vertical',
+      contents: [
+        {
+          type: 'button',
+          action: { type: 'message', label: `✅ ${config.name}แล้ว`, text: `${getConfirmCommand(reminder.type)} ${patientName}` },
+          style: 'primary',
+          color: config.color,
+          height: 'sm'
+        },
+        {
+          type: 'button',
+          action: { type: 'message', label: '⏰ ยังไม่ได้ทำ', text: `ยัง${config.name} ${patientName}` },
+          style: 'secondary',
+          height: 'sm',
+          margin: 'sm'
+        }
+      ],
+      paddingAll: 'lg'
+    }
+  }
+
+  return {
+    contents,
+    altText: `${config.emoji} แจ้งเตือน${config.name} - ${patientName} เวลา ${timeDisplay} น.`
+  }
 }
