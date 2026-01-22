@@ -37,17 +37,36 @@ interface CachedAuth {
 function getCachedAuth(lineUserId: string): RegistrationCheckResponse | null {
   try {
     const cached = localStorage.getItem(AUTH_CACHE_KEY);
+    console.log('[useAuth] getCachedAuth - cached raw:', cached ? 'exists' : 'null');
     if (!cached) return null;
 
     const parsed: CachedAuth = JSON.parse(cached);
+    console.log('[useAuth] getCachedAuth - parsed:', {
+      cachedUserId: parsed.lineUserId,
+      currentUserId: lineUserId,
+      timestamp: parsed.timestamp,
+      age: Date.now() - parsed.timestamp,
+      maxAge: AUTH_CACHE_DURATION,
+      hasData: !!parsed.data
+    });
 
     // Check if same user and not expired
-    if (parsed.lineUserId !== lineUserId) return null;
-    if (Date.now() - parsed.timestamp > AUTH_CACHE_DURATION) return null;
+    if (parsed.lineUserId !== lineUserId) {
+      console.log('[useAuth] getCachedAuth - user mismatch, clearing cache');
+      localStorage.removeItem(AUTH_CACHE_KEY);
+      return null;
+    }
+    if (Date.now() - parsed.timestamp > AUTH_CACHE_DURATION) {
+      console.log('[useAuth] getCachedAuth - cache expired, clearing');
+      localStorage.removeItem(AUTH_CACHE_KEY);
+      return null;
+    }
 
-    console.log('[useAuth] Using cached auth data');
+    console.log('[useAuth] Using cached auth data:', parsed.data);
     return parsed.data;
-  } catch {
+  } catch (e) {
+    console.error('[useAuth] getCachedAuth - error:', e);
+    localStorage.removeItem(AUTH_CACHE_KEY);
     return null;
   }
 }
@@ -72,8 +91,19 @@ export function useAuth(): AuthData {
 
   const lineUserId = profile?.userId || null;
 
+  console.log('[useAuth] Hook called:', {
+    isInitialized,
+    liffLoading,
+    lineUserId,
+    hasProfile: !!profile,
+    liffError: liffError?.message
+  });
+
   // Get initial data from cache for instant loading
   const initialData = lineUserId ? getCachedAuth(lineUserId) : undefined;
+
+  const queryEnabled = isInitialized && !liffLoading && !!lineUserId;
+  console.log('[useAuth] Query enabled:', queryEnabled, { isInitialized, liffLoading, hasLineUserId: !!lineUserId });
 
   const { data, isLoading: queryLoading, error: queryError } = useQuery({
     queryKey: ['auth', 'check', lineUserId],
@@ -90,13 +120,15 @@ export function useAuth(): AuthData {
 
       return result;
     },
-    enabled: isInitialized && !liffLoading && !!lineUserId,
+    enabled: queryEnabled,
     initialData, // Use cached data for instant display
     staleTime: 5 * 60 * 1000, // Consider fresh for 5 minutes
     gcTime: 30 * 60 * 1000, // Keep in memory for 30 minutes
     retry: 2,
     refetchOnMount: true, // Always refetch to ensure fresh data
   });
+
+  console.log('[useAuth] Query state:', { queryLoading, hasData: !!data, queryError: queryError?.message });
 
   // Still initializing LIFF
   if (!isInitialized || liffLoading) {

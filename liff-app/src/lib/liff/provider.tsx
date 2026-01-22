@@ -26,6 +26,7 @@ export function LiffProvider({ children, liffId = LIFF_ID }: LiffProviderProps) 
 
   useEffect(() => {
     const initLiff = async () => {
+      console.log('[LiffProvider] Starting LIFF init with ID:', liffId);
       try {
         // Check if liff is available (loaded from script tag)
         if (typeof window.liff === 'undefined') {
@@ -33,17 +34,27 @@ export function LiffProvider({ children, liffId = LIFF_ID }: LiffProviderProps) 
         }
 
         await window.liff.init({ liffId });
+        console.log('[LiffProvider] LIFF init complete');
 
         // Check login status
         if (!window.liff.isLoggedIn()) {
+          console.log('[LiffProvider] Not logged in, redirecting to login');
           window.liff.login();
           return;
         }
 
+        console.log('[LiffProvider] Logged in, fetching profile...');
         // Get profile and context
         const profile = await window.liff.getProfile() as LiffProfile;
         const context = window.liff.getContext() as LiffContext | null;
         const isInClient = window.liff.isInClient();
+
+        console.log('[LiffProvider] Profile fetched:', {
+          userId: profile?.userId,
+          displayName: profile?.displayName,
+          contextType: context?.type,
+          isInClient
+        });
 
         setState({
           isInitialized: true,
@@ -55,7 +66,7 @@ export function LiffProvider({ children, liffId = LIFF_ID }: LiffProviderProps) 
           isLoading: false,
         });
       } catch (error) {
-        console.error('LIFF initialization error:', error);
+        console.error('[LiffProvider] LIFF initialization error:', error);
         setState(prev => ({
           ...prev,
           error: error as Error,
