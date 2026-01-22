@@ -44,6 +44,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
+import { useEnsurePatient } from '@/hooks/use-ensure-patient';
 
 const TIME_OPTIONS = [
   { value: 'morning', label: 'เช้า (08:00)' },
@@ -105,18 +106,28 @@ export default function MedicationsPage() {
   const [, navigate] = useLocation();
   const auth = useAuth();
   const { toast } = useToast();
+  const ensurePatient = useEnsurePatient();
 
-  // Use patientId from auth hook
-  const patientId = auth.patientId;
+  // Use patientId from ensurePatient hook (auto-creates if needed)
+  const patientId = ensurePatient.patientId;
+
+  // Auto-ensure patient on mount
+  const [hasEnsured, setHasEnsured] = useState(false);
+
+  // Trigger auto-create when auth is ready but no patientId
+  if (!auth.isLoading && !ensurePatient.isLoading && !patientId && !hasEnsured) {
+    setHasEnsured(true);
+    ensurePatient.ensurePatient();
+  }
 
   // Debug: Log auth state
   console.log('[MedicationsPage] auth:', {
     isLoading: auth.isLoading,
     isAuthenticated: auth.isAuthenticated,
     isRegistered: auth.isRegistered,
-    patientId: auth.patientId,
+    patientId: ensurePatient.patientId,
     role: auth.role,
-    error: auth.error,
+    error: ensurePatient.error,
   });
 
   const { data: medications, isLoading } = usePatientMedicationsAll(patientId);
@@ -230,7 +241,7 @@ export default function MedicationsPage() {
   };
 
   // Show minimal loading state only while auth is checking
-  if (auth.isLoading) {
+  if (auth.isLoading || ensurePatient.isLoading) {
     return (
       <div className="min-h-screen pb-8 font-sans bg-background">
         <header className="bg-card pt-12 pb-4 px-6 sticky top-0 z-20 flex items-center gap-4 border-b border-border">
@@ -270,8 +281,9 @@ export default function MedicationsPage() {
           <p>patientId: <span className="font-mono">{patientId || 'NULL'}</span></p>
           <p>role: <span className="font-mono">{auth.role || 'NULL'}</span></p>
           <p>isRegistered: <span className="font-mono">{String(auth.isRegistered)}</span></p>
-          <p>isLoading: <span className="font-mono">{String(auth.isLoading)}</span></p>
-          <p>error: <span className="font-mono">{auth.error || 'none'}</span></p>
+          <p>authLoading: <span className="font-mono">{String(auth.isLoading)}</span></p>
+          <p>ensureLoading: <span className="font-mono">{String(ensurePatient.isLoading)}</span></p>
+          <p>error: <span className="font-mono">{ensurePatient.error || 'none'}</span></p>
           <p>medications count: <span className="font-mono">{medications?.length ?? 'loading...'}</span></p>
         </div>
 

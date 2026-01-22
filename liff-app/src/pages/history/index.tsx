@@ -75,8 +75,18 @@ export default function HistoryPage() {
   const [success, setSuccess] = useState(false);
 
   // Fetch real data with date range
-  const { patientId, isLoading: authLoading } = useEnsurePatient();
+  const ensurePatient = useEnsurePatient();
+  const { patientId, isLoading: authLoading } = ensurePatient;
   const { data: healthHistory, isLoading: historyLoading } = useHealthHistory(patientId, dateRange);
+
+  // Auto-ensure patient on mount
+  const [hasEnsured, setHasEnsured] = useState(false);
+
+  // Trigger auto-create when auth is ready but no patientId
+  if (!authLoading && !patientId && !hasEnsured) {
+    setHasEnsured(true);
+    ensurePatient.ensurePatient();
+  }
 
   // Mock History Data - แสดงเฉพาะใน tab "ตัวอย่างข้อมูล"
   const mockHistoryData: HistoryItem[] = [

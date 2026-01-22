@@ -136,7 +136,7 @@ serve(async (req) => {
 
     // Group reminders by LINE group for multicast
     const groupMessages: Map<string, { message: string, reminder: Reminder }[]> = new Map()
-    const directMessages: { userId: string, message: string, reminder: Reminder }[] = []
+    const directMessages: { userId: string, reminder: Reminder }[] = []
 
     for (const reminder of reminders as Reminder[]) {
       // Check frequency
@@ -197,7 +197,7 @@ serve(async (req) => {
           .single()
 
         if (user?.line_user_id) {
-          directMessages.push({ userId: user.line_user_id, message, reminder })
+          directMessages.push({ userId: user.line_user_id, reminder })
         }
       }
     }
@@ -227,47 +227,29 @@ serve(async (req) => {
       }
     }
 
-    // Send direct messages (use multicast for efficiency)
+    // Send direct messages with Flex Message
     if (directMessages.length > 0) {
-      // Group by unique users
-      const userMessages = new Map<string, string[]>()
-      for (const { userId, message, reminder } of directMessages) {
-        if (!userMessages.has(userId)) {
-          userMessages.set(userId, [])
-        }
-        userMessages.get(userId)!.push(message)
-      }
-
-      // Send using multicast (up to 500 users per request)
-      const userIds = Array.from(userMessages.keys())
-      const batchSize = 500
-
-      for (let i = 0; i < userIds.length; i += batchSize) {
-        const batch = userIds.slice(i, i + batchSize)
-
+      for (const { userId, reminder } of directMessages) {
         try {
-          // For simplicity, send individual messages
-          // In production, consider using multicast with same message
-          for (const userId of batch) {
-            const messages = userMessages.get(userId)!
-            const combinedMessage = messages.join('\n\n---\n\n')
-            await sendLineMessage(userId, combinedMessage)
-          }
+          // Use Flex Message for direct messages too
+          const flexMessage = createReminderFlexMessage(reminder)
+          await sendFlexMessage(userId, flexMessage.contents, flexMessage.altText)
+
+          // Log reminder as sent
+          await supabase.from('reminder_logs').insert({
+            reminder_id: reminder.id,
+            patient_id: reminder.patient_id,
+            sent_at: new Date().toISOString(),
+            status: 'sent',
+            channel: 'direct'
+          })
+          results.sent++
+          results.details.push({ id: reminder.id, status: 'sent', channel: 'direct' })
+          console.log(`[Reminder] Sent Flex to direct user: ${userId}`)
         } catch (err) {
-          console.error('Error sending direct messages:', err)
+          console.error(`Error sending direct reminder ${reminder.id} to ${userId}:`, err)
           results.errors++
         }
-      }
-
-      // Log direct messages
-      for (const { reminder } of directMessages) {
-        await supabase.from('reminder_logs').insert({
-          reminder_id: reminder.id,
-          patient_id: reminder.patient_id,
-          sent_at: new Date().toISOString(),
-          status: 'sent',
-          channel: 'direct'
-        })
       }
     }
 
@@ -340,12 +322,13 @@ serve(async (req) => {
             .eq('patient_id', medication.patient_id)
             .eq('is_active', true)
 
+          const patientName = medication.patient_profiles?.first_name || 'ผู้ป่วย'
+          // Use Flex Message for medication reminders
+          const flexMessage = createMedicationFlexMessage(medication, currentTimePeriod!)
+          let sentToAny = false
+
           // Send to ALL groups that have this patient with Flex Message
           if (groupPatients && groupPatients.length > 0) {
-            const patientName = medication.patient_profiles?.first_name || 'ผู้ป่วย'
-            // Use Flex Message for medication reminders
-            const flexMessage = createMedicationFlexMessage(medication, currentTimePeriod!)
-
             for (const groupPatient of groupPatients) {
               if (groupPatient?.groups) {
                 const group = groupPatient.groups as unknown as GroupInfo
@@ -353,6 +336,7 @@ serve(async (req) => {
                   try {
                     await sendFlexMessage(group.line_group_id, flexMessage.contents, flexMessage.altText)
                     console.log(`[Medication] Sent Flex: ${medication.name} for ${patientName} to group ${group.line_group_id}`)
+                    sentToAny = true
                   } catch (err) {
                     console.error(`Error sending medication reminder to group ${group.line_group_id}:`, err)
                     medicationResults.errors++
@@ -360,15 +344,37 @@ serve(async (req) => {
                 }
               }
             }
+          }
 
-            // Log medication notification (once per medication, not per group)
+          // Also send to patient's direct LINE chat
+          if (medication.patient_profiles?.user_id) {
+            const { data: user } = await supabase
+              .from('users')
+              .select('line_user_id')
+              .eq('id', medication.patient_profiles.user_id)
+              .single()
+
+            if (user?.line_user_id) {
+              try {
+                await sendFlexMessage(user.line_user_id, flexMessage.contents, flexMessage.altText)
+                console.log(`[Medication] Sent Flex to direct user: ${user.line_user_id} for ${patientName}`)
+                sentToAny = true
+              } catch (err) {
+                console.error(`Error sending medication to direct user ${user.line_user_id}:`, err)
+                medicationResults.errors++
+              }
+            }
+          }
+
+          // Log medication notification if sent to any channel
+          if (sentToAny) {
             await supabase.from('medication_notification_logs').insert({
               medication_id: medication.id,
               patient_id: medication.patient_id,
               time_period: currentTimePeriod,
               sent_at: new Date().toISOString(),
               status: 'sent',
-              channel: 'group'
+              channel: 'all'
             })
 
             medicationResults.sent++

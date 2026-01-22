@@ -47,6 +47,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
+import { useEnsurePatient } from '@/hooks/use-ensure-patient';
 
 const REMINDER_TYPES = [
   { value: 'medication', label: 'กินยา', icon: Pill, color: 'bg-purple-500/10 text-purple-500', gradient: 'from-purple-500 to-purple-600' },
@@ -90,9 +91,19 @@ export default function RemindersPage() {
   const [, navigate] = useLocation();
   const auth = useAuth();
   const { toast } = useToast();
+  const ensurePatient = useEnsurePatient();
 
-  // Use patientId from auth hook
-  const patientId = auth.patientId;
+  // Use patientId from ensurePatient hook (auto-creates if needed)
+  const patientId = ensurePatient.patientId;
+
+  // Auto-ensure patient on mount
+  const [hasEnsured, setHasEnsured] = useState(false);
+
+  // Trigger auto-create when auth is ready but no patientId
+  if (!auth.isLoading && !ensurePatient.isLoading && !patientId && !hasEnsured) {
+    setHasEnsured(true);
+    ensurePatient.ensurePatient();
+  }
 
   const { data: reminders, isLoading } = usePatientReminders(patientId);
   const addReminder = useAddReminder();
