@@ -157,7 +157,7 @@ export default function ProfileEditPage() {
               <div className="space-y-2">
                 <Label htmlFor="gender">เพศ</Label>
                 <Select
-                  value={formData.gender || ''}
+                  value={formData.gender || undefined}
                   onValueChange={(v) => handleInputChange('gender', v as PatientProfile['gender'])}
                 >
                   <SelectTrigger>
@@ -226,7 +226,7 @@ export default function ProfileEditPage() {
               <div className="space-y-2">
                 <Label htmlFor="blood_type">กรุ๊ปเลือด</Label>
                 <Select
-                  value={formData.blood_type || ''}
+                  value={formData.blood_type || undefined}
                   onValueChange={(v) => handleInputChange('blood_type', v)}
                 >
                   <SelectTrigger>
