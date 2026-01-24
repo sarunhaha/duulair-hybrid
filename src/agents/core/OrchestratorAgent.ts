@@ -107,6 +107,50 @@ export class OrchestratorAgent extends BaseAgent {
         onboardingContext = await this.getOnboardingStatus(message.context.userId);
       }
 
+      // Fallback: fetch patient profile by userId if patientId is not available (onboarding users)
+      if (!patientData && !isGroupChat && message.context.userId) {
+        try {
+          const { data } = await this.supabase.getClient()
+            .from('patient_profiles')
+            .select('id, nickname, first_name, last_name, birth_date, medical_condition, chronic_diseases')
+            .eq('user_id', message.context.userId)
+            .single();
+          if (data) {
+            patientData = {
+              profile: data,
+              name: [data.first_name, data.last_name].filter(Boolean).join(' ') || data.nickname,
+              nickname: data.nickname
+            };
+          }
+        } catch (e) {
+          this.log('debug', 'No patient profile found by userId for onboarding', e);
+        }
+      }
+
+      // Fetch recent conversation history for onboarding context
+      let conversationHistory: Array<{role: string; content: string}> | undefined;
+      if (!isGroupChat && onboardingContext && !onboardingContext.completed) {
+        try {
+          if (message.context.patientId) {
+            const logs = await this.supabase.getConversationLogs(message.context.patientId, 10);
+            conversationHistory = logs.reverse().map((l: any) => ({ role: l.role, content: l.text }));
+          } else if (message.context.userId) {
+            // Fetch by user_id for users without patientId yet
+            const { data: logs } = await this.supabase.getClient()
+              .from('conversation_logs')
+              .select('role, text')
+              .eq('user_id', message.context.userId)
+              .order('timestamp', { ascending: false })
+              .limit(10);
+            if (logs) {
+              conversationHistory = logs.reverse().map((l: any) => ({ role: l.role, content: l.text }));
+            }
+          }
+        } catch (e) {
+          this.log('debug', 'Could not fetch conversation history for onboarding', e);
+        }
+      }
+
       // Build NLU context
       const nluContext: NLUContext = {
         userId: message.context.userId || '',
@@ -146,7 +190,7 @@ export class OrchestratorAgent extends BaseAgent {
         metadata: {
           ...message.metadata,
           patientData: nluContext.patientData,
-          conversationHistory: nluContext.conversationHistory,
+          conversationHistory: conversationHistory || nluContext.conversationHistory,
           onboardingContext: onboardingContext
         }
       });

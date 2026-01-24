@@ -583,8 +583,8 @@ export function buildUnifiedNLUPrompt(
 สถานะ: กำลัง onboarding
 ขั้นตอนปัจจุบัน: ${onboardingContext.step}
 
-## Patient Context
-${patientContext || 'ผู้ใช้ใหม่ - ยังไม่มีข้อมูล'}
+## ข้อมูลที่เก็บแล้ว (ห้ามถามซ้ำ)
+${patientContext || 'ยังไม่มีข้อมูล'}
 
 ## Recent Conversation
 ${conversationHistory || 'ไม่มีประวัติการสนทนา'}
@@ -592,7 +592,13 @@ ${conversationHistory || 'ไม่มีประวัติการสนท
 ## User Message
 "${message}"
 
-**สำคัญ:** ผู้ใช้กำลังอยู่ใน onboarding flow ขั้นตอน "${onboardingContext.step}"
+**กฎสำคัญ:**
+1. ห้ามถามซ้ำ - ถ้าข้อมูลอยู่ใน "ข้อมูลที่เก็บแล้ว" ให้ข้ามไปขั้นตอนถัดไป
+2. ถ้าผู้ใช้บอกว่า "ถามไปแล้ว" หรือ "บอกแล้ว" → ดูจาก "ข้อมูลที่เก็บแล้ว" แล้วไปขั้นตอนถัดไป
+3. ขั้นตอน: welcome→ask_name→ask_birthdate→ask_conditions→complete
+4. ถ้าขั้นตอนปัจจุบันมีข้อมูลครบแล้ว → ข้ามไปถามขั้นตอนถัดไปทันที
+
+**ขั้นตอนปัจจุบัน "${onboardingContext.step}":**
 - ถ้าขั้นตอนเป็น "welcome" → ถามชื่อ
 - ถ้าขั้นตอนเป็น "ask_name" → extract ชื่อจากข้อความ แล้วถามวันเกิด
 - ถ้าขั้นตอนเป็น "ask_birthdate" → extract วันเกิดจากข้อความ แล้วถามโรคประจำตัว
