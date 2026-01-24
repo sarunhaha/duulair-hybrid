@@ -736,12 +736,7 @@ function createMedicationResponseFlexMessage(
 
   // Build footer buttons
   const footerButtons: any[] = taken
-    ? [{
-        type: 'button' as const,
-        action: { type: 'message' as const, label: '⏰ ยังไม่ได้กินยา', text: 'ยังไม่ได้กินยา' },
-        style: 'secondary' as const,
-        height: 'sm' as const
-      }]
+    ? []
     : [{
         type: 'button' as const,
         action: { type: 'message' as const, label: '✅ กินยาแล้ว', text: 'กินยาแล้ว' },
@@ -801,7 +796,7 @@ function createMedicationResponseFlexMessage(
             layout: 'horizontal',
             contents: [
               { type: 'text', text: '🕐', flex: 0 },
-              { type: 'text', text: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.', color: '#888888', margin: 'sm', size: 'sm' }
+              { type: 'text', text: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Bangkok' }) + ' น.', color: '#888888', margin: 'sm', size: 'sm' }
             ]
           },
           // Response text from AI

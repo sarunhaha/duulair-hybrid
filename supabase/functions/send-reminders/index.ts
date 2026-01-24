@@ -681,14 +681,14 @@ function createMedicationFlexMessage(medication: Medication, timePeriod: string)
       contents: [
         {
           type: 'button',
-          action: { type: 'message', label: '✅ กินยาแล้ว', text: `กินยาแล้ว ${patientName}` },
+          action: { type: 'message', label: '✅ กินยาแล้ว', text: 'กินยาแล้ว' },
           style: 'primary',
           color: '#9333EA',
           height: 'sm'
         },
         {
           type: 'button',
-          action: { type: 'message', label: '⏰ ยังไม่ได้กิน', text: `ยังไม่ได้กินยา ${patientName}` },
+          action: { type: 'message', label: '⏰ ยังไม่ได้กิน', text: 'ยังไม่ได้กินยา' },
           style: 'secondary',
           height: 'sm',
           margin: 'sm'
