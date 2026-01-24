@@ -4,6 +4,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
 import { Client, WebhookEvent, TextMessage, FlexMessage, validateSignature } from '@line/bot-sdk';
+import axios from 'axios';
 import { OrchestratorAgent } from './agents';
 import registrationRoutes from './routes/registration.routes';
 import groupRoutes from './routes/group.routes';
@@ -37,6 +38,28 @@ const lineConfig = {
 
 const lineClient = new Client(lineConfig);
 const LIFF_ID = process.env.LIFF_ID || '';
+
+/**
+ * Show LINE loading animation (typing indicator)
+ * Displays "..." animation in chat while AI is processing
+ * Only works in 1:1 chats, automatically dismissed when bot replies
+ */
+async function showLoadingAnimation(chatId: string, loadingSeconds: number = 10): Promise<void> {
+  try {
+    await axios.post('https://api.line.me/v2/bot/chat/loading/start', {
+      chatId,
+      loadingSeconds
+    }, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.LINE_CHANNEL_ACCESS_TOKEN}`
+      }
+    });
+  } catch (e) {
+    // Non-critical - don't block message processing if loading animation fails
+    console.log('⏳ Loading animation not shown (non-critical)');
+  }
+}
 
 const app = express();
 const orchestrator = new OrchestratorAgent();
@@ -1901,6 +1924,11 @@ async function handleTextMessage(event: any) {
     // ============================================
     // Phase 4: Unified AI Processing (Sonnet 4.5)
     // ============================================
+    // Show loading animation while AI processes (1:1 chat only)
+    if (sourceType === 'user' && userId) {
+      showLoadingAnimation(userId, 20);
+    }
+
     // Single AI call: intent + extraction + natural response
     // All processing goes through OrchestratorAgent → UnifiedNLUAgent
     // Use originalMessage (in case it was from patient selection Quick Reply)
@@ -2478,6 +2506,11 @@ async function handleAudioMessage(event: any) {
     const isRedelivery = event.deliveryContext?.isRedelivery || false;
 
     console.log(`🎤 Audio message received from ${userId} (group: ${isGroupContext})`);
+
+    // Show loading animation for voice processing (1:1 chat only)
+    if (!isGroupContext && userId) {
+      showLoadingAnimation(userId, 30);
+    }
 
     // Skip redelivery events
     if (isRedelivery) {
