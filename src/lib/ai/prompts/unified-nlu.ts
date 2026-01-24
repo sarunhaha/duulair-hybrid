@@ -737,10 +737,10 @@ export function buildRecentActivitiesString(activities: any[]): string {
 export function buildConversationHistoryString(messages: any[]): string {
   if (!messages?.length) return 'ไม่มีประวัติการสนทนา';
 
-  const formatted = messages.slice(-5).map((m: any) => {
-    const role = m.role === 'user' ? 'User' : 'Bot';
-    const content = m.content?.substring(0, 100) || '';
-    return `${role}: ${content}${content.length >= 100 ? '...' : ''}`;
+  const formatted = messages.slice(-10).map((m: any) => {
+    const role = m.role === 'user' ? 'User' : 'น้องอุ่น';
+    const content = (m.content || m.text || '').substring(0, 200);
+    return `${role}: ${content}${content.length >= 200 ? '...' : ''}`;
   });
 
   return formatted.join('\n');

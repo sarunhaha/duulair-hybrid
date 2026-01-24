@@ -127,9 +127,9 @@ export class OrchestratorAgent extends BaseAgent {
         }
       }
 
-      // Fetch recent conversation history for onboarding context
+      // Fetch recent conversation history for AI context (all users)
       let conversationHistory: Array<{role: string; content: string}> | undefined;
-      if (!isGroupChat && onboardingContext && !onboardingContext.completed) {
+      if (!isGroupChat) {
         try {
           if (message.context.patientId) {
             const logs = await this.supabase.getConversationLogs(message.context.patientId, 10);
@@ -147,7 +147,7 @@ export class OrchestratorAgent extends BaseAgent {
             }
           }
         } catch (e) {
-          this.log('debug', 'Could not fetch conversation history for onboarding', e);
+          this.log('debug', 'Could not fetch conversation history', e);
         }
       }
 
@@ -170,10 +170,11 @@ export class OrchestratorAgent extends BaseAgent {
 
       // Save conversation log (user message)
       let conversationLogId: string | undefined;
-      if (message.context.patientId) {
+      if (message.context.patientId || message.context.userId) {
         try {
           conversationLogId = await this.supabase.saveConversationLog({
             patientId: message.context.patientId,
+            userId: message.context.userId,
             groupId: message.context.groupId,
             role: 'user',
             text: message.content,
@@ -256,6 +257,25 @@ export class OrchestratorAgent extends BaseAgent {
           } as any);
         } catch (updateError) {
           this.log('debug', 'Could not update conversation log', updateError);
+        }
+      }
+
+      // Save bot response to conversation_logs for future context
+      if (finalResponse && (message.context.patientId || message.context.userId)) {
+        try {
+          await this.supabase.saveConversationLog({
+            patientId: message.context.patientId,
+            userId: message.context.userId,
+            groupId: message.context.groupId,
+            role: 'assistant',
+            text: finalResponse,
+            intent: nluResult.intent,
+            aiConfidence: nluResult.confidence,
+            aiModel: 'claude-sonnet-4.5',
+            source: isGroupChat ? 'group' : '1:1'
+          } as any);
+        } catch (botLogError) {
+          this.log('debug', 'Could not save bot response log', botLogError);
         }
       }
 
