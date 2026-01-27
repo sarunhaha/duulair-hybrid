@@ -97,11 +97,13 @@
     },
     {
       "src": "/liff-v2/?$",
-      "dest": "public/liff-v2/index.html"
+      "dest": "public/liff-v2/index.html",
+      "headers": { "Cache-Control": "public, max-age=0, must-revalidate" }
     },
     {
       "src": "/liff-v2/(.*)",
-      "dest": "public/liff-v2/index.html"
+      "dest": "public/liff-v2/index.html",
+      "headers": { "Cache-Control": "public, max-age=0, must-revalidate" }
     },
     {
       "src": "/(.*)",
