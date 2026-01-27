@@ -49,6 +49,27 @@ export interface SymptomLog {
   logged_at: string;
 }
 
+export interface MoodLogEntry {
+  id: string;
+  mood: string;
+  mood_score: number | null;
+  stress_level: string | null;
+  stress_cause: string | null;
+  energy_level: string | null;
+  note: string | null;
+  timestamp: string;
+}
+
+export interface MedicalNote {
+  id: string;
+  event_date: string;
+  event_type: string;
+  description: string;
+  hospital_name: string | null;
+  doctor_name: string | null;
+  created_at: string;
+}
+
 // Query keys
 export const healthKeys = {
   all: ['health'] as const,
@@ -57,6 +78,9 @@ export const healthKeys = {
   medications: (patientId: string) => [...healthKeys.all, 'medications', patientId] as const,
   medicationLogs: (patientId: string, date?: string) => [...healthKeys.all, 'medication-logs', patientId, date] as const,
   symptoms: (patientId: string, date?: string) => [...healthKeys.all, 'symptoms', patientId, date] as const,
+  exercise: (patientId: string, date?: string) => [...healthKeys.all, 'exercise', patientId, date] as const,
+  mood: (patientId: string, date?: string) => [...healthKeys.all, 'mood', patientId, date] as const,
+  medicalNotes: (patientId: string, date?: string) => [...healthKeys.all, 'medical-notes', patientId, date] as const,
 };
 
 // Vitals Hooks
@@ -425,6 +449,26 @@ export function useDeleteSleep() {
 }
 
 // Exercise Hooks
+export function useTodayExercise(patientId: string | null) {
+  const today = new Date().toISOString().split('T')[0];
+
+  return useQuery({
+    queryKey: patientId ? healthKeys.exercise(patientId, today) : ['exercise', 'none'],
+    queryFn: async () => {
+      if (!patientId) return [];
+      try {
+        const data = await apiClient.get<{ exercise: unknown[] }>(`/health/today/${patientId}`);
+        return data.exercise || [];
+      } catch (err) {
+        console.warn('[useTodayExercise] API error:', err);
+        return [];
+      }
+    },
+    enabled: !!patientId,
+    staleTime: 30 * 1000,
+  });
+}
+
 export function useLogExercise() {
   const queryClient = useQueryClient();
 
@@ -432,6 +476,7 @@ export function useLogExercise() {
     mutationFn: async (data: {
       patientId: string;
       exercise_type?: string;
+      exercise_type_th?: string;
       duration_minutes?: number;
       intensity?: string;
       distance_meters?: number;
@@ -449,7 +494,110 @@ export function useLogExercise() {
       });
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['health', 'exercise', variables.patientId] });
+      const today = new Date().toISOString().split('T')[0];
+      queryClient.invalidateQueries({ queryKey: healthKeys.exercise(variables.patientId, today) });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}
+
+// Mood Hooks
+export function useTodayMood(patientId: string | null) {
+  const today = new Date().toISOString().split('T')[0];
+
+  return useQuery({
+    queryKey: patientId ? healthKeys.mood(patientId, today) : ['mood', 'none'],
+    queryFn: async (): Promise<MoodLogEntry[]> => {
+      if (!patientId) return [];
+      try {
+        const data = await apiClient.get<{ mood: MoodLogEntry[] }>(`/health/today/${patientId}`);
+        return data.mood || [];
+      } catch (err) {
+        console.warn('[useTodayMood] API error:', err);
+        return [];
+      }
+    },
+    enabled: !!patientId,
+    staleTime: 30 * 1000,
+  });
+}
+
+export function useLogMood() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: {
+      patientId: string;
+      mood: string;
+      mood_score?: number;
+      stress_level?: string;
+      stress_cause?: string;
+      energy_level?: string;
+      note?: string;
+    }) => {
+      return await apiClient.post('/health/mood', {
+        patient_id: data.patientId,
+        mood: data.mood,
+        mood_score: data.mood_score,
+        stress_level: data.stress_level,
+        stress_cause: data.stress_cause,
+        energy_level: data.energy_level,
+        note: data.note,
+      });
+    },
+    onSuccess: (_, variables) => {
+      const today = new Date().toISOString().split('T')[0];
+      queryClient.invalidateQueries({ queryKey: healthKeys.mood(variables.patientId, today) });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}
+
+// Medical Notes Hooks
+export function useTodayMedicalNotes(patientId: string | null) {
+  const today = new Date().toISOString().split('T')[0];
+
+  return useQuery({
+    queryKey: patientId ? healthKeys.medicalNotes(patientId, today) : ['medical-notes', 'none'],
+    queryFn: async (): Promise<MedicalNote[]> => {
+      if (!patientId) return [];
+      try {
+        const data = await apiClient.get<{ medicalNotes: MedicalNote[] }>(`/health/today/${patientId}`);
+        return data.medicalNotes || [];
+      } catch (err) {
+        console.warn('[useTodayMedicalNotes] API error:', err);
+        return [];
+      }
+    },
+    enabled: !!patientId,
+    staleTime: 30 * 1000,
+  });
+}
+
+export function useLogMedicalNote() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: {
+      patientId: string;
+      event_date?: string;
+      event_type: string;
+      description: string;
+      hospital_name?: string;
+      doctor_name?: string;
+    }) => {
+      return await apiClient.post('/health/medical-notes', {
+        patient_id: data.patientId,
+        event_date: data.event_date,
+        event_type: data.event_type,
+        description: data.description,
+        hospital_name: data.hospital_name,
+        doctor_name: data.doctor_name,
+      });
+    },
+    onSuccess: (_, variables) => {
+      const today = new Date().toISOString().split('T')[0];
+      queryClient.invalidateQueries({ queryKey: healthKeys.medicalNotes(variables.patientId, today) });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
@@ -475,7 +623,7 @@ export function getBloodPressureStatus(systolic: number, diastolic: number) {
 // Health History Hook - for History page
 export interface HealthHistoryItem {
   id: string;
-  type: 'vitals' | 'sleep' | 'symptoms' | 'medications' | 'water' | 'exercise';
+  type: 'vitals' | 'sleep' | 'symptoms' | 'medications' | 'water' | 'exercise' | 'mood' | 'medical_notes';
   title: string;
   detail: string;
   time: string;
@@ -497,6 +645,8 @@ export function useHealthHistory(patientId: string | null, days: number = 7) {
           medications: MedicationLog[];
           water: WaterLog[];
           exercise: { id: string; exercise_type: string | null; duration_minutes: number | null; created_at: string }[];
+          mood: MoodLogEntry[];
+          medicalNotes: MedicalNote[];
         }>(`/health/history/${patientId}?days=${days}`);
 
         const items: HealthHistoryItem[] = [];
@@ -552,6 +702,43 @@ export function useHealthHistory(patientId: string | null, days: number = 7) {
             time: new Date(m.taken_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.',
             date: m.taken_at.split('T')[0] === today ? 'วันนี้' : formatDate(m.taken_at),
             raw: m,
+          });
+        });
+
+        // Format mood
+        const moodLabels: Record<string, string> = {
+          happy: 'มีความสุข', calm: 'สงบ', excited: 'ตื่นเต้น', neutral: 'ปกติ',
+          tired: 'เหนื่อย', anxious: 'กังวล', sad: 'เศร้า', stressed: 'เครียด', exhausted: 'อ่อนเพลีย',
+        };
+        (data.mood || []).forEach(m => {
+          const moodTh = moodLabels[m.mood] || m.mood;
+          const scoreText = m.mood_score ? ` (ระดับ ${m.mood_score}/5)` : '';
+          items.push({
+            id: m.id,
+            type: 'mood',
+            title: 'อารมณ์',
+            detail: `${moodTh}${scoreText}`,
+            time: new Date(m.timestamp).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.',
+            date: m.timestamp.split('T')[0] === today ? 'วันนี้' : formatDate(m.timestamp),
+            raw: m,
+          });
+        });
+
+        // Format medical notes
+        const eventTypeLabels: Record<string, string> = {
+          checkup: 'ตรวจสุขภาพ', doctor_visit: 'พบแพทย์', hospitalization: 'นอน รพ.',
+          surgery: 'ผ่าตัด', vaccination: 'ฉีดวัคซีน', other: 'อื่นๆ',
+        };
+        (data.medicalNotes || []).forEach(n => {
+          const typeTh = eventTypeLabels[n.event_type] || n.event_type;
+          items.push({
+            id: n.id,
+            type: 'medical_notes',
+            title: 'บันทึกแพทย์',
+            detail: `${typeTh}: ${n.description}`,
+            time: new Date(n.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.',
+            date: n.event_date === today ? 'วันนี้' : formatDate(n.event_date),
+            raw: n,
           });
         });
 

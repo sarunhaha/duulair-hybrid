@@ -23,7 +23,7 @@ import {
   DrawerTitle,
 } from '@/components/ui/drawer';
 import { BottomNav } from '@/components/layout/bottom-nav';
-import { VitalsForm, WaterForm, MedicationForm, SymptomForm, SleepForm } from '@/components/forms';
+import { VitalsForm, WaterForm, MedicationForm, SymptomForm, SleepForm, ExerciseForm, MoodForm, MedicalNotesForm } from '@/components/forms';
 import { cn } from '@/lib/utils';
 import { useLocation } from 'wouter';
 
@@ -77,7 +77,7 @@ const categories: Category[] = [
     icon: Dumbbell,
     color: 'bg-purple-50 text-purple-600 dark:bg-purple-950/30 dark:text-purple-400',
     desc: 'เดิน, วิ่ง, กายภาพ',
-    hasForm: false,
+    hasForm: true,
   },
   {
     id: 'stress',
@@ -85,7 +85,7 @@ const categories: Category[] = [
     icon: Smile,
     color: 'bg-yellow-50 text-yellow-600 dark:bg-yellow-950/30 dark:text-yellow-400',
     desc: 'ระดับความเครียด',
-    hasForm: false,
+    hasForm: true,
   },
   {
     id: 'symptoms',
@@ -101,7 +101,7 @@ const categories: Category[] = [
     icon: PlusCircle,
     color: 'bg-slate-50 text-slate-600 dark:bg-slate-950/30 dark:text-slate-400',
     desc: 'บันทึกสั้น, แนบรูป',
-    hasForm: false,
+    hasForm: true,
   },
 ];
 
@@ -140,6 +140,12 @@ export default function RecordsPage() {
         return <SymptomForm onSuccess={handleSuccess} onCancel={handleClose} />;
       case 'sleep':
         return <SleepForm onSuccess={handleSuccess} onCancel={handleClose} />;
+      case 'exercise':
+        return <ExerciseForm onSuccess={handleSuccess} onCancel={handleClose} />;
+      case 'stress':
+        return <MoodForm onSuccess={handleSuccess} onCancel={handleClose} />;
+      case 'notes':
+        return <MedicalNotesForm onSuccess={handleSuccess} onCancel={handleClose} />;
       default:
         return (
           <div className="space-y-6 pb-8">

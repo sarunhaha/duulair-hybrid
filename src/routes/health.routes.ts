@@ -449,6 +449,93 @@ router.post('/exercise', async (req: Request, res: Response) => {
 });
 
 /**
+ * POST /api/health/mood
+ * Record mood data
+ */
+router.post('/mood', async (req: Request, res: Response) => {
+  const {
+    patient_id,
+    mood,
+    mood_score,
+    stress_level,
+    stress_cause,
+    energy_level,
+    note,
+  } = req.body;
+
+  if (!patient_id || !mood) {
+    return res.status(400).json({ error: 'Patient ID and mood are required' });
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('mood_logs')
+      .insert({
+        patient_id,
+        mood,
+        mood_score: mood_score || null,
+        stress_level: stress_level || null,
+        stress_cause: stress_cause || null,
+        energy_level: energy_level || null,
+        note: note || null,
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    // Update daily summary
+    await updateDailySummary(patient_id);
+
+    return res.json({ success: true, data });
+  } catch (error: any) {
+    console.error('Record mood error:', error);
+    return res.status(500).json({ error: error.message || 'Failed to record mood' });
+  }
+});
+
+/**
+ * POST /api/health/medical-notes
+ * Record medical history notes
+ */
+router.post('/medical-notes', async (req: Request, res: Response) => {
+  const {
+    patient_id,
+    event_date,
+    event_type,
+    description,
+    hospital_name,
+    doctor_name,
+  } = req.body;
+
+  if (!patient_id || !event_type || !description) {
+    return res.status(400).json({ error: 'Patient ID, event type, and description are required' });
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('medical_history')
+      .insert({
+        patient_id,
+        event_date: event_date || new Date().toISOString().split('T')[0],
+        event_type,
+        description,
+        hospital_name: hospital_name || null,
+        doctor_name: doctor_name || null,
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return res.json({ success: true, data });
+  } catch (error: any) {
+    console.error('Record medical note error:', error);
+    return res.status(500).json({ error: error.message || 'Failed to record medical note' });
+  }
+});
+
+/**
  * GET /api/health/today/:patientId
  * Get all health data for today
  */
@@ -469,7 +556,7 @@ router.get('/today/:patientId', async (req: Request, res: Response) => {
 
     console.log('[/health/today] patientId:', patientId, 'today:', today, 'todayStart:', todayStart.toISOString());
 
-    const [vitals, water, medications, symptoms, sleep, exercise] = await Promise.all([
+    const [vitals, water, medications, symptoms, sleep, exercise, mood, medicalNotes] = await Promise.all([
       supabase
         .from('vitals_logs')
         .select('*')
@@ -509,6 +596,20 @@ router.get('/today/:patientId', async (req: Request, res: Response) => {
         .select('*')
         .eq('patient_id', patientId)
         .eq('exercise_date', today),
+
+      supabase
+        .from('mood_logs')
+        .select('*')
+        .eq('patient_id', patientId)
+        .gte('timestamp', todayStart.toISOString())
+        .order('timestamp', { ascending: false }),
+
+      supabase
+        .from('medical_history')
+        .select('*')
+        .eq('patient_id', patientId)
+        .eq('event_date', today)
+        .order('created_at', { ascending: false }),
     ]);
 
     return res.json({
@@ -518,6 +619,8 @@ router.get('/today/:patientId', async (req: Request, res: Response) => {
       symptoms: symptoms.data || [],
       sleep: sleep.data || [],
       exercise: exercise.data || [],
+      mood: mood.data || [],
+      medicalNotes: medicalNotes.data || [],
     });
   } catch (error: any) {
     console.error('Get today health error:', error);
@@ -551,7 +654,7 @@ router.get('/history/:patientId', async (req: Request, res: Response) => {
 
     const startDateTimeISO = startDateTime.toISOString();
 
-    const [vitals, water, medications, symptoms, sleep, exercise] = await Promise.all([
+    const [vitals, water, medications, symptoms, sleep, exercise, mood, medicalNotes] = await Promise.all([
       supabase
         .from('vitals_logs')
         .select('*')
@@ -599,6 +702,22 @@ router.get('/history/:patientId', async (req: Request, res: Response) => {
         .gte('exercise_date', startDate)
         .order('exercise_date', { ascending: false })
         .limit(100),
+
+      supabase
+        .from('mood_logs')
+        .select('*')
+        .eq('patient_id', patientId)
+        .gte('timestamp', startDateTimeISO)
+        .order('timestamp', { ascending: false })
+        .limit(100),
+
+      supabase
+        .from('medical_history')
+        .select('*')
+        .eq('patient_id', patientId)
+        .gte('event_date', startDate)
+        .order('event_date', { ascending: false })
+        .limit(100),
     ]);
 
     console.log('[/health/history] Results - vitals:', vitals.data?.length || 0, 'sleep:', sleep.data?.length || 0);
@@ -610,6 +729,8 @@ router.get('/history/:patientId', async (req: Request, res: Response) => {
       symptoms: symptoms.data || [],
       sleep: sleep.data || [],
       exercise: exercise.data || [],
+      mood: mood.data || [],
+      medicalNotes: medicalNotes.data || [],
     });
   } catch (error: any) {
     console.error('Get health history error:', error);
