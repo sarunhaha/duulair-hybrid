@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#1E7B9C">
-  <title>บันทึกอาการ - OONJAI</title>
+  <title>บันทึกทางการแพทย์ - OONJAI</title>
 
   <!-- Preconnect -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -36,18 +36,40 @@
       color: hsl(var(--primary));
     }
 
-    /* Symptom Grid */
-    .symptom-section {
+    /* Date Input */
+    .date-section {
       margin-bottom: 1.5rem;
     }
 
-    .symptom-grid {
+    .date-input {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: 2px solid hsl(var(--border));
+      border-radius: var(--radius-md);
+      font-size: 0.9375rem;
+      font-family: 'Kanit', sans-serif;
+      background: hsl(var(--card));
+      color: hsl(var(--foreground));
+      transition: all 0.2s ease;
+    }
+
+    .date-input:focus {
+      outline: none;
+      border-color: hsl(var(--primary));
+    }
+
+    /* Event Type Grid */
+    .event-type-section {
+      margin-bottom: 1.5rem;
+    }
+
+    .event-type-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 0.75rem;
     }
 
-    .symptom-btn {
+    .event-type-btn {
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -60,60 +82,70 @@
       transition: all 0.2s ease;
     }
 
-    .symptom-btn:active {
+    .event-type-btn:active {
       transform: scale(0.97);
     }
 
-    .symptom-btn.selected {
+    .event-type-btn.selected {
       background: hsl(var(--primary) / 0.1);
       border-color: hsl(var(--primary));
     }
 
-    .symptom-btn .icon-wrapper {
+    .event-type-btn .icon-wrapper {
       width: 48px;
       height: 48px;
       border-radius: var(--radius-md);
       display: flex;
       align-items: center;
       justify-content: center;
-      background: hsl(var(--muted));
+      background: hsl(200 70% 95%);
+      color: hsl(200 70% 50%);
     }
 
-    .symptom-btn .icon-wrapper svg {
+    .dark .event-type-btn .icon-wrapper {
+      background: hsl(200 50% 20%);
+      color: hsl(200 70% 65%);
+    }
+
+    .event-type-btn .icon-wrapper svg {
       width: 24px;
       height: 24px;
-      color: hsl(var(--muted-foreground));
     }
 
-    .symptom-btn.selected .icon-wrapper {
+    .event-type-btn.selected .icon-wrapper {
       background: hsl(var(--primary) / 0.2);
-    }
-
-    .symptom-btn.selected .icon-wrapper svg {
       color: hsl(var(--primary));
     }
 
-    .symptom-btn .label {
+    .dark .event-type-btn.selected .icon-wrapper {
+      background: hsl(var(--primary) / 0.3);
+      color: hsl(var(--primary));
+    }
+
+    .event-type-btn .label {
       font-size: 0.8125rem;
       font-weight: 500;
       color: hsl(var(--muted-foreground));
       text-align: center;
     }
 
-    .symptom-btn.selected .label {
+    .event-type-btn.selected .label {
       color: hsl(var(--primary));
       font-weight: 600;
     }
 
-    /* Custom Symptom */
-    .custom-symptom {
-      display: flex;
-      gap: 0.5rem;
-      margin-top: 1rem;
+    /* Custom Event Type Input */
+    .custom-event-input {
+      margin-top: 0.75rem;
+      display: none;
     }
 
-    .custom-symptom input {
-      flex: 1;
+    .custom-event-input.show {
+      display: block;
+    }
+
+    .custom-event-input input {
+      width: 100%;
       padding: 0.75rem 1rem;
       border: 2px solid hsl(var(--border));
       border-radius: var(--radius-md);
@@ -123,121 +155,34 @@
       color: hsl(var(--foreground));
     }
 
-    .custom-symptom input:focus {
+    .custom-event-input input:focus {
       outline: none;
       border-color: hsl(var(--primary));
     }
 
-    .custom-symptom button {
-      padding: 0.75rem 1.25rem;
-      background: hsl(var(--primary));
-      color: white;
-      border: none;
+    /* Text Input & Textarea */
+    .form-section {
+      margin-bottom: 1.5rem;
+    }
+
+    .text-input {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: 2px solid hsl(var(--border));
       border-radius: var(--radius-md);
-      font-weight: 500;
+      font-size: 0.9375rem;
       font-family: 'Kanit', sans-serif;
-      cursor: pointer;
-    }
-
-    /* Severity Section */
-    .severity-section {
-      margin-bottom: 1.5rem;
-    }
-
-    .severity-selector {
-      display: flex;
-      gap: 0.5rem;
-    }
-
-    .severity-btn {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 0.25rem;
-      padding: 0.75rem 0.5rem;
       background: hsl(var(--card));
-      border: 2px solid hsl(var(--border));
-      border-radius: var(--radius-md);
-      cursor: pointer;
+      color: hsl(var(--foreground));
       transition: all 0.2s ease;
     }
 
-    .severity-btn:active {
-      transform: scale(0.97);
-    }
-
-    .severity-btn.selected {
+    .text-input:focus {
+      outline: none;
       border-color: hsl(var(--primary));
     }
 
-    .severity-btn.selected.level-1 { background: hsl(142 76% 90%); }
-    .severity-btn.selected.level-2 { background: hsl(48 96% 89%); }
-    .severity-btn.selected.level-3 { background: hsl(33 100% 90%); }
-    .severity-btn.selected.level-4 { background: hsl(0 93% 90%); }
-    .severity-btn.selected.level-5 { background: hsl(0 84% 85%); }
-
-    .dark .severity-btn.selected.level-1 { background: hsl(142 50% 20%); }
-    .dark .severity-btn.selected.level-2 { background: hsl(48 50% 20%); }
-    .dark .severity-btn.selected.level-3 { background: hsl(33 50% 20%); }
-    .dark .severity-btn.selected.level-4 { background: hsl(0 50% 20%); }
-    .dark .severity-btn.selected.level-5 { background: hsl(0 50% 15%); }
-
-    .severity-btn .severity-icon {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.25rem;
-    }
-
-    .severity-btn .label {
-      font-size: 0.6875rem;
-      color: hsl(var(--muted-foreground));
-      text-align: center;
-    }
-
-    /* Location Section */
-    .location-section {
-      margin-bottom: 1.5rem;
-    }
-
-    .chip-selector {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-    }
-
-    .chip {
-      padding: 0.5rem 1rem;
-      background: hsl(var(--card));
-      border: 2px solid hsl(var(--border));
-      border-radius: var(--radius-xl);
-      font-size: 0.875rem;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      color: hsl(var(--muted-foreground));
-    }
-
-    .chip:active {
-      transform: scale(0.97);
-    }
-
-    .chip.selected {
-      background: hsl(var(--primary) / 0.1);
-      border-color: hsl(var(--primary));
-      color: hsl(var(--primary));
-      font-weight: 500;
-    }
-
-    /* Note Section */
-    .note-section {
-      margin-bottom: 1.5rem;
-    }
-
-    .note-input {
+    .textarea-input {
       width: 100%;
       padding: 0.875rem 1rem;
       border: 2px solid hsl(var(--border));
@@ -246,48 +191,18 @@
       font-family: 'Kanit', sans-serif;
       transition: all 0.2s ease;
       resize: none;
-      min-height: 80px;
+      min-height: 100px;
       background: hsl(var(--card));
       color: hsl(var(--foreground));
     }
 
-    .note-input:focus {
+    .textarea-input:focus {
       outline: none;
       border-color: hsl(var(--primary));
     }
 
-    /* Selected Symptoms Tags */
-    .selected-symptoms {
-      margin-bottom: 1.5rem;
-    }
-
-    .selected-list {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-    }
-
-    .selected-tag {
-      display: flex;
-      align-items: center;
-      gap: 0.25rem;
-      padding: 0.5rem 0.75rem;
-      background: hsl(var(--primary) / 0.1);
-      border-radius: var(--radius-xl);
-      font-size: 0.875rem;
-      color: hsl(var(--primary));
-      font-weight: 500;
-    }
-
-    .selected-tag .remove {
-      cursor: pointer;
-      font-size: 1rem;
-      margin-left: 0.25rem;
-      opacity: 0.7;
-    }
-
-    .selected-tag .remove:hover {
-      opacity: 1;
+    .textarea-input.short {
+      min-height: 80px;
     }
 
     /* Submit Section */
@@ -376,13 +291,13 @@
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
-      background: hsl(38 92% 95%);
-      color: hsl(var(--accent));
+      background: hsl(200 70% 95%);
+      color: hsl(200 70% 50%);
     }
 
     .dark .history-item-icon {
-      background: hsl(38 50% 20%);
-      color: hsl(38 92% 65%);
+      background: hsl(200 50% 20%);
+      color: hsl(200 70% 65%);
     }
 
     .history-item-icon svg {
@@ -501,7 +416,7 @@
 
     /* Add padding at bottom for fixed submit button */
     .container {
-      padding-bottom: 100px;
+      padding-bottom: 120px;
     }
 
     /* Hide fixed submit when keyboard is visible (viewport shrinks) */
@@ -513,17 +428,8 @@
     }
 
     @media (max-width: 380px) {
-      .symptom-grid {
+      .event-type-grid {
         grid-template-columns: repeat(2, 1fr);
-      }
-
-      .severity-selector {
-        flex-wrap: wrap;
-      }
-
-      .severity-btn {
-        min-width: calc(50% - 0.25rem);
-        flex: none;
       }
     }
   </style>
@@ -557,53 +463,46 @@
 
       <!-- Today Content -->
       <div id="todayContent">
-      <!-- Selected Symptoms -->
-      <div id="selectedSymptomsSection" class="selected-symptoms hidden">
-        <div class="section-label" id="selectedLabel"></div>
-        <div id="selectedList" class="selected-list"></div>
-      </div>
-
-      <!-- Symptom Grid -->
-      <div class="symptom-section">
-        <div class="section-label" id="symptomLabel"></div>
-        <div class="symptom-grid" id="symptomGrid">
-          <!-- Symptoms will be rendered here -->
+        <!-- Date -->
+        <div class="date-section">
+          <div class="section-label" id="dateLabel"></div>
+          <input type="date" id="eventDate" class="date-input">
         </div>
-        <div class="custom-symptom">
-          <input type="text" id="customSymptom" placeholder="พิมพ์อาการอื่นๆ...">
-          <button onclick="addCustomSymptom()">เพิ่ม</button>
-        </div>
-      </div>
 
-      <!-- Severity Section -->
-      <div class="severity-section">
-        <div class="section-label" id="severityLabel"></div>
-        <div class="severity-selector" id="severitySelector">
-          <!-- Severity buttons rendered by JS -->
+        <!-- Event Type -->
+        <div class="event-type-section">
+          <div class="section-label" id="eventTypeLabel"></div>
+          <div class="event-type-grid" id="eventTypeGrid">
+            <!-- Rendered by JS -->
+          </div>
+          <div class="custom-event-input" id="customEventInput">
+            <input type="text" id="customEventText" placeholder="ระบุประเภทเหตุการณ์...">
+          </div>
         </div>
-      </div>
 
-      <!-- Location Section -->
-      <div class="location-section">
-        <div class="section-label" id="locationLabel"></div>
-        <div class="chip-selector" id="locationSelector">
-          <!-- Locations will be rendered here -->
+        <!-- Description -->
+        <div class="form-section">
+          <div class="section-label" id="descriptionLabel"></div>
+          <textarea id="descriptionInput" class="textarea-input" placeholder="อธิบายรายละเอียดการรักษา..." required></textarea>
         </div>
-      </div>
 
-      <!-- Duration Section -->
-      <div class="location-section">
-        <div class="section-label" id="durationLabel"></div>
-        <div class="chip-selector" id="durationSelector">
-          <!-- Durations will be rendered here -->
+        <!-- Hospital -->
+        <div class="form-section">
+          <div class="section-label" id="hospitalLabel"></div>
+          <input type="text" id="hospitalInput" class="text-input" placeholder="ชื่อโรงพยาบาล/คลินิก">
         </div>
-      </div>
 
-      <!-- Note Section -->
-      <div class="note-section">
-        <div class="section-label" id="noteLabel"></div>
-        <textarea id="noteInput" class="note-input" placeholder="อธิบายอาการเพิ่มเติม..."></textarea>
-      </div>
+        <!-- Doctor -->
+        <div class="form-section">
+          <div class="section-label" id="doctorLabel"></div>
+          <input type="text" id="doctorInput" class="text-input" placeholder="ชื่อแพทย์ผู้รักษา">
+        </div>
+
+        <!-- Outcome -->
+        <div class="form-section">
+          <div class="section-label" id="outcomeLabel"></div>
+          <textarea id="outcomeInput" class="textarea-input short" placeholder="ผลการรักษา/คำแนะนำจากแพทย์"></textarea>
+        </div>
       </div><!-- /todayContent -->
 
       <!-- History Content -->
@@ -630,8 +529,8 @@
 
     <!-- Submit Section -->
     <div id="submitSection" class="submit-section hidden">
-      <button class="btn btn-primary btn-block" id="submitBtn" onclick="submitSymptoms()" disabled>
-        <span id="submitIcon"></span> บันทึกอาการ
+      <button class="btn btn-primary btn-block" id="submitBtn" onclick="submitMedicalNote()">
+        <span id="submitIcon"></span> บันทึกข้อมูล
       </button>
     </div>
   </div>
@@ -648,14 +547,15 @@
   <!-- Lucide Icons -->
   <script src="js/lucide-icons.js"></script>
 
-  <!-- API Client -->
-  <script src="js/api.js"></script>
-
   <script>
     // Configuration
     const LIFF_ID = '2008278683-5k69jxNq';
     const SUPABASE_URL = 'https://mqxklnzxfrupwwkwlwwc.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1xeGtsbnp4ZnJ1cHd3a3dsd3djIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNjcxMjYsImV4cCI6MjA3MjY0MzEyNn0.vPBkIGHdvrfotD3QMnFGrNRMTP3fFzn715XGwqKG-6Y';
+
+    const API_BASE_URL = window.location.hostname === 'localhost'
+      ? 'http://localhost:3000/api'
+      : 'https://duulair.vercel.app/api';
 
     let supabaseClient = null;
     if (window.supabase && window.supabase.createClient) {
@@ -664,46 +564,27 @@
 
     let patientId = null;
 
-    // Preset symptoms with Lucide icons
-    const presetSymptoms = [
-      { id: 'headache', icon: 'brain', label: 'ปวดหัว' },
-      { id: 'nausea', icon: 'frown', label: 'คลื่นไส้' },
-      { id: 'dizzy', icon: 'alertCircle', label: 'เวียนหัว' },
-      { id: 'fever', icon: 'thermometer', label: 'มีไข้' },
-      { id: 'breathing', icon: 'wind', label: 'หายใจลำบาก' },
-      { id: 'chest', icon: 'heart', label: 'แน่นหน้าอก' },
-      { id: 'fatigue', icon: 'battery', label: 'เหนื่อย/อ่อนเพลีย' },
-      { id: 'pain', icon: 'activity', label: 'ปวดตามตัว' },
-      { id: 'cough', icon: 'volume2', label: 'ไอ/จาม' }
+    // Event types
+    const eventTypes = [
+      { id: 'checkup', icon: 'clipboardCheck', label: 'ตรวจสุขภาพ' },
+      { id: 'doctor_visit', icon: 'stethoscope', label: 'พบแพทย์' },
+      { id: 'hospitalization', icon: 'building', label: 'นอนโรงพยาบาล' },
+      { id: 'surgery', icon: 'scissors', label: 'ผ่าตัด' },
+      { id: 'vaccination', icon: 'syringe', label: 'ฉีดวัคซีน' },
+      { id: 'other', icon: 'edit', label: 'อื่นๆ' }
     ];
 
-    // Body locations
-    const locations = ['หัว', 'คอ', 'หน้าอก', 'ท้อง', 'หลัง', 'แขน', 'ขา', 'ทั้งตัว'];
+    // Event type Thai mappings
+    const eventTypeLabels = {
+      checkup: 'ตรวจสุขภาพ',
+      doctor_visit: 'พบแพทย์',
+      hospitalization: 'นอนโรงพยาบาล',
+      surgery: 'ผ่าตัด',
+      vaccination: 'ฉีดวัคซีน',
+      other: 'อื่นๆ'
+    };
 
-    // Duration options
-    const durations = [
-      { id: 'just_now', label: 'เพิ่งเป็น' },
-      { id: 'this_morning', label: 'เมื่อเช้า' },
-      { id: 'yesterday', label: 'เมื่อวาน' },
-      { id: 'few_days', label: '2-3 วัน' },
-      { id: 'week', label: 'สัปดาห์ก่อน' },
-      { id: 'ongoing', label: 'เป็นมานาน' }
-    ];
-
-    // Severity levels
-    const severityLevels = [
-      { level: 1, emoji: '😊', label: 'น้อย' },
-      { level: 2, emoji: '😐', label: 'เล็กน้อย' },
-      { level: 3, emoji: '😣', label: 'ปานกลาง' },
-      { level: 4, emoji: '😫', label: 'มาก' },
-      { level: 5, emoji: '😵', label: 'รุนแรง' }
-    ];
-
-    // Selected state
-    let selectedSymptoms = new Set();
-    let selectedSeverity = null;
-    let selectedLocation = null;
-    let selectedDuration = null;
+    let selectedEventType = null;
 
     // Initialize icons and UI immediately
     (function initUI() {
@@ -712,23 +593,24 @@
 
       // Set icons
       document.getElementById('backBtn').innerHTML = icon('arrowLeft');
-      document.getElementById('headerTitle').innerHTML = icon('stethoscope', 'inline-icon') + ' บันทึกอาการ';
+      document.getElementById('headerTitle').innerHTML = icon('fileText', 'inline-icon') + ' บันทึกทางการแพทย์';
       document.getElementById('themeBtn').innerHTML = icon('sun');
-      document.getElementById('selectedLabel').innerHTML = icon('checkCircle') + ' อาการที่เลือก';
-      document.getElementById('symptomLabel').innerHTML = icon('list') + ' เลือกอาการ';
-      document.getElementById('severityLabel').innerHTML = icon('gauge') + ' ความรุนแรง';
-      document.getElementById('locationLabel').innerHTML = icon('mapPin') + ' ตำแหน่ง (ไม่บังคับ)';
-      document.getElementById('durationLabel').innerHTML = icon('clock') + ' เริ่มเป็นตั้งแต่';
-      document.getElementById('noteLabel').innerHTML = icon('fileText') + ' รายละเอียดเพิ่มเติม (ไม่บังคับ)';
+      document.getElementById('dateLabel').innerHTML = icon('calendar') + ' วันที่';
+      document.getElementById('eventTypeLabel').innerHTML = icon('tag') + ' ประเภทเหตุการณ์';
+      document.getElementById('descriptionLabel').innerHTML = icon('fileText') + ' รายละเอียด';
+      document.getElementById('hospitalLabel').innerHTML = icon('building') + ' โรงพยาบาล (ไม่บังคับ)';
+      document.getElementById('doctorLabel').innerHTML = icon('user') + ' แพทย์ (ไม่บังคับ)';
+      document.getElementById('outcomeLabel').innerHTML = icon('checkCircle') + ' ผลลัพธ์ (ไม่บังคับ)';
       document.getElementById('submitIcon').innerHTML = icon('save');
       document.getElementById('tabTodayIcon').innerHTML = icon('edit');
       document.getElementById('tabHistoryIcon').innerHTML = icon('clock');
 
-      // Render static options immediately
-      renderSymptoms();
-      renderSeverity();
-      renderLocations();
-      renderDurations();
+      // Set default date to today
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('eventDate').value = today;
+
+      // Render event type grid
+      renderEventTypes();
 
       // Show UI immediately!
       document.getElementById('loadingState').classList.add('hidden');
@@ -751,6 +633,114 @@
 
     // Initial theme icon update
     setTimeout(updateThemeIcon, 100);
+
+    // Render event type grid
+    function renderEventTypes() {
+      const grid = document.getElementById('eventTypeGrid');
+      grid.innerHTML = eventTypes.map(et => `
+        <div class="event-type-btn ${selectedEventType === et.id ? 'selected' : ''}" data-id="${et.id}" onclick="selectEventType('${et.id}')">
+          <div class="icon-wrapper">${icon(et.icon)}</div>
+          <span class="label">${et.label}</span>
+        </div>
+      `).join('');
+    }
+
+    // Select event type
+    function selectEventType(type) {
+      selectedEventType = type;
+      renderEventTypes();
+
+      // Show/hide custom input
+      const customInput = document.getElementById('customEventInput');
+      if (type === 'other') {
+        customInput.classList.add('show');
+        document.getElementById('customEventText').focus();
+      } else {
+        customInput.classList.remove('show');
+      }
+    }
+
+    // Submit medical note
+    async function submitMedicalNote() {
+      // Validate
+      if (!selectedEventType) {
+        showToast('กรุณาเลือกประเภทเหตุการณ์', 'error');
+        return;
+      }
+
+      const description = document.getElementById('descriptionInput').value.trim();
+      if (!description) {
+        showToast('กรุณากรอกรายละเอียด', 'error');
+        return;
+      }
+
+      // For 'other' type, custom text is the event_type
+      let eventType = selectedEventType;
+      if (selectedEventType === 'other') {
+        const customText = document.getElementById('customEventText').value.trim();
+        if (customText) {
+          eventType = customText;
+        }
+      }
+
+      const btn = document.getElementById('submitBtn');
+      btn.disabled = true;
+      btn.innerHTML = icon('loader2') + ' กำลังบันทึก...';
+
+      try {
+        const eventDate = document.getElementById('eventDate').value;
+        const hospital = document.getElementById('hospitalInput').value.trim();
+        const doctor = document.getElementById('doctorInput').value.trim();
+        const outcome = document.getElementById('outcomeInput').value.trim();
+
+        const noteData = {
+          patient_id: patientId,
+          event_date: eventDate,
+          event_type: eventType,
+          description: description,
+          hospital_name: hospital || null,
+          doctor_name: doctor || null,
+          outcome: outcome || null
+        };
+
+        const { error } = await supabaseClient
+          .from('medical_history')
+          .insert(noteData);
+
+        if (error) throw error;
+
+        const typeLabel = eventTypeLabels[selectedEventType] || eventType;
+        showToast(`บันทึก${typeLabel}เรียบร้อย`, 'success');
+
+        // Reset form after short delay
+        setTimeout(() => {
+          resetForm();
+        }, 1500);
+
+      } catch (error) {
+        console.error('Error submitting medical note:', error);
+        showToast('เกิดข้อผิดพลาดในการบันทึก', 'error');
+        btn.disabled = false;
+        btn.innerHTML = icon('save') + ' บันทึกข้อมูล';
+      }
+    }
+
+    // Reset form
+    function resetForm() {
+      selectedEventType = null;
+      renderEventTypes();
+      document.getElementById('customEventInput').classList.remove('show');
+      document.getElementById('customEventText').value = '';
+      document.getElementById('descriptionInput').value = '';
+      document.getElementById('hospitalInput').value = '';
+      document.getElementById('doctorInput').value = '';
+      document.getElementById('outcomeInput').value = '';
+      document.getElementById('eventDate').value = new Date().toISOString().split('T')[0];
+
+      const btn = document.getElementById('submitBtn');
+      btn.disabled = false;
+      btn.innerHTML = icon('save') + ' บันทึกข้อมูล';
+    }
 
     // Cache LIFF profile in sessionStorage
     async function getCachedProfile() {
@@ -809,180 +799,24 @@
         const context = JSON.parse(localStorage.getItem('oonjai_context') || '{}');
         patientId = context.patientId;
 
+        // Fallback: fetch patientId from server if not in localStorage
+        if (!patientId && profile?.userId) {
+          try {
+            const response = await fetch(`${API_BASE_URL}/check-user/${profile.userId}`);
+            const result = await response.json();
+            if (result.exists && result.profile?.linked_patient_id) {
+              patientId = result.profile.linked_patient_id;
+              context.patientId = patientId;
+              localStorage.setItem('oonjai_context', JSON.stringify(context));
+            }
+          } catch (e) {
+            console.error('Failed to fetch patientId from server:', e);
+          }
+        }
+
       } catch (error) {
         console.error('LIFF init error:', error);
         showToast('เกิดข้อผิดพลาด: ' + error.message, 'error');
-      }
-    }
-
-    function renderSymptoms() {
-      const grid = document.getElementById('symptomGrid');
-      grid.innerHTML = presetSymptoms.map(s => `
-        <div class="symptom-btn ${selectedSymptoms.has(s.id) ? 'selected' : ''}" data-id="${s.id}" onclick="toggleSymptom('${s.id}')">
-          <div class="icon-wrapper">${icon(s.icon)}</div>
-          <span class="label">${s.label}</span>
-        </div>
-      `).join('');
-    }
-
-    function renderSeverity() {
-      const container = document.getElementById('severitySelector');
-      container.innerHTML = severityLevels.map(s => `
-        <div class="severity-btn level-${s.level} ${selectedSeverity === s.level ? 'selected' : ''}" data-level="${s.level}" onclick="selectSeverity(${s.level})">
-          <span class="severity-icon">${s.emoji}</span>
-          <span class="label">${s.label}</span>
-        </div>
-      `).join('');
-    }
-
-    function renderLocations() {
-      const container = document.getElementById('locationSelector');
-      container.innerHTML = locations.map(loc => `
-        <div class="chip ${selectedLocation === loc ? 'selected' : ''}" onclick="selectLocation('${loc}')">${loc}</div>
-      `).join('');
-    }
-
-    function renderDurations() {
-      const container = document.getElementById('durationSelector');
-      container.innerHTML = durations.map(d => `
-        <div class="chip ${selectedDuration === d.id ? 'selected' : ''}" onclick="selectDuration('${d.id}')">${d.label}</div>
-      `).join('');
-    }
-
-    function toggleSymptom(id) {
-      if (selectedSymptoms.has(id)) {
-        selectedSymptoms.delete(id);
-      } else {
-        selectedSymptoms.add(id);
-      }
-      renderSymptoms();
-      updateSelectedList();
-      updateSubmitButton();
-    }
-
-    function addCustomSymptom() {
-      const input = document.getElementById('customSymptom');
-      const value = input.value.trim();
-      if (!value) return;
-
-      // Add as custom symptom
-      const customId = 'custom_' + Date.now();
-      presetSymptoms.push({ id: customId, icon: 'edit3', label: value });
-      selectedSymptoms.add(customId);
-
-      input.value = '';
-      renderSymptoms();
-      updateSelectedList();
-      updateSubmitButton();
-    }
-
-    function removeSymptom(id) {
-      selectedSymptoms.delete(id);
-      renderSymptoms();
-      updateSelectedList();
-      updateSubmitButton();
-    }
-
-    function updateSelectedList() {
-      const section = document.getElementById('selectedSymptomsSection');
-      const list = document.getElementById('selectedList');
-
-      if (selectedSymptoms.size === 0) {
-        section.classList.add('hidden');
-        return;
-      }
-
-      section.classList.remove('hidden');
-
-      list.innerHTML = Array.from(selectedSymptoms).map(id => {
-        const symptom = presetSymptoms.find(s => s.id === id);
-        return `
-          <div class="selected-tag">
-            ${symptom ? symptom.label : id}
-            <span class="remove" onclick="removeSymptom('${id}')">×</span>
-          </div>
-        `;
-      }).join('');
-    }
-
-    function selectSeverity(level) {
-      selectedSeverity = level;
-      renderSeverity();
-      updateSubmitButton();
-    }
-
-    function selectLocation(loc) {
-      selectedLocation = selectedLocation === loc ? null : loc;
-      renderLocations();
-    }
-
-    function selectDuration(id) {
-      selectedDuration = selectedDuration === id ? null : id;
-      renderDurations();
-    }
-
-    function updateSubmitButton() {
-      const btn = document.getElementById('submitBtn');
-      btn.disabled = selectedSymptoms.size === 0 || !selectedSeverity;
-    }
-
-    async function submitSymptoms() {
-      if (selectedSymptoms.size === 0 || !selectedSeverity) return;
-
-      const btn = document.getElementById('submitBtn');
-      btn.disabled = true;
-      btn.innerHTML = icon('loader2') + ' กำลังบันทึก...';
-
-      try {
-        const note = document.getElementById('noteInput').value.trim();
-
-        // Get symptom labels
-        const symptomLabels = Array.from(selectedSymptoms).map(id => {
-          const symptom = presetSymptoms.find(s => s.id === id);
-          return symptom ? symptom.label : id.replace('custom_', '');
-        });
-
-        // Create symptom log
-        const symptomData = {
-          patient_id: patientId,
-          symptoms: symptomLabels,
-          severity: selectedSeverity,
-          location: selectedLocation,
-          duration: selectedDuration,
-          note: note || null,
-          logged_at: new Date().toISOString()
-        };
-
-        // Save to activity_logs
-        const { error } = await supabaseClient
-          .from('activity_logs')
-          .insert({
-            patient_id: patientId,
-            task_type: 'symptom',
-            metadata: symptomData
-          });
-
-        if (error) throw error;
-
-        showToast(`บันทึก ${symptomLabels.length} อาการเรียบร้อย`, 'success');
-
-        // Check if severe - show warning
-        if (selectedSeverity >= 4) {
-          setTimeout(() => {
-            showToast('อาการรุนแรง! กรุณาปรึกษาแพทย์หากอาการไม่ดีขึ้น', 'error');
-          }, 1500);
-        }
-
-        // Reset form after short delay
-        setTimeout(() => {
-          goBack();
-        }, 2000);
-
-      } catch (error) {
-        console.error('Error submitting symptoms:', error);
-        showToast('เกิดข้อผิดพลาดในการบันทึก', 'error');
-        btn.disabled = false;
-        btn.innerHTML = icon('save') + ' บันทึกอาการ';
       }
     }
 
@@ -1051,7 +885,7 @@
       const from = document.getElementById('dateFrom').value;
       const to = document.getElementById('dateTo').value;
       if (!from || !to) return;
-      loadHistory(new Date(from), new Date(to + 'T23:59:59'));
+      loadHistory(from, to);
     }
 
     async function loadHistory(fromDate, toDate) {
@@ -1063,20 +897,22 @@
       document.getElementById('historyList').innerHTML = '<div class="history-empty">กำลังโหลด...</div>';
 
       if (!fromDate) {
-        fromDate = new Date();
-        fromDate.setDate(fromDate.getDate() - historyPeriodDays);
+        const from = new Date();
+        from.setDate(from.getDate() - historyPeriodDays);
+        fromDate = from.toISOString().split('T')[0];
       }
       if (!toDate) {
-        toDate = new Date();
+        toDate = new Date().toISOString().split('T')[0];
       }
 
       try {
         const { data, error } = await supabaseClient
-          .from('symptoms')
+          .from('medical_history')
           .select('*')
           .eq('patient_id', patientId)
-          .gte('created_at', fromDate.toISOString())
-          .lte('created_at', toDate.toISOString())
+          .gte('event_date', fromDate)
+          .lte('event_date', toDate)
+          .order('event_date', { ascending: false })
           .order('created_at', { ascending: false })
           .limit(100);
 
@@ -1092,15 +928,14 @@
       const container = document.getElementById('historyList');
 
       if (records.length === 0) {
-        container.innerHTML = '<div class="history-empty">' + icon('thermometer') + '<p>ไม่มีข้อมูลในช่วงเวลานี้</p></div>';
+        container.innerHTML = '<div class="history-empty">' + icon('fileText') + '<p>ไม่มีข้อมูลในช่วงเวลานี้</p></div>';
         return;
       }
 
-      const severityLabels = { 1: 'น้อย', 2: 'เล็กน้อย', 3: 'ปานกลาง', 4: 'มาก', 5: 'รุนแรง' };
-
+      // Group by event_date
       const grouped = {};
       records.forEach(r => {
-        const date = new Date(r.created_at).toLocaleDateString('th-TH', { weekday: 'long', day: 'numeric', month: 'long' });
+        const date = new Date(r.event_date + 'T00:00:00').toLocaleDateString('th-TH', { weekday: 'long', day: 'numeric', month: 'long' });
         if (!grouped[date]) grouped[date] = [];
         grouped[date].push(r);
       });
@@ -1109,15 +944,16 @@
       for (const [date, items] of Object.entries(grouped)) {
         html += `<div class="history-day-header">${date}</div>`;
         items.forEach(item => {
-          const time = new Date(item.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
-          const name = item.symptom_name || (item.symptoms ? (Array.isArray(item.symptoms) ? item.symptoms.join(', ') : item.symptoms) : 'อาการ');
-          const severity = item.severity ? ` (${severityLabels[item.severity] || item.severity})` : '';
+          const eventTypeTh = eventTypeLabels[item.event_type] || item.event_type || 'บันทึก';
+          const desc = item.description || '';
+          const truncatedDesc = desc.length > 50 ? desc.substring(0, 50) + '...' : desc;
+          const subText = item.hospital_name || new Date(item.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
           html += `
             <div class="history-item">
-              <div class="history-item-icon">${icon('thermometer')}</div>
+              <div class="history-item-icon">${icon('fileText')}</div>
               <div class="history-item-content">
-                <div class="history-item-text">${name}${severity}</div>
-                <div class="history-item-time">${time}</div>
+                <div class="history-item-text">${eventTypeTh}: ${truncatedDesc}</div>
+                <div class="history-item-time">${subText}</div>
               </div>
             </div>`;
         });

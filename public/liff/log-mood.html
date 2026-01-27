@@ -4,12 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#1E7B9C">
-  <title>บันทึกอาการ - OONJAI</title>
+  <title>บันทึกอารมณ์ - OONJAI</title>
 
   <!-- Preconnect -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://static.line-scdn.net">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
   <link rel="preconnect" href="https://mqxklnzxfrupwwkwlwwc.supabase.co">
 
   <!-- Kanit Font -->
@@ -17,6 +18,10 @@
 
   <!-- Theme CSS -->
   <link rel="stylesheet" href="css/oonjai-theme.css">
+
+  <!-- External Scripts -->
+  <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
     /* Section Label */
@@ -36,18 +41,18 @@
       color: hsl(var(--primary));
     }
 
-    /* Symptom Grid */
-    .symptom-section {
+    /* Mood Grid */
+    .mood-section {
       margin-bottom: 1.5rem;
     }
 
-    .symptom-grid {
+    .mood-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 0.75rem;
     }
 
-    .symptom-btn {
+    .mood-btn {
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -60,96 +65,64 @@
       transition: all 0.2s ease;
     }
 
-    .symptom-btn:active {
+    .mood-btn:active {
       transform: scale(0.97);
     }
 
-    .symptom-btn.selected {
+    .mood-btn.selected {
       background: hsl(var(--primary) / 0.1);
       border-color: hsl(var(--primary));
     }
 
-    .symptom-btn .icon-wrapper {
+    .mood-btn .icon-wrapper {
       width: 48px;
       height: 48px;
-      border-radius: var(--radius-md);
+      border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      background: hsl(var(--muted));
+      background: hsl(45 93% 94%);
+      color: hsl(45 93% 40%);
     }
 
-    .symptom-btn .icon-wrapper svg {
+    .dark .mood-btn .icon-wrapper {
+      background: hsl(45 50% 20%);
+      color: hsl(45 93% 65%);
+    }
+
+    .mood-btn .icon-wrapper svg {
       width: 24px;
       height: 24px;
-      color: hsl(var(--muted-foreground));
     }
 
-    .symptom-btn.selected .icon-wrapper {
+    .mood-btn.selected .icon-wrapper {
       background: hsl(var(--primary) / 0.2);
-    }
-
-    .symptom-btn.selected .icon-wrapper svg {
       color: hsl(var(--primary));
     }
 
-    .symptom-btn .label {
+    .mood-btn .label {
       font-size: 0.8125rem;
       font-weight: 500;
       color: hsl(var(--muted-foreground));
       text-align: center;
     }
 
-    .symptom-btn.selected .label {
+    .mood-btn.selected .label {
       color: hsl(var(--primary));
       font-weight: 600;
     }
 
-    /* Custom Symptom */
-    .custom-symptom {
-      display: flex;
-      gap: 0.5rem;
-      margin-top: 1rem;
-    }
-
-    .custom-symptom input {
-      flex: 1;
-      padding: 0.75rem 1rem;
-      border: 2px solid hsl(var(--border));
-      border-radius: var(--radius-md);
-      font-size: 0.9375rem;
-      font-family: 'Kanit', sans-serif;
-      background: hsl(var(--card));
-      color: hsl(var(--foreground));
-    }
-
-    .custom-symptom input:focus {
-      outline: none;
-      border-color: hsl(var(--primary));
-    }
-
-    .custom-symptom button {
-      padding: 0.75rem 1.25rem;
-      background: hsl(var(--primary));
-      color: white;
-      border: none;
-      border-radius: var(--radius-md);
-      font-weight: 500;
-      font-family: 'Kanit', sans-serif;
-      cursor: pointer;
-    }
-
-    /* Severity Section */
-    .severity-section {
+    /* Score Section */
+    .score-section {
       margin-bottom: 1.5rem;
     }
 
-    .severity-selector {
+    .score-selector {
       display: flex;
       gap: 0.5rem;
     }
 
-    .severity-btn {
+    .score-btn {
       flex: 1;
       display: flex;
       flex-direction: column;
@@ -163,73 +136,94 @@
       transition: all 0.2s ease;
     }
 
-    .severity-btn:active {
+    .score-btn:active {
       transform: scale(0.97);
     }
 
-    .severity-btn.selected {
+    .score-btn.selected {
       border-color: hsl(var(--primary));
     }
 
-    .severity-btn.selected.level-1 { background: hsl(142 76% 90%); }
-    .severity-btn.selected.level-2 { background: hsl(48 96% 89%); }
-    .severity-btn.selected.level-3 { background: hsl(33 100% 90%); }
-    .severity-btn.selected.level-4 { background: hsl(0 93% 90%); }
-    .severity-btn.selected.level-5 { background: hsl(0 84% 85%); }
+    .score-btn.selected.level-1 { background: hsl(0 93% 90%); }
+    .score-btn.selected.level-2 { background: hsl(33 100% 90%); }
+    .score-btn.selected.level-3 { background: hsl(48 96% 89%); }
+    .score-btn.selected.level-4 { background: hsl(142 76% 90%); }
+    .score-btn.selected.level-5 { background: hsl(142 76% 85%); }
 
-    .dark .severity-btn.selected.level-1 { background: hsl(142 50% 20%); }
-    .dark .severity-btn.selected.level-2 { background: hsl(48 50% 20%); }
-    .dark .severity-btn.selected.level-3 { background: hsl(33 50% 20%); }
-    .dark .severity-btn.selected.level-4 { background: hsl(0 50% 20%); }
-    .dark .severity-btn.selected.level-5 { background: hsl(0 50% 15%); }
+    .dark .score-btn.selected.level-1 { background: hsl(0 50% 20%); }
+    .dark .score-btn.selected.level-2 { background: hsl(33 50% 20%); }
+    .dark .score-btn.selected.level-3 { background: hsl(48 50% 20%); }
+    .dark .score-btn.selected.level-4 { background: hsl(142 50% 20%); }
+    .dark .score-btn.selected.level-5 { background: hsl(142 50% 15%); }
 
-    .severity-btn .severity-icon {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+    .score-btn .score-emoji {
       font-size: 1.25rem;
     }
 
-    .severity-btn .label {
+    .score-btn .label {
       font-size: 0.6875rem;
       color: hsl(var(--muted-foreground));
       text-align: center;
     }
 
-    /* Location Section */
-    .location-section {
+    /* Stress / Energy Level Buttons */
+    .level-section {
       margin-bottom: 1.5rem;
     }
 
-    .chip-selector {
+    .level-selector {
       display: flex;
-      flex-wrap: wrap;
       gap: 0.5rem;
     }
 
-    .chip {
-      padding: 0.5rem 1rem;
+    .level-btn {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.75rem 0.5rem;
       background: hsl(var(--card));
       border: 2px solid hsl(var(--border));
-      border-radius: var(--radius-xl);
-      font-size: 0.875rem;
+      border-radius: var(--radius-md);
       cursor: pointer;
       transition: all 0.2s ease;
+      font-size: 0.875rem;
+      font-weight: 500;
       color: hsl(var(--muted-foreground));
     }
 
-    .chip:active {
+    .level-btn:active {
       transform: scale(0.97);
     }
 
-    .chip.selected {
+    .level-btn.selected {
       background: hsl(var(--primary) / 0.1);
       border-color: hsl(var(--primary));
       color: hsl(var(--primary));
-      font-weight: 500;
+      font-weight: 600;
+    }
+
+    /* Stress Cause Input */
+    .input-section {
+      margin-bottom: 1.5rem;
+    }
+
+    .text-input {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: 2px solid hsl(var(--border));
+      border-radius: var(--radius-md);
+      font-size: 0.9375rem;
+      font-family: 'Kanit', sans-serif;
+      background: hsl(var(--card));
+      color: hsl(var(--foreground));
+      transition: all 0.2s ease;
+    }
+
+    .text-input:focus {
+      outline: none;
+      border-color: hsl(var(--primary));
     }
 
     /* Note Section */
@@ -254,40 +248,6 @@
     .note-input:focus {
       outline: none;
       border-color: hsl(var(--primary));
-    }
-
-    /* Selected Symptoms Tags */
-    .selected-symptoms {
-      margin-bottom: 1.5rem;
-    }
-
-    .selected-list {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-    }
-
-    .selected-tag {
-      display: flex;
-      align-items: center;
-      gap: 0.25rem;
-      padding: 0.5rem 0.75rem;
-      background: hsl(var(--primary) / 0.1);
-      border-radius: var(--radius-xl);
-      font-size: 0.875rem;
-      color: hsl(var(--primary));
-      font-weight: 500;
-    }
-
-    .selected-tag .remove {
-      cursor: pointer;
-      font-size: 1rem;
-      margin-left: 0.25rem;
-      opacity: 0.7;
-    }
-
-    .selected-tag .remove:hover {
-      opacity: 1;
     }
 
     /* Submit Section */
@@ -376,13 +336,13 @@
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
-      background: hsl(38 92% 95%);
-      color: hsl(var(--accent));
+      background: hsl(45 93% 94%);
+      color: hsl(45 93% 40%);
     }
 
     .dark .history-item-icon {
-      background: hsl(38 50% 20%);
-      color: hsl(38 92% 65%);
+      background: hsl(45 50% 20%);
+      color: hsl(45 93% 65%);
     }
 
     .history-item-icon svg {
@@ -513,15 +473,15 @@
     }
 
     @media (max-width: 380px) {
-      .symptom-grid {
+      .mood-grid {
         grid-template-columns: repeat(2, 1fr);
       }
 
-      .severity-selector {
+      .score-selector {
         flex-wrap: wrap;
       }
 
-      .severity-btn {
+      .score-btn {
         min-width: calc(50% - 0.25rem);
         flex: none;
       }
@@ -557,53 +517,107 @@
 
       <!-- Today Content -->
       <div id="todayContent">
-      <!-- Selected Symptoms -->
-      <div id="selectedSymptomsSection" class="selected-symptoms hidden">
-        <div class="section-label" id="selectedLabel"></div>
-        <div id="selectedList" class="selected-list"></div>
-      </div>
-
-      <!-- Symptom Grid -->
-      <div class="symptom-section">
-        <div class="section-label" id="symptomLabel"></div>
-        <div class="symptom-grid" id="symptomGrid">
-          <!-- Symptoms will be rendered here -->
+        <!-- Mood Grid -->
+        <div class="mood-section">
+          <div class="section-label" id="moodLabel"></div>
+          <div class="mood-grid" id="moodGrid">
+            <div class="mood-btn" data-mood="happy" onclick="selectMood('happy')">
+              <div class="icon-wrapper" id="moodIconHappy"></div>
+              <span class="label">มีความสุข</span>
+            </div>
+            <div class="mood-btn" data-mood="calm" onclick="selectMood('calm')">
+              <div class="icon-wrapper" id="moodIconCalm"></div>
+              <span class="label">สงบ</span>
+            </div>
+            <div class="mood-btn" data-mood="excited" onclick="selectMood('excited')">
+              <div class="icon-wrapper" id="moodIconExcited"></div>
+              <span class="label">ตื่นเต้น</span>
+            </div>
+            <div class="mood-btn" data-mood="neutral" onclick="selectMood('neutral')">
+              <div class="icon-wrapper" id="moodIconNeutral"></div>
+              <span class="label">ปกติ</span>
+            </div>
+            <div class="mood-btn" data-mood="tired" onclick="selectMood('tired')">
+              <div class="icon-wrapper" id="moodIconTired"></div>
+              <span class="label">เหนื่อย</span>
+            </div>
+            <div class="mood-btn" data-mood="anxious" onclick="selectMood('anxious')">
+              <div class="icon-wrapper" id="moodIconAnxious"></div>
+              <span class="label">กังวล</span>
+            </div>
+            <div class="mood-btn" data-mood="sad" onclick="selectMood('sad')">
+              <div class="icon-wrapper" id="moodIconSad"></div>
+              <span class="label">เศร้า</span>
+            </div>
+            <div class="mood-btn" data-mood="stressed" onclick="selectMood('stressed')">
+              <div class="icon-wrapper" id="moodIconStressed"></div>
+              <span class="label">เครียด</span>
+            </div>
+            <div class="mood-btn" data-mood="exhausted" onclick="selectMood('exhausted')">
+              <div class="icon-wrapper" id="moodIconExhausted"></div>
+              <span class="label">อ่อนเพลีย</span>
+            </div>
+          </div>
         </div>
-        <div class="custom-symptom">
-          <input type="text" id="customSymptom" placeholder="พิมพ์อาการอื่นๆ...">
-          <button onclick="addCustomSymptom()">เพิ่ม</button>
-        </div>
-      </div>
 
-      <!-- Severity Section -->
-      <div class="severity-section">
-        <div class="section-label" id="severityLabel"></div>
-        <div class="severity-selector" id="severitySelector">
-          <!-- Severity buttons rendered by JS -->
+        <!-- Mood Score -->
+        <div class="score-section">
+          <div class="section-label" id="scoreLabel"></div>
+          <div class="score-selector" id="scoreSelector">
+            <div class="score-btn level-1" data-score="1" onclick="selectMoodScore(1)">
+              <span class="score-emoji">😢</span>
+              <span class="label">แย่มาก</span>
+            </div>
+            <div class="score-btn level-2" data-score="2" onclick="selectMoodScore(2)">
+              <span class="score-emoji">😔</span>
+              <span class="label">ไม่ดี</span>
+            </div>
+            <div class="score-btn level-3" data-score="3" onclick="selectMoodScore(3)">
+              <span class="score-emoji">😐</span>
+              <span class="label">ปกติ</span>
+            </div>
+            <div class="score-btn level-4" data-score="4" onclick="selectMoodScore(4)">
+              <span class="score-emoji">🙂</span>
+              <span class="label">ดี</span>
+            </div>
+            <div class="score-btn level-5" data-score="5" onclick="selectMoodScore(5)">
+              <span class="score-emoji">😊</span>
+              <span class="label">ดีมาก</span>
+            </div>
+          </div>
         </div>
-      </div>
 
-      <!-- Location Section -->
-      <div class="location-section">
-        <div class="section-label" id="locationLabel"></div>
-        <div class="chip-selector" id="locationSelector">
-          <!-- Locations will be rendered here -->
+        <!-- Stress Level -->
+        <div class="level-section">
+          <div class="section-label" id="stressLabel"></div>
+          <div class="level-selector" id="stressSelector">
+            <div class="level-btn" data-level="low" onclick="selectStressLevel('low')">ต่ำ</div>
+            <div class="level-btn" data-level="medium" onclick="selectStressLevel('medium')">ปานกลาง</div>
+            <div class="level-btn" data-level="high" onclick="selectStressLevel('high')">สูง</div>
+          </div>
         </div>
-      </div>
 
-      <!-- Duration Section -->
-      <div class="location-section">
-        <div class="section-label" id="durationLabel"></div>
-        <div class="chip-selector" id="durationSelector">
-          <!-- Durations will be rendered here -->
+        <!-- Stress Cause -->
+        <div class="input-section">
+          <div class="section-label" id="stressCauseLabel"></div>
+          <input type="text" id="stressCauseInput" class="text-input" placeholder="เช่น งาน, สุขภาพ, ครอบครัว...">
         </div>
-      </div>
 
-      <!-- Note Section -->
-      <div class="note-section">
-        <div class="section-label" id="noteLabel"></div>
-        <textarea id="noteInput" class="note-input" placeholder="อธิบายอาการเพิ่มเติม..."></textarea>
-      </div>
+        <!-- Energy Level -->
+        <div class="level-section">
+          <div class="section-label" id="energyLabel"></div>
+          <div class="level-selector" id="energySelector">
+            <div class="level-btn" data-level="low" onclick="selectEnergyLevel('low')">ต่ำ</div>
+            <div class="level-btn" data-level="medium" onclick="selectEnergyLevel('medium')">ปานกลาง</div>
+            <div class="level-btn" data-level="high" onclick="selectEnergyLevel('high')">สูง</div>
+          </div>
+        </div>
+
+        <!-- Note -->
+        <div class="note-section">
+          <div class="section-label" id="noteLabel"></div>
+          <textarea id="noteInput" class="note-input" placeholder="บันทึกเพิ่มเติม..."></textarea>
+        </div>
       </div><!-- /todayContent -->
 
       <!-- History Content -->
@@ -630,8 +644,8 @@
 
     <!-- Submit Section -->
     <div id="submitSection" class="submit-section hidden">
-      <button class="btn btn-primary btn-block" id="submitBtn" onclick="submitSymptoms()" disabled>
-        <span id="submitIcon"></span> บันทึกอาการ
+      <button class="btn btn-primary btn-block" id="submitBtn" onclick="submitMood()" disabled>
+        <span id="submitIcon"></span> บันทึกอารมณ์
       </button>
     </div>
   </div>
@@ -639,20 +653,15 @@
   <!-- Toast Notification -->
   <div id="toast" class="toast"></div>
 
-  <!-- LIFF SDK -->
-  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-
-  <!-- Supabase -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
   <!-- Lucide Icons -->
   <script src="js/lucide-icons.js"></script>
 
-  <!-- API Client -->
-  <script src="js/api.js"></script>
-
   <script>
     // Configuration
+    const API_BASE_URL = window.location.hostname === 'localhost'
+      ? 'http://localhost:3000/api'
+      : 'https://duulair.vercel.app/api';
+
     const LIFF_ID = '2008278683-5k69jxNq';
     const SUPABASE_URL = 'https://mqxklnzxfrupwwkwlwwc.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1xeGtsbnp4ZnJ1cHd3a3dsd3djIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNjcxMjYsImV4cCI6MjA3MjY0MzEyNn0.vPBkIGHdvrfotD3QMnFGrNRMTP3fFzn715XGwqKG-6Y';
@@ -664,46 +673,31 @@
 
     let patientId = null;
 
-    // Preset symptoms with Lucide icons
-    const presetSymptoms = [
-      { id: 'headache', icon: 'brain', label: 'ปวดหัว' },
-      { id: 'nausea', icon: 'frown', label: 'คลื่นไส้' },
-      { id: 'dizzy', icon: 'alertCircle', label: 'เวียนหัว' },
-      { id: 'fever', icon: 'thermometer', label: 'มีไข้' },
-      { id: 'breathing', icon: 'wind', label: 'หายใจลำบาก' },
-      { id: 'chest', icon: 'heart', label: 'แน่นหน้าอก' },
-      { id: 'fatigue', icon: 'battery', label: 'เหนื่อย/อ่อนเพลีย' },
-      { id: 'pain', icon: 'activity', label: 'ปวดตามตัว' },
-      { id: 'cough', icon: 'volume2', label: 'ไอ/จาม' }
-    ];
-
-    // Body locations
-    const locations = ['หัว', 'คอ', 'หน้าอก', 'ท้อง', 'หลัง', 'แขน', 'ขา', 'ทั้งตัว'];
-
-    // Duration options
-    const durations = [
-      { id: 'just_now', label: 'เพิ่งเป็น' },
-      { id: 'this_morning', label: 'เมื่อเช้า' },
-      { id: 'yesterday', label: 'เมื่อวาน' },
-      { id: 'few_days', label: '2-3 วัน' },
-      { id: 'week', label: 'สัปดาห์ก่อน' },
-      { id: 'ongoing', label: 'เป็นมานาน' }
-    ];
-
-    // Severity levels
-    const severityLevels = [
-      { level: 1, emoji: '😊', label: 'น้อย' },
-      { level: 2, emoji: '😐', label: 'เล็กน้อย' },
-      { level: 3, emoji: '😣', label: 'ปานกลาง' },
-      { level: 4, emoji: '😫', label: 'มาก' },
-      { level: 5, emoji: '😵', label: 'รุนแรง' }
-    ];
-
     // Selected state
-    let selectedSymptoms = new Set();
-    let selectedSeverity = null;
-    let selectedLocation = null;
-    let selectedDuration = null;
+    let selectedMood = null;
+    let selectedScore = null;
+    let selectedStress = null;
+    let selectedEnergy = null;
+
+    // Mood labels
+    const moodLabels = {
+      happy: 'มีความสุข',
+      calm: 'สงบ',
+      excited: 'ตื่นเต้น',
+      neutral: 'ปกติ',
+      tired: 'เหนื่อย',
+      anxious: 'กังวล',
+      sad: 'เศร้า',
+      stressed: 'เครียด',
+      exhausted: 'อ่อนเพลีย'
+    };
+
+    // Stress/energy Thai labels
+    const levelLabels = {
+      low: 'ต่ำ',
+      medium: 'ปานกลาง',
+      high: 'สูง'
+    };
 
     // Initialize icons and UI immediately
     (function initUI() {
@@ -712,25 +706,30 @@
 
       // Set icons
       document.getElementById('backBtn').innerHTML = icon('arrowLeft');
-      document.getElementById('headerTitle').innerHTML = icon('stethoscope', 'inline-icon') + ' บันทึกอาการ';
+      document.getElementById('headerTitle').innerHTML = icon('smile', 'inline-icon') + ' บันทึกอารมณ์';
       document.getElementById('themeBtn').innerHTML = icon('sun');
-      document.getElementById('selectedLabel').innerHTML = icon('checkCircle') + ' อาการที่เลือก';
-      document.getElementById('symptomLabel').innerHTML = icon('list') + ' เลือกอาการ';
-      document.getElementById('severityLabel').innerHTML = icon('gauge') + ' ความรุนแรง';
-      document.getElementById('locationLabel').innerHTML = icon('mapPin') + ' ตำแหน่ง (ไม่บังคับ)';
-      document.getElementById('durationLabel').innerHTML = icon('clock') + ' เริ่มเป็นตั้งแต่';
-      document.getElementById('noteLabel').innerHTML = icon('fileText') + ' รายละเอียดเพิ่มเติม (ไม่บังคับ)';
+      document.getElementById('moodLabel').innerHTML = icon('smile') + ' อารมณ์วันนี้';
+      document.getElementById('scoreLabel').innerHTML = icon('gauge') + ' ระดับอารมณ์';
+      document.getElementById('stressLabel').innerHTML = icon('alertCircle') + ' ระดับความเครียด';
+      document.getElementById('stressCauseLabel').innerHTML = icon('fileText') + ' สาเหตุความเครียด (ไม่บังคับ)';
+      document.getElementById('energyLabel').innerHTML = icon('zap') + ' ระดับพลังงาน';
+      document.getElementById('noteLabel').innerHTML = icon('fileText') + ' หมายเหตุ (ไม่บังคับ)';
       document.getElementById('submitIcon').innerHTML = icon('save');
       document.getElementById('tabTodayIcon').innerHTML = icon('edit');
       document.getElementById('tabHistoryIcon').innerHTML = icon('clock');
 
-      // Render static options immediately
-      renderSymptoms();
-      renderSeverity();
-      renderLocations();
-      renderDurations();
+      // Set mood icons
+      document.getElementById('moodIconHappy').innerHTML = icon('smile');
+      document.getElementById('moodIconCalm').innerHTML = icon('coffee');
+      document.getElementById('moodIconExcited').innerHTML = icon('zap');
+      document.getElementById('moodIconNeutral').innerHTML = icon('meh');
+      document.getElementById('moodIconTired').innerHTML = icon('battery');
+      document.getElementById('moodIconAnxious').innerHTML = icon('alertCircle');
+      document.getElementById('moodIconSad').innerHTML = icon('frown');
+      document.getElementById('moodIconStressed').innerHTML = icon('cloud');
+      document.getElementById('moodIconExhausted').innerHTML = icon('cloudOff');
 
-      // Show UI immediately!
+      // Show UI immediately
       document.getElementById('loadingState').classList.add('hidden');
       document.getElementById('mainContent').classList.remove('hidden');
       document.getElementById('submitSection').classList.remove('hidden');
@@ -815,163 +814,72 @@
       }
     }
 
-    function renderSymptoms() {
-      const grid = document.getElementById('symptomGrid');
-      grid.innerHTML = presetSymptoms.map(s => `
-        <div class="symptom-btn ${selectedSymptoms.has(s.id) ? 'selected' : ''}" data-id="${s.id}" onclick="toggleSymptom('${s.id}')">
-          <div class="icon-wrapper">${icon(s.icon)}</div>
-          <span class="label">${s.label}</span>
-        </div>
-      `).join('');
-    }
-
-    function renderSeverity() {
-      const container = document.getElementById('severitySelector');
-      container.innerHTML = severityLevels.map(s => `
-        <div class="severity-btn level-${s.level} ${selectedSeverity === s.level ? 'selected' : ''}" data-level="${s.level}" onclick="selectSeverity(${s.level})">
-          <span class="severity-icon">${s.emoji}</span>
-          <span class="label">${s.label}</span>
-        </div>
-      `).join('');
-    }
-
-    function renderLocations() {
-      const container = document.getElementById('locationSelector');
-      container.innerHTML = locations.map(loc => `
-        <div class="chip ${selectedLocation === loc ? 'selected' : ''}" onclick="selectLocation('${loc}')">${loc}</div>
-      `).join('');
-    }
-
-    function renderDurations() {
-      const container = document.getElementById('durationSelector');
-      container.innerHTML = durations.map(d => `
-        <div class="chip ${selectedDuration === d.id ? 'selected' : ''}" onclick="selectDuration('${d.id}')">${d.label}</div>
-      `).join('');
-    }
-
-    function toggleSymptom(id) {
-      if (selectedSymptoms.has(id)) {
-        selectedSymptoms.delete(id);
-      } else {
-        selectedSymptoms.add(id);
-      }
-      renderSymptoms();
-      updateSelectedList();
+    // --- Selection Functions ---
+    function selectMood(mood) {
+      selectedMood = mood;
+      document.querySelectorAll('.mood-btn').forEach(btn => {
+        btn.classList.toggle('selected', btn.dataset.mood === mood);
+      });
       updateSubmitButton();
     }
 
-    function addCustomSymptom() {
-      const input = document.getElementById('customSymptom');
-      const value = input.value.trim();
-      if (!value) return;
-
-      // Add as custom symptom
-      const customId = 'custom_' + Date.now();
-      presetSymptoms.push({ id: customId, icon: 'edit3', label: value });
-      selectedSymptoms.add(customId);
-
-      input.value = '';
-      renderSymptoms();
-      updateSelectedList();
+    function selectMoodScore(score) {
+      selectedScore = score;
+      document.querySelectorAll('.score-btn').forEach(btn => {
+        btn.classList.toggle('selected', parseInt(btn.dataset.score) === score);
+      });
       updateSubmitButton();
     }
 
-    function removeSymptom(id) {
-      selectedSymptoms.delete(id);
-      renderSymptoms();
-      updateSelectedList();
-      updateSubmitButton();
+    function selectStressLevel(level) {
+      selectedStress = selectedStress === level ? null : level;
+      document.querySelectorAll('#stressSelector .level-btn').forEach(btn => {
+        btn.classList.toggle('selected', btn.dataset.level === selectedStress);
+      });
     }
 
-    function updateSelectedList() {
-      const section = document.getElementById('selectedSymptomsSection');
-      const list = document.getElementById('selectedList');
-
-      if (selectedSymptoms.size === 0) {
-        section.classList.add('hidden');
-        return;
-      }
-
-      section.classList.remove('hidden');
-
-      list.innerHTML = Array.from(selectedSymptoms).map(id => {
-        const symptom = presetSymptoms.find(s => s.id === id);
-        return `
-          <div class="selected-tag">
-            ${symptom ? symptom.label : id}
-            <span class="remove" onclick="removeSymptom('${id}')">×</span>
-          </div>
-        `;
-      }).join('');
-    }
-
-    function selectSeverity(level) {
-      selectedSeverity = level;
-      renderSeverity();
-      updateSubmitButton();
-    }
-
-    function selectLocation(loc) {
-      selectedLocation = selectedLocation === loc ? null : loc;
-      renderLocations();
-    }
-
-    function selectDuration(id) {
-      selectedDuration = selectedDuration === id ? null : id;
-      renderDurations();
+    function selectEnergyLevel(level) {
+      selectedEnergy = selectedEnergy === level ? null : level;
+      document.querySelectorAll('#energySelector .level-btn').forEach(btn => {
+        btn.classList.toggle('selected', btn.dataset.level === selectedEnergy);
+      });
     }
 
     function updateSubmitButton() {
       const btn = document.getElementById('submitBtn');
-      btn.disabled = selectedSymptoms.size === 0 || !selectedSeverity;
+      btn.disabled = !selectedMood || !selectedScore;
     }
 
-    async function submitSymptoms() {
-      if (selectedSymptoms.size === 0 || !selectedSeverity) return;
+    // --- Submit ---
+    async function submitMood() {
+      if (!selectedMood || !selectedScore) return;
 
       const btn = document.getElementById('submitBtn');
       btn.disabled = true;
       btn.innerHTML = icon('loader2') + ' กำลังบันทึก...';
 
       try {
+        const stressCause = document.getElementById('stressCauseInput').value.trim();
         const note = document.getElementById('noteInput').value.trim();
 
-        // Get symptom labels
-        const symptomLabels = Array.from(selectedSymptoms).map(id => {
-          const symptom = presetSymptoms.find(s => s.id === id);
-          return symptom ? symptom.label : id.replace('custom_', '');
-        });
-
-        // Create symptom log
-        const symptomData = {
+        const moodData = {
           patient_id: patientId,
-          symptoms: symptomLabels,
-          severity: selectedSeverity,
-          location: selectedLocation,
-          duration: selectedDuration,
+          mood: selectedMood,
+          mood_score: selectedScore,
+          stress_level: selectedStress || null,
+          stress_cause: stressCause || null,
+          energy_level: selectedEnergy || null,
           note: note || null,
-          logged_at: new Date().toISOString()
+          timestamp: new Date().toISOString()
         };
 
-        // Save to activity_logs
         const { error } = await supabaseClient
-          .from('activity_logs')
-          .insert({
-            patient_id: patientId,
-            task_type: 'symptom',
-            metadata: symptomData
-          });
+          .from('mood_logs')
+          .insert(moodData);
 
         if (error) throw error;
 
-        showToast(`บันทึก ${symptomLabels.length} อาการเรียบร้อย`, 'success');
-
-        // Check if severe - show warning
-        if (selectedSeverity >= 4) {
-          setTimeout(() => {
-            showToast('อาการรุนแรง! กรุณาปรึกษาแพทย์หากอาการไม่ดีขึ้น', 'error');
-          }, 1500);
-        }
+        showToast('บันทึกอารมณ์เรียบร้อย', 'success');
 
         // Reset form after short delay
         setTimeout(() => {
@@ -979,13 +887,14 @@
         }, 2000);
 
       } catch (error) {
-        console.error('Error submitting symptoms:', error);
+        console.error('Error submitting mood:', error);
         showToast('เกิดข้อผิดพลาดในการบันทึก', 'error');
         btn.disabled = false;
-        btn.innerHTML = icon('save') + ' บันทึกอาการ';
+        btn.innerHTML = icon('save') + ' บันทึกอารมณ์';
       }
     }
 
+    // --- Navigation ---
     function goBack() {
       const returnTo = sessionStorage.getItem('liff_return_to');
       if (returnTo) {
@@ -1072,12 +981,12 @@
 
       try {
         const { data, error } = await supabaseClient
-          .from('symptoms')
+          .from('mood_logs')
           .select('*')
           .eq('patient_id', patientId)
-          .gte('created_at', fromDate.toISOString())
-          .lte('created_at', toDate.toISOString())
-          .order('created_at', { ascending: false })
+          .gte('timestamp', fromDate.toISOString())
+          .lte('timestamp', toDate.toISOString())
+          .order('timestamp', { ascending: false })
           .limit(100);
 
         if (error) throw error;
@@ -1092,15 +1001,15 @@
       const container = document.getElementById('historyList');
 
       if (records.length === 0) {
-        container.innerHTML = '<div class="history-empty">' + icon('thermometer') + '<p>ไม่มีข้อมูลในช่วงเวลานี้</p></div>';
+        container.innerHTML = '<div class="history-empty">' + icon('smile') + '<p>ไม่มีข้อมูลในช่วงเวลานี้</p></div>';
         return;
       }
 
-      const severityLabels = { 1: 'น้อย', 2: 'เล็กน้อย', 3: 'ปานกลาง', 4: 'มาก', 5: 'รุนแรง' };
-
       const grouped = {};
       records.forEach(r => {
-        const date = new Date(r.created_at).toLocaleDateString('th-TH', { weekday: 'long', day: 'numeric', month: 'long' });
+        const dateStr = r.timestamp || r.created_at;
+        const dateObj = new Date(dateStr);
+        const date = dateObj.toLocaleDateString('th-TH', { weekday: 'long', day: 'numeric', month: 'long' });
         if (!grouped[date]) grouped[date] = [];
         grouped[date].push(r);
       });
@@ -1109,14 +1018,15 @@
       for (const [date, items] of Object.entries(grouped)) {
         html += `<div class="history-day-header">${date}</div>`;
         items.forEach(item => {
-          const time = new Date(item.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
-          const name = item.symptom_name || (item.symptoms ? (Array.isArray(item.symptoms) ? item.symptoms.join(', ') : item.symptoms) : 'อาการ');
-          const severity = item.severity ? ` (${severityLabels[item.severity] || item.severity})` : '';
+          const time = item.timestamp ? new Date(item.timestamp).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '';
+          const moodTh = moodLabels[item.mood] || item.mood || 'อารมณ์';
+          const score = item.mood_score ? ` (ระดับ ${item.mood_score}/5)` : '';
+          const stressTh = item.stress_level ? ` ความเครียด: ${levelLabels[item.stress_level] || item.stress_level}` : '';
           html += `
             <div class="history-item">
-              <div class="history-item-icon">${icon('thermometer')}</div>
+              <div class="history-item-icon">${icon('smile')}</div>
               <div class="history-item-content">
-                <div class="history-item-text">${name}${severity}</div>
+                <div class="history-item-text">${moodTh}${score}${stressTh}</div>
                 <div class="history-item-time">${time}</div>
               </div>
             </div>`;

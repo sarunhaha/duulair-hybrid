@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#1E7B9C">
-  <title>บันทึกกินยา - OONJAI</title>
+  <title>บันทึกออกกำลังกาย - OONJAI</title>
 
   <!-- Preconnect -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -24,31 +24,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
-    /* Current Time Card */
-    .time-card {
-      background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary-dark)) 100%);
-      border-radius: var(--radius-xl);
-      padding: 1rem 1.25rem;
-      margin-bottom: 1.5rem;
-      color: white;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.75rem;
-    }
-
-    .time-card svg {
-      width: 24px;
-      height: 24px;
-      opacity: 0.9;
-    }
-
-    .time-card .time {
-      font-size: 1.5rem;
-      font-weight: 600;
-      font-family: var(--font-mono);
-    }
-
     /* Section Title */
     .section-title {
       font-size: 0.875rem;
@@ -66,189 +41,280 @@
       color: hsl(var(--primary));
     }
 
-    /* Time Period Selector */
-    .time-period-section {
+    /* Exercise Type Grid */
+    .exercise-type-section {
       margin-bottom: 1.5rem;
     }
 
-    .time-selector {
+    .exercise-grid {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 0.5rem;
-    }
-
-    .time-option {
-      background: hsl(var(--card));
-      border: 2px solid hsl(var(--border));
-      border-radius: var(--radius-lg);
-      padding: 0.75rem 0.5rem;
-      text-align: center;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-
-    .time-option:active {
-      transform: scale(0.97);
-    }
-
-    .time-option.selected {
-      background: hsl(var(--primary) / 0.1);
-      border-color: hsl(var(--primary));
-    }
-
-    .time-option .icon {
-      display: flex;
-      justify-content: center;
-      margin-bottom: 0.375rem;
-    }
-
-    .time-option .icon svg {
-      width: 24px;
-      height: 24px;
-      color: hsl(var(--muted-foreground));
-    }
-
-    .time-option.selected .icon svg {
-      color: hsl(var(--primary));
-    }
-
-    .time-option .label {
-      font-size: 0.75rem;
-      font-weight: 500;
-      color: hsl(var(--muted-foreground));
-    }
-
-    .time-option.selected .label {
-      color: hsl(var(--primary));
-      font-weight: 600;
-    }
-
-    /* Medication List */
-    .medication-list-section {
-      margin-bottom: 1.5rem;
-    }
-
-    .medication-list {
-      display: flex;
-      flex-direction: column;
+      grid-template-columns: repeat(3, 1fr);
       gap: 0.75rem;
     }
 
-    .medication-item {
+    .exercise-btn {
       display: flex;
+      flex-direction: column;
       align-items: center;
-      gap: 1rem;
-      padding: 1rem;
+      gap: 0.5rem;
+      padding: 1rem 0.5rem;
       background: hsl(var(--card));
       border: 2px solid hsl(var(--border));
-      border-radius: var(--radius-xl);
+      border-radius: var(--radius-lg);
       cursor: pointer;
       transition: all 0.2s ease;
     }
 
-    .medication-item:active {
-      transform: scale(0.98);
+    .exercise-btn:active {
+      transform: scale(0.97);
     }
 
-    .medication-item.selected {
-      border-color: hsl(var(--primary));
-      background: hsl(var(--primary) / 0.05);
+    .exercise-btn.selected {
+      background: hsl(263 70% 95% / 0.5);
+      border-color: hsl(263 70% 50%);
     }
 
-    .medication-item.taken {
-      opacity: 0.6;
-      background: hsl(var(--muted));
-      cursor: default;
+    .dark .exercise-btn.selected {
+      background: hsl(263 50% 20% / 0.5);
+      border-color: hsl(263 70% 65%);
     }
 
-    .medication-checkbox {
-      width: 28px;
-      height: 28px;
-      border: 2px solid hsl(var(--muted-foreground) / 0.5);
-      border-radius: var(--radius);
+    .exercise-btn .icon-wrapper {
+      width: 48px;
+      height: 48px;
+      border-radius: var(--radius-md);
       display: flex;
       align-items: center;
       justify-content: center;
-      flex-shrink: 0;
-      transition: all 0.2s ease;
+      background: hsl(263 70% 95%);
+      color: hsl(263 70% 50%);
     }
 
-    .medication-checkbox svg {
-      width: 16px;
-      height: 16px;
-      color: transparent;
+    .dark .exercise-btn .icon-wrapper {
+      background: hsl(263 50% 20%);
+      color: hsl(263 70% 65%);
     }
 
-    .medication-item.selected .medication-checkbox {
-      background: hsl(var(--primary));
-      border-color: hsl(var(--primary));
+    .exercise-btn .icon-wrapper svg {
+      width: 24px;
+      height: 24px;
     }
 
-    .medication-item.selected .medication-checkbox svg {
-      color: white;
-    }
-
-    .medication-item.taken .medication-checkbox {
-      background: hsl(var(--muted-foreground));
-      border-color: hsl(var(--muted-foreground));
-    }
-
-    .medication-item.taken .medication-checkbox svg {
-      color: white;
-    }
-
-    .medication-info {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .medication-name {
-      font-size: 1rem;
-      font-weight: 600;
-      color: hsl(var(--foreground));
-      margin-bottom: 0.25rem;
-    }
-
-    .medication-dosage {
+    .exercise-btn .label {
       font-size: 0.8125rem;
+      font-weight: 500;
       color: hsl(var(--muted-foreground));
+      text-align: center;
     }
 
-    .medication-time-badge {
-      font-size: 0.75rem;
-      font-weight: 500;
-      color: hsl(var(--primary));
-      background: hsl(var(--primary) / 0.1);
-      padding: 0.375rem 0.625rem;
-      border-radius: var(--radius);
+    .exercise-btn.selected .label {
+      color: hsl(263 70% 50%);
+      font-weight: 600;
+    }
+
+    .dark .exercise-btn.selected .label {
+      color: hsl(263 70% 65%);
+    }
+
+    /* Custom Exercise Input */
+    .custom-exercise-input {
+      margin-top: 0.75rem;
+      display: none;
+    }
+
+    .custom-exercise-input.show {
+      display: block;
+    }
+
+    .custom-exercise-input input {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: 2px solid hsl(var(--border));
+      border-radius: var(--radius-md);
+      font-size: 0.9375rem;
+      font-family: 'Kanit', sans-serif;
+      background: hsl(var(--card));
+      color: hsl(var(--foreground));
+    }
+
+    .custom-exercise-input input:focus {
+      outline: none;
+      border-color: hsl(var(--primary));
+      box-shadow: 0 0 0 3px hsl(var(--primary) / 0.1);
+    }
+
+    /* Duration Section */
+    .duration-section {
+      margin-bottom: 1.5rem;
+    }
+
+    .duration-input-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .duration-input-wrapper input {
+      flex: 1;
+      padding: 0.875rem 1rem;
+      border: 2px solid hsl(var(--border));
+      border-radius: var(--radius-lg);
+      font-size: 1.125rem;
+      font-family: 'Kanit', sans-serif;
+      background: hsl(var(--card));
+      color: hsl(var(--foreground));
+      text-align: center;
+    }
+
+    .duration-input-wrapper input:focus {
+      outline: none;
+      border-color: hsl(var(--primary));
+      box-shadow: 0 0 0 3px hsl(var(--primary) / 0.1);
+    }
+
+    .duration-input-wrapper .unit-label {
+      font-size: 0.9375rem;
+      color: hsl(var(--muted-foreground));
       white-space: nowrap;
     }
 
-    .medication-item.taken .medication-time-badge {
-      background: hsl(var(--muted));
-      color: hsl(var(--muted-foreground));
+    /* Intensity Section */
+    .intensity-section {
+      margin-bottom: 1.5rem;
     }
 
-    /* Empty State */
-    .empty-state {
-      text-align: center;
-      padding: 2.5rem 1rem;
+    .intensity-selector {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .intensity-btn {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.75rem 0.5rem;
       background: hsl(var(--card));
-      border: 1px solid hsl(var(--border));
+      border: 2px solid hsl(var(--border));
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .intensity-btn:active {
+      transform: scale(0.97);
+    }
+
+    .intensity-btn.selected {
+      border-color: hsl(var(--primary));
+    }
+
+    .intensity-btn.selected.level-light {
+      background: hsl(142 76% 90%);
+    }
+
+    .intensity-btn.selected.level-medium {
+      background: hsl(48 96% 89%);
+    }
+
+    .intensity-btn.selected.level-intense {
+      background: hsl(0 93% 90%);
+    }
+
+    .dark .intensity-btn.selected.level-light {
+      background: hsl(142 50% 20%);
+    }
+
+    .dark .intensity-btn.selected.level-medium {
+      background: hsl(48 50% 20%);
+    }
+
+    .dark .intensity-btn.selected.level-intense {
+      background: hsl(0 50% 20%);
+    }
+
+    .intensity-btn .intensity-icon {
+      font-size: 1.25rem;
+    }
+
+    .intensity-btn .label {
+      font-size: 0.8125rem;
+      color: hsl(var(--muted-foreground));
+      text-align: center;
+    }
+
+    .intensity-btn.selected .label {
+      color: hsl(var(--primary));
+      font-weight: 600;
+    }
+
+    /* Time of Day Section */
+    .timeofday-section {
+      margin-bottom: 1.5rem;
+    }
+
+    .chip-selector {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .chip {
+      padding: 0.5rem 1rem;
+      background: hsl(var(--card));
+      border: 2px solid hsl(var(--border));
       border-radius: var(--radius-xl);
+      font-size: 0.875rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      color: hsl(var(--muted-foreground));
     }
 
-    .empty-state svg {
-      width: 48px;
-      height: 48px;
-      color: hsl(var(--muted-foreground));
-      opacity: 0.5;
-      margin-bottom: 1rem;
+    .chip:active {
+      transform: scale(0.97);
     }
 
-    .empty-state p {
+    .chip.selected {
+      background: hsl(var(--primary) / 0.1);
+      border-color: hsl(var(--primary));
+      color: hsl(var(--primary));
+      font-weight: 500;
+    }
+
+    /* Distance Section */
+    .distance-section {
+      margin-bottom: 1.5rem;
+    }
+
+    .distance-input-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .distance-input-wrapper input {
+      flex: 1;
+      padding: 0.875rem 1rem;
+      border: 2px solid hsl(var(--border));
+      border-radius: var(--radius-lg);
+      font-size: 1rem;
+      font-family: 'Kanit', sans-serif;
+      background: hsl(var(--card));
+      color: hsl(var(--foreground));
+      text-align: center;
+    }
+
+    .distance-input-wrapper input:focus {
+      outline: none;
+      border-color: hsl(var(--primary));
+      box-shadow: 0 0 0 3px hsl(var(--primary) / 0.1);
+    }
+
+    .distance-input-wrapper .unit-label {
+      font-size: 0.9375rem;
       color: hsl(var(--muted-foreground));
-      margin-bottom: 1rem;
+      white-space: nowrap;
     }
 
     /* Note Section */
@@ -292,17 +358,10 @@
       z-index: 100;
     }
 
-    .selected-count {
-      text-align: center;
-      font-size: 0.8125rem;
-      color: hsl(var(--muted-foreground));
-      margin-bottom: 0.5rem;
-    }
-
     .submit-btn {
       width: 100%;
       padding: 0.875rem;
-      background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary-dark)) 100%);
+      background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(190 85% 25%) 100%);
       color: white;
       border: none;
       border-radius: var(--radius-lg);
@@ -448,13 +507,13 @@
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
-      background: hsl(0 93% 94%);
-      color: hsl(0 72% 51%);
+      background: hsl(263 70% 95%);
+      color: hsl(263 70% 50%);
     }
 
     .dark .history-item-icon {
-      background: hsl(0 50% 20%);
-      color: hsl(0 72% 65%);
+      background: hsl(263 50% 20%);
+      color: hsl(263 70% 65%);
     }
 
     .history-item-icon svg {
@@ -584,57 +643,18 @@
       }
     }
 
-    /* Time Picker */
-    .time-picker-card {
-      background: hsl(var(--card));
-      border: 2px solid hsl(var(--border));
-      border-radius: var(--radius-lg);
-      padding: 1rem;
-      margin-bottom: 1.5rem;
-    }
-
-    .time-picker-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1rem;
-    }
-
-    .time-picker-label {
-      font-size: 0.9375rem;
-      font-weight: 500;
-      color: hsl(var(--foreground));
-    }
-
-    .time-picker-input {
-      padding: 0.5rem 0.75rem;
-      border: 2px solid hsl(var(--border));
-      border-radius: var(--radius-md);
-      font-size: 1rem;
-      font-family: var(--font-mono);
-      background: hsl(var(--card));
-      color: hsl(var(--foreground));
-      text-align: center;
-    }
-
-    .time-picker-input:focus {
-      outline: none;
-      border-color: hsl(var(--primary));
-      box-shadow: 0 0 0 3px hsl(var(--primary) / 0.1);
-    }
-
     @media (max-width: 380px) {
-      .time-option {
-        padding: 0.5rem 0.25rem;
+      .exercise-grid {
+        grid-template-columns: repeat(2, 1fr);
       }
 
-      .time-option .icon svg {
-        width: 20px;
-        height: 20px;
+      .intensity-selector {
+        flex-wrap: wrap;
       }
 
-      .time-option .label {
-        font-size: 0.6875rem;
+      .intensity-btn {
+        min-width: calc(50% - 0.25rem);
+        flex: none;
       }
     }
   </style>
@@ -668,64 +688,56 @@
 
       <!-- Today Content -->
       <div id="todayContent">
-        <!-- Current Time Card -->
-        <div class="time-card">
-          <span id="clockIcon"></span>
-          <span class="time" id="currentTime"></span>
+        <!-- Exercise Type Grid -->
+        <div class="exercise-type-section">
+          <div class="section-title" id="exerciseTypeTitle"></div>
+          <div class="exercise-grid" id="exerciseGrid">
+            <!-- Exercise types rendered by JS -->
+          </div>
+          <div class="custom-exercise-input" id="customExerciseInput">
+            <input type="text" id="customExerciseName" placeholder="พิมพ์ชื่อกิจกรรม...">
+          </div>
         </div>
 
-        <!-- Time Period Selector -->
-        <div class="time-period-section">
-        <div class="section-title" id="periodTitle"></div>
-        <div class="time-selector">
-          <div class="time-option" data-period="morning" onclick="selectPeriod('morning')">
-            <div class="icon" id="morningIcon"></div>
-            <span class="label">เช้า</span>
-          </div>
-          <div class="time-option" data-period="afternoon" onclick="selectPeriod('afternoon')">
-            <div class="icon" id="afternoonIcon"></div>
-            <span class="label">กลางวัน</span>
-          </div>
-          <div class="time-option" data-period="evening" onclick="selectPeriod('evening')">
-            <div class="icon" id="eveningIcon"></div>
-            <span class="label">เย็น</span>
-          </div>
-          <div class="time-option" data-period="night" onclick="selectPeriod('night')">
-            <div class="icon" id="nightIcon"></div>
-            <span class="label">ก่อนนอน</span>
+        <!-- Duration Section -->
+        <div class="duration-section">
+          <div class="section-title" id="durationTitle"></div>
+          <div class="duration-input-wrapper">
+            <input type="number" id="durationInput" min="1" max="999" value="30" inputmode="numeric">
+            <span class="unit-label">นาที</span>
           </div>
         </div>
-      </div>
 
-      <!-- Medication List -->
-      <div class="medication-list-section">
-        <div class="section-title" id="medListTitle"></div>
-        <div id="medicationList" class="medication-list">
-          <!-- Medications will be rendered here -->
-        </div>
-        <div id="emptyState" class="empty-state hidden">
-          <span id="emptyIcon"></span>
-          <p>ไม่มียาสำหรับช่วงเวลานี้</p>
-          <button class="btn btn-secondary" onclick="openMedications()">จัดการรายการยา</button>
-        </div>
-      </div>
-
-      <!-- Time Picker Section -->
-      <div class="time-period-section">
-        <div class="section-title" id="timePickerTitle"></div>
-        <div class="time-picker-card">
-          <div class="time-picker-row">
-            <label class="time-picker-label">เวลาที่กินยา</label>
-            <input type="time" id="medicationTime" class="time-picker-input">
+        <!-- Intensity Section -->
+        <div class="intensity-section">
+          <div class="section-title" id="intensityTitle"></div>
+          <div class="intensity-selector" id="intensitySelector">
+            <!-- Intensity buttons rendered by JS -->
           </div>
         </div>
-      </div>
 
-      <!-- Note Section -->
-      <div class="note-section">
-        <div class="section-title" id="noteTitle"></div>
-        <textarea id="noteInput" class="note-input" placeholder="เช่น ลืมกินยาตอนเช้า, กินยาช้ากว่าปกติ"></textarea>
-      </div>
+        <!-- Time of Day Section -->
+        <div class="timeofday-section">
+          <div class="section-title" id="timeOfDayTitle"></div>
+          <div class="chip-selector" id="timeOfDaySelector">
+            <!-- Time of day chips rendered by JS -->
+          </div>
+        </div>
+
+        <!-- Distance Section -->
+        <div class="distance-section">
+          <div class="section-title" id="distanceTitle"></div>
+          <div class="distance-input-wrapper">
+            <input type="number" id="distanceInput" min="0" max="99999" placeholder="ไม่บังคับ" inputmode="numeric">
+            <span class="unit-label">เมตร</span>
+          </div>
+        </div>
+
+        <!-- Note Section -->
+        <div class="note-section">
+          <div class="section-title" id="noteTitle"></div>
+          <textarea id="noteInput" class="note-input" placeholder="เช่น วิ่งในสวนสาธารณะ, รู้สึกดีมาก"></textarea>
+        </div>
       </div><!-- /todayContent -->
 
       <!-- History Content -->
@@ -752,10 +764,9 @@
 
     <!-- Submit Section -->
     <div id="submitSection" class="submit-section hidden">
-      <div class="selected-count" id="selectedCount">เลือกแล้ว 0 รายการ</div>
-      <button class="submit-btn" id="submitBtn" onclick="submitLog()" disabled>
+      <button class="submit-btn" id="submitBtn" onclick="submitExercise()" disabled>
         <span id="submitIcon"></span>
-        <span id="submitText">บันทึก</span>
+        <span id="submitText">บันทึกออกกำลังกาย</span>
       </button>
     </div>
   </div>
@@ -782,26 +793,36 @@
     }
 
     let patientId = null;
-    let medications = [];
-    let selectedMedications = new Set();
-    let currentPeriod = 'morning';
-    let todayLogs = [];
 
-    const periodIcons = {
-      morning: 'sunrise',
-      afternoon: 'sun',
-      evening: 'sunset',
-      night: 'moon'
-    };
+    // Exercise type definitions
+    const exerciseTypes = [
+      { type: 'walk', typeTh: 'เดิน', icon: 'footprints' },
+      { type: 'run', typeTh: 'วิ่ง', icon: 'zap' },
+      { type: 'swim', typeTh: 'ว่ายน้ำ', icon: 'waves' },
+      { type: 'bicycle', typeTh: 'ปั่นจักรยาน', icon: 'bike' },
+      { type: 'yoga', typeTh: 'โยคะ', icon: 'heart' },
+      { type: 'custom', typeTh: 'กำหนดเอง', icon: 'edit' }
+    ];
 
-    // Determine current time period
-    function getCurrentPeriod() {
-      const hour = new Date().getHours();
-      if (hour >= 5 && hour < 11) return 'morning';
-      if (hour >= 11 && hour < 14) return 'afternoon';
-      if (hour >= 14 && hour < 20) return 'evening';
-      return 'night';
-    }
+    // Intensity levels
+    const intensityLevels = [
+      { level: 'light', label: 'เบา', emoji: '🟢' },
+      { level: 'medium', label: 'ปานกลาง', emoji: '🟡' },
+      { level: 'intense', label: 'หนัก', emoji: '🔴' }
+    ];
+
+    // Time of day options
+    const timeOfDayOptions = [
+      { id: 'morning', label: 'เช้า' },
+      { id: 'afternoon', label: 'บ่าย' },
+      { id: 'evening', label: 'เย็น' }
+    ];
+
+    // Selected state
+    let selectedType = null;
+    let selectedTypeTh = null;
+    let selectedIntensity = null;
+    let selectedTimeOfDay = null;
 
     // Initialize UI immediately
     (function initUI() {
@@ -810,37 +831,32 @@
 
       // Set icons
       document.getElementById('backBtn').innerHTML = icon('arrowLeft');
-      document.getElementById('headerTitle').innerHTML = icon('pill', 'inline-icon') + ' บันทึกกินยา';
+      document.getElementById('headerTitle').innerHTML = icon('dumbbell', 'inline-icon') + ' บันทึกออกกำลังกาย';
       document.getElementById('themeBtn').innerHTML = icon('sun');
-      document.getElementById('clockIcon').innerHTML = icon('clock');
-      document.getElementById('periodTitle').innerHTML = icon('clock') + ' ช่วงเวลา';
-      document.getElementById('morningIcon').innerHTML = icon('sunrise');
-      document.getElementById('afternoonIcon').innerHTML = icon('sun');
-      document.getElementById('eveningIcon').innerHTML = icon('sunset');
-      document.getElementById('nightIcon').innerHTML = icon('moon');
-      document.getElementById('medListTitle').innerHTML = icon('pill') + ' เลือกยาที่กินแล้ว';
-      document.getElementById('emptyIcon').innerHTML = icon('pill');
+      document.getElementById('exerciseTypeTitle').innerHTML = icon('dumbbell') + ' ประเภทกิจกรรม';
+      document.getElementById('durationTitle').innerHTML = icon('clock') + ' ระยะเวลา (นาที)';
+      document.getElementById('intensityTitle').innerHTML = icon('zap') + ' ความเข้มข้น';
+      document.getElementById('timeOfDayTitle').innerHTML = icon('clock') + ' ช่วงเวลา';
+      document.getElementById('distanceTitle').innerHTML = icon('mapPin') + ' ระยะทาง (เมตร) - ไม่บังคับ';
       document.getElementById('noteTitle').innerHTML = icon('fileText') + ' หมายเหตุ (ไม่บังคับ)';
       document.getElementById('submitIcon').innerHTML = icon('check');
       document.getElementById('tabTodayIcon').innerHTML = icon('edit');
       document.getElementById('tabHistoryIcon').innerHTML = icon('clock');
-      document.getElementById('timePickerTitle').innerHTML = icon('clock') + ' เวลาที่กินยา';
 
-      // Set current time
-      const now = new Date();
-      const time = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
-      document.getElementById('currentTime').textContent = time;
+      // Render static options immediately
+      renderExerciseTypes();
+      renderIntensity();
+      renderTimeOfDay();
 
-      // Set time picker default to current time
-      const hh = String(now.getHours()).padStart(2, '0');
-      const mm = String(now.getMinutes()).padStart(2, '0');
-      document.getElementById('medicationTime').value = `${hh}:${mm}`;
-
-      // Set current period
-      currentPeriod = getCurrentPeriod();
-      document.querySelectorAll('.time-option').forEach(el => {
-        el.classList.toggle('selected', el.dataset.period === currentPeriod);
-      });
+      // Determine current time of day and auto-select
+      const hour = new Date().getHours();
+      if (hour >= 5 && hour < 12) {
+        selectTimeOfDay('morning');
+      } else if (hour >= 12 && hour < 17) {
+        selectTimeOfDay('afternoon');
+      } else {
+        selectTimeOfDay('evening');
+      }
 
       // Show UI immediately
       document.getElementById('loadingState').classList.add('hidden');
@@ -861,33 +877,176 @@
     };
     setTimeout(updateThemeIcon, 100);
 
-    // Format dosage display
-    function formatDosage(med) {
-      const amount = parseFloat(med.dosage_amount) || 1;
-      const form = med.dosage_form || 'tablet';
-      const unit = med.dosage_unit || 'tablet';
-      const instructions = med.instructions || '';
+    // Render exercise type buttons
+    function renderExerciseTypes() {
+      const grid = document.getElementById('exerciseGrid');
+      grid.innerHTML = exerciseTypes.map(e => `
+        <div class="exercise-btn ${selectedType === e.type ? 'selected' : ''}" data-type="${e.type}" onclick="selectExerciseType('${e.type}')">
+          <div class="icon-wrapper">${icon(e.icon)}</div>
+          <span class="label">${e.typeTh}</span>
+        </div>
+      `).join('');
+    }
 
-      let dosageText = '';
+    // Render intensity buttons
+    function renderIntensity() {
+      const container = document.getElementById('intensitySelector');
+      container.innerHTML = intensityLevels.map(i => `
+        <div class="intensity-btn level-${i.level} ${selectedIntensity === i.level ? 'selected' : ''}" data-level="${i.level}" onclick="selectIntensity('${i.level}')">
+          <span class="intensity-icon">${i.emoji}</span>
+          <span class="label">${i.label}</span>
+        </div>
+      `).join('');
+    }
 
-      if (form === 'tablet' || form === 'capsule') {
-        if (amount === 0.25) dosageText = '1/4 เม็ด';
-        else if (amount === 0.5) dosageText = '1/2 เม็ด';
-        else if (amount === 0.75) dosageText = '3/4 เม็ด';
-        else if (amount === 1) dosageText = '1 เม็ด';
-        else if (amount === 1.5) dosageText = '1.5 เม็ด';
-        else dosageText = `${amount} เม็ด`;
-      } else if (form === 'liquid' && unit === 'ml') {
-        dosageText = `${amount} ml`;
+    // Render time of day chips
+    function renderTimeOfDay() {
+      const container = document.getElementById('timeOfDaySelector');
+      container.innerHTML = timeOfDayOptions.map(t => `
+        <div class="chip ${selectedTimeOfDay === t.id ? 'selected' : ''}" onclick="selectTimeOfDay('${t.id}')">${t.label}</div>
+      `).join('');
+    }
+
+    // Select exercise type
+    function selectExerciseType(type) {
+      const exerciseDef = exerciseTypes.find(e => e.type === type);
+      if (!exerciseDef) return;
+
+      selectedType = type;
+      selectedTypeTh = exerciseDef.typeTh;
+
+      // Show/hide custom input
+      const customInput = document.getElementById('customExerciseInput');
+      if (type === 'custom') {
+        customInput.classList.add('show');
+        document.getElementById('customExerciseName').focus();
       } else {
-        dosageText = `${amount} ${unit}`;
+        customInput.classList.remove('show');
       }
 
-      if (instructions) {
-        dosageText += ` - ${instructions}`;
+      renderExerciseTypes();
+      updateSubmitButton();
+    }
+
+    // Select intensity
+    function selectIntensity(level) {
+      selectedIntensity = level;
+      renderIntensity();
+      updateSubmitButton();
+    }
+
+    // Select time of day
+    function selectTimeOfDay(period) {
+      selectedTimeOfDay = selectedTimeOfDay === period ? null : period;
+      renderTimeOfDay();
+    }
+
+    // Update submit button state
+    function updateSubmitButton() {
+      const btn = document.getElementById('submitBtn');
+      const duration = document.getElementById('durationInput').value;
+      const hasType = selectedType && (selectedType !== 'custom' || document.getElementById('customExerciseName').value.trim());
+      const hasDuration = duration && parseInt(duration) > 0;
+
+      btn.disabled = !hasType || !hasDuration;
+    }
+
+    // Listen for input changes to update submit button
+    document.getElementById('durationInput').addEventListener('input', updateSubmitButton);
+    document.getElementById('customExerciseName').addEventListener('input', function() {
+      if (selectedType === 'custom') {
+        selectedTypeTh = this.value.trim() || 'กำหนดเอง';
+        updateSubmitButton();
+      }
+    });
+
+    // Submit exercise log
+    async function submitExercise() {
+      const btn = document.getElementById('submitBtn');
+      const submitText = document.getElementById('submitText');
+
+      // Validate
+      const duration = document.getElementById('durationInput').value;
+      if (!selectedType || !duration || parseInt(duration) <= 0) {
+        showToast('กรุณาเลือกประเภทกิจกรรมและระยะเวลา', 'error');
+        return;
       }
 
-      return dosageText;
+      // For custom type, validate name
+      if (selectedType === 'custom') {
+        const customName = document.getElementById('customExerciseName').value.trim();
+        if (!customName) {
+          showToast('กรุณาพิมพ์ชื่อกิจกรรม', 'error');
+          return;
+        }
+        selectedTypeTh = customName;
+      }
+
+      btn.disabled = true;
+      submitText.textContent = 'กำลังบันทึก...';
+
+      try {
+        const distance = document.getElementById('distanceInput').value;
+        const note = document.getElementById('noteInput').value.trim();
+
+        const exerciseData = {
+          patient_id: patientId,
+          exercise_date: new Date().toISOString().split('T')[0],
+          exercise_type: selectedType,
+          exercise_type_th: selectedTypeTh,
+          duration_minutes: parseInt(duration),
+          intensity: selectedIntensity,
+          time_of_day: selectedTimeOfDay,
+          distance_meters: distance ? parseInt(distance) : null,
+          notes: note || null
+        };
+
+        const { error } = await supabaseClient
+          .from('exercise_logs')
+          .insert(exerciseData);
+
+        if (error) throw error;
+
+        showToast(`บันทึก ${selectedTypeTh} ${duration} นาที เรียบร้อย`, 'success');
+
+        // Reset form
+        resetForm();
+
+      } catch (error) {
+        console.error('Error submitting exercise:', error);
+        showToast('เกิดข้อผิดพลาดในการบันทึก', 'error');
+      } finally {
+        btn.disabled = false;
+        submitText.textContent = 'บันทึกออกกำลังกาย';
+        updateSubmitButton();
+      }
+    }
+
+    // Reset form
+    function resetForm() {
+      selectedType = null;
+      selectedTypeTh = null;
+      selectedIntensity = null;
+
+      document.getElementById('durationInput').value = '30';
+      document.getElementById('distanceInput').value = '';
+      document.getElementById('noteInput').value = '';
+      document.getElementById('customExerciseName').value = '';
+      document.getElementById('customExerciseInput').classList.remove('show');
+
+      renderExerciseTypes();
+      renderIntensity();
+      updateSubmitButton();
+
+      // Re-auto-select time of day
+      const hour = new Date().getHours();
+      if (hour >= 5 && hour < 12) {
+        selectTimeOfDay('morning');
+      } else if (hour >= 12 && hour < 17) {
+        selectTimeOfDay('afternoon');
+      } else {
+        selectTimeOfDay('evening');
+      }
     }
 
     // Cache LIFF profile
@@ -947,222 +1106,10 @@
         const context = JSON.parse(localStorage.getItem('oonjai_context') || '{}');
         patientId = context.patientId;
 
-        // Start time updater
-        setInterval(updateCurrentTime, 60000);
-
-        // Load data in parallel
-        Promise.all([
-          loadMedications(),
-          loadTodayLogs()
-        ]).then(() => {
-          renderMedications();
-        }).catch(err => console.error('Load data error:', err));
-
       } catch (error) {
         console.error('LIFF init error:', error);
         showToast('เกิดข้อผิดพลาด: ' + error.message, 'error');
       }
-    }
-
-    function updateCurrentTime() {
-      const now = new Date();
-      const time = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
-      document.getElementById('currentTime').textContent = time;
-    }
-
-    async function loadMedications() {
-      if (!supabaseClient || !patientId) return;
-
-      try {
-        const { data, error } = await supabaseClient
-          .from('medications')
-          .select('*')
-          .eq('patient_id', patientId)
-          .eq('active', true)
-          .order('name');
-
-        if (error) throw error;
-
-        medications = (data || []).map(med => ({
-          ...med,
-          times: med.times ? (typeof med.times === 'string' ? JSON.parse(med.times) : med.times) : []
-        }));
-
-      } catch (error) {
-        console.error('Error loading medications:', error);
-        showToast('ไม่สามารถโหลดรายการยาได้', 'error');
-      }
-    }
-
-    async function loadTodayLogs() {
-      if (!supabaseClient || !patientId) return;
-
-      const today = new Date().toISOString().split('T')[0];
-
-      try {
-        const { data, error } = await supabaseClient
-          .from('activity_logs')
-          .select('*')
-          .eq('patient_id', patientId)
-          .eq('task_type', 'medication')
-          .gte('created_at', today + 'T00:00:00')
-          .lt('created_at', today + 'T23:59:59');
-
-        if (error) throw error;
-
-        todayLogs = data || [];
-
-      } catch (error) {
-        console.error('Error loading logs:', error);
-      }
-    }
-
-    function selectPeriod(period) {
-      currentPeriod = period;
-
-      // Update UI
-      document.querySelectorAll('.time-option').forEach(el => {
-        el.classList.toggle('selected', el.dataset.period === period);
-      });
-
-      // Clear selections
-      selectedMedications.clear();
-
-      // Render medications for this period
-      renderMedications();
-      updateSubmitButton();
-    }
-
-    function renderMedications() {
-      const container = document.getElementById('medicationList');
-      const emptyState = document.getElementById('emptyState');
-
-      // Filter medications for current period
-      const medsForPeriod = medications.filter(med => {
-        const times = med.times || [];
-        return times.includes(currentPeriod);
-      });
-
-      if (medsForPeriod.length === 0) {
-        container.innerHTML = '';
-        emptyState.classList.remove('hidden');
-        return;
-      }
-
-      emptyState.classList.add('hidden');
-
-      const periodLabels = {
-        morning: 'เช้า',
-        afternoon: 'กลางวัน',
-        evening: 'เย็น',
-        night: 'ก่อนนอน'
-      };
-
-      container.innerHTML = medsForPeriod.map(med => {
-        // Check if already logged today for this period
-        const isLogged = todayLogs.some(log => {
-          const metadata = log.metadata || {};
-          return metadata.medication_id === med.id && metadata.time_period === currentPeriod;
-        });
-
-        const isSelected = selectedMedications.has(med.id);
-        const itemClass = isLogged ? 'medication-item taken' : (isSelected ? 'medication-item selected' : 'medication-item');
-
-        return `
-          <div class="${itemClass}" data-id="${med.id}" onclick="${isLogged ? '' : `toggleMedication('${med.id}')`}">
-            <div class="medication-checkbox">${icon('check')}</div>
-            <div class="medication-info">
-              <div class="medication-name">${med.name}</div>
-              <div class="medication-dosage">${formatDosage(med)}</div>
-            </div>
-            <div class="medication-time-badge">${isLogged ? 'บันทึกแล้ว' : periodLabels[currentPeriod]}</div>
-          </div>
-        `;
-      }).join('');
-    }
-
-    function toggleMedication(medId) {
-      if (selectedMedications.has(medId)) {
-        selectedMedications.delete(medId);
-      } else {
-        selectedMedications.add(medId);
-      }
-
-      renderMedications();
-      updateSubmitButton();
-    }
-
-    function updateSubmitButton() {
-      const count = selectedMedications.size;
-      const btn = document.getElementById('submitBtn');
-      const countEl = document.getElementById('selectedCount');
-
-      countEl.textContent = `เลือกแล้ว ${count} รายการ`;
-      btn.disabled = count === 0;
-    }
-
-    async function submitLog() {
-      if (selectedMedications.size === 0) return;
-
-      const btn = document.getElementById('submitBtn');
-      const submitText = document.getElementById('submitText');
-      btn.disabled = true;
-      submitText.textContent = 'กำลังบันทึก...';
-
-      try {
-        const note = document.getElementById('noteInput').value.trim();
-        const logs = [];
-
-        // Build taken_at from time picker
-        const timeVal = document.getElementById('medicationTime').value;
-        const takenDate = new Date();
-        if (timeVal) {
-          const [h, m] = timeVal.split(':');
-          takenDate.setHours(parseInt(h), parseInt(m), 0, 0);
-        }
-        const takenAt = takenDate.toISOString();
-
-        selectedMedications.forEach(medId => {
-          logs.push({
-            patient_id: patientId,
-            task_type: 'medication',
-            metadata: {
-              medication_id: medId,
-              time_period: currentPeriod,
-              note: note || null,
-              logged_at: takenAt
-            }
-          });
-        });
-
-        const { error } = await supabaseClient
-          .from('activity_logs')
-          .insert(logs);
-
-        if (error) throw error;
-
-        showToast(`บันทึกกินยา ${logs.length} รายการเรียบร้อย`, 'success');
-
-        // Reload logs and re-render
-        await loadTodayLogs();
-        selectedMedications.clear();
-        renderMedications();
-        updateSubmitButton();
-
-        // Clear note
-        document.getElementById('noteInput').value = '';
-
-      } catch (error) {
-        console.error('Error submitting log:', error);
-        showToast('เกิดข้อผิดพลาดในการบันทึก', 'error');
-      } finally {
-        btn.disabled = selectedMedications.size === 0;
-        submitText.textContent = 'บันทึก';
-      }
-    }
-
-    function openMedications() {
-      window.location.href = 'medications.html';
     }
 
     function goBack() {
@@ -1252,12 +1199,12 @@
 
       try {
         const { data, error } = await supabaseClient
-          .from('medication_logs')
+          .from('exercise_logs')
           .select('*')
           .eq('patient_id', patientId)
-          .gte('taken_at', fromDate.toISOString())
-          .lte('taken_at', toDate.toISOString())
-          .order('taken_at', { ascending: false })
+          .gte('created_at', fromDate.toISOString())
+          .lte('created_at', toDate.toISOString())
+          .order('created_at', { ascending: false })
           .limit(100);
 
         if (error) throw error;
@@ -1272,13 +1219,15 @@
       const container = document.getElementById('historyList');
 
       if (records.length === 0) {
-        container.innerHTML = '<div class="history-empty">' + icon('pill') + '<p>ไม่มีข้อมูลในช่วงเวลานี้</p></div>';
+        container.innerHTML = '<div class="history-empty">' + icon('dumbbell') + '<p>ไม่มีข้อมูลในช่วงเวลานี้</p></div>';
         return;
       }
 
+      const intensityTh = { light: 'เบา', medium: 'ปานกลาง', intense: 'หนัก' };
+
       const grouped = {};
       records.forEach(r => {
-        const date = new Date(r.taken_at).toLocaleDateString('th-TH', { weekday: 'long', day: 'numeric', month: 'long' });
+        const date = new Date(r.created_at).toLocaleDateString('th-TH', { weekday: 'long', day: 'numeric', month: 'long' });
         if (!grouped[date]) grouped[date] = [];
         grouped[date].push(r);
       });
@@ -1287,14 +1236,15 @@
       for (const [date, items] of Object.entries(grouped)) {
         html += `<div class="history-day-header">${date}</div>`;
         items.forEach(item => {
-          const time = new Date(item.taken_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
-          const name = item.medication_name || 'ยา';
-          const status = item.status === 'taken' ? 'กินแล้ว' : (item.status === 'skipped' ? 'ข้าม' : item.status || 'กินแล้ว');
+          const time = new Date(item.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+          const name = item.exercise_type_th || item.exercise_type || 'ออกกำลังกาย';
+          const duration = item.duration_minutes ? `${item.duration_minutes} นาที` : '';
+          const intensity = item.intensity ? ` (${intensityTh[item.intensity] || item.intensity})` : '';
           html += `
             <div class="history-item">
-              <div class="history-item-icon">${icon('pill')}</div>
+              <div class="history-item-icon">${icon('dumbbell')}</div>
               <div class="history-item-content">
-                <div class="history-item-text">${name} (${status})</div>
+                <div class="history-item-text">${name} ${duration}${intensity}</div>
                 <div class="history-item-time">${time}</div>
               </div>
             </div>`;

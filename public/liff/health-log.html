@@ -170,6 +170,9 @@
     .category-btn .cat-icon.vitals { background: hsl(142 76% 94%); color: hsl(var(--success)); }
     .category-btn .cat-icon.water { background: hsl(217 91% 95%); color: hsl(217 91% 60%); }
     .category-btn .cat-icon.symptom { background: hsl(38 92% 95%); color: hsl(var(--accent)); }
+    .category-btn .cat-icon.exercise { background: hsl(263 70% 95%); color: hsl(263 70% 50%); }
+    .category-btn .cat-icon.mood { background: hsl(45 93% 94%); color: hsl(45 93% 40%); }
+    .category-btn .cat-icon.notes { background: hsl(200 70% 95%); color: hsl(200 70% 50%); }
 
     .category-btn .cat-label {
       font-size: 0.9375rem;
@@ -274,27 +277,76 @@
       gap: var(--spacing-xs);
     }
 
-    .history-toggle {
+    .history-filters {
+      display: flex;
+      gap: 0.375rem;
+      margin-bottom: var(--spacing-md);
+      flex-wrap: wrap;
+    }
+
+    .filter-btn {
+      padding: 0.375rem 0.75rem;
+      border-radius: var(--radius-full);
+      border: 1.5px solid hsl(var(--border));
+      background: hsl(var(--card));
+      color: hsl(var(--muted-foreground));
+      font-size: 0.8125rem;
+      font-weight: 500;
+      font-family: 'Kanit', sans-serif;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .filter-btn:active {
+      transform: scale(0.95);
+    }
+
+    .filter-btn.active {
+      background: hsl(var(--primary));
+      color: white;
+      border-color: hsl(var(--primary));
+    }
+
+    .custom-date-range {
       display: flex;
       align-items: center;
-      gap: 0.25rem;
-      background: none;
-      border: none;
-      color: hsl(var(--accent));
-      font-size: 0.8125rem;
-      font-weight: 600;
-      cursor: pointer;
-      padding: var(--spacing-xs) var(--spacing-sm);
+      gap: 0.5rem;
+      margin-bottom: var(--spacing-md);
+    }
+
+    .custom-date-range input[type="date"] {
+      flex: 1;
+      padding: 0.375rem 0.5rem;
+      border: 1.5px solid hsl(var(--border));
       border-radius: var(--radius-md);
-      transition: background 0.2s;
+      background: hsl(var(--card));
+      color: hsl(var(--foreground));
+      font-size: 0.8125rem;
+      font-family: 'Kanit', sans-serif;
     }
 
-    .history-toggle:active {
-      background: hsl(var(--accent) / 0.1);
+    .custom-date-range span {
+      font-size: 0.8125rem;
+      color: hsl(var(--muted-foreground));
+      flex-shrink: 0;
     }
 
-    .history-toggle.expanded .toggle-arrow {
-      transform: rotate(180deg);
+    .custom-date-range button {
+      padding: 0.375rem 0.75rem;
+      border-radius: var(--radius-md);
+      border: none;
+      background: hsl(var(--primary));
+      color: white;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      font-family: 'Kanit', sans-serif;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: opacity 0.2s;
+    }
+
+    .custom-date-range button:active {
+      opacity: 0.8;
     }
 
     .history-day-header {
@@ -384,12 +436,6 @@
 
     .history-action-btn.delete:active {
       background: hsl(var(--destructive) / 0.1);
-    }
-
-    .history-expanded {
-      margin-top: var(--spacing-md);
-      padding-top: var(--spacing-md);
-      border-top: 1px dashed hsl(var(--border));
     }
 
     /* Modal Styles */
@@ -558,6 +604,21 @@
           <span class="cat-label">อาการ</span>
           <span class="cat-desc">บันทึกอาการผิดปกติ</span>
         </button>
+        <button class="category-btn" onclick="navigateTo('log-exercise.html')">
+          <div class="cat-icon exercise" id="catExerciseIcon"></div>
+          <span class="cat-label">ออกกำลังกาย</span>
+          <span class="cat-desc">บันทึกการออกกำลังกาย</span>
+        </button>
+        <button class="category-btn" onclick="navigateTo('log-mood.html')">
+          <div class="cat-icon mood" id="catMoodIcon"></div>
+          <span class="cat-label">อารมณ์/เครียด</span>
+          <span class="cat-desc">บันทึกอารมณ์ความเครียด</span>
+        </button>
+        <button class="category-btn" onclick="navigateTo('log-medical-notes.html')">
+          <div class="cat-icon notes" id="catNotesIcon"></div>
+          <span class="cat-label">บันทึกแพทย์</span>
+          <span class="cat-desc">บันทึกการรักษาพยาบาล</span>
+        </button>
       </div>
 
       <!-- Quick Actions -->
@@ -593,16 +654,21 @@
             <span id="historyIcon"></span>
             ประวัติกิจกรรม
           </div>
-          <button class="history-toggle" onclick="toggleHistory()">
-            <span id="historyToggleText">ดูเพิ่มเติม</span>
-            <span class="toggle-arrow" id="historyArrow"></span>
-          </button>
+        </div>
+        <div class="history-filters">
+          <button class="filter-btn active" onclick="setHistoryFilter(7)">7 วัน</button>
+          <button class="filter-btn" onclick="setHistoryFilter(14)">14 วัน</button>
+          <button class="filter-btn" onclick="setHistoryFilter(30)">30 วัน</button>
+          <button class="filter-btn" onclick="setHistoryFilter('custom')">กำหนดเอง</button>
+        </div>
+        <div id="customDateRange" class="custom-date-range hidden">
+          <input type="date" id="dateFrom">
+          <span>ถึง</span>
+          <input type="date" id="dateTo">
+          <button onclick="applyCustomDateRange()">ตกลง</button>
         </div>
         <div id="historyList" class="space-y-3">
           <div class="text-center text-muted p-4">กำลังโหลด...</div>
-        </div>
-        <div id="historyExpanded" class="history-expanded hidden">
-          <!-- More history items will be loaded here -->
         </div>
       </div>
 
@@ -791,6 +857,9 @@
       document.getElementById('catVitalsIcon').innerHTML = icon('heartPulse', 'lucide-lg');
       document.getElementById('catWaterIcon').innerHTML = icon('droplet', 'lucide-lg');
       document.getElementById('catSymptomIcon').innerHTML = icon('thermometer', 'lucide-lg');
+      document.getElementById('catExerciseIcon').innerHTML = icon('dumbbell', 'lucide-lg');
+      document.getElementById('catMoodIcon').innerHTML = icon('smile', 'lucide-lg');
+      document.getElementById('catNotesIcon').innerHTML = icon('fileText', 'lucide-lg');
 
       // Quick action icons
       document.getElementById('zapIcon').innerHTML = icon('zap');
@@ -801,7 +870,6 @@
 
       // History icons
       document.getElementById('historyIcon').innerHTML = icon('clock');
-      document.getElementById('historyArrow').innerHTML = icon('chevronRight', 'lucide-sm');
 
       // Close icon
       document.getElementById('closeIcon').innerHTML = icon('x', 'lucide-sm');
@@ -1212,21 +1280,94 @@
     // ACTIVITY HISTORY
     // ============================================
     let activityHistory = [];
-    let historyExpanded = false;
+    let currentFilterDays = 7;
 
-    async function loadActivityHistory() {
+    async function loadActivityHistory(filterDays, customFrom, customTo) {
       if (!patientId || !supabaseClient) {
         document.getElementById('historyList').innerHTML = '<div class="empty-state"><p class="empty-description">ไม่พบข้อมูล</p></div>';
         return;
       }
 
       try {
-        const sevenDaysAgo = new Date();
-        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-        const startDate = sevenDaysAgo.toISOString();
-        const startDateOnly = startDate.split('T')[0];
+        let startDate, startDateOnly, endDate;
 
-        // Query all dedicated tables in parallel
+        // Use current filter state when called without arguments (e.g. after edit/delete)
+        if (filterDays === undefined) filterDays = currentFilterDays;
+
+        if (filterDays === 'custom' && customFrom && customTo) {
+          startDate = new Date(customFrom + 'T00:00:00').toISOString();
+          startDateOnly = customFrom;
+          // Include the full end day
+          const endDateObj = new Date(customTo + 'T23:59:59');
+          endDate = endDateObj.toISOString();
+        } else if (filterDays === 'custom') {
+          // Custom mode but no dates provided — re-read from inputs
+          const from = document.getElementById('dateFrom').value;
+          const to = document.getElementById('dateTo').value;
+          if (from && to) {
+            startDate = new Date(from + 'T00:00:00').toISOString();
+            startDateOnly = from;
+            endDate = new Date(to + 'T23:59:59').toISOString();
+          } else {
+            // Fallback to 7 days
+            filterDays = 7;
+          }
+        }
+
+        if (filterDays !== 'custom') {
+          const days = typeof filterDays === 'number' ? filterDays : 7;
+          const fromDate = new Date();
+          fromDate.setDate(fromDate.getDate() - days);
+          startDate = fromDate.toISOString();
+          startDateOnly = startDate.split('T')[0];
+          endDate = null; // no upper bound, use current time
+        }
+
+        const endDateOnly = endDate ? endDate.split('T')[0] : null;
+        const maxRows = 50;
+
+        // Build queries — add .lte() upper bound only for custom date range
+        let medQ = supabaseClient.from('medication_logs').select('*')
+          .eq('patient_id', patientId).gte('taken_at', startDate);
+        if (endDate) medQ = medQ.lte('taken_at', endDate);
+        medQ = medQ.order('taken_at', { ascending: false }).limit(maxRows);
+
+        let waterQ = supabaseClient.from('water_logs').select('*')
+          .eq('patient_id', patientId).gte('log_date', startDateOnly);
+        if (endDateOnly) waterQ = waterQ.lte('log_date', endDateOnly);
+        waterQ = waterQ.order('created_at', { ascending: false }).limit(maxRows);
+
+        let vitalsQ = supabaseClient.from('vitals_logs').select('*')
+          .eq('patient_id', patientId).gte('measured_at', startDate);
+        if (endDate) vitalsQ = vitalsQ.lte('measured_at', endDate);
+        vitalsQ = vitalsQ.order('measured_at', { ascending: false }).limit(maxRows);
+
+        let symptomsQ = supabaseClient.from('symptoms').select('*')
+          .eq('patient_id', patientId).gte('created_at', startDate);
+        if (endDate) symptomsQ = symptomsQ.lte('created_at', endDate);
+        symptomsQ = symptomsQ.order('created_at', { ascending: false }).limit(maxRows);
+
+        let exerciseQ = supabaseClient.from('exercise_logs').select('*')
+          .eq('patient_id', patientId).gte('exercise_date', startDateOnly);
+        if (endDateOnly) exerciseQ = exerciseQ.lte('exercise_date', endDateOnly);
+        exerciseQ = exerciseQ.order('created_at', { ascending: false }).limit(maxRows);
+
+        let sleepQ = supabaseClient.from('sleep_logs').select('*')
+          .eq('patient_id', patientId).gte('sleep_date', startDateOnly);
+        if (endDateOnly) sleepQ = sleepQ.lte('sleep_date', endDateOnly);
+        sleepQ = sleepQ.order('created_at', { ascending: false }).limit(maxRows);
+
+        let moodQ = supabaseClient.from('mood_logs').select('*')
+          .eq('patient_id', patientId).gte('timestamp', startDate);
+        if (endDate) moodQ = moodQ.lte('timestamp', endDate);
+        moodQ = moodQ.order('timestamp', { ascending: false }).limit(maxRows);
+
+        let activityQ = supabaseClient.from('activity_logs').select('*')
+          .eq('patient_id', patientId).in('task_type', ['exercise', 'walk', 'food'])
+          .gte('created_at', startDate);
+        if (endDate) activityQ = activityQ.lte('created_at', endDate);
+        activityQ = activityQ.order('created_at', { ascending: false }).limit(maxRows);
+
         const [
           medResult,
           waterResult,
@@ -1237,71 +1378,7 @@
           moodResult,
           activityResult
         ] = await Promise.all([
-          // Medication logs
-          supabaseClient
-            .from('medication_logs')
-            .select('*')
-            .eq('patient_id', patientId)
-            .gte('taken_at', startDate)
-            .order('taken_at', { ascending: false })
-            .limit(20),
-          // Water logs
-          supabaseClient
-            .from('water_logs')
-            .select('*')
-            .eq('patient_id', patientId)
-            .gte('log_date', startDateOnly)
-            .order('created_at', { ascending: false })
-            .limit(20),
-          // Vitals logs
-          supabaseClient
-            .from('vitals_logs')
-            .select('*')
-            .eq('patient_id', patientId)
-            .gte('measured_at', startDate)
-            .order('measured_at', { ascending: false })
-            .limit(20),
-          // Symptoms
-          supabaseClient
-            .from('symptoms')
-            .select('*')
-            .eq('patient_id', patientId)
-            .gte('created_at', startDate)
-            .order('created_at', { ascending: false })
-            .limit(20),
-          // Exercise logs
-          supabaseClient
-            .from('exercise_logs')
-            .select('*')
-            .eq('patient_id', patientId)
-            .gte('exercise_date', startDateOnly)
-            .order('created_at', { ascending: false })
-            .limit(20),
-          // Sleep logs
-          supabaseClient
-            .from('sleep_logs')
-            .select('*')
-            .eq('patient_id', patientId)
-            .gte('sleep_date', startDateOnly)
-            .order('created_at', { ascending: false })
-            .limit(20),
-          // Mood logs
-          supabaseClient
-            .from('mood_logs')
-            .select('*')
-            .eq('patient_id', patientId)
-            .gte('timestamp', startDate)
-            .order('timestamp', { ascending: false })
-            .limit(20),
-          // Activity logs (only for types without dedicated tables: exercise/walk/food)
-          supabaseClient
-            .from('activity_logs')
-            .select('*')
-            .eq('patient_id', patientId)
-            .in('task_type', ['exercise', 'walk', 'food'])
-            .gte('created_at', startDate)
-            .order('created_at', { ascending: false })
-            .limit(20)
+          medQ, waterQ, vitalsQ, symptomsQ, exerciseQ, sleepQ, moodQ, activityQ
         ]);
 
         activityHistory = [];
@@ -1509,7 +1586,6 @@
 
     function renderActivityHistory() {
       const historyList = document.getElementById('historyList');
-      const historyExpandedEl = document.getElementById('historyExpanded');
 
       if (activityHistory.length === 0) {
         historyList.innerHTML = '<div class="empty-state"><p class="empty-description">ยังไม่มีประวัติกิจกรรม</p></div>';
@@ -1524,26 +1600,13 @@
       });
 
       const dates = Object.keys(grouped).sort().reverse();
-      const mainDates = dates.slice(0, 2);
-      const expandedDates = dates.slice(2);
 
-      let mainHTML = '';
-      mainDates.forEach(dateKey => {
-        mainHTML += renderDayActivities(dateKey, grouped[dateKey]);
+      let html = '';
+      dates.forEach(dateKey => {
+        html += renderDayActivities(dateKey, grouped[dateKey]);
       });
 
-      historyList.innerHTML = mainHTML || '<div class="empty-state"><p class="empty-description">ยังไม่มีประวัติกิจกรรม</p></div>';
-
-      if (expandedDates.length > 0) {
-        let expandedHTML = '';
-        expandedDates.forEach(dateKey => {
-          expandedHTML += renderDayActivities(dateKey, grouped[dateKey]);
-        });
-        historyExpandedEl.innerHTML = expandedHTML;
-        document.querySelector('.history-toggle').style.display = 'flex';
-      } else {
-        document.querySelector('.history-toggle').style.display = 'none';
-      }
+      historyList.innerHTML = html || '<div class="empty-state"><p class="empty-description">ยังไม่มีประวัติกิจกรรม</p></div>';
     }
 
     function renderDayActivities(dateKey, activities) {
@@ -1581,22 +1644,47 @@
       return html;
     }
 
-    function toggleHistory() {
-      const expandedEl = document.getElementById('historyExpanded');
-      const toggleBtn = document.querySelector('.history-toggle');
-      const toggleText = document.getElementById('historyToggleText');
-
-      historyExpanded = !historyExpanded;
-
-      if (historyExpanded) {
-        expandedEl.classList.remove('hidden');
-        toggleBtn.classList.add('expanded');
-        toggleText.textContent = 'ซ่อน';
-      } else {
-        expandedEl.classList.add('hidden');
-        toggleBtn.classList.remove('expanded');
-        toggleText.textContent = 'ดูเพิ่มเติม';
+    function setHistoryFilter(days) {
+      // Update active button
+      document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+      const buttons = document.querySelectorAll('.filter-btn');
+      if (days === 'custom') {
+        buttons[3].classList.add('active');
+        document.getElementById('customDateRange').classList.remove('hidden');
+        // Set default date range: last 7 days
+        const today = new Date().toISOString().split('T')[0];
+        const weekAgo = new Date();
+        weekAgo.setDate(weekAgo.getDate() - 7);
+        document.getElementById('dateFrom').value = weekAgo.toISOString().split('T')[0];
+        document.getElementById('dateTo').value = today;
+        return;
       }
+
+      document.getElementById('customDateRange').classList.add('hidden');
+      if (days === 7) buttons[0].classList.add('active');
+      else if (days === 14) buttons[1].classList.add('active');
+      else if (days === 30) buttons[2].classList.add('active');
+
+      currentFilterDays = days;
+      loadActivityHistory(days);
+    }
+
+    function applyCustomDateRange() {
+      const from = document.getElementById('dateFrom').value;
+      const to = document.getElementById('dateTo').value;
+
+      if (!from || !to) {
+        showToast('กรุณาเลือกวันที่เริ่มต้นและสิ้นสุด', 'error');
+        return;
+      }
+
+      if (from > to) {
+        showToast('วันที่เริ่มต้นต้องไม่เกินวันที่สิ้นสุด', 'error');
+        return;
+      }
+
+      currentFilterDays = 'custom';
+      loadActivityHistory('custom', from, to);
     }
 
     // ============================================

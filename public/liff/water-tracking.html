@@ -500,6 +500,87 @@
       margin-bottom: 0.5rem;
     }
 
+    /* History Filter Controls */
+    .history-filter {
+      margin-bottom: 1rem;
+    }
+
+    .period-buttons {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .period-btn {
+      flex: 1;
+      padding: 0.5rem;
+      border: 1.5px solid hsl(var(--border));
+      border-radius: var(--radius-md);
+      background: hsl(var(--card));
+      font-size: 0.8125rem;
+      font-weight: 500;
+      font-family: 'Kanit', sans-serif;
+      color: hsl(var(--muted-foreground));
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: center;
+    }
+
+    .period-btn.active {
+      background: hsl(var(--primary) / 0.1);
+      border-color: hsl(var(--primary));
+      color: hsl(var(--primary));
+      font-weight: 600;
+    }
+
+    .date-range-row {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    .date-range-row input[type="date"] {
+      flex: 1;
+      padding: 0.5rem 0.625rem;
+      border: 1.5px solid hsl(var(--border));
+      border-radius: var(--radius-md);
+      background: hsl(var(--card));
+      color: hsl(var(--foreground));
+      font-size: 0.8125rem;
+      font-family: 'Kanit', sans-serif;
+    }
+
+    .date-range-row input[type="date"]:focus {
+      outline: none;
+      border-color: hsl(var(--primary));
+    }
+
+    .date-range-row .date-sep {
+      font-size: 0.8125rem;
+      color: hsl(var(--muted-foreground));
+      flex-shrink: 0;
+    }
+
+    .date-range-row .date-search-btn {
+      padding: 0.5rem 0.75rem;
+      border: none;
+      border-radius: var(--radius-md);
+      background: hsl(var(--primary));
+      color: white;
+      font-size: 0.8125rem;
+      font-family: 'Kanit', sans-serif;
+      cursor: pointer;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    .date-range-row .date-search-btn svg {
+      width: 14px;
+      height: 14px;
+    }
+
     /* Close Section */
     .close-section {
       padding-top: 0.5rem;
@@ -622,6 +703,20 @@
 
       <!-- History Content -->
       <div id="historyContent" class="history-tab-content">
+        <div class="history-filter">
+          <div class="period-buttons">
+            <button class="period-btn active" onclick="selectPeriodDays(7)">7 วัน</button>
+            <button class="period-btn" onclick="selectPeriodDays(14)">14 วัน</button>
+            <button class="period-btn" onclick="selectPeriodDays(30)">30 วัน</button>
+            <button class="period-btn" onclick="toggleDateRange()">กำหนดเอง</button>
+          </div>
+          <div class="date-range-row" id="dateRangeRow" style="display:none;">
+            <input type="date" id="dateFrom">
+            <span class="date-sep">ถึง</span>
+            <input type="date" id="dateTo">
+            <button class="date-search-btn" onclick="searchByDateRange()">ค้นหา</button>
+          </div>
+        </div>
         <div id="historyList">
           <div class="history-empty">กำลังโหลด...</div>
         </div>
@@ -874,9 +969,10 @@
       updateUI();
     }
 
-    // --- Tab switching ---
+    // --- Tab switching & History ---
     let currentTab = 'today';
-    let historyLoaded = false;
+    let historyPeriodDays = 7;
+    let historyFirstLoad = true;
 
     function switchTab(tab) {
       currentTab = tab;
@@ -884,33 +980,69 @@
       document.getElementById('tabHistory').classList.toggle('active', tab === 'history');
       document.getElementById('todayContent').style.display = tab === 'today' ? '' : 'none';
       document.getElementById('historyContent').classList.toggle('active', tab === 'history');
-      if (tab === 'history' && !historyLoaded) {
+      if (tab === 'history' && historyFirstLoad) {
+        historyFirstLoad = false;
         loadHistory();
       }
     }
 
-    async function loadHistory() {
+    function selectPeriodDays(days) {
+      historyPeriodDays = days;
+      document.querySelectorAll('.period-btn').forEach((btn, i) => {
+        btn.classList.toggle('active', i === [7,14,30].indexOf(days));
+      });
+      document.getElementById('dateRangeRow').style.display = 'none';
+      loadHistory();
+    }
+
+    function toggleDateRange() {
+      document.querySelectorAll('.period-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.period-btn')[3].classList.add('active');
+      const row = document.getElementById('dateRangeRow');
+      row.style.display = row.style.display === 'none' ? 'flex' : 'none';
+      if (row.style.display === 'flex') {
+        const today = new Date().toISOString().split('T')[0];
+        const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate() - 7);
+        document.getElementById('dateTo').value = today;
+        document.getElementById('dateFrom').value = weekAgo.toISOString().split('T')[0];
+      }
+    }
+
+    function searchByDateRange() {
+      const from = document.getElementById('dateFrom').value;
+      const to = document.getElementById('dateTo').value;
+      if (!from || !to) return;
+      loadHistory(from, to);
+    }
+
+    async function loadHistory(fromDate, toDate) {
       if (!supabaseClient || !patientId) {
         document.getElementById('historyList').innerHTML = '<div class="history-empty">' + icon('alertCircle') + '<p>ไม่สามารถโหลดข้อมูลได้</p></div>';
         return;
       }
 
-      try {
-        const sevenDaysAgo = new Date();
-        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-        const sevenDaysAgoDate = sevenDaysAgo.toISOString().split('T')[0];
+      document.getElementById('historyList').innerHTML = '<div class="history-empty">กำลังโหลด...</div>';
 
+      if (!fromDate) {
+        const d = new Date();
+        d.setDate(d.getDate() - historyPeriodDays);
+        fromDate = d.toISOString().split('T')[0];
+      }
+      if (!toDate) {
+        toDate = new Date().toISOString().split('T')[0];
+      }
+
+      try {
         const { data, error } = await supabaseClient
           .from('water_logs')
           .select('*')
           .eq('patient_id', patientId)
-          .gte('log_date', sevenDaysAgoDate)
+          .gte('log_date', fromDate)
+          .lte('log_date', toDate)
           .order('created_at', { ascending: false })
-          .limit(50);
+          .limit(100);
 
         if (error) throw error;
-
-        historyLoaded = true;
         renderHistory(data || []);
       } catch (err) {
         console.error('Error loading history:', err);
@@ -922,7 +1054,7 @@
       const container = document.getElementById('historyList');
 
       if (records.length === 0) {
-        container.innerHTML = '<div class="history-empty">' + icon('droplet') + '<p>ไม่มีข้อมูลย้อนหลัง 7 วัน</p></div>';
+        container.innerHTML = '<div class="history-empty">' + icon('droplet') + '<p>ไม่มีข้อมูลในช่วงเวลานี้</p></div>';
         return;
       }
 
