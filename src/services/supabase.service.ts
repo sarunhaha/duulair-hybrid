@@ -6,6 +6,8 @@ import {
   SleepLogInsert,
   ExerciseLogInsert,
   HealthEventInsert,
+  MedicationLogInsert,
+  WaterLogInsert,
   Symptom,
   SleepLog,
   ExerciseLog,
@@ -290,6 +292,42 @@ export class SupabaseService {
     startDate.setDate(startDate.getDate() - days);
 
     return this.getExerciseLogs(patientId, startDate, new Date());
+  }
+
+  // ========================================
+  // Medication Logs (การกินยา)
+  // ========================================
+
+  async saveMedicationLog(log: MedicationLogInsert): Promise<string> {
+    const { data, error } = await this.client
+      .from('medication_logs')
+      .insert({
+        ...log,
+        taken_at: log.taken_at || new Date().toISOString()
+      })
+      .select('id')
+      .single();
+
+    if (error) throw error;
+    return data.id;
+  }
+
+  // ========================================
+  // Water Logs (การดื่มน้ำ)
+  // ========================================
+
+  async saveWaterLog(log: WaterLogInsert): Promise<string> {
+    const { data, error } = await this.client
+      .from('water_logs')
+      .insert({
+        ...log,
+        log_date: log.log_date || new Date().toISOString().split('T')[0]
+      })
+      .select('id')
+      .single();
+
+    if (error) throw error;
+    return data.id;
   }
 
   // ========================================

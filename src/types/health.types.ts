@@ -468,6 +468,36 @@ export interface ExerciseLogInsert {
   notes?: string;
 }
 
+export interface MedicationLogInsert {
+  patient_id: string;
+  medication_id?: string;
+  medication_name?: string;
+  dosage?: string;
+  status?: string;
+  taken_at?: string;
+  scheduled_time?: string;
+  skipped?: boolean;
+  skipped_reason?: string;
+  note?: string;
+  ai_confidence?: number;
+  raw_text?: string;
+  activity_log_id?: string;
+  conversation_log_id?: string;
+  logged_by_line_user_id?: string;
+}
+
+export interface WaterLogInsert {
+  patient_id: string;
+  log_date?: string;
+  amount_ml: number;
+  glasses?: number;
+  note?: string;
+  ai_confidence?: number;
+  raw_text?: string;
+  activity_log_id?: string;
+  conversation_log_id?: string;
+}
+
 export interface HealthEventInsert {
   patient_id: string;
   conversation_log_id?: string;

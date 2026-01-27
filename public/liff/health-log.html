@@ -331,6 +331,8 @@
     .history-icon.vitals { background: hsl(142 76% 94%); color: hsl(var(--success)); }
     .history-icon.symptom { background: hsl(38 92% 95%); color: hsl(var(--accent)); }
     .history-icon.exercise { background: hsl(263 70% 95%); color: hsl(263 70% 50%); }
+    .history-icon.sleep { background: hsl(230 70% 95%); color: hsl(230 70% 50%); }
+    .history-icon.mood { background: hsl(45 93% 94%); color: hsl(45 93% 40%); }
     .history-icon.food { background: hsl(330 81% 95%); color: hsl(330 81% 60%); }
 
     .history-content {
@@ -976,7 +978,7 @@
           // Load medications
           const { data: meds, error } = await supabaseClient
             .from('medications')
-            .select('id, times')
+            .select('id, medication_name, times')
             .eq('patient_id', patientId)
             .eq('active', true);
 
@@ -990,17 +992,16 @@
             medications = meds;
           }
 
-          // Get today's medication logs
-          const { data: logs, error: logsError } = await supabaseClient
-            .from('activity_logs')
-            .select('*')
+          // Get today's medication logs from medication_logs table
+          const { data: medLogs, error: medLogsError } = await supabaseClient
+            .from('medication_logs')
+            .select('id')
             .eq('patient_id', patientId)
-            .eq('task_type', 'medication')
-            .gte('created_at', today + 'T00:00:00')
-            .lt('created_at', today + 'T23:59:59');
+            .gte('taken_at', today + 'T00:00:00')
+            .lt('taken_at', today + 'T23:59:59');
 
-          if (!logsError && logs) {
-            todaySummary.medicationsTaken = logs.length;
+          if (!medLogsError && medLogs) {
+            todaySummary.medicationsTaken = medLogs.length;
           }
 
         } catch (error) {
@@ -1015,17 +1016,15 @@
       if (patientId && supabaseClient) {
         try {
           const { data: waterLogs, error: waterError } = await supabaseClient
-            .from('activity_logs')
-            .select('metadata, value')
+            .from('water_logs')
+            .select('amount_ml')
             .eq('patient_id', patientId)
-            .eq('task_type', 'water')
-            .gte('created_at', today + 'T00:00:00')
-            .lt('created_at', today + 'T23:59:59');
+            .eq('log_date', today);
 
           if (!waterError && waterLogs && waterLogs.length > 0) {
             let totalWater = 0;
             waterLogs.forEach(log => {
-              totalWater += parseInt(log.metadata?.amount || log.value || 0);
+              totalWater += (log.amount_ml || 0);
             });
             if (totalWater > todaySummary.waterAmount) {
               todaySummary.waterAmount = totalWater;
@@ -1163,17 +1162,16 @@
           return;
         }
 
-        const logs = medsForPeriod.map(med => ({
+        const now = new Date().toISOString();
+        const medLogs = medsForPeriod.map(med => ({
           patient_id: patientId,
-          task_type: 'medication',
-          metadata: {
-            medication_id: med.id,
-            time_period: currentPeriod,
-            logged_at: new Date().toISOString()
-          }
+          medication_id: med.id,
+          medication_name: med.medication_name || null,
+          taken_at: now,
+          status: 'taken'
         }));
 
-        const { error } = await supabaseClient.from('activity_logs').insert(logs);
+        const { error } = await supabaseClient.from('medication_logs').insert(medLogs);
 
         if (error) throw error;
 
@@ -1226,51 +1224,123 @@
         const sevenDaysAgo = new Date();
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
         const startDate = sevenDaysAgo.toISOString();
+        const startDateOnly = startDate.split('T')[0];
 
-        const { data: logs, error } = await supabaseClient
-          .from('activity_logs')
-          .select('*')
-          .eq('patient_id', patientId)
-          .gte('created_at', startDate)
-          .order('created_at', { ascending: false })
-          .limit(50);
-
-        if (error) throw error;
-
-        const { data: vitals, error: vitalsError } = await supabaseClient
-          .from('vitals_logs')
-          .select('*')
-          .eq('patient_id', patientId)
-          .gte('measured_at', startDate)
-          .order('measured_at', { ascending: false })
-          .limit(20);
-
-        const { data: symptoms, error: symptomsError } = await supabaseClient
-          .from('symptoms')
-          .select('*')
-          .eq('patient_id', patientId)
-          .gte('created_at', startDate)
-          .order('created_at', { ascending: false })
-          .limit(20);
+        // Query all dedicated tables in parallel
+        const [
+          medResult,
+          waterResult,
+          vitalsResult,
+          symptomsResult,
+          exerciseResult,
+          sleepResult,
+          moodResult,
+          activityResult
+        ] = await Promise.all([
+          // Medication logs
+          supabaseClient
+            .from('medication_logs')
+            .select('*')
+            .eq('patient_id', patientId)
+            .gte('taken_at', startDate)
+            .order('taken_at', { ascending: false })
+            .limit(20),
+          // Water logs
+          supabaseClient
+            .from('water_logs')
+            .select('*')
+            .eq('patient_id', patientId)
+            .gte('log_date', startDateOnly)
+            .order('created_at', { ascending: false })
+            .limit(20),
+          // Vitals logs
+          supabaseClient
+            .from('vitals_logs')
+            .select('*')
+            .eq('patient_id', patientId)
+            .gte('measured_at', startDate)
+            .order('measured_at', { ascending: false })
+            .limit(20),
+          // Symptoms
+          supabaseClient
+            .from('symptoms')
+            .select('*')
+            .eq('patient_id', patientId)
+            .gte('created_at', startDate)
+            .order('created_at', { ascending: false })
+            .limit(20),
+          // Exercise logs
+          supabaseClient
+            .from('exercise_logs')
+            .select('*')
+            .eq('patient_id', patientId)
+            .gte('exercise_date', startDateOnly)
+            .order('created_at', { ascending: false })
+            .limit(20),
+          // Sleep logs
+          supabaseClient
+            .from('sleep_logs')
+            .select('*')
+            .eq('patient_id', patientId)
+            .gte('sleep_date', startDateOnly)
+            .order('created_at', { ascending: false })
+            .limit(20),
+          // Mood logs
+          supabaseClient
+            .from('mood_logs')
+            .select('*')
+            .eq('patient_id', patientId)
+            .gte('timestamp', startDate)
+            .order('timestamp', { ascending: false })
+            .limit(20),
+          // Activity logs (only for types without dedicated tables: exercise/walk/food)
+          supabaseClient
+            .from('activity_logs')
+            .select('*')
+            .eq('patient_id', patientId)
+            .in('task_type', ['exercise', 'walk', 'food'])
+            .gte('created_at', startDate)
+            .order('created_at', { ascending: false })
+            .limit(20)
+        ]);
 
         activityHistory = [];
 
-        if (logs) {
-          logs.forEach(log => {
+        // Medication logs
+        if (medResult.data) {
+          medResult.data.forEach(log => {
+            const name = log.medication_name || 'ยา';
+            const status = log.status === 'skipped' ? 'ข้าม' : 'ทานแล้ว';
             activityHistory.push({
               id: log.id,
-              table: 'activity_logs',
-              type: log.task_type || 'activity',
-              text: formatActivityText(log),
-              timestamp: new Date(log.created_at),
-              iconName: getActivityIconName(log.task_type),
+              table: 'medication_logs',
+              type: 'medication',
+              text: `กินยา ${name} (${status})`,
+              timestamp: new Date(log.taken_at || log.created_at),
+              iconName: 'pill',
               rawData: log
             });
           });
         }
 
-        if (vitals) {
-          vitals.forEach(v => {
+        // Water logs
+        if (waterResult.data) {
+          waterResult.data.forEach(log => {
+            activityHistory.push({
+              id: log.id,
+              table: 'water_logs',
+              type: 'water',
+              text: `ดื่มน้ำ ${log.amount_ml} ml`,
+              timestamp: new Date(log.created_at || log.logged_at),
+              iconName: 'droplet',
+              rawData: log
+            });
+          });
+        }
+
+        // Vitals logs
+        if (vitalsResult.data) {
+          vitalsResult.data.forEach(v => {
             let text = '';
             const systolic = v.bp_systolic || v.systolic;
             const diastolic = v.bp_diastolic || v.diastolic;
@@ -1304,8 +1374,9 @@
           });
         }
 
-        if (symptoms) {
-          symptoms.forEach(s => {
+        // Symptoms
+        if (symptomsResult.data) {
+          symptomsResult.data.forEach(s => {
             const severityText = s.severity_1to5 ?
               (s.severity_1to5 <= 2 ? 'เล็กน้อย' : s.severity_1to5 <= 3 ? 'ปานกลาง' : 'รุนแรง') : '';
             const symptomName = s.symptom_name || s.symptom || 'อาการ';
@@ -1317,6 +1388,76 @@
               timestamp: new Date(s.created_at),
               iconName: 'thermometer',
               rawData: s
+            });
+          });
+        }
+
+        // Exercise logs
+        if (exerciseResult.data) {
+          exerciseResult.data.forEach(e => {
+            const exerciseType = e.exercise_type || 'ออกกำลังกาย';
+            const duration = e.duration_minutes ? ` ${e.duration_minutes} นาที` : '';
+            activityHistory.push({
+              id: e.id,
+              table: 'exercise_logs',
+              type: 'exercise',
+              text: `${exerciseType}${duration}`,
+              timestamp: new Date(e.created_at),
+              iconName: 'dumbbell',
+              rawData: e
+            });
+          });
+        }
+
+        // Sleep logs
+        if (sleepResult.data) {
+          sleepResult.data.forEach(s => {
+            const hours = s.sleep_hours ? `${s.sleep_hours} ชม.` : '';
+            const quality = s.sleep_quality ? ` (${s.sleep_quality})` : '';
+            activityHistory.push({
+              id: s.id,
+              table: 'sleep_logs',
+              type: 'sleep',
+              text: `นอน ${hours}${quality}`,
+              timestamp: new Date(s.created_at),
+              iconName: 'moon',
+              rawData: s
+            });
+          });
+        }
+
+        // Mood logs
+        if (moodResult.data) {
+          moodResult.data.forEach(m => {
+            const moodLabels = {
+              happy: 'มีความสุข', neutral: 'ปกติ', tired: 'เหนื่อย',
+              sad: 'เศร้า', anxious: 'กังวล', exhausted: 'อ่อนเพลีย',
+              stressed: 'เครียด', calm: 'สงบ', excited: 'ตื่นเต้น'
+            };
+            const moodText = moodLabels[m.mood] || m.mood || 'อารมณ์';
+            activityHistory.push({
+              id: m.id,
+              table: 'mood_logs',
+              type: 'mood',
+              text: `อารมณ์: ${moodText}`,
+              timestamp: new Date(m.timestamp || m.created_at),
+              iconName: 'smile',
+              rawData: m
+            });
+          });
+        }
+
+        // Activity logs (only exercise/walk/food that don't have dedicated tables yet)
+        if (activityResult.data) {
+          activityResult.data.forEach(log => {
+            activityHistory.push({
+              id: log.id,
+              table: 'activity_logs',
+              type: log.task_type || 'activity',
+              text: formatActivityText(log),
+              timestamp: new Date(log.created_at),
+              iconName: getActivityIconName(log.task_type),
+              rawData: log
             });
           });
         }
@@ -1359,7 +1500,9 @@
         symptom: 'thermometer',
         exercise: 'dumbbell',
         walk: 'footprints',
-        food: 'utensils'
+        food: 'utensils',
+        sleep: 'moon',
+        mood: 'smile'
       };
       return icons[type] || 'fileText';
     }
@@ -1490,11 +1633,16 @@
       };
       document.getElementById('editModalTitle').textContent = typeLabels[activity.type] || 'แก้ไขกิจกรรม';
 
-      if (activity.type === 'medication' || (activity.table === 'activity_logs' && raw.task_type === 'medication')) {
+      if (activity.type === 'medication') {
         document.getElementById('editFormMedication').style.display = 'block';
-        document.getElementById('editMedName').value = raw.metadata?.medication_name || raw.value || '';
+        if (activity.table === 'medication_logs') {
+          document.getElementById('editMedName').value = raw.medication_name || '';
+          document.getElementById('editMedNotes').value = raw.note || '';
+        } else {
+          document.getElementById('editMedName').value = raw.metadata?.medication_name || raw.value || '';
+          document.getElementById('editMedNotes').value = raw.notes || '';
+        }
         document.getElementById('editMedTime').value = raw.metadata?.time_period || 'morning';
-        document.getElementById('editMedNotes').value = raw.notes || '';
 
       } else if (activity.type === 'vitals' || activity.table === 'vitals_logs') {
         document.getElementById('editFormVitals').style.display = 'block';
@@ -1528,12 +1676,18 @@
         }
         document.getElementById('editVitalsNotes').value = raw.notes || '';
 
-      } else if (activity.type === 'water' || (activity.table === 'activity_logs' && raw.task_type === 'water')) {
+      } else if (activity.type === 'water') {
         document.getElementById('editFormWater').style.display = 'block';
-        const amount = raw.metadata?.amount || raw.value || 0;
-        document.getElementById('editWaterAmount').value = amount;
-        document.getElementById('editWaterUnit').value = raw.metadata?.unit || 'ml';
-        document.getElementById('editWaterNotes').value = raw.notes || '';
+        if (activity.table === 'water_logs') {
+          document.getElementById('editWaterAmount').value = raw.amount_ml || 0;
+          document.getElementById('editWaterUnit').value = 'ml';
+          document.getElementById('editWaterNotes').value = raw.note || '';
+        } else {
+          const amount = raw.metadata?.amount || raw.value || 0;
+          document.getElementById('editWaterAmount').value = amount;
+          document.getElementById('editWaterUnit').value = raw.metadata?.unit || 'ml';
+          document.getElementById('editWaterNotes').value = raw.notes || '';
+        }
 
       } else if (activity.type === 'symptom' || activity.table === 'symptoms') {
         document.getElementById('editFormSymptom').style.display = 'block';
@@ -1544,11 +1698,26 @@
 
       } else {
         document.getElementById('editFormGeneric').style.display = 'block';
-        const typeDisplayLabels = { exercise: 'ออกกำลังกาย', walk: 'เดิน', food: 'อาหาร' };
+        const typeDisplayLabels = { exercise: 'ออกกำลังกาย', walk: 'เดิน', food: 'อาหาร', sleep: 'การนอน', mood: 'อารมณ์' };
         document.getElementById('editTypeDisplay').value = typeDisplayLabels[activity.type] || activity.type;
-        document.getElementById('editGenericLabel').textContent = activity.type === 'exercise' || activity.type === 'walk' ? 'ระยะเวลา (นาที)' : 'ค่า';
-        document.getElementById('editGenericValue').value = raw.value || raw.metadata?.duration || '';
-        document.getElementById('editGenericNotes').value = raw.notes || '';
+
+        if (activity.table === 'exercise_logs') {
+          document.getElementById('editGenericLabel').textContent = 'ระยะเวลา (นาที)';
+          document.getElementById('editGenericValue').value = raw.duration_minutes || '';
+          document.getElementById('editGenericNotes').value = raw.notes || '';
+        } else if (activity.table === 'sleep_logs') {
+          document.getElementById('editGenericLabel').textContent = 'ชั่วโมงนอน';
+          document.getElementById('editGenericValue').value = raw.sleep_hours || '';
+          document.getElementById('editGenericNotes').value = raw.notes || '';
+        } else if (activity.table === 'mood_logs') {
+          document.getElementById('editGenericLabel').textContent = 'อารมณ์';
+          document.getElementById('editGenericValue').value = raw.mood || '';
+          document.getElementById('editGenericNotes').value = raw.note || '';
+        } else {
+          document.getElementById('editGenericLabel').textContent = activity.type === 'exercise' || activity.type === 'walk' ? 'ระยะเวลา (นาที)' : 'ค่า';
+          document.getElementById('editGenericValue').value = raw.value || raw.metadata?.duration || '';
+          document.getElementById('editGenericNotes').value = raw.notes || '';
+        }
       }
 
       document.getElementById('editModal').classList.add('show');
@@ -1572,14 +1741,19 @@
       try {
         let updateData = {};
 
-        if (activityType === 'medication' || (table === 'activity_logs' && raw.task_type === 'medication')) {
+        if (activityType === 'medication') {
           const medName = document.getElementById('editMedName').value;
-          const medTime = document.getElementById('editMedTime').value;
           const medNotes = document.getElementById('editMedNotes').value;
 
-          updateData.metadata = { ...raw.metadata, medication_name: medName, time_period: medTime };
-          updateData.value = medName;
-          if (medNotes) updateData.notes = medNotes;
+          if (table === 'medication_logs') {
+            updateData.medication_name = medName;
+            if (medNotes) updateData.note = medNotes;
+          } else {
+            const medTime = document.getElementById('editMedTime').value;
+            updateData.metadata = { ...raw.metadata, medication_name: medName, time_period: medTime };
+            updateData.value = medName;
+            if (medNotes) updateData.notes = medNotes;
+          }
 
         } else if (activityType === 'vitals' || table === 'vitals_logs') {
           const bpFormVisible = document.getElementById('editVitalsBP').style.display !== 'none';
@@ -1604,16 +1778,22 @@
           const vitalsNotes = document.getElementById('editVitalsNotes').value;
           if (vitalsNotes) updateData.notes = vitalsNotes;
 
-        } else if (activityType === 'water' || (table === 'activity_logs' && raw.task_type === 'water')) {
+        } else if (activityType === 'water') {
           const waterAmount = document.getElementById('editWaterAmount').value;
           const waterUnit = document.getElementById('editWaterUnit').value;
           const waterNotes = document.getElementById('editWaterNotes').value;
 
           const amountMl = waterUnit === 'glass' ? parseInt(waterAmount) * 250 : parseInt(waterAmount);
 
-          updateData.metadata = { ...raw.metadata, amount: amountMl, unit: waterUnit };
-          updateData.value = amountMl.toString();
-          if (waterNotes) updateData.notes = waterNotes;
+          if (table === 'water_logs') {
+            updateData.amount_ml = amountMl;
+            updateData.glasses = Math.round(amountMl / 250);
+            if (waterNotes) updateData.note = waterNotes;
+          } else {
+            updateData.metadata = { ...raw.metadata, amount: amountMl, unit: waterUnit };
+            updateData.value = amountMl.toString();
+            if (waterNotes) updateData.notes = waterNotes;
+          }
 
         } else if (activityType === 'symptom' || table === 'symptoms') {
           const symptomName = document.getElementById('editSymptomName').value;
@@ -1630,13 +1810,23 @@
           const genericValue = document.getElementById('editGenericValue').value;
           const genericNotes = document.getElementById('editGenericNotes').value;
 
-          if (activityType === 'exercise' || activityType === 'walk') {
+          if (table === 'exercise_logs') {
+            updateData.duration_minutes = parseInt(genericValue) || null;
+            if (genericNotes) updateData.notes = genericNotes;
+          } else if (table === 'sleep_logs') {
+            updateData.sleep_hours = parseFloat(genericValue) || null;
+            if (genericNotes) updateData.notes = genericNotes;
+          } else if (table === 'mood_logs') {
+            updateData.mood = genericValue;
+            if (genericNotes) updateData.note = genericNotes;
+          } else if (activityType === 'exercise' || activityType === 'walk') {
             updateData.metadata = { ...raw.metadata, duration: parseInt(genericValue) };
             updateData.value = genericValue;
+            if (genericNotes) updateData.notes = genericNotes;
           } else {
             updateData.value = genericValue;
+            if (genericNotes) updateData.notes = genericNotes;
           }
-          if (genericNotes) updateData.notes = genericNotes;
         }
 
         const { error } = await supabaseClient.from(table).update(updateData).eq('id', id);

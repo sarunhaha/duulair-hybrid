@@ -10,6 +10,8 @@ import {
   SleepLogInsert,
   ExerciseLogInsert,
   HealthEventInsert,
+  MedicationLogInsert,
+  WaterLogInsert,
   ExtractedSymptom,
   ExtractedVitals,
   ExtractedMood,
@@ -403,32 +405,45 @@ async function processMedication(
   medication: { medicationName?: string; taken?: boolean; timeTaken?: string },
   context: ProcessorContext
 ): Promise<ProcessResult> {
-  // Save to activity_logs
-  const client = supabaseService.getClient();
-
-  const { data, error } = await client
-    .from('activity_logs')
-    .insert({
-      patient_id: context.patientId,
-      task_type: 'medication',
-      value: medication.medicationName || 'ยา',
-      metadata: {
-        medication_name: medication.medicationName,
-        taken: medication.taken,
-        time_taken: medication.timeTaken,
-        ai_extracted: true
-      },
-      ai_confidence: context.aiConfidence,
-      raw_text: context.rawText,
-      timestamp: new Date().toISOString()
-    })
-    .select('id')
-    .single();
-
-  if (error) throw error;
-
-  const recordId = data.id;
+  const now = new Date().toISOString();
   const summary = `${medication.medicationName || 'ยา'}: ${medication.taken ? 'ทานแล้ว' : 'ยังไม่ได้ทาน'}`;
+
+  // Primary: Save to medication_logs
+  const medLogInsert: MedicationLogInsert = {
+    patient_id: context.patientId,
+    medication_name: medication.medicationName || 'ยา',
+    taken_at: now,
+    status: medication.taken ? 'taken' : 'skipped',
+    ai_confidence: context.aiConfidence,
+    raw_text: context.rawText,
+    conversation_log_id: context.conversationLogId
+  };
+
+  const recordId = await supabaseService.saveMedicationLog(medLogInsert);
+
+  // Dual-write: Also save to activity_logs for backwards compatibility
+  const client = supabaseService.getClient();
+  try {
+    await client
+      .from('activity_logs')
+      .insert({
+        patient_id: context.patientId,
+        task_type: 'medication',
+        value: medication.medicationName || 'ยา',
+        metadata: {
+          medication_name: medication.medicationName,
+          taken: medication.taken,
+          time_taken: medication.timeTaken,
+          ai_extracted: true,
+          medication_log_id: recordId
+        },
+        ai_confidence: context.aiConfidence,
+        raw_text: context.rawText,
+        timestamp: now
+      });
+  } catch (e) {
+    console.warn('Dual-write to activity_logs failed (non-critical):', e);
+  }
 
   // Create health event
   const healthEventId = await createHealthEvent({
@@ -436,7 +451,7 @@ async function processMedication(
     conversation_log_id: context.conversationLogId,
     event_type: 'medication',
     event_subtype: medication.medicationName || undefined,
-    reference_table: 'activity_logs',
+    reference_table: 'medication_logs',
     reference_id: recordId,
     raw_text: context.rawText,
     ai_confidence: context.aiConfidence,
@@ -454,38 +469,52 @@ async function processWater(
   water: { amountMl?: number },
   context: ProcessorContext
 ): Promise<ProcessResult> {
-  // Save to activity_logs
+  const now = new Date().toISOString();
+  const amountMl = water.amountMl || 0;
+  const summary = `${amountMl} ml`;
+
+  // Primary: Save to water_logs
+  const waterLogInsert: WaterLogInsert = {
+    patient_id: context.patientId,
+    log_date: now.split('T')[0],
+    amount_ml: amountMl,
+    glasses: Math.round(amountMl / 250),
+    ai_confidence: context.aiConfidence,
+    raw_text: context.rawText,
+    conversation_log_id: context.conversationLogId
+  };
+
+  const recordId = await supabaseService.saveWaterLog(waterLogInsert);
+
+  // Dual-write: Also save to activity_logs for backwards compatibility
   const client = supabaseService.getClient();
-
-  const { data, error } = await client
-    .from('activity_logs')
-    .insert({
-      patient_id: context.patientId,
-      task_type: 'water',
-      value: water.amountMl?.toString() || '0',
-      metadata: {
-        amount_ml: water.amountMl,
-        unit: 'ml',
-        ai_extracted: true
-      },
-      ai_confidence: context.aiConfidence,
-      raw_text: context.rawText,
-      timestamp: new Date().toISOString()
-    })
-    .select('id')
-    .single();
-
-  if (error) throw error;
-
-  const recordId = data.id;
-  const summary = `${water.amountMl} ml`;
+  try {
+    await client
+      .from('activity_logs')
+      .insert({
+        patient_id: context.patientId,
+        task_type: 'water',
+        value: amountMl.toString(),
+        metadata: {
+          amount_ml: amountMl,
+          unit: 'ml',
+          ai_extracted: true,
+          water_log_id: recordId
+        },
+        ai_confidence: context.aiConfidence,
+        raw_text: context.rawText,
+        timestamp: now
+      });
+  } catch (e) {
+    console.warn('Dual-write to activity_logs failed (non-critical):', e);
+  }
 
   // Create health event
   const healthEventId = await createHealthEvent({
     patient_id: context.patientId,
     conversation_log_id: context.conversationLogId,
     event_type: 'water',
-    reference_table: 'activity_logs',
+    reference_table: 'water_logs',
     reference_id: recordId,
     raw_text: context.rawText,
     ai_confidence: context.aiConfidence,
