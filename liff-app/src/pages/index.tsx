@@ -18,13 +18,20 @@ export default function HomePage() {
   const { isGroup } = useLiffContext();
 
   useEffect(() => {
-    // Handle liff.state deep link BEFORE waiting for LIFF init
+    // Handle liff.state deep link — LIFF sends path via query param
+    // e.g. /liff-v2/?liff.state=%2Frecords → navigate to /records
     const params = new URLSearchParams(window.location.search);
     const liffState = params.get('liff.state');
     if (liffState) {
-      // liff.state contains the target path, e.g. "/records"
       const targetPath = liffState.startsWith('/') ? liffState : '/' + liffState;
       console.log('[HomePage] liff.state detected, navigating to:', targetPath);
+
+      // Remove liff.state from URL to prevent re-trigger on re-render
+      params.delete('liff.state');
+      const cleanSearch = params.toString();
+      const cleanUrl = window.location.pathname + (cleanSearch ? '?' + cleanSearch : '');
+      window.history.replaceState(null, '', cleanUrl);
+
       setLocation(targetPath);
       return;
     }
