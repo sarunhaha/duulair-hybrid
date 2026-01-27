@@ -12,6 +12,11 @@
   ],
   "routes": [
     {
+      "src": "/liff/(records|trends|history|link)(/?.*)",
+      "status": 302,
+      "headers": { "Location": "/liff-v2/$1$2" }
+    },
+    {
       "src": "/liff/?$",
       "dest": "public/liff/index.html"
     },
