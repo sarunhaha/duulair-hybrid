@@ -384,6 +384,122 @@
       border-color: hsl(var(--primary));
     }
 
+    /* Tab Switcher */
+    .tab-switcher {
+      display: flex;
+      background: hsl(var(--muted));
+      border-radius: var(--radius-lg);
+      padding: 0.25rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 0.625rem;
+      border: none;
+      border-radius: var(--radius-md);
+      background: transparent;
+      font-size: 0.875rem;
+      font-weight: 500;
+      font-family: 'Kanit', sans-serif;
+      color: hsl(var(--muted-foreground));
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.375rem;
+    }
+
+    .tab-btn.active {
+      background: hsl(var(--card));
+      color: hsl(var(--primary));
+      font-weight: 600;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .history-tab-content {
+      display: none;
+    }
+
+    .history-tab-content.active {
+      display: block;
+    }
+
+    .history-day-header {
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: hsl(var(--muted-foreground));
+      margin-bottom: 0.5rem;
+      padding-bottom: 0.375rem;
+      border-bottom: 1px solid hsl(var(--border));
+      margin-top: 1rem;
+    }
+
+    .history-day-header:first-child {
+      margin-top: 0;
+    }
+
+    .history-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem;
+      background: hsl(var(--muted) / 0.3);
+      border-radius: var(--radius-lg);
+      margin-bottom: 0.5rem;
+    }
+
+    .history-item-icon {
+      width: 2.25rem;
+      height: 2.25rem;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      background: hsl(217 91% 95%);
+      color: hsl(217 91% 60%);
+    }
+
+    .dark .history-item-icon {
+      background: hsl(217 50% 20%);
+      color: hsl(217 91% 70%);
+    }
+
+    .history-item-icon svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .history-item-content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .history-item-text {
+      font-size: 0.875rem;
+      color: hsl(var(--foreground));
+    }
+
+    .history-item-time {
+      font-size: 0.75rem;
+      color: hsl(var(--muted-foreground));
+    }
+
+    .history-empty {
+      text-align: center;
+      padding: 2rem;
+      color: hsl(var(--muted-foreground));
+    }
+
+    .history-empty svg {
+      width: 48px;
+      height: 48px;
+      opacity: 0.5;
+      margin-bottom: 0.5rem;
+    }
+
     /* Close Section */
     .close-section {
       padding-top: 0.5rem;
@@ -425,6 +541,18 @@
         <button class="btn-icon" onclick="darkMode.toggle()" aria-label="สลับธีม" id="themeBtn"></button>
       </header>
 
+      <!-- Tab Switcher -->
+      <div class="tab-switcher">
+        <button class="tab-btn active" onclick="switchTab('today')" id="tabToday">
+          <span id="tabTodayIcon"></span> บันทึกวันนี้
+        </button>
+        <button class="tab-btn" onclick="switchTab('history')" id="tabHistory">
+          <span id="tabHistoryIcon"></span> ประวัติการบันทึก
+        </button>
+      </div>
+
+      <!-- Today Content -->
+      <div id="todayContent">
       <!-- Progress Section -->
       <div class="progress-section">
         <div class="progress-header">
@@ -490,6 +618,15 @@
         </div>
       </div>
 
+      </div><!-- /todayContent -->
+
+      <!-- History Content -->
+      <div id="historyContent" class="history-tab-content">
+        <div id="historyList">
+          <div class="history-empty">กำลังโหลด...</div>
+        </div>
+      </div>
+
       <!-- Close Button -->
       <div class="close-section">
         <button class="btn btn-secondary btn-block" onclick="goBack()">
@@ -540,6 +677,8 @@
       document.getElementById('logTitle').innerHTML = icon('list') + ' บันทึกวันนี้';
       document.getElementById('emptyState').innerHTML = icon('droplet') + '<p>ยังไม่มีการบันทึก</p>';
       document.getElementById('settingsTitle').innerHTML = icon('settings') + ' ตั้งค่า';
+      document.getElementById('tabTodayIcon').innerHTML = icon('edit');
+      document.getElementById('tabHistoryIcon').innerHTML = icon('clock');
 
       // Check if we should show back button
       const returnTo = sessionStorage.getItem('liff_return_to');
@@ -733,6 +872,87 @@
 
       saveData();
       updateUI();
+    }
+
+    // --- Tab switching ---
+    let currentTab = 'today';
+    let historyLoaded = false;
+
+    function switchTab(tab) {
+      currentTab = tab;
+      document.getElementById('tabToday').classList.toggle('active', tab === 'today');
+      document.getElementById('tabHistory').classList.toggle('active', tab === 'history');
+      document.getElementById('todayContent').style.display = tab === 'today' ? '' : 'none';
+      document.getElementById('historyContent').classList.toggle('active', tab === 'history');
+      if (tab === 'history' && !historyLoaded) {
+        loadHistory();
+      }
+    }
+
+    async function loadHistory() {
+      if (!supabaseClient || !patientId) {
+        document.getElementById('historyList').innerHTML = '<div class="history-empty">' + icon('alertCircle') + '<p>ไม่สามารถโหลดข้อมูลได้</p></div>';
+        return;
+      }
+
+      try {
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        const sevenDaysAgoDate = sevenDaysAgo.toISOString().split('T')[0];
+
+        const { data, error } = await supabaseClient
+          .from('water_logs')
+          .select('*')
+          .eq('patient_id', patientId)
+          .gte('log_date', sevenDaysAgoDate)
+          .order('created_at', { ascending: false })
+          .limit(50);
+
+        if (error) throw error;
+
+        historyLoaded = true;
+        renderHistory(data || []);
+      } catch (err) {
+        console.error('Error loading history:', err);
+        document.getElementById('historyList').innerHTML = '<div class="history-empty">' + icon('alertCircle') + '<p>เกิดข้อผิดพลาดในการโหลด</p></div>';
+      }
+    }
+
+    function renderHistory(records) {
+      const container = document.getElementById('historyList');
+
+      if (records.length === 0) {
+        container.innerHTML = '<div class="history-empty">' + icon('droplet') + '<p>ไม่มีข้อมูลย้อนหลัง 7 วัน</p></div>';
+        return;
+      }
+
+      const grouped = {};
+      records.forEach(r => {
+        const dateStr = r.log_date || r.created_at;
+        const dateObj = new Date(dateStr);
+        const date = dateObj.toLocaleDateString('th-TH', { weekday: 'long', day: 'numeric', month: 'long' });
+        if (!grouped[date]) grouped[date] = [];
+        grouped[date].push(r);
+      });
+
+      let html = '';
+      for (const [date, items] of Object.entries(grouped)) {
+        html += `<div class="history-day-header">${date}</div>`;
+        items.forEach(item => {
+          const time = item.created_at ? new Date(item.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '';
+          const amount = item.amount_ml || 0;
+          html += `
+            <div class="history-item">
+              <div class="history-item-icon">${icon('droplet')}</div>
+              <div class="history-item-content">
+                <div class="history-item-text">ดื่มน้ำ ${amount} ml</div>
+                <div class="history-item-time">${time}</div>
+              </div>
+            </div>`;
+        });
+      }
+
+      container.innerHTML = html;
     }
 
     // Initialize
