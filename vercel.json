@@ -72,6 +72,18 @@
       "dest": "public/liff/vitals-tracking.html"
     },
     {
+      "src": "/liff/log-exercise/?$",
+      "dest": "public/liff/log-exercise.html"
+    },
+    {
+      "src": "/liff/log-mood/?$",
+      "dest": "public/liff/log-mood.html"
+    },
+    {
+      "src": "/liff/log-medical-notes/?$",
+      "dest": "public/liff/log-medical-notes.html"
+    },
+    {
       "src": "/liff/(.*)",
       "dest": "public/liff/$1"
     },
