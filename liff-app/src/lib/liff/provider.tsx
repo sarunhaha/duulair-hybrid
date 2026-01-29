@@ -25,8 +25,34 @@ export function LiffProvider({ children, liffId = LIFF_ID }: LiffProviderProps) 
   const [state, setState] = useState<LiffState>(initialState);
 
   useEffect(() => {
+    // Prevent double initialization
+    let isMounted = true;
+
     const initLiff = async () => {
       console.log('[LiffProvider] Starting LIFF init with ID:', liffId);
+
+      // Check for login redirect loop - if we've tried too many times, stop
+      const loginAttemptKey = 'liff_login_attempt';
+      const lastAttempt = sessionStorage.getItem(loginAttemptKey);
+      const now = Date.now();
+
+      if (lastAttempt) {
+        const attemptData = JSON.parse(lastAttempt);
+        // If we attempted login within last 10 seconds, likely a loop
+        if (now - attemptData.timestamp < 10000 && attemptData.count >= 2) {
+          console.error('[LiffProvider] Login redirect loop detected, stopping');
+          if (isMounted) {
+            setState(prev => ({
+              ...prev,
+              error: new Error('Login redirect loop detected. Please close and reopen the app.'),
+              isLoading: false,
+            }));
+          }
+          sessionStorage.removeItem(loginAttemptKey);
+          return;
+        }
+      }
+
       try {
         // Check if liff is available (loaded from script tag)
         if (typeof window.liff === 'undefined') {
@@ -34,14 +60,28 @@ export function LiffProvider({ children, liffId = LIFF_ID }: LiffProviderProps) 
         }
 
         await window.liff.init({ liffId });
-        console.log('[LiffProvider] LIFF init complete');
+        console.log('[LiffProvider] LIFF init complete, isLoggedIn:', window.liff.isLoggedIn());
 
         // Check login status
         if (!window.liff.isLoggedIn()) {
           console.log('[LiffProvider] Not logged in, redirecting to login');
+
+          // Track login attempt to detect loops
+          const currentAttempt = lastAttempt ? JSON.parse(lastAttempt) : { count: 0, timestamp: now };
+          if (now - currentAttempt.timestamp > 10000) {
+            // Reset if more than 10 seconds passed
+            currentAttempt.count = 0;
+          }
+          currentAttempt.count++;
+          currentAttempt.timestamp = now;
+          sessionStorage.setItem(loginAttemptKey, JSON.stringify(currentAttempt));
+
           window.liff.login();
           return;
         }
+
+        // Clear login attempt tracking on successful login
+        sessionStorage.removeItem(loginAttemptKey);
 
         console.log('[LiffProvider] Logged in, fetching profile...');
         // Get profile and context
@@ -56,26 +96,34 @@ export function LiffProvider({ children, liffId = LIFF_ID }: LiffProviderProps) 
           isInClient
         });
 
-        setState({
-          isInitialized: true,
-          isLoggedIn: true,
-          isInClient,
-          profile,
-          context,
-          error: null,
-          isLoading: false,
-        });
+        if (isMounted) {
+          setState({
+            isInitialized: true,
+            isLoggedIn: true,
+            isInClient,
+            profile,
+            context,
+            error: null,
+            isLoading: false,
+          });
+        }
       } catch (error) {
         console.error('[LiffProvider] LIFF initialization error:', error);
-        setState(prev => ({
-          ...prev,
-          error: error as Error,
-          isLoading: false,
-        }));
+        if (isMounted) {
+          setState(prev => ({
+            ...prev,
+            error: error as Error,
+            isLoading: false,
+          }));
+        }
       }
     };
 
     initLiff();
+
+    return () => {
+      isMounted = false;
+    };
   }, [liffId]);
 
   // Send message to current chat
