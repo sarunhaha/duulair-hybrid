@@ -25,19 +25,12 @@ export function LiffProvider({ children, liffId = LIFF_ID }: LiffProviderProps) 
   const [state, setState] = useState<LiffState>(initialState);
 
   useEffect(() => {
-    // Prevent double initialization and race conditions
+    // Prevent double initialization
     let isMounted = true;
-    let isInitializing = false;
 
     const initLiff = async () => {
-      // Prevent concurrent initializations
-      if (isInitializing) {
-        console.log('[LiffProvider] Already initializing, skipping');
-        return;
-      }
-      isInitializing = true;
-
       console.log('[LiffProvider] Starting LIFF init with ID:', liffId);
+      console.log('[LiffProvider] Current URL:', window.location.href);
 
       try {
         // Check if liff is available (loaded from script tag)
@@ -45,44 +38,24 @@ export function LiffProvider({ children, liffId = LIFF_ID }: LiffProviderProps) 
           throw new Error('LIFF SDK not loaded');
         }
 
-        // Check if LIFF is already initialized
-        // @ts-expect-error - LIFF internal state check
-        if (window.liff._isInitialized || window.liff.id) {
-          console.log('[LiffProvider] LIFF already initialized, skipping init');
-        } else {
-          await window.liff.init({ liffId });
-        }
+        // LIFF.init() handles auth callback automatically
+        // It will process code/state params and set login state
+        await window.liff.init({ liffId });
 
         const isInClient = window.liff.isInClient();
-        console.log('[LiffProvider] LIFF ready, isInClient:', isInClient, 'isLoggedIn:', window.liff.isLoggedIn());
+        const isLoggedIn = window.liff.isLoggedIn();
+        console.log('[LiffProvider] LIFF initialized:', { isInClient, isLoggedIn });
 
-        // In LINE app, user is always logged in via LINE session
-        // Only check login for external browser
-        if (!isInClient && !window.liff.isLoggedIn()) {
-          console.log('[LiffProvider] External browser, not logged in');
-
-          // Check if we're in a login redirect (has code/state params)
-          const urlParams = new URLSearchParams(window.location.search);
-          const hasAuthParams = urlParams.has('code') || urlParams.has('liffClientId');
-
-          if (hasAuthParams) {
-            // We're in auth callback, wait a moment for LIFF to process
-            console.log('[LiffProvider] Auth callback detected, waiting...');
-            await new Promise(resolve => setTimeout(resolve, 500));
-
-            if (window.liff.isLoggedIn()) {
-              console.log('[LiffProvider] Login completed after wait');
-            } else {
-              throw new Error('Login failed after auth callback');
-            }
-          } else {
-            // Trigger login
-            console.log('[LiffProvider] Redirecting to login');
-            window.liff.login();
-            return;
-          }
+        // After init, check login status
+        if (!isLoggedIn) {
+          // Not logged in - redirect to LINE login
+          // LIFF will handle the callback when user returns
+          console.log('[LiffProvider] Not logged in, redirecting to LINE login');
+          window.liff.login();
+          return; // Stop here, page will redirect
         }
 
+        // User is logged in, fetch profile
         console.log('[LiffProvider] Fetching profile...');
         const profile = await window.liff.getProfile() as LiffProfile;
         const context = window.liff.getContext() as LiffContext | null;
