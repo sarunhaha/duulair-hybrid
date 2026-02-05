@@ -83,7 +83,7 @@ export default function GroupDashboardPage() {
 
   const patientDisplayName = activePatient
     ? activePatient.nickname || `${activePatient.first_name} ${activePatient.last_name}`
-    : 'ไม่มีผู้ป่วย';
+    : 'ไม่มีสมาชิก';
 
   return (
     <div className="min-h-screen pb-32 font-sans relative z-10 bg-background">

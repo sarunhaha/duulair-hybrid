@@ -36,7 +36,7 @@ export async function executeAction(
     return {
       success: false,
       savedRecords: 0,
-      errors: ['ไม่พบข้อมูลผู้ป่วย กรุณาลงทะเบียนก่อนค่ะ']
+      errors: ['ไม่พบข้อมูลสมาชิก กรุณาลงทะเบียนก่อนค่ะ']
     };
   }
 

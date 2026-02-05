@@ -915,7 +915,7 @@
           if (checkUserResult.profile.linked_patient_id) {
             patientId = checkUserResult.profile.linked_patient_id;
           } else {
-            showError('คุณยังไม่ได้ลิงก์กับผู้ป่วย');
+            showError('คุณยังไม่ได้ลิงก์กับสมาชิก');
             return;
           }
         }
@@ -925,7 +925,7 @@
 
         const result = await response.json();
         if (!result.success || !result.profile) {
-          showError('ไม่พบข้อมูลผู้ป่วย');
+          showError('ไม่พบข้อมูลสมาชิก');
           return;
         }
 

@@ -117,10 +117,10 @@ export default function GroupRegistrationPage() {
 
     // Patient validation
     if (!formData.patientFirstName.trim()) {
-      newErrors.patientFirstName = 'กรุณากรอกชื่อผู้ป่วย';
+      newErrors.patientFirstName = 'กรุณากรอกชื่อสมาชิก';
     }
     if (!formData.patientLastName.trim()) {
-      newErrors.patientLastName = 'กรุณากรอกนามสกุลผู้ป่วย';
+      newErrors.patientLastName = 'กรุณากรอกนามสกุลสมาชิก';
     }
     if (!formData.patientBirthDate) {
       newErrors.patientBirthDate = 'กรุณาเลือกวันเกิด';
@@ -323,7 +323,7 @@ export default function GroupRegistrationPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="relationship">
-                  ความสัมพันธ์กับผู้ป่วย <span className="text-destructive">*</span>
+                  ความสัมพันธ์กับสมาชิก <span className="text-destructive">*</span>
                 </Label>
                 <Select
                   value={formData.relationship}
@@ -357,7 +357,7 @@ export default function GroupRegistrationPage() {
                   <HeartPulse className="w-5 h-5 text-accent" />
                 </div>
                 <div>
-                  <h2 className="font-semibold text-foreground">ข้อมูลผู้ป่วยที่ดูแล</h2>
+                  <h2 className="font-semibold text-foreground">ข้อมูลสมาชิกที่ดูแล</h2>
                   <p className="text-xs text-muted-foreground">ไม่จำเป็นต้องมีบัญชี LINE</p>
                 </div>
               </div>
@@ -365,13 +365,13 @@ export default function GroupRegistrationPage() {
             <CardContent className="p-5 space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="patientFirstName">
-                  ชื่อผู้ป่วย <span className="text-destructive">*</span>
+                  ชื่อสมาชิก <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="patientFirstName"
                   value={formData.patientFirstName}
                   onChange={(e) => handleInputChange('patientFirstName', e.target.value)}
-                  placeholder="กรอกชื่อผู้ป่วย"
+                  placeholder="กรอกชื่อสมาชิก"
                   className={errors.patientFirstName ? 'border-destructive' : ''}
                 />
                 {errors.patientFirstName && (
@@ -381,13 +381,13 @@ export default function GroupRegistrationPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="patientLastName">
-                  นามสกุลผู้ป่วย <span className="text-destructive">*</span>
+                  นามสกุลสมาชิก <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="patientLastName"
                   value={formData.patientLastName}
                   onChange={(e) => handleInputChange('patientLastName', e.target.value)}
-                  placeholder="กรอกนามสกุลผู้ป่วย"
+                  placeholder="กรอกนามสกุลสมาชิก"
                   className={errors.patientLastName ? 'border-destructive' : ''}
                 />
                 {errors.patientLastName && (
@@ -397,7 +397,7 @@ export default function GroupRegistrationPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="patientBirthDate">
-                  วันเกิดผู้ป่วย <span className="text-destructive">*</span>
+                  วันเกิดสมาชิก <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="patientBirthDate"
@@ -436,7 +436,7 @@ export default function GroupRegistrationPage() {
                   <Lightbulb className="w-4 h-4 text-primary" />
                 </div>
                 <p className="text-sm text-foreground leading-relaxed">
-                  คุณสามารถเพิ่มรายละเอียดอื่นๆ เช่น ข้อมูลสุขภาพ ยาที่ทาน และอื่นๆ ได้ภายหลังที่เมนูข้อมูลผู้ป่วย
+                  คุณสามารถเพิ่มรายละเอียดอื่นๆ เช่น ข้อมูลสุขภาพ ยาที่ทาน และอื่นๆ ได้ภายหลังที่เมนูข้อมูลสมาชิก
                 </p>
               </div>
             </CardContent>

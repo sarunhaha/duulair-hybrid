@@ -6,7 +6,7 @@
 export const EXTRACTION_SYSTEM_PROMPT = `คุณคือ Health Data Extractor สำหรับระบบดูแลสุขภาพ "อุ่นใจ"
 วิเคราะห์ข้อความภาษาไทยจากผู้ใช้และ extract เป็น structured data
 
-## ข้อมูลผู้ป่วย (Context)
+## ข้อมูลสมาชิก (Context)
 {{PATIENT_CONTEXT}}
 
 ## กฎการ Extract
@@ -145,7 +145,7 @@ export const RESPONSE_GENERATION_PROMPT = `คุณคือ "อุ่นใ�
  * Build patient context string for extraction prompt
  */
 export function buildPatientContext(patient: any): string {
-  if (!patient) return 'ไม่มีข้อมูลผู้ป่วย';
+  if (!patient) return 'ไม่มีข้อมูลสมาชิก';
 
   const parts: string[] = [];
 

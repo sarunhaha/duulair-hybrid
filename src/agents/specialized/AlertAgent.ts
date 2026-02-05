@@ -198,13 +198,13 @@ export class AlertAgent extends BaseAgent {
     const icons = ['ℹ️', '⚠️', '🚨', '🆘'];
     const icon = icons[level - 1] || 'ℹ️';
 
-    const patientName = patient.display_name || patient.full_name || 'ผู้ป่วย';
+    const patientName = patient.display_name || patient.full_name || 'สมาชิก';
     const groupName = group?.group_name || 'กลุ่มดูแล';
 
     // Format for caregiver audience
     let alertText = `${icon} แจ้งเตือนผู้ดูแล ${groupName}
 
-📍 ผู้ป่วย: ${patientName}
+📍 สมาชิก: ${patientName}
 🕐 เวลา: ${new Date().toLocaleTimeString('th-TH', {
       hour: '2-digit',
       minute: '2-digit'
@@ -223,7 +223,7 @@ ${message.content}`;
       alertText += `\n\n💡 โปรดติดตามอาการต่อไป`;
     }
 
-    alertText += `\n\n📊 ดูรายละเอียดเพิ่มเติมได้ที่เมนู "👤 ข้อมูลผู้ป่วย"`;
+    alertText += `\n\n📊 ดูรายละเอียดเพิ่มเติมได้ที่เมนู "👤 ข้อมูลสมาชิก"`;
 
     return alertText;
   }

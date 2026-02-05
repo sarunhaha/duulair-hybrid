@@ -174,7 +174,7 @@ export class GroupWebhookService {
 
                 const patientName = patient
                   ? `${patient.first_name} ${patient.last_name}${patient.nickname ? ` (${patient.nickname})` : ''}`
-                  : 'ผู้ป่วย';
+                  : 'สมาชิก';
 
                 // Send confirmation message to group
                 await this.sendAddPatientConfirmation(
@@ -429,7 +429,7 @@ export class GroupWebhookService {
               },
               {
                 type: 'text',
-                text: `พบว่ามีผู้ป่วยที่ดูแลอยู่`,
+                text: `พบว่ามีสมาชิกที่ดูแลอยู่`,
                 margin: 'md',
                 wrap: true
               },
@@ -536,7 +536,7 @@ export class GroupWebhookService {
 
           const patientName = patient
             ? `${patient.first_name} ${patient.last_name}${patient.nickname ? ` (${patient.nickname})` : ''}`
-            : 'ผู้ป่วย';
+            : 'สมาชิก';
 
           await lineClient.replyMessage(event.replyToken, {
             type: 'text',

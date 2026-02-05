@@ -128,7 +128,7 @@ router.post('/patient', async (req: Request, res: Response) => {
     console.error('Register patient error:', error);
     res.status(500).json({
       success: false,
-      error: error.message || 'ลงทะเบียนผู้ป่วยไม่สำเร็จ'
+      error: error.message || 'ลงทะเบียนสมาชิกไม่สำเร็จ'
     });
   }
 });
@@ -289,7 +289,7 @@ router.get('/profile/patient/:id', async (req: Request, res: Response) => {
     if (!profile) {
       return res.status(404).json({
         success: false,
-        error: 'ไม่พบข้อมูลผู้ป่วย'
+        error: 'ไม่พบข้อมูลสมาชิก'
       });
     }
 

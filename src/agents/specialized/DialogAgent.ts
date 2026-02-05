@@ -66,8 +66,8 @@ export class DialogAgent extends BaseAgent {
     // Thanks
     { pattern: /ขอบคุณ|ขอบใจ|thanks|thank you|thx/i, intent: 'thanks', suggestion: 'ขอบคุณ', action: undefined },
 
-    // Emergency guidance - more specific patterns to avoid matching "ผู้ป่วย"
-    // Use negative lookahead to exclude "ผู้ป่วย" context
+    // Emergency guidance - more specific patterns to avoid matching "สมาชิก"
+    // Use negative lookahead to exclude "สมาชิก" context
     { pattern: /^ไม่สบาย|รู้สึก.*ไม่สบาย|เจ็บ.*ตัว|มี.*อาการ.*แปลก/i, intent: 'health_concern', suggestion: 'ปัญหาสุขภาพ', action: 'ถ้าเป็นเรื่องฉุกเฉิน พิมพ์ "ฉุกเฉิน" ได้เลยค่ะ ระบบจะแจ้งผู้ดูแลทันที' },
   ];
 
@@ -135,7 +135,7 @@ export class DialogAgent extends BaseAgent {
       // Check if patient selection is required
       if (message.metadata?.patientSelectionData) {
         const data = message.metadata.patientSelectionData;
-        let responseText = `👥 กลุ่มนี้มีหลายผู้ป่วย กรุณาเลือกผู้ป่วยที่ต้องการบันทึก:`;
+        let responseText = `👥 กลุ่มนี้มีหลายสมาชิก กรุณาเลือกสมาชิกที่ต้องการบันทึก:`;
 
         return {
           success: true,
@@ -156,7 +156,7 @@ export class DialogAgent extends BaseAgent {
         if (result.success) {
           responseText = `✅ ${result.message}\n📍 กำลังดูแล: ${result.patientName}`;
         } else if (result.requiresSelection) {
-          responseText = `📋 ${result.message}\n\nผู้ป่วยในกลุ่ม:\n`;
+          responseText = `📋 ${result.message}\n\nสมาชิกในกลุ่ม:\n`;
           result.patients.forEach((p: any) => {
             responseText += `${p.index}. ${p.name}\n`;
           });
@@ -164,7 +164,7 @@ export class DialogAgent extends BaseAgent {
         } else {
           responseText = `❌ ${result.message}`;
           if (result.availablePatients) {
-            responseText += `\n\nผู้ป่วยที่มี:\n`;
+            responseText += `\n\nสมาชิกที่มี:\n`;
             result.availablePatients.forEach((p: any) => {
               responseText += `${p.index}. ${p.name}\n`;
             });
@@ -188,16 +188,16 @@ export class DialogAgent extends BaseAgent {
         let responseText = '';
 
         if (list.patients && list.patients.length > 0) {
-          responseText = `👥 ผู้ป่วยในกลุ่ม (${list.total} คน):\n\n`;
+          responseText = `👥 สมาชิกในกลุ่ม (${list.total} คน):\n\n`;
           list.patients.forEach((p: any) => {
             const activeMarker = p.isActive ? '✅ ' : '';
             responseText += `${activeMarker}${p.index}. ${p.name}`;
             if (p.nickname) responseText += ` (${p.nickname})`;
             responseText += ` - อายุ ${p.age} ปี\n`;
           });
-          responseText += `\nเปลี่ยนผู้ป่วย: /switch [ชื่อ] หรือ /switch [เลข]`;
+          responseText += `\nเปลี่ยนสมาชิก: /switch [ชื่อ] หรือ /switch [เลข]`;
         } else {
-          responseText = `❌ ${list.message || 'ไม่มีผู้ป่วยในกลุ่ม'}`;
+          responseText = `❌ ${list.message || 'ไม่มีสมาชิกในกลุ่ม'}`;
         }
 
         return {
@@ -230,7 +230,7 @@ export class DialogAgent extends BaseAgent {
         let responseText = '';
 
         if (result.success) {
-          responseText = `✅ ${result.message}\n💡 ตั้งค่า ${result.patientName} เป็นผู้ป่วยหลักของคุณแล้ว\n\nเมื่อคุณบันทึกข้อมูลโดยไม่ระบุชื่อ ระบบจะบันทึกให้ ${result.patientName} โดยอัตโนมัติค่ะ\n\n💬 ต้องการบันทึกให้คนอื่น: ระบุชื่อในข้อความ เช่น "ปู่วิชัยกินยา"`;
+          responseText = `✅ ${result.message}\n💡 ตั้งค่า ${result.patientName} เป็นสมาชิกหลักของคุณแล้ว\n\nเมื่อคุณบันทึกข้อมูลโดยไม่ระบุชื่อ ระบบจะบันทึกให้ ${result.patientName} โดยอัตโนมัติค่ะ\n\n💬 ต้องการบันทึกให้คนอื่น: ระบุชื่อในข้อความ เช่น "ปู่วิชัยกินยา"`;
         } else if (result.requiresSelection) {
           responseText = `📋 ${result.message}\n\n`;
           result.patients.forEach((p: any) => {
@@ -240,7 +240,7 @@ export class DialogAgent extends BaseAgent {
         } else {
           responseText = `❌ ${result.message}`;
           if (result.availablePatients) {
-            responseText += `\n\nผู้ป่วยที่มี:\n`;
+            responseText += `\n\nสมาชิกที่มี:\n`;
             result.availablePatients.forEach((p: any) => {
               responseText += `${p.index}. ${p.name}\n`;
             });
@@ -264,7 +264,7 @@ export class DialogAgent extends BaseAgent {
         let responseText = '';
 
         if (result.success) {
-          responseText = `✅ ${result.message}\n\nตอนนี้เมื่อคุณบันทึกข้อมูลโดยไม่ระบุชื่อ ระบบจะถามให้คุณเลือกผู้ป่วยทุกครั้งค่ะ\n\n💡 ต้องการตั้งผู้ป่วยหลักใหม่: พิมพ์ "/setdefault [ชื่อ]"`;
+          responseText = `✅ ${result.message}\n\nตอนนี้เมื่อคุณบันทึกข้อมูลโดยไม่ระบุชื่อ ระบบจะถามให้คุณเลือกสมาชิกทุกครั้งค่ะ\n\n💡 ต้องการตั้งสมาชิกหลักใหม่: พิมพ์ "/setdefault [ชื่อ]"`;
         } else {
           responseText = `❌ ${result.message}`;
         }
@@ -389,7 +389,7 @@ ${isGroupChat ? `
 ` : `
 📱 LINE OA CONTEXT:
 - User has access to Rich Menu with LIFF pages
-- Can reference menu buttons: 👤 ข้อมูลผู้ป่วย, 💊 ยา, 🔔 เตือน, ⚙️ ตั้งค่า
+- Can reference menu buttons: 👤 ข้อมูลสมาชิก, 💊 ยา, 🔔 เตือน, ⚙️ ตั้งค่า
 `}
 
 TARGET USERS: Caregivers (family members managing elderly care)
@@ -412,7 +412,7 @@ GROUP CHAT NATURAL CONVERSATION:
 - NEVER teach command formats - just understand and respond naturally
 ` : `
 RICH MENU FEATURES:
-- 👤 ข้อมูลผู้ป่วย - จัดการข้อมูลผู้ป่วย
+- 👤 ข้อมูลสมาชิก - จัดการข้อมูลสมาชิก
 - 💊 ยา - รายการยาและการตั้งเวลา
 - 🔔 เตือน - ตั้งเวลาเตือน
 - ⚙️ ตั้งค่า - การตั้งค่าต่างๆ

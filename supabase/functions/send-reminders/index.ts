@@ -322,7 +322,7 @@ serve(async (req) => {
             .eq('patient_id', medication.patient_id)
             .eq('is_active', true)
 
-          const patientName = medication.patient_profiles?.first_name || 'ผู้ป่วย'
+          const patientName = medication.patient_profiles?.first_name || 'สมาชิก'
           // Use Flex Message for medication reminders
           const flexMessage = createMedicationFlexMessage(medication, currentTimePeriod!)
           let sentToAny = false
@@ -414,7 +414,7 @@ function getDayName(date: Date): string {
 
 function formatReminderMessage(reminder: Reminder): string {
   const patient = reminder.patient_profiles
-  const patientName = patient?.first_name || 'ผู้ป่วย'
+  const patientName = patient?.first_name || 'สมาชิก'
 
   const typeEmojis: Record<string, string> = {
     medication: '💊',
@@ -436,7 +436,7 @@ function formatReminderMessage(reminder: Reminder): string {
   const typeName = typeNames[reminder.type] || reminder.type
 
   let message = `${emoji} แจ้งเตือน${typeName}\n\n`
-  message += `👤 ผู้ป่วย: ${patientName}\n`
+  message += `👤 สมาชิก: ${patientName}\n`
   message += `🕐 เวลา: ${reminder.time.substring(0, 5)} น.\n`
 
   if (reminder.title) {
@@ -572,7 +572,7 @@ function isStartOfTimePeriod(hour: number, minute: number): boolean {
 
 function formatMedicationMessage(medication: Medication, timePeriod: string): string {
   const patient = medication.patient_profiles
-  const patientName = patient?.first_name || 'ผู้ป่วย'
+  const patientName = patient?.first_name || 'สมาชิก'
 
   const periodLabels: Record<string, string> = {
     morning: 'เช้า',
@@ -584,7 +584,7 @@ function formatMedicationMessage(medication: Medication, timePeriod: string): st
   const periodLabel = periodLabels[timePeriod] || timePeriod
 
   let message = `💊 แจ้งเตือนกินยา (${periodLabel})\n\n`
-  message += `👤 ผู้ป่วย: ${patientName}\n`
+  message += `👤 สมาชิก: ${patientName}\n`
   message += `💊 ยา: ${medication.name}\n`
 
   if (medication.dosage_amount && medication.dosage_unit) {
@@ -603,7 +603,7 @@ function formatMedicationMessage(medication: Medication, timePeriod: string): st
 // Create Flex Message for medication reminder
 function createMedicationFlexMessage(medication: Medication, timePeriod: string): { contents: any, altText: string } {
   const patient = medication.patient_profiles
-  const patientName = patient?.first_name || 'ผู้ป่วย'
+  const patientName = patient?.first_name || 'สมาชิก'
 
   const periodLabels: Record<string, string> = {
     morning: 'เช้า',
@@ -707,7 +707,7 @@ function createMedicationFlexMessage(medication: Medication, timePeriod: string)
 // Create Flex Message for general reminder
 function createReminderFlexMessage(reminder: Reminder): { contents: any, altText: string } {
   const patient = reminder.patient_profiles
-  const patientName = patient?.first_name || 'ผู้ป่วย'
+  const patientName = patient?.first_name || 'สมาชิก'
 
   const typeConfig: Record<string, { emoji: string, name: string, color: string }> = {
     medication: { emoji: '💊', name: 'กินยา', color: '#9333EA' },
@@ -749,7 +749,7 @@ function createReminderFlexMessage(reminder: Reminder): { contents: any, altText
           layout: 'horizontal',
           contents: [
             { type: 'text', text: '👤', flex: 0 },
-            { type: 'text', text: `ผู้ป่วย: ${patientName}`, color: '#555555', margin: 'sm', weight: 'bold' }
+            { type: 'text', text: `สมาชิก: ${patientName}`, color: '#555555', margin: 'sm', weight: 'bold' }
           ]
         },
         {

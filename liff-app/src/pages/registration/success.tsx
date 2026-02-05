@@ -64,7 +64,7 @@ export default function RegistrationSuccessPage() {
 
     const message = {
       type: 'text' as const,
-      text: `รหัสเชื่อมต่อ OONJAI\n\nรหัส: ${linkCode}\n\nใช้รหัสนี้เพื่อเชื่อมต่อกับบัญชีผู้ป่วยของฉัน\n\nเปิด LINE → OONJAI → ลงทะเบียนผู้ดูแล → กรอกรหัสนี้`,
+      text: `รหัสเชื่อมต่อ OONJAI\n\nรหัส: ${linkCode}\n\nใช้รหัสนี้เพื่อเชื่อมต่อกับบัญชีสมาชิกของฉัน\n\nเปิด LINE → OONJAI → ลงทะเบียนผู้ดูแล → กรอกรหัสนี้`,
     };
 
     const success = await shareTargetPicker([message]);
@@ -129,7 +129,7 @@ export default function RegistrationSuccessPage() {
 
   const getSubtitle = () => {
     if (returning) return 'คุณลงทะเบียนไว้แล้ว';
-    if (successType === 'caregiver') return 'คุณสามารถติดตามสุขภาพของผู้ป่วยได้แล้ว';
+    if (successType === 'caregiver') return 'คุณสามารถติดตามสุขภาพของสมาชิกได้แล้ว';
     if (successType === 'already-registered') return 'ขอบคุณที่ใช้บริการ';
     return 'ขอบคุณที่ใช้บริการ OONJAI';
   };
@@ -237,9 +237,9 @@ export default function RegistrationSuccessPage() {
                 <UserCheck className="w-8 h-8 text-success" />
               </div>
               <p className="text-muted-foreground">
-                คุณได้เชื่อมต่อกับผู้ป่วยเรียบร้อยแล้ว
+                คุณได้เชื่อมต่อกับสมาชิกเรียบร้อยแล้ว
                 <br />
-                ตอนนี้คุณสามารถดูข้อมูลและติดตามสุขภาพของผู้ป่วยได้แล้ว
+                ตอนนี้คุณสามารถดูข้อมูลและติดตามสุขภาพของสมาชิกได้แล้ว
               </p>
 
               <div className="flex items-start gap-3 p-4 bg-primary/8 border border-primary/20 rounded-xl text-left">
@@ -247,7 +247,7 @@ export default function RegistrationSuccessPage() {
                   <Bell className="w-4 h-4 text-primary" />
                 </div>
                 <p className="text-sm text-foreground leading-relaxed">
-                  คุณจะได้รับแจ้งเตือนเกี่ยวกับสุขภาพของผู้ป่วยผ่าน LINE ทันที
+                  คุณจะได้รับแจ้งเตือนเกี่ยวกับสุขภาพของสมาชิกผ่าน LINE ทันที
                 </p>
               </div>
             </CardContent>

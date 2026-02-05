@@ -250,9 +250,9 @@ export class UserService {
       console.log('⚠️ User already exists:', existingUser);
 
       if (existingUser.role === 'patient') {
-        throw new Error('คุณลงทะเบียนเป็นผู้ป่วยแล้ว กรุณาเข้าสู่ระบบ');
+        throw new Error('คุณลงทะเบียนแล้ว กรุณาเข้าสู่ระบบ');
       } else if (existingUser.role === 'caregiver') {
-        throw new Error('คุณลงทะเบียนเป็นผู้ดูแลแล้ว ไม่สามารถลงทะเบียนเป็นผู้ป่วยได้');
+        throw new Error('คุณลงทะเบียนเป็นผู้ดูแลแล้ว ไม่สามารถเปลี่ยนบทบาทได้');
       } else {
         throw new Error(`คุณลงทะเบียนแล้วในบทบาท: ${existingUser.role}`);
       }
@@ -378,7 +378,7 @@ export class UserService {
       if (existingUser.role === 'caregiver') {
         throw new Error('คุณลงทะเบียนเป็นผู้ดูแลแล้ว กรุณาเข้าสู่ระบบ');
       } else if (existingUser.role === 'patient') {
-        throw new Error('คุณลงทะเบียนเป็นผู้ป่วยแล้ว ไม่สามารถลงทะเบียนเป็นผู้ดูแลได้');
+        throw new Error('คุณลงทะเบียนแล้ว ไม่สามารถเปลี่ยนบทบาทได้');
       } else {
         throw new Error(`คุณลงทะเบียนแล้วในบทบาท: ${existingUser.role}`);
       }
@@ -564,7 +564,7 @@ export class UserService {
       console.log('⚠️ Relationship already exists:', existingRelationship);
 
       if (existingRelationship.status === 'active') {
-        throw new Error('คุณได้เชื่อมต่อกับผู้ป่วยท่านนี้แล้ว');
+        throw new Error('คุณเชื่อมต่อแล้ว');
       } else if (existingRelationship.status === 'pending') {
         // Auto-approve old pending relationships (from before we removed approval requirement)
         console.log('🔄 Updating old pending relationship to active...');
@@ -596,7 +596,7 @@ export class UserService {
           patient: updatedRelationship.patient_profiles as PatientProfile
         };
       } else if (existingRelationship.status === 'rejected') {
-        throw new Error('คำขอเชื่อมต่อของคุณถูกปฏิเสธแล้ว กรุณาติดต่อผู้ป่วย');
+        throw new Error('คำขอเชื่อมต่อถูกปฏิเสธแล้ว กรุณาติดต่อเจ้าของบัญชี');
       }
     }
 
@@ -996,7 +996,7 @@ export class UserService {
 
   /**
    * Create patient profile without LINE account
-   * สร้าง patient profile สำหรับผู้ป่วยที่ไม่มีบัญชี LINE
+   * สร้าง patient profile สำหรับสมาชิกที่ไม่มีบัญชี LINE
    */
   async createPatientProfile(data: {
     firstName: string;

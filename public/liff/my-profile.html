@@ -506,8 +506,8 @@
           <div id="patientsList">
             <div class="empty-state">
               <div class="empty-state-icon" id="noPatientIcon"></div>
-              <p class="empty-state-text">ยังไม่มีผู้ป่วยที่เชื่อมต่อ</p>
-              <p class="empty-state-hint">ขอรหัสเชื่อมต่อจากผู้ป่วยเพื่อเชื่อมต่อกับบัญชีของเขา</p>
+              <p class="empty-state-text">ยังไม่มีสมาชิกที่เชื่อมต่อ</p>
+              <p class="empty-state-hint">ขอรหัสเชื่อมต่อจากสมาชิกเพื่อเชื่อมต่อกับบัญชีของเขา</p>
             </div>
           </div>
           <button class="add-patient-btn" onclick="addPatient()" id="addPatientBtn"></button>
@@ -568,9 +568,9 @@
 
       // Caregiver dashboard icons
       document.getElementById('caregiverInfoHeader').innerHTML = icon('clipboardList') + ' ข้อมูลส่วนตัว';
-      document.getElementById('patientsHeader').innerHTML = icon('users') + ' ผู้ป่วยที่คุณดูแล';
+      document.getElementById('patientsHeader').innerHTML = icon('users') + ' สมาชิกที่คุณดูแล';
       document.getElementById('noPatientIcon').innerHTML = icon('users');
-      document.getElementById('addPatientBtn').innerHTML = icon('plus') + ' เพิ่มผู้ป่วย';
+      document.getElementById('addPatientBtn').innerHTML = icon('plus') + ' เพิ่มสมาชิก';
 
       // Show cached name if available
       const cached = sessionStorage.getItem('liff_profile');
@@ -648,7 +648,7 @@
       try {
         const profile = userData.profile;
 
-        document.getElementById('userRole').textContent = 'ผู้ป่วย';
+        document.getElementById('userRole').textContent = 'สมาชิก';
         const createdDate = new Date(profile.created_at);
         document.getElementById('registeredDate').textContent = formatThaiDate(createdDate);
 
@@ -806,7 +806,7 @@
 
       const message = {
         type: 'text',
-        text: `รหัสเชื่อมต่อ OONJAI\n\nรหัส: ${linkCode}\n\nใช้รหัสนี้เพื่อเชื่อมต่อกับบัญชีผู้ป่วยของฉัน\n\nเปิด LINE → OONJAI → ลงทะเบียนผู้ดูแล → กรอกรหัสนี้`
+        text: `รหัสเชื่อมต่อ OONJAI\n\nรหัส: ${linkCode}\n\nใช้รหัสนี้เพื่อเชื่อมต่อกับบัญชีสมาชิกของฉัน\n\nเปิด LINE → OONJAI → ลงทะเบียนผู้ดูแล → กรอกรหัสนี้`
       };
 
       if (liff.isApiAvailable('shareTargetPicker')) {

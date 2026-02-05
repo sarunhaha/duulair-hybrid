@@ -327,14 +327,14 @@
       <div class="caregiver-success-card">
         <div class="caregiver-success-icon" id="caregiverSuccessIcon"></div>
         <p class="caregiver-success-text">
-          คุณได้เชื่อมต่อกับผู้ป่วยเรียบร้อยแล้ว<br>
-          ตอนนี้คุณสามารถดูข้อมูลและติดตามสุขภาพของผู้ป่วยได้แล้ว
+          คุณได้เชื่อมต่อกับสมาชิกเรียบร้อยแล้ว<br>
+          ตอนนี้คุณสามารถดูข้อมูลและติดตามสุขภาพของสมาชิกได้แล้ว
         </p>
 
         <div class="info-card">
           <div class="info-card-icon" id="caregiverInfoIcon"></div>
           <div class="info-card-text">
-            คุณจะได้รับแจ้งเตือนเกี่ยวกับสุขภาพของผู้ป่วยผ่าน LINE ทันที
+            คุณจะได้รับแจ้งเตือนเกี่ยวกับสุขภาพของสมาชิกผ่าน LINE ทันที
           </div>
         </div>
       </div>
@@ -534,7 +534,7 @@
      */
     function showCaregiverSuccess() {
       document.getElementById('successTitle').textContent = 'เชื่อมต่อสำเร็จ!';
-      document.getElementById('successSubtitle').textContent = 'คุณสามารถติดตามสุขภาพของผู้ป่วยได้แล้ว';
+      document.getElementById('successSubtitle').textContent = 'คุณสามารถติดตามสุขภาพของสมาชิกได้แล้ว';
       document.getElementById('caregiverSuccess').classList.remove('hidden');
     }
 
@@ -558,7 +558,7 @@
 
       const message = {
         type: 'text',
-        text: `รหัสเชื่อมต่อ OONJAI\n\nรหัส: ${linkCode}\n\nใช้รหัสนี้เพื่อเชื่อมต่อกับบัญชีผู้ป่วยของฉัน\n\nเปิด LINE → OONJAI → ลงทะเบียนผู้ดูแล → กรอกรหัสนี้`
+        text: `รหัสเชื่อมต่อ OONJAI\n\nรหัส: ${linkCode}\n\nใช้รหัสนี้เพื่อเชื่อมต่อกับบัญชีสมาชิกของฉัน\n\nเปิด LINE → OONJAI → ลงทะเบียนผู้ดูแล → กรอกรหัสนี้`
       };
 
       const success = await shareWithTargetPicker(message);

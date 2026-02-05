@@ -397,7 +397,7 @@ export class GroupService {
         if (!linkedPatientId) {
           return {
             success: false,
-            message: 'ไม่พบข้อมูลผู้ป่วยที่เชื่อมต่อ'
+            message: 'ไม่พบข้อมูลสมาชิกที่เชื่อมต่อ'
           };
         }
 
@@ -451,7 +451,7 @@ export class GroupService {
         console.log('❌ Caregiver has no linked patient');
         return {
           success: false,
-          message: 'ไม่พบข้อมูลผู้ป่วยที่เชื่อมต่อ กรุณาลงทะเบียนผู้ป่วยก่อน'
+          message: 'ไม่พบข้อมูลสมาชิกที่เชื่อมต่อ กรุณาลงทะเบียนก่อน'
         };
       }
 
@@ -468,7 +468,7 @@ export class GroupService {
         console.log('❌ Patient not found');
         return {
           success: false,
-          message: 'ไม่พบข้อมูลผู้ป่วย'
+          message: 'ไม่พบข้อมูลสมาชิก'
         };
       }
 
@@ -553,7 +553,7 @@ export class GroupService {
         if (error.code === '23505') {
           return {
             success: true,
-            message: 'ผู้ป่วยอยู่ในกลุ่มแล้ว'
+            message: 'สมาชิกอยู่ในกลุ่มแล้ว'
           };
         }
         throw error;
@@ -562,19 +562,19 @@ export class GroupService {
       console.log(`✅ Added patient ${patientId} to group ${groupId}`);
       return {
         success: true,
-        message: 'เพิ่มผู้ป่วยเข้ากลุ่มสำเร็จ'
+        message: 'เพิ่มสมาชิกเข้ากลุ่มสำเร็จ'
       };
     } catch (error) {
       console.error('❌ Failed to add patient to group:', error);
       return {
         success: false,
-        message: 'ไม่สามารถเพิ่มผู้ป่วยเข้ากลุ่มได้'
+        message: 'ไม่สามารถเพิ่มสมาชิกเข้ากลุ่มได้'
       };
     }
   }
 
   /**
-   * ดึงรายชื่อผู้ป่วยทั้งหมดในกลุ่ม
+   * ดึงรายชื่อสมาชิกทั้งหมดในกลุ่ม
    */
   async getGroupPatients(groupId: string): Promise<PatientProfile[]> {
     const { data, error } = await supabase
@@ -610,7 +610,7 @@ export class GroupService {
         console.error('❌ Error switching patient:', error);
         return {
           success: false,
-          message: 'ไม่สามารถเปลี่ยนผู้ป่วยได้'
+          message: 'ไม่สามารถเปลี่ยนสมาชิกได้'
         };
       }
 
@@ -618,7 +618,7 @@ export class GroupService {
       if (!result?.success) {
         return {
           success: false,
-          message: result?.message || 'ผู้ป่วยไม่อยู่ในกลุ่มนี้'
+          message: result?.message || 'สมาชิกไม่อยู่ในกลุ่มนี้'
         };
       }
 
@@ -722,7 +722,7 @@ export class GroupService {
       if (verifyError || !groupPatient) {
         return {
           success: false,
-          message: 'ไม่พบผู้ป่วยในกลุ่มนี้'
+          message: 'ไม่พบสมาชิกในกลุ่มนี้'
         };
       }
 
@@ -751,7 +751,7 @@ export class GroupService {
       console.log('✅ Default patient set successfully');
       return {
         success: true,
-        message: 'ตั้งค่าผู้ป่วยหลักเรียบร้อยแล้ว',
+        message: 'ตั้งค่าสมาชิกหลักเรียบร้อยแล้ว',
         preference: {
           id: data.id,
           groupId: data.group_id,

@@ -341,7 +341,7 @@ function createRegistrationFlexMessage(): FlexMessage {
                   },
                   {
                     type: 'text',
-                    text: '• ผู้ป่วย - บันทึกข้อมูลสุขภาพตัวเอง',
+                    text: '• สมาชิก - บันทึกข้อมูลสุขภาพตัวเอง',
                     size: 'xs',
                     color: '#666666',
                     margin: 'sm',
@@ -479,7 +479,7 @@ function createHelpFlexMessage(): FlexMessage {
           },
           {
             type: 'text',
-            text: '1. ลงทะเบียน (ผู้ป่วย/ผู้ดูแล)\n2. กรอกข้อมูลสุขภาพ\n3. เริ่มบันทึกข้อมูล',
+            text: '1. ลงทะเบียน (สมาชิก/ผู้ดูแล)\n2. กรอกข้อมูลสุขภาพ\n3. เริ่มบันทึกข้อมูล',
             wrap: true,
             size: 'sm',
             color: '#666666',
@@ -1957,7 +1957,7 @@ async function handleTextMessage(event: any) {
             patientSelectionData.patients,
             patientSelectionData.originalMessage
           );
-          text = result.data.response || '👥 กลุ่มนี้มีหลายผู้ป่วย กรุณาเลือกผู้ป่วยที่ต้องการบันทึก:';
+          text = result.data.response || '👥 กลุ่มนี้มีหลายสมาชิก กรุณาเลือกสมาชิกที่ต้องการบันทึก:';
         }
       }
 
@@ -2094,8 +2094,16 @@ async function handleTextMessage(event: any) {
       if (isMedicationIntent) {
         // Extract medication info from result
         const medicationData = result.metadata?.healthData?.medication || result.data?.nluResult?.healthData?.medication;
-        const taken = medicationData?.taken !== false; // Default to true if not specified
+
+        // Check if message explicitly says "not taken" - these patterns indicate NOT taking medication
+        const notTakenPatterns = /ยังไม่ได้กิน|ไม่ได้กินยา|ลืมกินยา|ยังไม่ได้ทาน|ไม่ได้ทานยา/i;
+        const messageIndicatesNotTaken = notTakenPatterns.test(originalMessage);
+
+        // If message clearly indicates not taken, use that; otherwise use NLU result with true as default
+        const taken = messageIndicatesNotTaken ? false : (medicationData?.taken !== false);
         const medicationName = medicationData?.medicationName;
+
+        console.log('[Medication taken check]', { messageIndicatesNotTaken, medicationDataTaken: medicationData?.taken, finalTaken: taken });
 
         // Get patient name if in group context
         let patientNameForFlex: string | undefined;
@@ -2192,7 +2200,7 @@ async function handleImageMessage(event: any) {
     if (!patientId) {
       const replyMessage: TextMessage = {
         type: 'text',
-        text: 'ไม่พบข้อมูลผู้ป่วยที่เชื่อมต่อ กรุณาลงทะเบียนผู้ป่วยก่อนค่ะ'
+        text: 'ไม่พบข้อมูลสมาชิกที่เชื่อมต่อ กรุณาลงทะเบียนสมาชิกก่อนค่ะ'
       };
       await lineClient.replyMessage(replyToken, replyMessage);
       return { success: true, skipped: true, reason: 'no_patient' };
@@ -2538,7 +2546,7 @@ async function handleAudioMessage(event: any) {
     if (!patientId) {
       const replyMessage: TextMessage = {
         type: 'text',
-        text: 'ไม่พบข้อมูลผู้ป่วยที่เชื่อมต่อ กรุณาลงทะเบียนผู้ป่วยก่อนค่ะ'
+        text: 'ไม่พบข้อมูลสมาชิกที่เชื่อมต่อ กรุณาลงทะเบียนสมาชิกก่อนค่ะ'
       };
       await lineClient.replyMessage(replyToken, replyMessage);
       return { success: true, skipped: true, reason: 'no_patient' };
@@ -2762,7 +2770,7 @@ async function handleFollow(event: any) {
       console.log('✅ User already registered, sending welcome back message');
       const welcomeBackMessage: TextMessage = {
         type: 'text',
-        text: `สวัสดีค่ะ! ยินดีต้อนรับกลับมานะคะ 👋\n\nคุณลงทะเบียนเป็น${checkResult.role === 'caregiver' ? 'ผู้ดูแล' : 'ผู้ป่วย'}แล้ว\nสามารถใช้งานได้ทันทีผ่านเมนูด้านล่างเลยค่ะ ✨`
+        text: `สวัสดีค่ะ! ยินดีต้อนรับกลับมานะคะ 👋\n\nคุณลงทะเบียนเป็น${checkResult.role === 'caregiver' ? 'ผู้ดูแล' : 'สมาชิก'}แล้ว\nสามารถใช้งานได้ทันทีผ่านเมนูด้านล่างเลยค่ะ ✨`
       };
       await lineClient.replyMessage(replyToken, welcomeBackMessage);
       return { success: true, alreadyRegistered: true };
@@ -2821,7 +2829,7 @@ async function handleFollow(event: any) {
                 },
                 {
                   type: 'text',
-                  text: 'กรอกข้อมูลเพียง 1 ครั้ง:\n• ข้อมูลผู้ดูแล (คุณ)\n• ข้อมูลผู้ป่วย (ผู้ที่คุณดูแล)',
+                  text: 'กรอกข้อมูลเพียง 1 ครั้ง:\n• ข้อมูลผู้ดูแล (คุณ)\n• ข้อมูลสมาชิก (ผู้ที่คุณดูแล)',
                   color: '#757575',
                   size: 'sm',
                   wrap: true,
@@ -2901,7 +2909,7 @@ async function handleGroupJoin(event: any) {
 ขอบคุณที่เพิ่มบอท OONJAI เข้ามาในกลุ่มนะคะ
 
 ✅ ถ้าคุณลงทะเบียนผ่าน LINE OA แล้ว:
-→ พิมพ์อะไรก็ได้เพื่อเชื่อมต่อกลุ่มกับผู้ป่วยของคุณ
+→ พิมพ์อะไรก็ได้เพื่อเชื่อมต่อกลุ่มกับสมาชิกของคุณ
 
 ❌ ถ้ายังไม่ได้ลงทะเบียน:
 → เพิ่มเพื่อน @oonjai แล้วลงทะเบียนก่อนนะคะ
@@ -2917,7 +2925,7 @@ async function handleGroupJoin(event: any) {
 • ความดัน 120/80
 • ดื่มน้ำ 500ml
 • เดิน 30 นาที
-• ชื่อผู้ป่วยอะไร
+• ชื่อสมาชิกอะไร
 • รายงานวันนี้
 • ถามอะไรได้บ้าง
 

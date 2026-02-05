@@ -66,7 +66,7 @@ export class ProfileEditAgent extends BaseAgent {
     // Check if patientId exists
     if (!patientId) {
       return this.createErrorResponse(
-        'ไม่พบข้อมูลผู้ป่วย กรุณาลงทะเบียนก่อนค่ะ',
+        'ไม่พบข้อมูลสมาชิก กรุณาลงทะเบียนก่อนค่ะ',
         startTime
       );
     }

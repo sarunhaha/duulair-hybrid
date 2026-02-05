@@ -130,7 +130,7 @@ export class UnifiedNLUAgent extends BaseAgent {
     // Build context strings for the prompt
     const patientContext = context.patientData
       ? buildPatientContextString(context.patientData)
-      : 'ไม่มีข้อมูลผู้ป่วย';
+      : 'ไม่มีข้อมูลสมาชิก';
 
     const recentActivities = context.patientData?.recentActivities
       ? buildRecentActivitiesString(context.patientData.recentActivities)

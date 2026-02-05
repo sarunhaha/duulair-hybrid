@@ -103,7 +103,7 @@ serve(async (req) => {
       if (groupPatient?.groups) {
         const group = groupPatient.groups as any
         if (group.line_group_id) {
-          const message = `⚠️ แจ้งเตือน\n\nไม่พบกิจกรรมของคุณ${patient.first_name} มากกว่า 4 ชั่วโมงแล้ว\n\nกรุณาตรวจสอบสถานะผู้ป่วยค่ะ`
+          const message = `⚠️ แจ้งเตือน\n\nไม่พบกิจกรรมของคุณ${patient.first_name} มากกว่า 4 ชั่วโมงแล้ว\n\nกรุณาตรวจสอบสถานะสมาชิกค่ะ`
 
           try {
             await sendLineMessage(group.line_group_id, message)

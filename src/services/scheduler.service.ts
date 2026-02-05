@@ -139,6 +139,10 @@ class SchedulerService {
 
   /**
    * Send notification for a reminder (using Flex Message)
+   *
+   * Logic:
+   * - If patient is in a group: send to group only (caregivers + patient see it)
+   * - If patient is NOT in a group but has LINE: send to patient 1:1 (without patient name)
    */
   private async sendReminderNotification(reminder: any) {
     try {
@@ -148,31 +152,31 @@ class SchedulerService {
         return;
       }
 
-      // Create Flex Message with action buttons
-      const flexMessage = this.createReminderFlexMessage(reminder);
-
-      // Get the group for this patient to notify caregivers
+      // Get the group for this patient
       const groupInfo = await groupService.getGroupByPatientId(patient.id);
+      const patientLineUserId = patient.users?.line_user_id;
 
+      // Determine where to send: group OR 1:1 (not both)
       if (groupInfo && groupInfo.group.lineGroupId) {
-        // Send Flex Message to LINE group
+        // Send to GROUP - include patient name (for caregivers context)
+        const flexMessage = this.createReminderFlexMessage(reminder, { includePatientName: true });
         await this.lineService.sendFlexMessage(
           groupInfo.group.lineGroupId,
           flexMessage.altText,
           flexMessage.contents
         );
         console.log(`✅ Reminder (Flex) sent to group for patient ${patient.first_name}`);
-      }
-
-      // Also send to patient's LINE if they have it
-      const patientLineUserId = patient.users?.line_user_id;
-      if (patientLineUserId) {
+      } else if (patientLineUserId) {
+        // Send to PATIENT 1:1 - NO patient name (they know who they are)
+        const flexMessage = this.createReminderFlexMessage(reminder, { includePatientName: false });
         await this.lineService.sendFlexMessage(
           patientLineUserId,
           flexMessage.altText,
           flexMessage.contents
         );
-        console.log(`✅ Reminder (Flex) sent to patient ${patient.first_name}`);
+        console.log(`✅ Reminder (Flex) sent to patient ${patient.first_name} (1:1)`);
+      } else {
+        console.log(`⚠️ No LINE target for reminder ${reminder.id} - patient has no group and no LINE user`);
       }
 
       // Log the sent reminder
@@ -193,7 +197,7 @@ class SchedulerService {
    */
   private formatReminderMessage(reminder: any): string {
     const patient = reminder.patient_profiles;
-    const patientName = patient?.first_name || 'ผู้ป่วย';
+    const patientName = patient?.first_name || 'สมาชิก';
 
     const typeEmojis: Record<string, string> = {
       medication: '💊',
@@ -215,7 +219,7 @@ class SchedulerService {
     const typeName = typeNames[reminder.type] || reminder.type;
 
     let message = `${emoji} แจ้งเตือน${typeName}\n\n`;
-    message += `📍 ผู้ป่วย: ${patientName}\n`;
+    message += `📍 คุณ${patientName}\n`;
     message += `🕐 เวลา: ${reminder.time} น.\n`;
 
     if (reminder.title) {
@@ -233,10 +237,16 @@ class SchedulerService {
 
   /**
    * Create Flex Message for reminder with action buttons
+   * @param reminder - The reminder object
+   * @param options.includePatientName - Whether to include patient name (true for group, false for 1:1)
    */
-  private createReminderFlexMessage(reminder: any): { altText: string; contents: any } {
+  private createReminderFlexMessage(
+    reminder: any,
+    options: { includePatientName: boolean } = { includePatientName: true }
+  ): { altText: string; contents: any } {
     const patient = reminder.patient_profiles;
-    const patientName = patient?.first_name || 'ผู้ป่วย';
+    const patientName = patient?.first_name || 'สมาชิก';
+    const showPatientName = options.includePatientName;
 
     const typeConfig: Record<string, { emoji: string; name: string; color: string; confirmText: string; declineText: string }> = {
       medication: {
@@ -322,7 +332,8 @@ class SchedulerService {
         type: 'box',
         layout: 'vertical',
         contents: [
-          {
+          // Only show patient name in group context
+          ...(showPatientName ? [{
             type: 'box',
             layout: 'horizontal',
             contents: [
@@ -333,13 +344,13 @@ class SchedulerService {
               },
               {
                 type: 'text',
-                text: `ผู้ป่วย: ${patientName}`,
+                text: `คุณ${patientName}`,
                 color: '#555555',
                 margin: 'sm',
                 weight: 'bold'
               }
             ]
-          },
+          }] : []),
           {
             type: 'box',
             layout: 'horizontal',
@@ -356,7 +367,7 @@ class SchedulerService {
                 margin: 'sm'
               }
             ],
-            margin: 'md'
+            margin: showPatientName ? 'md' : 'none'
           },
           ...(reminder.title ? [{
             type: 'box',
@@ -431,8 +442,13 @@ class SchedulerService {
       }
     };
 
+    // altText: include patient name only for group context
+    const altText = showPatientName
+      ? `${config.emoji} แจ้งเตือน${config.name} - ${patientName} เวลา ${timeDisplay} น.`
+      : `${config.emoji} แจ้งเตือน${config.name} เวลา ${timeDisplay} น.`;
+
     return {
-      altText: `${config.emoji} แจ้งเตือน${config.name} - ${patientName} เวลา ${timeDisplay} น.`,
+      altText,
       contents: flexContents
     };
   }
@@ -486,7 +502,7 @@ class SchedulerService {
             const groupInfo = await groupService.getGroupByPatientId(patient.id);
 
             if (groupInfo && groupInfo.group.lineGroupId) {
-              const message = `⚠️ แจ้งเตือน\n\nไม่พบกิจกรรมของ ${patient.first_name} มากกว่า 4 ชั่วโมงแล้ว\n\nกรุณาตรวจสอบสถานะผู้ป่วยค่ะ`;
+              const message = `⚠️ แจ้งเตือน\n\nไม่พบกิจกรรมของคุณ${patient.first_name} มากกว่า 4 ชั่วโมงแล้ว\n\nกรุณาตรวจสอบด้วยนะคะ`;
 
               await this.lineService.sendMessage(groupInfo.group.lineGroupId, message);
               console.log(`⚠️ No activity alert sent for patient ${patient.first_name}`);

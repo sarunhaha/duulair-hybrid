@@ -210,7 +210,7 @@ async function generatePDF(data: any): Promise<Buffer> {
 
     // Add content
     doc.fontSize(20).text('รายงานสุขภาพ', { align: 'center' });
-    doc.fontSize(12).text(`ผู้ป่วย: ${data.patient?.first_name} ${data.patient?.last_name}`);
+    doc.fontSize(12).text(`สมาชิก: ${data.patient?.first_name} ${data.patient?.last_name}`);
     doc.text(`ระยะเวลา: ${formatDate(data.dateRange.from)} - ${formatDate(data.dateRange.to)}`);
 
     // Add activities

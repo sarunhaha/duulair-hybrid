@@ -149,7 +149,7 @@ export class ReportService {
       .eq('id', patientId)
       .single();
 
-    const patientName = patient ? `${patient.first_name} ${patient.last_name}` : 'ผู้ป่วย';
+    const patientName = patient ? `คุณ${patient.first_name} ${patient.last_name}` : 'สมาชิก';
 
     // Get activities for the day
     const { data: activities, error } = await supabase
@@ -234,7 +234,7 @@ export class ReportService {
       .eq('id', patientId)
       .single();
 
-    const patientName = patient ? `${patient.first_name} ${patient.last_name}` : 'ผู้ป่วย';
+    const patientName = patient ? `คุณ${patient.first_name} ${patient.last_name}` : 'สมาชิก';
 
     // Get activities for this week
     const { data: activities } = await supabase
@@ -346,7 +346,7 @@ export class ReportService {
       .eq('id', patientId)
       .single();
 
-    const patientName = patient ? `${patient.first_name} ${patient.last_name}` : 'ผู้ป่วย';
+    const patientName = patient ? `คุณ${patient.first_name} ${patient.last_name}` : 'สมาชิก';
 
     // Get activities for this month
     const { data: activities } = await supabase
