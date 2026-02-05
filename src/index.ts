@@ -18,7 +18,7 @@ import { groupWebhookService } from './services/group-webhook.service';
 import { commandHandlerService } from './services/command-handler.service';
 import { userService } from './services/user.service';
 import { groupService } from './services/group.service';
-import { supabaseService } from './services/supabase.service';
+import { supabaseService, supabase } from './services/supabase.service';
 import { schedulerService } from './services/scheduler.service';
 import crypto from 'crypto';
 import multer from 'multer';
@@ -2992,6 +2992,150 @@ async function handlePostback(event: any) {
     // Parse postback data
     const params = new URLSearchParams(postbackData);
     const action = params.get('action');
+
+    // Handle reminder confirmation (medication, vitals, water, etc.)
+    if (action === 'reminder_confirm') {
+      const reminderType = params.get('type') || 'medication';
+      const reminderId = params.get('reminder_id') || '';
+      const patientId = params.get('patient_id') || '';
+      const medicationId = params.get('medication_id') || null;
+      const medicationName = decodeURIComponent(params.get('medication_name') || '');
+
+      console.log(`✅ Reminder confirm: type=${reminderType}, reminder=${reminderId}, patient=${patientId}, med=${medicationId}`);
+
+      try {
+        const now = new Date();
+
+        if (reminderType === 'medication') {
+          // Log medication taken with specific medication_id
+          const { error: medError } = await supabase.from('medication_logs').insert({
+            patient_id: patientId,
+            medication_id: medicationId,
+            medication_name: medicationName,
+            taken_at: now.toISOString(),
+            status: 'taken',
+            skipped: false,
+            note: `บันทึกจากการกดปุ่มแจ้งเตือน (reminder: ${reminderId})`
+          });
+
+          if (medError) {
+            console.error('❌ Error logging medication:', medError);
+          }
+        } else if (reminderType === 'water') {
+          // Log water intake
+          const { error: waterError } = await supabase.from('water_logs').insert({
+            patient_id: patientId,
+            amount_ml: 250, // Default glass of water
+            timestamp: now.toISOString(),
+            note: `บันทึกจากการกดปุ่มแจ้งเตือน`
+          });
+
+          if (waterError) {
+            console.error('❌ Error logging water:', waterError);
+          }
+        } else if (reminderType === 'vitals') {
+          // For vitals, we just acknowledge - user needs to provide actual values
+          // Send a follow-up message asking for the values
+          const replyMessage: TextMessage = {
+            type: 'text',
+            text: '📝 รับทราบค่ะ กรุณาพิมพ์ค่าความดันที่วัดได้นะคะ\nเช่น "ความดัน 120/80" หรือ "120/80"'
+          };
+          await lineClient.replyMessage(replyToken, replyMessage);
+          return { success: true, type: 'reminder_vitals_pending' };
+        }
+
+        // Log to activity_logs for all types
+        await supabase.from('activity_logs').insert({
+          patient_id: patientId,
+          activity_type: reminderType,
+          description: `${medicationName || reminderType} - บันทึกจากแจ้งเตือน`,
+          timestamp: now.toISOString()
+        });
+
+        // Update reminder_logs to mark as acknowledged
+        await supabase.from('reminder_logs').update({
+          status: 'acknowledged',
+          acknowledged_at: now.toISOString()
+        }).eq('reminder_id', reminderId).order('sent_at', { ascending: false }).limit(1);
+
+        // Send confirmation reply
+        const typeEmojis: Record<string, string> = {
+          medication: '💊',
+          vitals: '🩺',
+          water: '💧',
+          exercise: '🏃',
+          food: '🍽️'
+        };
+        const emoji = typeEmojis[reminderType] || '✅';
+
+        const replyMessage: TextMessage = {
+          type: 'text',
+          text: `${emoji} บันทึกแล้วค่ะ${medicationName ? ` (${medicationName})` : ''}\nเก่งมากค่ะ! 👏`
+        };
+        await lineClient.replyMessage(replyToken, replyMessage);
+
+        return { success: true, type: 'reminder_confirmed', reminderType, medicationId };
+
+      } catch (error) {
+        console.error('❌ Error processing reminder confirmation:', error);
+        const replyMessage: TextMessage = {
+          type: 'text',
+          text: '❌ เกิดข้อผิดพลาดในการบันทึก กรุณาลองใหม่อีกครั้งค่ะ'
+        };
+        await lineClient.replyMessage(replyToken, replyMessage);
+        return { success: false, error: 'Failed to process reminder confirmation' };
+      }
+    }
+
+    // Handle reminder skip/decline
+    if (action === 'reminder_skip') {
+      const reminderType = params.get('type') || 'medication';
+      const reminderId = params.get('reminder_id') || '';
+      const patientId = params.get('patient_id') || '';
+      const medicationId = params.get('medication_id') || null;
+
+      console.log(`⏰ Reminder skipped: type=${reminderType}, reminder=${reminderId}, patient=${patientId}`);
+
+      try {
+        const now = new Date();
+
+        if (reminderType === 'medication' && patientId) {
+          // Log medication skipped
+          const { error: medError } = await supabase.from('medication_logs').insert({
+            patient_id: patientId,
+            medication_id: medicationId,
+            taken_at: now.toISOString(),
+            status: 'skipped',
+            skipped: true,
+            skipped_reason: 'ผู้ใช้กดยังไม่ได้กินยา',
+            note: `บันทึกจากการกดปุ่ม "ยังไม่ได้ทำ" (reminder: ${reminderId})`
+          });
+
+          if (medError) {
+            console.error('❌ Error logging skipped medication:', medError);
+          }
+        }
+
+        // Update reminder_logs to mark as skipped
+        await supabase.from('reminder_logs').update({
+          status: 'skipped',
+          acknowledged_at: now.toISOString()
+        }).eq('reminder_id', reminderId).order('sent_at', { ascending: false }).limit(1);
+
+        // Send acknowledgment reply
+        const replyMessage: TextMessage = {
+          type: 'text',
+          text: '📝 รับทราบค่ะ ถ้าทำภายหลังแล้วอย่าลืมบันทึกด้วยนะคะ 😊'
+        };
+        await lineClient.replyMessage(replyToken, replyMessage);
+
+        return { success: true, type: 'reminder_skipped', reminderType };
+
+      } catch (error) {
+        console.error('❌ Error processing reminder skip:', error);
+        return { success: false, error: 'Failed to process reminder skip' };
+      }
+    }
 
     // Handle voice confirmation
     if (action === 'voice_confirm') {

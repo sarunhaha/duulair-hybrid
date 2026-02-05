@@ -63,6 +63,7 @@ class SchedulerService {
       console.log(`⏰ [Scheduler] Checking reminders at ${currentTime}`);
 
       // Get all active reminders due at current time
+      // Include medication info if medication_id is set
       const { data: reminders, error } = await supabase
         .from('reminders')
         .select(`
@@ -73,6 +74,13 @@ class SchedulerService {
             last_name,
             user_id,
             users(line_user_id)
+          ),
+          medications(
+            id,
+            name,
+            dosage,
+            dosage_amount,
+            dosage_unit
           )
         `)
         .eq('is_active', true)
@@ -237,6 +245,7 @@ class SchedulerService {
 
   /**
    * Create Flex Message for reminder with action buttons
+   * Uses POSTBACK for medication reminders to track specific medication_id
    * @param reminder - The reminder object
    * @param options.includePatientName - Whether to include patient name (true for group, false for 1:1)
    */
@@ -246,6 +255,7 @@ class SchedulerService {
   ): { altText: string; contents: any } {
     const patient = reminder.patient_profiles;
     const patientName = patient?.first_name || 'สมาชิก';
+    const patientId = patient?.id || '';
     const showPatientName = options.includePatientName;
 
     const typeConfig: Record<string, { emoji: string; name: string; color: string; confirmText: string; declineText: string }> = {
@@ -295,6 +305,15 @@ class SchedulerService {
     };
 
     const timeDisplay = reminder.time?.substring(0, 5) || '00:00';
+
+    // Get medication name from linked medication, title, or fallback to generic name
+    const linkedMedication = reminder.medications;
+    const medicationName = linkedMedication?.name || reminder.title || config.name;
+    const dosageInfo = linkedMedication ? `${linkedMedication.dosage_amount || ''} ${linkedMedication.dosage_unit || linkedMedication.dosage || ''}`.trim() : '';
+
+    // Build postback data for tracking
+    const confirmPostbackData = `action=reminder_confirm&type=${reminder.type}&reminder_id=${reminder.id}&patient_id=${patientId}${reminder.medication_id ? `&medication_id=${reminder.medication_id}` : ''}&medication_name=${encodeURIComponent(medicationName)}`;
+    const declinePostbackData = `action=reminder_skip&type=${reminder.type}&reminder_id=${reminder.id}&patient_id=${patientId}${reminder.medication_id ? `&medication_id=${reminder.medication_id}` : ''}`;
 
     const flexContents = {
       type: 'bubble',
@@ -369,7 +388,8 @@ class SchedulerService {
             ],
             margin: showPatientName ? 'md' : 'none'
           },
-          ...(reminder.title ? [{
+          // Show medication name (from linked medication or title)
+          ...((linkedMedication || reminder.title) ? [{
             type: 'box',
             layout: 'horizontal',
             contents: [
@@ -380,10 +400,11 @@ class SchedulerService {
               },
               {
                 type: 'text',
-                text: reminder.title,
+                text: medicationName + (dosageInfo ? ` (${dosageInfo})` : ''),
                 color: '#555555',
                 margin: 'sm',
-                wrap: true
+                wrap: true,
+                weight: 'bold'
               }
             ],
             margin: 'md'
@@ -418,9 +439,10 @@ class SchedulerService {
           {
             type: 'button',
             action: {
-              type: 'message',
+              type: 'postback',
               label: `✅ ${config.name}แล้ว`,
-              text: config.confirmText
+              data: confirmPostbackData,
+              displayText: `${config.confirmText} (${medicationName})`
             },
             style: 'primary',
             color: config.color,
@@ -429,9 +451,10 @@ class SchedulerService {
           {
             type: 'button',
             action: {
-              type: 'message',
+              type: 'postback',
               label: '⏰ ยังไม่ได้ทำ',
-              text: config.declineText
+              data: declinePostbackData,
+              displayText: config.declineText
             },
             style: 'secondary',
             height: 'sm',

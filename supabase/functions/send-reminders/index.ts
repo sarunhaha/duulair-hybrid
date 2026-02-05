@@ -135,6 +135,7 @@ serve(async (req) => {
     }
 
     // Group reminders by LINE group for multicast
+    // IMPORTANT: Send to GROUP **OR** DIRECT, not both!
     const groupMessages: Map<string, { message: string, reminder: Reminder }[]> = new Map()
     const directMessages: { userId: string, reminder: Reminder }[] = []
 
@@ -172,12 +173,16 @@ serve(async (req) => {
         .eq('patient_id', reminder.patient_id)
         .eq('is_active', true)
 
+      // Check if patient is in any group
+      let hasGroup = false
+
       // Send to ALL groups that have this patient
       if (groupPatients && groupPatients.length > 0) {
         for (const groupPatient of groupPatients) {
           if (groupPatient?.groups) {
             const group = groupPatient.groups as unknown as GroupInfo
             if (group.line_group_id) {
+              hasGroup = true
               // Add to group messages
               if (!groupMessages.has(group.line_group_id)) {
                 groupMessages.set(group.line_group_id, [])
@@ -188,8 +193,9 @@ serve(async (req) => {
         }
       }
 
-      // Also get patient's LINE user ID for direct message
-      if (reminder.patient_profiles?.user_id) {
+      // ONLY send direct message if patient is NOT in any group
+      // This prevents duplicate messages (group + direct)
+      if (!hasGroup && reminder.patient_profiles?.user_id) {
         const { data: user } = await supabase
           .from('users')
           .select('line_user_id')
@@ -256,8 +262,10 @@ serve(async (req) => {
     console.log(`[Reminder] Results: sent=${results.sent}, skipped=${results.skipped}, errors=${results.errors}`)
 
     // ============================================
-    // MEDICATIONS PROCESSING
-    // Only process at the start of each time period
+    // MEDICATIONS PROCESSING - DISABLED
+    // Disabled to avoid duplicate notifications with reminders
+    // Use reminders table for all notifications including medications
+    // Re-enable if needed by removing the false && condition
     // ============================================
     const medicationResults = {
       sent: 0,
@@ -265,7 +273,8 @@ serve(async (req) => {
       errors: 0
     }
 
-    if (currentTimePeriod && isTimePeriodStart) {
+    // DISABLED: medications processing - use reminders instead
+    if (false && currentTimePeriod && isTimePeriodStart) {
       console.log(`[Medication] Processing medications for period: ${currentTimePeriod}`)
 
       // Get all active medications that include current time period
@@ -326,6 +335,7 @@ serve(async (req) => {
           // Use Flex Message for medication reminders
           const flexMessage = createMedicationFlexMessage(medication, currentTimePeriod!)
           let sentToAny = false
+          let hasGroup = false
 
           // Send to ALL groups that have this patient with Flex Message
           if (groupPatients && groupPatients.length > 0) {
@@ -333,6 +343,7 @@ serve(async (req) => {
               if (groupPatient?.groups) {
                 const group = groupPatient.groups as unknown as GroupInfo
                 if (group.line_group_id) {
+                  hasGroup = true
                   try {
                     await sendFlexMessage(group.line_group_id, flexMessage.contents, flexMessage.altText)
                     console.log(`[Medication] Sent Flex: ${medication.name} for ${patientName} to group ${group.line_group_id}`)
@@ -346,8 +357,9 @@ serve(async (req) => {
             }
           }
 
-          // Also send to patient's direct LINE chat
-          if (medication.patient_profiles?.user_id) {
+          // ONLY send direct message if patient is NOT in any group
+          // This prevents duplicate messages (group + direct)
+          if (!hasGroup && medication.patient_profiles?.user_id) {
             const { data: user } = await supabase
               .from('users')
               .select('line_user_id')
