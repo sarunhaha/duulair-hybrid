@@ -99,7 +99,7 @@ const defaultFormData: MedicationForm = {
   times: [],
   instructions: '',
   note: '',
-  reminder_enabled: true,
+  reminder_enabled: false, // Default unchecked - use reminders page for notifications
 };
 
 export default function MedicationsPage() {
@@ -275,18 +275,6 @@ export default function MedicationsPage() {
       </header>
 
       <main className="max-w-md mx-auto px-4 py-6 space-y-4">
-        {/* Debug Info - ลบออกหลังจาก debug เสร็จ */}
-        <div className="p-3 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg text-xs space-y-1 border border-yellow-300">
-          <p className="font-bold text-yellow-800 dark:text-yellow-200">🔍 Debug Info:</p>
-          <p>patientId: <span className="font-mono">{patientId || 'NULL'}</span></p>
-          <p>role: <span className="font-mono">{auth.role || 'NULL'}</span></p>
-          <p>isRegistered: <span className="font-mono">{String(auth.isRegistered)}</span></p>
-          <p>authLoading: <span className="font-mono">{String(auth.isLoading)}</span></p>
-          <p>ensureLoading: <span className="font-mono">{String(ensurePatient.isLoading)}</span></p>
-          <p>error: <span className="font-mono">{ensurePatient.error || 'none'}</span></p>
-          <p>medications count: <span className="font-mono">{medications?.length ?? 'loading...'}</span></p>
-        </div>
-
         {/* Summary */}
         <Card className="border-none shadow-lg bg-gradient-to-br from-purple-500 to-purple-600 text-white overflow-hidden">
           <CardContent className="p-6 relative">
