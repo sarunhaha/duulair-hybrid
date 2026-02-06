@@ -20,6 +20,8 @@ import {
   Trash2,
   Plus,
   FileText,
+  Loader2,
+  Moon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -44,82 +46,16 @@ import { cn } from '@/lib/utils';
 import { subDays, format } from 'date-fns';
 import { th } from 'date-fns/locale';
 import { useAuthStore } from '@/stores/auth';
-import { usePatientProfile } from '@/lib/api/hooks/use-profile';
+import { usePatientProfile, usePatientMedicationsAll } from '@/lib/api/hooks/use-profile';
 import {
-  exportToCSV,
+  useReportData,
   exportToPDF,
+  type DateRange,
 } from '@/lib/api/hooks/use-reports';
 import { BottomNav } from '@/components/layout/bottom-nav';
 
-// --- Helper for Dates ---
-const getLastNDays = (n: number) => {
-  const today = new Date();
-  return Array.from({ length: n }, (_, i) => {
-    const d = subDays(today, n - 1 - i);
-    return format(d, 'd', { locale: th });
-  });
-};
-
-// Generate days for charts
-const DATES_180D = getLastNDays(180);
-
-// --- Mock Data ---
-const BP_DATA = DATES_180D.map((day, i) => {
-  const baseVal = 125 + Math.sin(i / 10) * 10 + (Math.random() * 10 - 5);
-  const baseDia = 80 + Math.sin(i / 10) * 5 + (Math.random() * 8 - 4);
-  const basePulse = 75 + Math.random() * 10;
-  const isHigh = Math.random() > 0.95;
-  return {
-    day,
-    val: Math.round(isHigh ? baseVal + 20 : baseVal),
-    dia: Math.round(isHigh ? baseDia + 10 : baseDia),
-    pulse: Math.round(isHigh ? basePulse + 15 : basePulse),
-    event: isHigh ? 'สูง' : undefined,
-  };
-});
-
-const MEDS_DATA = DATES_180D.map((day) => {
-  const rand = Math.random();
-  let percent = 100;
-  if (rand > 0.9) percent = 50;
-  else if (rand > 0.98) percent = 0;
-  return { day, percent };
-});
-
-const SLEEP_DATA = DATES_180D.map((day, i) => {
-  const hours = 6.5 + Math.sin(i / 5) * 1 + (Math.random() * 1 - 0.5);
-  return { day, hours: parseFloat(hours.toFixed(1)) };
-});
-
-// Calculate dates for Significant Events
+// Calculate dates for today reference
 const today = new Date();
-const getEventDate = (daysAgo: number) => {
-  const d = subDays(today, daysAgo);
-  return format(d, 'd MMM', { locale: th });
-};
-
-const SIGNIFICANT_EVENTS = {
-  '30d': [
-    { date: getEventDate(2), title: 'ความดันสูงผิดปกติ (142/92)', tag: 'BP/HR', type: 'health' },
-    { date: getEventDate(10), title: 'เวียนหัวระดับ 3 ร่วมกับความดันสูง', tag: 'อาการ', type: 'symptom' },
-    { date: getEventDate(14), title: 'ลืมกินยาติดต่อกัน 2 มื้อ', tag: 'ยา', type: 'meds' },
-    { date: getEventDate(20), title: 'แน่นหน้าอกหลังออกกำลังกาย', tag: 'อาการ', type: 'symptom' },
-    { date: getEventDate(25), title: 'นอนน้อย < 5 ชม. 3 วันติด', tag: 'นอน', type: 'sleep' },
-  ],
-  '60d': [
-    { date: getEventDate(45), title: 'Crisis: ความดันสูง 150+', tag: 'BP/HR', type: 'health' },
-    { date: getEventDate(50), title: 'ปรับยาใหม่ เริ่มกินยาเพิ่ม', tag: 'ยา', type: 'meds' },
-    { date: getEventDate(58), title: 'อาการเวียนหัวลดลงชัดเจน', tag: 'อาการ', type: 'symptom' },
-  ],
-  '90d': [
-    { date: format(subDays(today, 30), 'MMM', { locale: th }), title: 'เดือนที่มีอาการเวียนหัวบ่อยสุด', tag: 'ภาพรวม', type: 'symptom' },
-    { date: format(subDays(today, 60), 'MMM', { locale: th }), title: 'เริ่มคุมความดันได้ดีขึ้น', tag: 'BP/HR', type: 'health' },
-  ],
-  '180d': [
-    { date: 'Q1', title: 'ช่วงปรับยา ความดันยังไม่นิ่ง', tag: 'ภาพรวม', type: 'health' },
-    { date: 'Q2', title: 'ความดันเข้าเกณฑ์ปกติ 90%', tag: 'ภาพรวม', type: 'health' },
-  ],
-};
 
 const REPORT_HISTORY = [
   {
@@ -150,35 +86,65 @@ const REPORT_HISTORY = [
 
 type RangeKey = '30d' | '60d' | '90d' | '180d' | 'custom';
 
+// Map RangeKey to DateRange for API
+const mapRangeToDateRange = (range: RangeKey): DateRange => {
+  switch (range) {
+    case '30d': return '30d';
+    case '60d': return '90d'; // Use 90d for 60d as closest match
+    case '90d': return '90d';
+    case '180d': return '90d'; // API max is 90d
+    case 'custom': return '30d';
+    default: return '30d';
+  }
+};
+
 export default function ReportsPage() {
   const [, navigate] = useLocation();
-  const { user } = useAuthStore();
-  const patientId = user.role === 'patient' ? user.profileId : null;
+  const { user, context } = useAuthStore();
+  const patientId = context.patientId || (user.role === 'patient' ? user.profileId : null);
 
   const [range, setRange] = useState<RangeKey>('30d');
-  const [template, setTemplate] = useState('doctor');
   const [showA4Preview, setShowA4Preview] = useState(false);
   const [onlySignificant, setOnlySignificant] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
 
   const { data: profile } = usePatientProfile(patientId);
+  const { data: medications } = usePatientMedicationsAll(patientId);
+  const { data: reportData, isLoading: isReportLoading } = useReportData(patientId, mapRangeToDateRange(range));
+
+  // Get allergies from profile
+  const drugAllergies = profile?.drug_allergies || [];
+  const foodAllergies = profile?.food_allergies || [];
+  const hasAllergies = drugAllergies.length > 0 || foodAllergies.length > 0;
+
+  // Get active medications
+  const activeMedications = medications?.filter(m => m.active) || [];
+
   const patientName = profile ? `${profile.first_name} ${profile.last_name}` : 'ผู้ใช้งาน';
   const patientAge = profile?.birth_date
     ? Math.floor((Date.now() - new Date(profile.birth_date).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
-    : 35;
-  const patientGender = profile?.gender === 'male' ? 'ชาย' : 'หญิง';
+    : null;
+  const patientGender = profile?.gender === 'male' ? 'ชาย' : profile?.gender === 'female' ? 'หญิง' : null;
 
   // Dynamic Date Range Text
-  const dateRangeText = useMemo(() => {
-    let daysToSubtract = 30;
-    if (range === '30d') daysToSubtract = 30;
-    else if (range === '60d') daysToSubtract = 60;
-    else if (range === '90d') daysToSubtract = 90;
-    else if (range === '180d') daysToSubtract = 180;
+  const { daysToSubtract, dateRangeText } = useMemo(() => {
+    let days = 30;
+    if (range === '30d') days = 30;
+    else if (range === '60d') days = 60;
+    else if (range === '90d') days = 90;
+    else if (range === '180d') days = 180;
 
-    const startDate = subDays(today, daysToSubtract);
-    return `${format(startDate, 'd MMM', { locale: th })} - ${format(today, 'd MMM yyyy', { locale: th })}`;
+    const startDate = subDays(today, days);
+    return {
+      daysToSubtract: days,
+      dateRangeText: `${format(startDate, 'd MMM', { locale: th })} - ${format(today, 'd MMM yyyy', { locale: th })}`,
+    };
   }, [range]);
+
+  // Get summary data from API or fallback
+  const summary = reportData?.summary;
+  const chartData = reportData?.chartData || [];
+  const significantEvents = reportData?.significantEvents || [];
 
   // Questions State
   const [questions, setQuestions] = useState<string[]>([
@@ -196,45 +162,42 @@ export default function ReportsPage() {
     }
   };
 
-  // Filter logic for charts
-  const chartDataSlice = useMemo(() => {
-    if (range === '30d') return 30;
-    if (range === '60d') return 60;
-    if (range === '90d') return 90;
-    if (range === '180d') return 180;
-    return 30;
-  }, [range]);
+  // Filter chart data based on range
+  const chartDataSliced = useMemo(() => {
+    if (!chartData.length) return [];
+    // Take the last N days from chartData
+    return chartData.slice(-daysToSubtract);
+  }, [chartData, daysToSubtract]);
 
+  // Filter significant events based on "only significant" toggle
   const activeEvents = useMemo(() => {
-    return SIGNIFICANT_EVENTS[range as keyof typeof SIGNIFICANT_EVENTS] || SIGNIFICANT_EVENTS['30d'];
-  }, [range]);
+    if (!significantEvents.length) return [];
+    // If onlySignificant is on, show all (already filtered by backend)
+    // Otherwise, show all events
+    return significantEvents;
+  }, [significantEvents, onlySignificant]);
+
+  // Calculate BP average for display
+  const bpAvgDisplay = useMemo(() => {
+    if (!summary?.bp) return 'ไม่มีข้อมูล';
+    return `${summary.bp.avgSystolic}/${summary.bp.avgDiastolic} mmHg`;
+  }, [summary]);
+
+  // Calculate meds adherence for display
+  const medsAdherenceDisplay = useMemo(() => {
+    if (!summary?.meds) return 'ไม่มีข้อมูล';
+    return `${summary.meds.adherencePercent}%`;
+  }, [summary]);
+
+  // Calculate sleep average for display
+  const sleepAvgDisplay = useMemo(() => {
+    if (!summary?.sleep) return 'ไม่มีข้อมูล';
+    return `${summary.sleep.avgHours.toFixed(1)} ชม.`;
+  }, [summary]);
 
   const handleExportPDF = () => {
-    const mockData = {
-      summary: {
-        bp: { avgSystolic: 125, avgDiastolic: 80, count: 28, status: 'normal' as const },
-        meds: { adherencePercent: 86, takenCount: 24, totalCount: 28, status: 'good' as const },
-        water: { avgMl: 1800, daysRecorded: 25, status: 'fair' as const },
-        activities: { total: 28, byType: { medication: 14, vitals: 8, water: 6 } },
-      },
-      chartData: [],
-      activities: [],
-    };
-    exportToPDF(mockData, patientName, dateRangeText);
-  };
-
-  const handleExportCSV = () => {
-    const mockData = {
-      summary: {
-        bp: { avgSystolic: 125, avgDiastolic: 80, count: 28, status: 'normal' as const },
-        meds: { adherencePercent: 86, takenCount: 24, totalCount: 28, status: 'good' as const },
-        water: { avgMl: 1800, daysRecorded: 25, status: 'fair' as const },
-        activities: { total: 28, byType: { medication: 14, vitals: 8, water: 6 } },
-      },
-      chartData: [],
-      activities: [],
-    };
-    exportToCSV(mockData, patientName, dateRangeText);
+    if (!reportData) return;
+    exportToPDF(reportData, patientName, dateRangeText);
   };
 
   return (
@@ -286,50 +249,46 @@ export default function ReportsPage() {
           </div>
         </div>
 
-        {/* Template Selection */}
-        <div className="space-y-3">
-          <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest pl-1">
-            รูปแบบรายงาน
-          </h3>
-          <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar">
-            {[
-              { id: 'doctor', title: 'ส่งหมอ (1 หน้า)', desc: 'กระชับที่สุด' },
-              { id: 'detail', title: 'ละเอียด (3-5 หน้า)', desc: 'สำหรับเก็บเอง' },
-              { id: 'specific', title: 'เฉพาะเรื่อง', desc: 'ความดัน/ชีพจร' },
-            ].map((t) => (
-              <button
-                key={t.id}
-                onClick={() => setTemplate(t.id)}
-                className={cn(
-                  'flex-none w-36 p-3 rounded-2xl border-2 transition-all text-left space-y-1',
-                  template === t.id
-                    ? 'bg-primary/5 border-primary shadow-sm'
-                    : 'bg-card border-border hover:border-primary/30'
-                )}
-              >
-                <p className={cn('text-xs font-bold', template === t.id ? 'text-primary' : 'text-foreground')}>
-                  {t.title}
-                </p>
-                <p className="text-[9px] text-muted-foreground">{t.desc}</p>
-              </button>
-            ))}
-          </div>
-        </div>
-
         {/* Patient Header */}
-        <div className="flex flex-wrap gap-2 px-1">
-          <div className="bg-card border border-border/50 px-3 py-1.5 rounded-full text-[10px] font-bold text-foreground flex items-center gap-1.5 shadow-sm">
-            <User className="w-3 h-3 text-primary" /> {patientName}
+        <div className="space-y-3">
+          <div className="flex flex-wrap gap-2 px-1">
+            <div className="bg-card border border-border/50 px-3 py-1.5 rounded-full text-[10px] font-bold text-foreground flex items-center gap-1.5 shadow-sm">
+              <User className="w-3 h-3 text-primary" /> {patientName}
+            </div>
+            {patientAge && patientGender && (
+              <div className="bg-card border border-border/50 px-3 py-1.5 rounded-full text-[10px] font-bold text-foreground shadow-sm">
+                {patientAge} ปี / {patientGender}
+              </div>
+            )}
+            {hasAllergies && (
+              <div className="bg-red-50 dark:bg-red-950/30 border border-red-100 dark:border-red-900/30 px-3 py-1.5 rounded-full text-[10px] font-bold text-red-600 dark:text-red-400 flex items-center gap-1.5 shadow-sm">
+                <AlertCircle className="w-3 h-3" /> แพ้: {[...drugAllergies, ...foodAllergies].join(', ')}
+              </div>
+            )}
+            {activeMedications.length > 0 && (
+              <div className="bg-orange-50 dark:bg-orange-950/30 border border-orange-100 dark:border-orange-900/30 px-3 py-1.5 rounded-full text-[10px] font-bold text-orange-600 dark:text-orange-400 flex items-center gap-1.5 shadow-sm">
+                <Pill className="w-3 h-3" /> ยา {activeMedications.length} รายการ
+              </div>
+            )}
           </div>
-          <div className="bg-card border border-border/50 px-3 py-1.5 rounded-full text-[10px] font-bold text-foreground shadow-sm">
-            {patientAge} ปี / {patientGender}
-          </div>
-          <div className="bg-red-50 dark:bg-red-950/30 border border-red-100 dark:border-red-900/30 px-3 py-1.5 rounded-full text-[10px] font-bold text-red-600 dark:text-red-400 flex items-center gap-1.5 shadow-sm">
-            <AlertCircle className="w-3 h-3" /> แพ้: เพนิซิลลิน
-          </div>
-          <div className="bg-orange-50 dark:bg-orange-950/30 border border-orange-100 dark:border-orange-900/30 px-3 py-1.5 rounded-full text-[10px] font-bold text-orange-600 dark:text-orange-400 flex items-center gap-1.5 shadow-sm">
-            <Pill className="w-3 h-3" /> มียา 3 รายการ
-          </div>
+
+          {/* Medications List */}
+          {activeMedications.length > 0 && (
+            <div className="bg-card border border-border/50 rounded-2xl p-3 shadow-sm">
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2">รายการยา</p>
+              <div className="space-y-1.5">
+                {activeMedications.map((med) => (
+                  <div key={med.id} className="flex items-center gap-2 text-xs">
+                    <Pill className="w-3 h-3 text-orange-500 shrink-0" />
+                    <span className="font-medium">{med.name}</span>
+                    {med.dosage_amount && med.dosage_unit && (
+                      <span className="text-muted-foreground">({med.dosage_amount} {med.dosage_unit})</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Executive Summary */}
@@ -339,26 +298,59 @@ export default function ReportsPage() {
               <ClipboardList className="w-5 h-5 text-primary" />
               <h3 className="text-base font-bold text-foreground">สรุป 10 วินาที</h3>
             </div>
-            <div className="space-y-3">
-              <div className="flex gap-3">
-                <div className="w-1.5 h-1.5 rounded-full bg-red-500 mt-1.5 shrink-0" />
-                <p className="text-sm leading-relaxed">
-                  <span className="font-bold">ประเด็นสำคัญ:</span> เวียนหัว 3 ครั้ง (ส่วนใหญ่ช่วงบ่าย)
-                </p>
+            {isReportLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin text-primary" />
               </div>
-              <div className="flex gap-3">
-                <div className="w-1.5 h-1.5 rounded-full bg-orange-500 mt-1.5 shrink-0" />
-                <p className="text-sm leading-relaxed">
-                  <span className="font-bold">ค่าที่น่าจับตา:</span> ความดันสูงกว่าปกติ 2 วัน
-                </p>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex gap-3">
+                  <div className={cn(
+                    'w-1.5 h-1.5 rounded-full mt-1.5 shrink-0',
+                    summary?.bp?.status === 'high' || summary?.bp?.status === 'crisis' ? 'bg-red-500' : 'bg-primary'
+                  )} />
+                  <p className="text-sm leading-relaxed">
+                    <span className="font-bold">ความดันเฉลี่ย:</span> {bpAvgDisplay}
+                    {summary?.bp?.status === 'high' && ' (สูงกว่าปกติ)'}
+                    {summary?.bp?.status === 'crisis' && ' (สูงมาก - ควรพบแพทย์)'}
+                  </p>
+                </div>
+                <div className="flex gap-3">
+                  <div className={cn(
+                    'w-1.5 h-1.5 rounded-full mt-1.5 shrink-0',
+                    summary?.meds?.status === 'poor' ? 'bg-orange-500' : summary?.meds?.status === 'fair' ? 'bg-yellow-500' : 'bg-emerald-500'
+                  )} />
+                  <p className="text-sm leading-relaxed">
+                    <span className="font-bold">การกินยา:</span> ครบ {medsAdherenceDisplay}
+                    {summary?.meds && summary.meds.totalCount > summary.meds.takenCount &&
+                      ` (พลาด ${summary.meds.totalCount - summary.meds.takenCount} ครั้ง)`
+                    }
+                  </p>
+                </div>
+                <div className="flex gap-3">
+                  <div className={cn(
+                    'w-1.5 h-1.5 rounded-full mt-1.5 shrink-0',
+                    summary?.water?.status === 'poor' ? 'bg-orange-500' : 'bg-primary'
+                  )} />
+                  <p className="text-sm leading-relaxed">
+                    <span className="font-bold">น้ำดื่มเฉลี่ย:</span> {summary?.water?.avgMl || 0} มล./วัน
+                    {summary?.water?.status === 'poor' && ' (น้อยเกินไป)'}
+                  </p>
+                </div>
+                {summary?.sleep && (
+                  <div className="flex gap-3">
+                    <div className={cn(
+                      'w-1.5 h-1.5 rounded-full mt-1.5 shrink-0',
+                      summary.sleep.status === 'poor' ? 'bg-purple-500' : 'bg-primary'
+                    )} />
+                    <p className="text-sm leading-relaxed">
+                      <span className="font-bold">การนอนเฉลี่ย:</span> {sleepAvgDisplay}
+                      {summary.sleep.status === 'poor' && ' (น้อยกว่าที่ควร)'}
+                    </p>
+                  </div>
+                )}
               </div>
-              <div className="flex gap-3">
-                <div className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 shrink-0" />
-                <p className="text-sm leading-relaxed">
-                  <span className="font-bold">การกินยา:</span> ครบ 86% (ลืม 2 ครั้ง)
-                </p>
-              </div>
-            </div>
+            )}
           </CardContent>
         </Card>
 
@@ -368,69 +360,95 @@ export default function ReportsPage() {
             กราฟสรุป
           </h3>
           <Card className="border-none shadow-sm bg-card p-4 space-y-6">
-            {/* BP Chart */}
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <p className="text-xs font-bold flex items-center gap-1.5">
-                  <Heart className="w-3 h-3 text-primary" /> ความดัน & ชีพจร
-                </p>
-                <p className="text-[10px] text-muted-foreground">เฉลี่ย 125/80 mmHg</p>
+            {isReportLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-6 h-6 animate-spin text-primary" />
               </div>
-              <div className="h-[100px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={BP_DATA.slice(0, chartDataSlice)}>
-                    <Line type="monotone" dataKey="val" stroke="#0E8A9A" strokeWidth={2} dot={{ r: 2 }} />
-                    <Line type="monotone" dataKey="dia" stroke="#0E8A9A" strokeOpacity={0.5} strokeWidth={2} dot={{ r: 2 }} />
-                    <Line type="monotone" dataKey="pulse" stroke="#F2994A" strokeWidth={2} dot={false} />
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                    <Tooltip contentStyle={{ fontSize: '10px' }} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
+            ) : (
+              <>
+                {/* BP Chart */}
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <p className="text-xs font-bold flex items-center gap-1.5">
+                      <Heart className="w-3 h-3 text-primary" /> ความดัน & ชีพจร
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">เฉลี่ย {bpAvgDisplay}</p>
+                  </div>
+                  <div className="h-[100px] w-full">
+                    {chartDataSliced.length > 0 ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={chartDataSliced}>
+                          <Line type="monotone" dataKey="systolic" stroke="#0E8A9A" strokeWidth={2} dot={{ r: 2 }} />
+                          <Line type="monotone" dataKey="diastolic" stroke="#0E8A9A" strokeOpacity={0.5} strokeWidth={2} dot={{ r: 2 }} />
+                          <Line type="monotone" dataKey="pulse" stroke="#F2994A" strokeWidth={2} dot={false} />
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                          <Tooltip contentStyle={{ fontSize: '10px' }} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="h-full flex items-center justify-center text-xs text-muted-foreground">
+                        ไม่มีข้อมูล
+                      </div>
+                    )}
+                  </div>
+                </div>
 
-            {/* Meds Chart */}
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <p className="text-xs font-bold flex items-center gap-1.5">
-                  <Pill className="w-3 h-3 text-orange-500" /> การกินยา
-                </p>
-                <p className="text-[10px] text-muted-foreground">ครบ 92%</p>
-              </div>
-              <div className="h-[60px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={MEDS_DATA.slice(0, chartDataSlice)}>
-                    <Bar dataKey="percent" radius={[4, 4, 0, 0]}>
-                      {MEDS_DATA.slice(0, chartDataSlice).map((entry, index) => (
-                        <Cell
-                          key={`cell-${index}`}
-                          fill={entry.percent === 100 ? '#10b981' : entry.percent < 50 ? '#ef4444' : '#f97316'}
-                        />
-                      ))}
-                    </Bar>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
+                {/* Meds Chart */}
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <p className="text-xs font-bold flex items-center gap-1.5">
+                      <Pill className="w-3 h-3 text-orange-500" /> การกินยา
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">ครบ {medsAdherenceDisplay}</p>
+                  </div>
+                  <div className="h-[60px] w-full">
+                    {chartDataSliced.length > 0 ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={chartDataSliced}>
+                          <Bar dataKey="medsPercent" radius={[4, 4, 0, 0]}>
+                            {chartDataSliced.map((entry, index) => (
+                              <Cell
+                                key={`cell-${index}`}
+                                fill={entry.medsPercent === 100 ? '#10b981' : (entry.medsPercent ?? 0) < 50 ? '#ef4444' : '#f97316'}
+                              />
+                            ))}
+                          </Bar>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="h-full flex items-center justify-center text-xs text-muted-foreground">
+                        ไม่มีข้อมูล
+                      </div>
+                    )}
+                  </div>
+                </div>
 
-            {/* Sleep Chart */}
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <p className="text-xs font-bold flex items-center gap-1.5">
-                  <Activity className="w-3 h-3 text-purple-500" /> การนอน
-                </p>
-                <p className="text-[10px] text-muted-foreground">เฉลี่ย 6.4 ชม.</p>
-              </div>
-              <div className="h-[60px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={SLEEP_DATA.slice(0, chartDataSlice)}>
-                    <Bar dataKey="hours" radius={[4, 4, 0, 0]} fill="#8b5cf6" />
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
+                {/* Sleep Chart */}
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <p className="text-xs font-bold flex items-center gap-1.5">
+                      <Moon className="w-3 h-3 text-purple-500" /> การนอน
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">เฉลี่ย {sleepAvgDisplay}</p>
+                  </div>
+                  <div className="h-[60px] w-full">
+                    {chartDataSliced.some(d => d.sleepHours !== undefined) ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={chartDataSliced}>
+                          <Bar dataKey="sleepHours" radius={[4, 4, 0, 0]} fill="#8b5cf6" />
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="h-full flex items-center justify-center text-xs text-muted-foreground">
+                        ไม่มีข้อมูล
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
           </Card>
         </div>
 
@@ -445,10 +463,21 @@ export default function ReportsPage() {
                 <Heart className="w-3 h-3 text-primary" /> ความดัน
               </div>
               <div className="space-y-1">
-                <p className="text-lg font-bold">
-                  125 / 80 <span className="text-[10px] text-muted-foreground font-normal ml-1">เฉลี่ย</span>
-                </p>
-                <p className="text-[10px] text-emerald-600 font-medium">บันทึกครบ 28/30 วัน</p>
+                {isReportLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                ) : (
+                  <>
+                    <p className="text-lg font-bold">
+                      {summary?.bp?.avgSystolic || '-'} / {summary?.bp?.avgDiastolic || '-'} <span className="text-[10px] text-muted-foreground font-normal ml-1">เฉลี่ย</span>
+                    </p>
+                    <p className={cn(
+                      'text-[10px] font-medium',
+                      summary?.bp?.count && summary.bp.count >= daysToSubtract * 0.8 ? 'text-emerald-600' : 'text-orange-600'
+                    )}>
+                      บันทึก {summary?.bp?.count || 0}/{daysToSubtract} วัน
+                    </p>
+                  </>
+                )}
               </div>
             </Card>
             <Card className="border-none shadow-sm bg-card p-4">
@@ -456,10 +485,21 @@ export default function ReportsPage() {
                 <Activity className="w-3 h-3 text-orange-500" /> ชีพจร
               </div>
               <div className="space-y-1">
-                <p className="text-lg font-bold">
-                  78 <span className="text-[10px] text-muted-foreground font-normal ml-1">เฉลี่ย</span>
-                </p>
-                <p className="text-[10px] text-emerald-600 font-medium">บันทึกครบ 28/30 วัน</p>
+                {isReportLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                ) : (
+                  <>
+                    <p className="text-lg font-bold">
+                      {summary?.bp?.avgHeartRate || '-'} <span className="text-[10px] text-muted-foreground font-normal ml-1">เฉลี่ย</span>
+                    </p>
+                    <p className={cn(
+                      'text-[10px] font-medium',
+                      summary?.bp?.count && summary.bp.count >= daysToSubtract * 0.8 ? 'text-emerald-600' : 'text-orange-600'
+                    )}>
+                      บันทึก {summary?.bp?.count || 0}/{daysToSubtract} วัน
+                    </p>
+                  </>
+                )}
               </div>
             </Card>
           </div>
@@ -484,40 +524,50 @@ export default function ReportsPage() {
             </button>
           </div>
           <div className="bg-card rounded-3xl shadow-sm divide-y divide-border/30 overflow-hidden ring-1 ring-orange-100 dark:ring-orange-900/30">
-            {activeEvents.map((item, i) => (
-              <div
-                key={i}
-                className="flex items-start gap-4 p-4 hover:bg-orange-50/30 dark:hover:bg-orange-950/10 transition-colors cursor-pointer active:bg-orange-50 dark:active:bg-orange-950/20"
-              >
-                <div className="flex flex-col items-center gap-1 min-w-[40px]">
-                  <span className="text-[10px] font-bold text-muted-foreground whitespace-nowrap">
-                    {item.date.split(' ')[0]}
-                  </span>
-                  {item.date.split(' ')[1] && (
-                    <span className="text-[9px] text-muted-foreground/70">{item.date.split(' ')[1]}</span>
-                  )}
-                </div>
-                <div className="flex-1 space-y-1">
-                  <div className="flex justify-between items-start">
-                    <p className="text-xs font-bold text-foreground leading-tight">{item.title}</p>
-                    <span
-                      className={cn(
-                        'text-[9px] px-1.5 py-0.5 rounded-md font-bold uppercase tracking-wide',
-                        item.type === 'health'
-                          ? 'bg-blue-100 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400'
-                          : item.type === 'meds'
-                            ? 'bg-orange-100 dark:bg-orange-950/30 text-orange-700 dark:text-orange-400'
-                            : item.type === 'sleep'
-                              ? 'bg-purple-100 dark:bg-purple-950/30 text-purple-700 dark:text-purple-400'
-                              : 'bg-red-100 dark:bg-red-950/30 text-red-700 dark:text-red-400'
-                      )}
-                    >
-                      {item.tag}
+            {isReportLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin text-primary" />
+              </div>
+            ) : activeEvents.length === 0 ? (
+              <div className="flex items-center justify-center py-8 text-xs text-muted-foreground">
+                ไม่มีเหตุการณ์สำคัญในช่วงนี้
+              </div>
+            ) : (
+              activeEvents.map((item, i) => (
+                <div
+                  key={i}
+                  className="flex items-start gap-4 p-4 hover:bg-orange-50/30 dark:hover:bg-orange-950/10 transition-colors cursor-pointer active:bg-orange-50 dark:active:bg-orange-950/20"
+                >
+                  <div className="flex flex-col items-center gap-1 min-w-[40px]">
+                    <span className="text-[10px] font-bold text-muted-foreground whitespace-nowrap">
+                      {item.date.split(' ')[0]}
                     </span>
+                    {item.date.split(' ')[1] && (
+                      <span className="text-[9px] text-muted-foreground/70">{item.date.split(' ')[1]}</span>
+                    )}
+                  </div>
+                  <div className="flex-1 space-y-1">
+                    <div className="flex justify-between items-start">
+                      <p className="text-xs font-bold text-foreground leading-tight">{item.title}</p>
+                      <span
+                        className={cn(
+                          'text-[9px] px-1.5 py-0.5 rounded-md font-bold uppercase tracking-wide',
+                          item.type === 'health'
+                            ? 'bg-blue-100 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400'
+                            : item.type === 'meds'
+                              ? 'bg-orange-100 dark:bg-orange-950/30 text-orange-700 dark:text-orange-400'
+                              : item.type === 'sleep'
+                                ? 'bg-purple-100 dark:bg-purple-950/30 text-purple-700 dark:text-purple-400'
+                                : 'bg-red-100 dark:bg-red-950/30 text-red-700 dark:text-red-400'
+                        )}
+                      >
+                        {item.tag}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
 
@@ -611,16 +661,18 @@ export default function ReportsPage() {
                     <div className="border border-border p-2 rounded">
                       <h2 className="font-bold mb-1">สรุปสำคัญ</h2>
                       <ul className="list-disc pl-2 space-y-0.5">
-                        <li>เวียนหัว 3 ครั้ง</li>
-                        <li>ความดันสูง 2 วัน</li>
-                        <li>กินยาครบ 86%</li>
+                        <li>ความดัน: {bpAvgDisplay}</li>
+                        <li>กินยาครบ: {medsAdherenceDisplay}</li>
+                        {activeEvents.length > 0 && (
+                          <li>เหตุการณ์สำคัญ: {activeEvents.length} รายการ</li>
+                        )}
                       </ul>
                     </div>
                     <div className="border border-border p-2 rounded">
                       <h2 className="font-bold mb-1">สถิติรวม</h2>
-                      <p>ความดันเฉลี่ย: 125/80</p>
-                      <p>ชีพจรเฉลี่ย: 78 bpm</p>
-                      <p>นอนเฉลี่ย: 6.4 ชม.</p>
+                      <p>ความดันเฉลี่ย: {summary?.bp ? `${summary.bp.avgSystolic}/${summary.bp.avgDiastolic}` : '-'}</p>
+                      <p>ชีพจรเฉลี่ย: {summary?.bp?.avgHeartRate || '-'} bpm</p>
+                      <p>นอนเฉลี่ย: {sleepAvgDisplay}</p>
                     </div>
                   </div>
                   <div className="h-16 border border-border bg-muted/30 flex items-center justify-center text-muted-foreground rounded mt-2">
@@ -634,19 +686,18 @@ export default function ReportsPage() {
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <Button onClick={handleExportCSV} variant="outline" className="h-12 rounded-2xl font-bold">
+          <Button
+            onClick={handleExportPDF}
+            className="w-full h-12 rounded-2xl bg-primary text-primary-foreground font-bold shadow-xl shadow-primary/20"
+            disabled={isReportLoading || !reportData}
+          >
+            {isReportLoading ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
               <FileDown className="w-4 h-4 mr-2" />
-              CSV
-            </Button>
-            <Button
-              onClick={handleExportPDF}
-              className="h-12 rounded-2xl bg-primary text-primary-foreground font-bold shadow-xl shadow-primary/20"
-            >
-              <FileDown className="w-4 h-4 mr-2" />
-              PDF (ส่งหมอ)
-            </Button>
-          </div>
+            )}
+            ดาวน์โหลด PDF
+          </Button>
         </div>
       </main>
 

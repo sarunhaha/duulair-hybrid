@@ -68,36 +68,39 @@ export default function SettingsPage() {
         { id: 'A2', title: 'เตือนกิจกรรมสุขภาพ', icon: Bell, description: 'ความดัน, น้ำดื่ม, เดิน', href: '/settings/reminders' },
       ],
     },
-    {
-      id: 'A2',
-      title: 'บันทึกประจำวัน',
-      items: [
-        { id: 'A2-1', title: 'บันทึกการนอน', icon: Moon, description: 'ชั่วโมงนอน, คุณภาพการนอน', href: '/health/sleep' },
-      ],
-    },
-    {
-      id: 'B',
-      title: 'ข้อมูลสุขภาพส่วนตัว',
-      items: [
-        { id: 'B1', title: 'ข้อมูลพื้นฐาน', icon: User, description: 'อายุ, ส่วนสูง, น้ำหนัก', href: '/profile' },
-        { id: 'B2', title: 'โรคประจำตัวและประวัติ', icon: Heart, description: 'โรคประจำตัว, ประวัติรักษา', href: '/profile' },
-        { id: 'B3', title: 'การแพ้', icon: ShieldAlert, description: 'แพ้ยา, แพ้อาหาร', href: '/profile' },
-      ],
-    },
-    {
-      id: 'C',
-      title: 'ฉุกเฉินและความปลอดภัย',
-      items: [
-        { id: 'C1', title: 'ผู้ติดต่อฉุกเฉิน', icon: AlertTriangle, description: 'เพิ่ม/แก้ไข ผู้ติดต่อหลัก' },
-      ],
-    },
+    // Hidden: ซ้ำซ้อนกับหน้าบันทึก
+    // {
+    //   id: 'A2',
+    //   title: 'บันทึกประจำวัน',
+    //   items: [
+    //     { id: 'A2-1', title: 'บันทึกการนอน', icon: Moon, description: 'ชั่วโมงนอน, คุณภาพการนอน', href: '/health/sleep' },
+    //   ],
+    // },
+    // Hidden: ซ้ำซ้อนกับหน้า Profile
+    // {
+    //   id: 'B',
+    //   title: 'ข้อมูลสุขภาพส่วนตัว',
+    //   items: [
+    //     { id: 'B1', title: 'ข้อมูลพื้นฐาน', icon: User, description: 'อายุ, ส่วนสูง, น้ำหนัก', href: '/profile' },
+    //     { id: 'B2', title: 'โรคประจำตัวและประวัติ', icon: Heart, description: 'โรคประจำตัว, ประวัติรักษา', href: '/profile' },
+    //     { id: 'B3', title: 'การแพ้', icon: ShieldAlert, description: 'แพ้ยา, แพ้อาหาร', href: '/profile' },
+    //   ],
+    // },
+    // Hidden: ซ้ำซ้อนกับหน้า Profile
+    // {
+    //   id: 'C',
+    //   title: 'ฉุกเฉินและความปลอดภัย',
+    //   items: [
+    //     { id: 'C1', title: 'ผู้ติดต่อฉุกเฉิน', icon: AlertTriangle, description: 'เพิ่ม/แก้ไข ผู้ติดต่อหลัก' },
+    //   ],
+    // },
     {
       id: 'D',
       title: 'ข้อมูลและความเป็นส่วนตัว',
       items: [
-        { id: 'D1', title: 'รายงานสุขภาพ', icon: BarChart3, description: 'สรุปภาพรวม, กราฟ, ส่งออก', href: '/reports' },
+        { id: 'D1', title: 'รายงานสุขภาพ', icon: BarChart3, description: 'สรุปภาพรวม, กราฟ, ส่งออก PDF', href: '/reports' },
         { id: 'D2', title: 'ความเป็นส่วนตัว', icon: Lock, description: 'การบันทึกข้อมูล, สิทธิ์การเข้าถึง' },
-        { id: 'D3', title: 'ส่งออกข้อมูล', icon: FileDown, description: 'CSV เท่านั้น' },
+        // { id: 'D3', title: 'ส่งออกข้อมูล', icon: FileDown, description: 'CSV เท่านั้น' }, // Hidden - use PDF export in reports
       ],
     },
   ];
