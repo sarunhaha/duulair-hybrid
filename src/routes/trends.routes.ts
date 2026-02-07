@@ -7,13 +7,27 @@ const router = Router();
 interface TrendDataPoint {
   day: string;
   date: string;
+  // Vitals
   systolic?: number | null;
   diastolic?: number | null;
   pulse?: number | null;
+  // Sleep
   hours?: number | null;
+  // Meds
   target?: number;
   done?: number;
   percent?: number;
+  // Exercise
+  duration?: number | null;
+  exerciseType?: string;
+  // Mood
+  mood?: string | null;
+  moodScore?: number | null;
+  stressLevel?: number | null;
+  // Water
+  glasses?: number | null;
+  ml?: number | null;
+  // Common
   note?: string;
   event?: string;
 }
@@ -36,8 +50,32 @@ const THAI_MONTHS = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.
 
 // Helper: Get range in days
 function getRangeDays(range: string): number {
-  const map: Record<string, number> = { '7d': 7, '15d': 15, '30d': 30 };
+  const map: Record<string, number> = { '7d': 7, '15d': 15, '30d': 30, 'custom': 0 };
   return map[range] || 7;
+}
+
+// Helper: Get days between dates
+function getDaysBetween(startDate: string, endDate: string): number {
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  return Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+}
+
+// Helper: Get custom date range
+function getCustomDateRange(startDate: string, endDate: string): { dates: string[]; labels: string[] } {
+  const days = getDaysBetween(startDate, endDate);
+  const start = new Date(startDate);
+  const dates: string[] = [];
+  const labels: string[] = [];
+
+  for (let i = 0; i < days; i++) {
+    const d = new Date(start);
+    d.setDate(d.getDate() + i);
+    dates.push(formatISODate(d));
+    labels.push(formatThaiShort(d));
+  }
+
+  return { dates, labels };
 }
 
 // Helper: Format date as Thai short format (e.g., "5 ม.ค.")
@@ -85,14 +123,30 @@ function getDateRange(days: number): { dates: string[]; labels: string[] } {
 router.get('/vitals/:patientId', async (req: Request, res: Response) => {
   const { patientId } = req.params;
   const range = (req.query.range as string) || '7d';
-  const days = getRangeDays(range);
+  const customStartDate = req.query.startDate as string;
+  const customEndDate = req.query.endDate as string;
 
   if (!patientId) {
     return res.status(400).json({ error: 'Patient ID is required' });
   }
 
   try {
-    const { dates, labels } = getDateRange(days);
+    let dates: string[];
+    let labels: string[];
+    let days: number;
+
+    if (range === 'custom' && customStartDate && customEndDate) {
+      const customRange = getCustomDateRange(customStartDate, customEndDate);
+      dates = customRange.dates;
+      labels = customRange.labels;
+      days = dates.length;
+    } else {
+      days = getRangeDays(range);
+      const dateRange = getDateRange(days);
+      dates = dateRange.dates;
+      labels = dateRange.labels;
+    }
+
     const startDate = dates[0];
 
     // Query vitals logs
@@ -169,14 +223,30 @@ router.get('/vitals/:patientId', async (req: Request, res: Response) => {
 router.get('/meds/:patientId', async (req: Request, res: Response) => {
   const { patientId } = req.params;
   const range = (req.query.range as string) || '7d';
-  const days = getRangeDays(range);
+  const customStartDate = req.query.startDate as string;
+  const customEndDate = req.query.endDate as string;
 
   if (!patientId) {
     return res.status(400).json({ error: 'Patient ID is required' });
   }
 
   try {
-    const { dates, labels } = getDateRange(days);
+    let dates: string[];
+    let labels: string[];
+    let days: number;
+
+    if (range === 'custom' && customStartDate && customEndDate) {
+      const customRange = getCustomDateRange(customStartDate, customEndDate);
+      dates = customRange.dates;
+      labels = customRange.labels;
+      days = dates.length;
+    } else {
+      days = getRangeDays(range);
+      const dateRange = getDateRange(days);
+      dates = dateRange.dates;
+      labels = dateRange.labels;
+    }
+
     const startDate = dates[0];
 
     // Get patient's active medications count
@@ -259,14 +329,30 @@ router.get('/meds/:patientId', async (req: Request, res: Response) => {
 router.get('/sleep/:patientId', async (req: Request, res: Response) => {
   const { patientId } = req.params;
   const range = (req.query.range as string) || '7d';
-  const days = getRangeDays(range);
+  const customStartDate = req.query.startDate as string;
+  const customEndDate = req.query.endDate as string;
 
   if (!patientId) {
     return res.status(400).json({ error: 'Patient ID is required' });
   }
 
   try {
-    const { dates, labels } = getDateRange(days);
+    let dates: string[];
+    let labels: string[];
+    let days: number;
+
+    if (range === 'custom' && customStartDate && customEndDate) {
+      const customRange = getCustomDateRange(customStartDate, customEndDate);
+      dates = customRange.dates;
+      labels = customRange.labels;
+      days = dates.length;
+    } else {
+      days = getRangeDays(range);
+      const dateRange = getDateRange(days);
+      dates = dateRange.dates;
+      labels = dateRange.labels;
+    }
+
     const startDate = dates[0];
 
     // Query sleep logs
@@ -363,5 +449,335 @@ function getSleepInsight(avgHours: number, totalDays: number): string {
   }
   return 'นอนน้อยกว่าเกณฑ์ ลองพักงีบช่วงบ่าย และเข้านอนเร็วขึ้นนะครับ';
 }
+
+function getExerciseInsight(exerciseDays: number, totalDays: number, avgDuration: number): string {
+  if (exerciseDays === 0) {
+    return 'ยังไม่มีการบันทึกการออกกำลังกาย ลองเริ่มจากเดินวันละ 15-20 นาทีนะครับ';
+  }
+  const ratio = exerciseDays / totalDays;
+  if (ratio >= 0.7 && avgDuration >= 30) {
+    return 'ออกกำลังกายสม่ำเสมอมาก สุขภาพแข็งแรงแน่นอนครับ!';
+  } else if (ratio >= 0.5) {
+    return 'ออกกำลังกายได้ดี ลองเพิ่มเวลาออกกำลังกายอีกนิดจะยิ่งดีครับ';
+  } else if (ratio >= 0.3) {
+    return 'ออกกำลังกายบ้าง ลองตั้งเป้าอย่างน้อยวันละ 30 นาที 5 วัน/สัปดาห์นะครับ';
+  }
+  return 'ช่วงนี้ออกกำลังกายน้อย ลองเริ่มจากเดินวันละ 15-20 นาทีก่อนนะครับ';
+}
+
+function getMoodInsight(avgMood: number, recordedDays: number): string {
+  if (recordedDays === 0) {
+    return 'ยังไม่มีการบันทึกอารมณ์ ลองบันทึกทุกวันเพื่อติดตามสุขภาพจิตนะครับ';
+  }
+  if (avgMood >= 4) {
+    return 'อารมณ์ดีสม่ำเสมอ ยอดเยี่ยมครับ! รักษาความสุขนี้ไว้นะครับ';
+  } else if (avgMood >= 3) {
+    return 'อารมณ์โดยรวมปกติดี ลองหากิจกรรมที่ชอบทำเพื่อเพิ่มความสุขนะครับ';
+  } else if (avgMood >= 2) {
+    return 'ช่วงนี้อารมณ์อาจไม่ค่อยดี ลองพูดคุยกับคนใกล้ชิดหรือทำกิจกรรมผ่อนคลายนะครับ';
+  }
+  return 'ดูเหมือนช่วงนี้อารมณ์ไม่ค่อยดี หากรู้สึกหนักใจ ลองปรึกษาผู้เชี่ยวชาญนะครับ';
+}
+
+function getWaterInsight(avgGlasses: number): string {
+  if (avgGlasses === 0) {
+    return 'ยังไม่มีการบันทึกการดื่มน้ำ ลองบันทึกทุกวันเพื่อติดตามนะครับ';
+  }
+  if (avgGlasses >= 8) {
+    return 'ดื่มน้ำได้ตามเป้าหมาย สุขภาพดีแน่นอนครับ!';
+  } else if (avgGlasses >= 6) {
+    return 'ดื่มน้ำได้ดี ลองเพิ่มอีก 2-3 แก้วต่อวันจะยิ่งดีครับ';
+  } else if (avgGlasses >= 4) {
+    return 'ดื่มน้ำน้อยไป ลองพกขวดน้ำติดตัวเพื่อเตือนให้ดื่มบ่อยขึ้นนะครับ';
+  }
+  return 'ดื่มน้ำน้อยมาก ร่างกายต้องการน้ำอย่างน้อย 8 แก้ว/วันนะครับ';
+}
+
+/**
+ * GET /api/trends/exercise/:patientId
+ * Get exercise trends
+ */
+router.get('/exercise/:patientId', async (req: Request, res: Response) => {
+  const { patientId } = req.params;
+  const range = (req.query.range as string) || '7d';
+  const customStartDate = req.query.startDate as string;
+  const customEndDate = req.query.endDate as string;
+
+  if (!patientId) {
+    return res.status(400).json({ error: 'Patient ID is required' });
+  }
+
+  try {
+    let dates: string[];
+    let labels: string[];
+    let days: number;
+
+    if (range === 'custom' && customStartDate && customEndDate) {
+      const customRange = getCustomDateRange(customStartDate, customEndDate);
+      dates = customRange.dates;
+      labels = customRange.labels;
+      days = dates.length;
+    } else {
+      days = getRangeDays(range);
+      const dateRange = getDateRange(days);
+      dates = dateRange.dates;
+      labels = dateRange.labels;
+    }
+
+    const startDate = dates[0];
+
+    // Query exercise logs
+    const { data: exerciseLogs, error } = await supabase
+      .from('exercise_logs')
+      .select('created_at, exercise_type, duration_minutes')
+      .eq('patient_id', patientId)
+      .gte('created_at', `${startDate}T00:00:00`)
+      .order('created_at', { ascending: true });
+
+    if (error) throw error;
+
+    // Group by date (sum duration per day)
+    const byDate: Record<string, { duration: number; type: string }> = {};
+    (exerciseLogs || []).forEach((log) => {
+      const dateKey = formatISODate(parseISODate(log.created_at));
+      if (!byDate[dateKey]) {
+        byDate[dateKey] = { duration: 0, type: log.exercise_type || '' };
+      }
+      byDate[dateKey].duration += log.duration_minutes || 0;
+      if (log.exercise_type) byDate[dateKey].type = log.exercise_type;
+    });
+
+    // Build data array
+    const data: TrendDataPoint[] = dates.map((date, i) => {
+      const entry = byDate[date];
+      const duration = entry?.duration || null;
+      const isGood = duration !== null && duration >= 30;
+
+      return {
+        day: labels[i],
+        date,
+        duration,
+        exerciseType: entry?.type,
+        event: isGood ? 'ดี' : undefined,
+        note: entry?.type,
+      };
+    });
+
+    // Calculate summary
+    const exerciseDays = data.filter((d) => d.duration !== null && (d.duration as number) > 0).length;
+    const totalDuration = data.reduce((sum, d) => sum + ((d.duration as number) || 0), 0);
+    const avgDuration = exerciseDays > 0 ? Math.round(totalDuration / exerciseDays) : 0;
+
+    const summary: TrendSummary = {
+      avg: exerciseDays > 0 ? `${avgDuration} นาที` : '-',
+      label1: 'เวลาเฉลี่ย',
+      count: `ออกกำลังกาย ${exerciseDays}/${days} วัน`,
+      label2: 'วันที่ออกกำลังกาย',
+    };
+
+    // Generate insight
+    const insight = getExerciseInsight(exerciseDays, days, avgDuration);
+
+    return res.json({ data, summary, insight });
+  } catch (error: any) {
+    console.error('Exercise trend error:', error);
+    return res.status(500).json({ error: error.message || 'Failed to get exercise trend' });
+  }
+});
+
+/**
+ * GET /api/trends/mood/:patientId
+ * Get mood trends
+ */
+router.get('/mood/:patientId', async (req: Request, res: Response) => {
+  const { patientId } = req.params;
+  const range = (req.query.range as string) || '7d';
+  const customStartDate = req.query.startDate as string;
+  const customEndDate = req.query.endDate as string;
+
+  if (!patientId) {
+    return res.status(400).json({ error: 'Patient ID is required' });
+  }
+
+  try {
+    let dates: string[];
+    let labels: string[];
+    let days: number;
+
+    if (range === 'custom' && customStartDate && customEndDate) {
+      const customRange = getCustomDateRange(customStartDate, customEndDate);
+      dates = customRange.dates;
+      labels = customRange.labels;
+      days = dates.length;
+    } else {
+      days = getRangeDays(range);
+      const dateRange = getDateRange(days);
+      dates = dateRange.dates;
+      labels = dateRange.labels;
+    }
+
+    const startDate = dates[0];
+
+    // Query mood logs
+    const { data: moodLogs, error } = await supabase
+      .from('mood_logs')
+      .select('timestamp, mood, mood_score, stress_level')
+      .eq('patient_id', patientId)
+      .gte('timestamp', `${startDate}T00:00:00`)
+      .order('timestamp', { ascending: true });
+
+    if (error) throw error;
+
+    // Mood labels
+    const moodLabels: Record<string, string> = {
+      happy: 'มีความสุข',
+      calm: 'สงบ',
+      neutral: 'เฉยๆ',
+      sad: 'เศร้า',
+      anxious: 'กังวล',
+    };
+
+    // Group by date (take latest reading per day)
+    const byDate: Record<string, { mood: string; moodScore: number; stressLevel: number }> = {};
+    (moodLogs || []).forEach((log) => {
+      const dateKey = formatISODate(parseISODate(log.timestamp));
+      byDate[dateKey] = {
+        mood: log.mood,
+        moodScore: log.mood_score || 3,
+        stressLevel: log.stress_level || 0,
+      };
+    });
+
+    // Build data array
+    const data: TrendDataPoint[] = dates.map((date, i) => {
+      const entry = byDate[date];
+      const isLow = entry && entry.moodScore <= 2;
+
+      return {
+        day: labels[i],
+        date,
+        mood: entry?.mood || null,
+        moodScore: entry?.moodScore || null,
+        stressLevel: entry?.stressLevel || null,
+        event: isLow ? 'ต่ำ' : undefined,
+        note: entry?.mood ? moodLabels[entry.mood] || entry.mood : undefined,
+      };
+    });
+
+    // Calculate summary
+    const recorded = data.filter((d) => d.moodScore !== null);
+    const avgMood = recorded.length > 0
+      ? (recorded.reduce((sum, d) => sum + (d.moodScore || 0), 0) / recorded.length).toFixed(1)
+      : '0';
+
+    const summary: TrendSummary = {
+      avg: recorded.length > 0 ? `${avgMood}/5` : '-',
+      label1: 'คะแนนอารมณ์เฉลี่ย',
+      count: `บันทึก ${recorded.length}/${days} วัน`,
+      label2: 'วันที่บันทึก',
+    };
+
+    // Generate insight
+    const insight = getMoodInsight(parseFloat(avgMood), recorded.length);
+
+    return res.json({ data, summary, insight });
+  } catch (error: any) {
+    console.error('Mood trend error:', error);
+    return res.status(500).json({ error: error.message || 'Failed to get mood trend' });
+  }
+});
+
+/**
+ * GET /api/trends/water/:patientId
+ * Get water intake trends
+ */
+router.get('/water/:patientId', async (req: Request, res: Response) => {
+  const { patientId } = req.params;
+  const range = (req.query.range as string) || '7d';
+  const customStartDate = req.query.startDate as string;
+  const customEndDate = req.query.endDate as string;
+
+  if (!patientId) {
+    return res.status(400).json({ error: 'Patient ID is required' });
+  }
+
+  try {
+    let dates: string[];
+    let labels: string[];
+    let days: number;
+
+    if (range === 'custom' && customStartDate && customEndDate) {
+      const customRange = getCustomDateRange(customStartDate, customEndDate);
+      dates = customRange.dates;
+      labels = customRange.labels;
+      days = dates.length;
+    } else {
+      days = getRangeDays(range);
+      const dateRange = getDateRange(days);
+      dates = dateRange.dates;
+      labels = dateRange.labels;
+    }
+
+    const startDate = dates[0];
+
+    // Query water logs
+    const { data: waterLogs, error } = await supabase
+      .from('water_logs')
+      .select('created_at, glasses, amount_ml')
+      .eq('patient_id', patientId)
+      .gte('created_at', `${startDate}T00:00:00`)
+      .order('created_at', { ascending: true });
+
+    if (error) throw error;
+
+    // Group by date (sum glasses per day)
+    const byDate: Record<string, { glasses: number; ml: number }> = {};
+    (waterLogs || []).forEach((log) => {
+      const dateKey = formatISODate(parseISODate(log.created_at));
+      if (!byDate[dateKey]) {
+        byDate[dateKey] = { glasses: 0, ml: 0 };
+      }
+      byDate[dateKey].glasses += log.glasses || 0;
+      byDate[dateKey].ml += log.amount_ml || (log.glasses || 0) * 250;
+    });
+
+    // Build data array
+    const data: TrendDataPoint[] = dates.map((date, i) => {
+      const entry = byDate[date];
+      const glasses = entry?.glasses || 0;
+      const ml = entry?.ml || 0;
+      const isLow = glasses < 6;
+      const isGood = glasses >= 8;
+
+      return {
+        day: labels[i],
+        date,
+        glasses,
+        ml,
+        event: isLow ? 'น้อย' : isGood ? 'ดี' : undefined,
+        note: isLow ? 'ดื่มน้ำน้อย' : isGood ? 'ดื่มน้ำได้ดี' : undefined,
+      };
+    });
+
+    // Calculate summary
+    const avgGlasses = Math.round(data.reduce((sum, d) => sum + (d.glasses || 0), 0) / data.length);
+    const goodDays = data.filter((d) => (d.glasses || 0) >= 8).length;
+
+    const summary: TrendSummary = {
+      avg: `${avgGlasses} แก้ว`,
+      label1: 'เฉลี่ย/วัน',
+      count: `ดื่มครบ ${goodDays}/${days} วัน`,
+      label2: 'วันดื่มครบ 8 แก้ว',
+    };
+
+    // Generate insight
+    const insight = getWaterInsight(avgGlasses);
+
+    return res.json({ data, summary, insight });
+  } catch (error: any) {
+    console.error('Water trend error:', error);
+    return res.status(500).json({ error: error.message || 'Failed to get water trend' });
+  }
+});
 
 export default router;

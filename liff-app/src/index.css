@@ -161,6 +161,15 @@
     @apply outline-2 outline-offset-2 outline-accent;
   }
 
+  /* Hide scrollbar utility */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
   /* Skip link styling */
   .sr-only {
     position: absolute;

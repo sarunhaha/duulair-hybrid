@@ -1,12 +1,12 @@
 // API Client - ported from public/liff/js/api.js
 
 const getBaseUrl = () => {
-  if (typeof window !== 'undefined') {
-    const hostname = window.location.hostname;
-    if (hostname === 'localhost' || hostname === '127.0.0.1') {
-      return 'http://localhost:3100/api';
-    }
+  // In dev mode (including ngrok), use Vite proxy to avoid CORS
+  if (import.meta.env.DEV) {
+    return '/api';
   }
+
+  // Production - use relative path (same origin)
   return '/api';
 };
 

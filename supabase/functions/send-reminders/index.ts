@@ -149,13 +149,16 @@ serve(async (req) => {
         }
       }
 
-      // Check if already sent today
+      // Check if already sent today (use Bangkok timezone for date comparison)
+      const todayBangkok = `${today}T00:00:00+07:00`
+      const tomorrowBangkok = `${today}T23:59:59+07:00`
+
       const { data: existingLog } = await supabase
         .from('reminder_logs')
         .select('id')
         .eq('reminder_id', reminder.id)
-        .gte('sent_at', `${today}T00:00:00`)
-        .lte('sent_at', `${today}T23:59:59`)
+        .gte('sent_at', todayBangkok)
+        .lte('sent_at', tomorrowBangkok)
         .limit(1)
 
       if (existingLog && existingLog.length > 0) {
@@ -209,25 +212,47 @@ serve(async (req) => {
     }
 
     // Send to LINE groups - each reminder separately with Flex Message
+    // Use optimistic locking: try to insert log first, then send if successful
     for (const [groupId, messages] of groupMessages) {
       for (const { message, reminder } of messages) {
         try {
-          // Use Flex Message instead of text
-          const flexMessage = createReminderFlexMessage(reminder)
-          await sendFlexMessage(groupId, flexMessage.contents, flexMessage.altText)
-
-          // Log reminder as sent
-          await supabase.from('reminder_logs').insert({
+          // Try to insert log first (atomic check-and-lock)
+          // This prevents race condition - only one insert will succeed
+          const { error: lockError } = await supabase.from('reminder_logs').insert({
             reminder_id: reminder.id,
             patient_id: reminder.patient_id,
             sent_at: new Date().toISOString(),
-            status: 'sent',
+            status: 'pending',  // Mark as pending first
             channel: 'group'
           })
+
+          // If insert failed (duplicate), skip - already being processed
+          if (lockError) {
+            console.log(`[Reminder] Already processing or sent (skipping): ${reminder.id}`)
+            results.skipped++
+            results.details.push({ id: reminder.id, status: 'skipped', reason: 'already_processing' })
+            continue
+          }
+
+          // Now send the message (we have the lock)
+          const flexMessage = createReminderFlexMessage(reminder)
+          await sendFlexMessage(groupId, flexMessage.contents, flexMessage.altText)
+
+          // Update status to sent
+          await supabase.from('reminder_logs')
+            .update({ status: 'sent' })
+            .eq('reminder_id', reminder.id)
+            .eq('status', 'pending')
+
           results.sent++
           results.details.push({ id: reminder.id, status: 'sent', channel: 'group' })
         } catch (err) {
           console.error(`Error sending reminder ${reminder.id} to group ${groupId}:`, err)
+          // Update status to error
+          await supabase.from('reminder_logs')
+            .update({ status: 'error', error_message: String(err) })
+            .eq('reminder_id', reminder.id)
+            .eq('status', 'pending')
           results.errors++
         }
       }
@@ -237,23 +262,42 @@ serve(async (req) => {
     if (directMessages.length > 0) {
       for (const { userId, reminder } of directMessages) {
         try {
-          // Use Flex Message for direct messages too
-          const flexMessage = createReminderFlexMessage(reminder)
-          await sendFlexMessage(userId, flexMessage.contents, flexMessage.altText)
-
-          // Log reminder as sent
-          await supabase.from('reminder_logs').insert({
+          // Try to insert log first (atomic check-and-lock)
+          const { error: lockError } = await supabase.from('reminder_logs').insert({
             reminder_id: reminder.id,
             patient_id: reminder.patient_id,
             sent_at: new Date().toISOString(),
-            status: 'sent',
+            status: 'pending',
             channel: 'direct'
           })
+
+          // If insert failed (duplicate), skip
+          if (lockError) {
+            console.log(`[Reminder] Already processing or sent (skipping): ${reminder.id}`)
+            results.skipped++
+            results.details.push({ id: reminder.id, status: 'skipped', reason: 'already_processing' })
+            continue
+          }
+
+          // Now send the message
+          const flexMessage = createReminderFlexMessage(reminder)
+          await sendFlexMessage(userId, flexMessage.contents, flexMessage.altText)
+
+          // Update status to sent
+          await supabase.from('reminder_logs')
+            .update({ status: 'sent' })
+            .eq('reminder_id', reminder.id)
+            .eq('status', 'pending')
+
           results.sent++
           results.details.push({ id: reminder.id, status: 'sent', channel: 'direct' })
           console.log(`[Reminder] Sent Flex to direct user: ${userId}`)
         } catch (err) {
           console.error(`Error sending direct reminder ${reminder.id} to ${userId}:`, err)
+          await supabase.from('reminder_logs')
+            .update({ status: 'error', error_message: String(err) })
+            .eq('reminder_id', reminder.id)
+            .eq('status', 'pending')
           results.errors++
         }
       }
@@ -467,7 +511,7 @@ function formatReminderMessage(reminder: Reminder): string {
 function getConfirmCommand(type: string): string {
   const commands: Record<string, string> = {
     medication: 'กินยาแล้ว',
-    vitals: 'ความดัน [ค่า]',
+    vitals: 'วัดความดันแล้ว',  // Changed - will trigger NLU to ask for value
     water: 'ดื่มน้ำแล้ว',
     exercise: 'ออกกำลังกายแล้ว',
     meal: 'กินข้าวแล้ว'
@@ -478,7 +522,7 @@ function getConfirmCommand(type: string): string {
 function createQuickReplyItems(type: string, patientName: string): QuickReplyItem[] {
   const typeActions: Record<string, { label: string, text: string }> = {
     medication: { label: '✅ กินยาแล้ว', text: `กินยาแล้ว ${patientName}` },
-    vitals: { label: '📊 บันทึกความดัน', text: `ความดัน ${patientName}` },
+    vitals: { label: '📊 วัดความดันแล้ว', text: `วัดความดันแล้ว ${patientName}` },
     water: { label: '💧 ดื่มน้ำแล้ว', text: `ดื่มน้ำแล้ว ${patientName}` },
     exercise: { label: '🏃 ออกกำลังกายแล้ว', text: `ออกกำลังกายแล้ว ${patientName}` },
     meal: { label: '🍽️ กินข้าวแล้ว', text: `กินข้าวแล้ว ${patientName}` }
@@ -800,14 +844,24 @@ function createReminderFlexMessage(reminder: Reminder): { contents: any, altText
       contents: [
         {
           type: 'button',
-          action: { type: 'message', label: `✅ ${config.name}แล้ว`, text: `${getConfirmCommand(reminder.type)} ${patientName}` },
+          action: {
+            type: 'postback',
+            label: `✅ ${config.name}แล้ว`,
+            data: `a=rc&t=${reminder.type}&r=${reminder.id}&p=${reminder.patient_id}&st=${timeDisplay}&tt=${encodeURIComponent(reminder.title || config.name)}`,
+            displayText: `${config.name}แล้ว ${patientName}`
+          },
           style: 'primary',
           color: config.color,
           height: 'sm'
         },
         {
           type: 'button',
-          action: { type: 'message', label: '⏰ ยังไม่ได้ทำ', text: `ยัง${config.name} ${patientName}` },
+          action: {
+            type: 'postback',
+            label: '⏰ ยังไม่ได้ทำ',
+            data: `a=rs&t=${reminder.type}&r=${reminder.id}&p=${reminder.patient_id}&st=${timeDisplay}&tt=${encodeURIComponent(reminder.title || config.name)}`,
+            displayText: `ยัง${config.name} ${patientName}`
+          },
           style: 'secondary',
           height: 'sm',
           margin: 'sm'

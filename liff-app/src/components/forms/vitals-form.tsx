@@ -1,8 +1,17 @@
 import { useState } from 'react';
-import { Activity, HeartPulse, ArrowUp, ArrowDown, Minus, AlertTriangle, Check, Loader2, Save, Clock, Pencil, Trash2, X, Calendar } from 'lucide-react';
+import { Activity, HeartPulse, ArrowUp, ArrowDown, Minus, AlertTriangle, Check, Loader2, Save, Clock, Trash2, X, Calendar, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { DateInput } from '@/components/ui/date-picker';
+import { TimeInput } from '@/components/ui/time-picker';
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+} from '@/components/ui/drawer';
 import { cn } from '@/lib/utils';
 import { useEnsurePatient } from '@/hooks/use-ensure-patient';
 import { useTodayVitals, useSaveVitals, useUpdateVitals, useDeleteVitals, getBloodPressureStatus } from '@/lib/api/hooks/use-health';
@@ -12,30 +21,96 @@ import { useToast } from '@/hooks/use-toast';
 interface VitalsFormProps {
   onSuccess?: () => void;
   onCancel?: () => void;
+  initialEditData?: VitalsLog;
 }
 
-export function VitalsForm({ onSuccess, onCancel }: VitalsFormProps) {
+export function VitalsForm({ onSuccess, onCancel, initialEditData }: VitalsFormProps) {
   const { patientId, isLoading: authLoading, ensurePatient } = useEnsurePatient();
   const { toast } = useToast();
+
+  // Debug log to check initialEditData
+  console.log('[VitalsForm] initialEditData:', initialEditData);
+  console.log('[VitalsForm] initialEditData?.bp_systolic:', initialEditData?.bp_systolic);
+  console.log('[VitalsForm] initialEditData?.bp_diastolic:', initialEditData?.bp_diastolic);
+  console.log('[VitalsForm] initialEditData?.heart_rate:', initialEditData?.heart_rate);
+  console.log('[VitalsForm] initialEditData?.measured_at:', initialEditData?.measured_at);
 
   const { data: todayLogs, isLoading: logsLoading, refetch } = useTodayVitals(patientId);
   const saveVitals = useSaveVitals();
   const updateVitals = useUpdateVitals();
   const deleteVitals = useDeleteVitals();
 
-  const [systolic, setSystolic] = useState('');
-  const [diastolic, setDiastolic] = useState('');
-  const [pulse, setPulse] = useState('');
-  const [editDate, setEditDate] = useState('');
-  const [editTime, setEditTime] = useState('');
+  // Initialize state - use initialEditData if provided (component is re-mounted via key prop)
+  const [systolic, setSystolic] = useState(() => {
+    const val = initialEditData?.bp_systolic?.toString() || '';
+    console.log('[VitalsForm] useState systolic init:', val);
+    return val;
+  });
+  const [diastolic, setDiastolic] = useState(() => {
+    const val = initialEditData?.bp_diastolic?.toString() || '';
+    console.log('[VitalsForm] useState diastolic init:', val);
+    return val;
+  });
+  const [pulse, setPulse] = useState(() => {
+    const val = initialEditData?.heart_rate?.toString() || '';
+    console.log('[VitalsForm] useState pulse init:', val);
+    return val;
+  });
+  const [editDate, setEditDate] = useState(() => {
+    if (initialEditData?.measured_at) {
+      const d = new Date(initialEditData.measured_at);
+      // Use local date (Bangkok timezone)
+      return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}`;
+    }
+    return '';
+  });
+  const [editTime, setEditTime] = useState(() => {
+    if (initialEditData?.measured_at) {
+      const d = new Date(initialEditData.measured_at);
+      // Use local time (Bangkok timezone)
+      return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+    }
+    return '';
+  });
   const [isSaving, setIsSaving] = useState(false);
-  const [editingLog, setEditingLog] = useState<VitalsLog | null>(null);
+  const [editingLog, setEditingLog] = useState<VitalsLog | null>(() => {
+    console.log('[VitalsForm] useState editingLog init:', initialEditData);
+    return initialEditData || null;
+  });
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+
+  // Drawer-based edit state
+  const [editDrawerItem, setEditDrawerItem] = useState<VitalsLog | null>(null);
+  const [editDrawerSuccess, setEditDrawerSuccess] = useState(false);
+
+  // Open edit drawer
+  const handleEditDrawer = (log: VitalsLog) => {
+    setEditDrawerItem(log);
+    setEditDrawerSuccess(false);
+  };
+
+  // Close edit drawer
+  const handleCloseEditDrawer = () => {
+    setEditDrawerItem(null);
+    setEditDrawerSuccess(false);
+    refetch();
+  };
+
+  // Handle edit drawer success
+  const handleEditDrawerSuccess = () => {
+    setEditDrawerSuccess(true);
+    setTimeout(() => {
+      handleCloseEditDrawer();
+    }, 1500);
+  };
+
+  // Debug: Log current state values
+  console.log('[VitalsForm] RENDER - systolic:', systolic, 'diastolic:', diastolic, 'pulse:', pulse, 'editingLog:', !!editingLog);
 
   const allLogs = todayLogs || [];
   const latestLog = allLogs[0];
 
-  // Load log data into form for editing
+  // Load log data into form for editing (used by initialEditData mode)
   const handleEdit = (log: VitalsLog) => {
     setEditingLog(log);
     setSystolic(log.bp_systolic?.toString() || '');
@@ -119,10 +194,12 @@ export function VitalsForm({ onSuccess, onCancel }: VitalsFormProps) {
         return;
       }
 
-      if (editingLog) {
-        // Build measured_at from date and time
+      const isEditing = !!editingLog;
+
+      if (isEditing) {
+        // Build measured_at from date and time - send as Bangkok local time with +07:00 offset
         const measuredAt = editDate && editTime
-          ? new Date(`${editDate}T${editTime}:00`).toISOString()
+          ? `${editDate}T${editTime}:00+07:00`
           : undefined;
 
         // Update existing record
@@ -156,9 +233,9 @@ export function VitalsForm({ onSuccess, onCancel }: VitalsFormProps) {
 
       // Refetch data
       refetch();
-      if (!editingLog) {
-        onSuccess?.();
-      }
+
+      // Call onSuccess for both create and edit
+      onSuccess?.();
     } catch (error) {
       console.error('Error saving vitals:', error);
       toast({ description: 'เกิดข้อผิดพลาดในการบันทึก', variant: 'destructive' });
@@ -312,27 +389,21 @@ export function VitalsForm({ onSuccess, onCancel }: VitalsFormProps) {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="editDate" className="text-xs text-muted-foreground block">
+                <Label className="text-xs text-muted-foreground block">
                   วันที่
                 </Label>
-                <Input
-                  id="editDate"
-                  type="date"
+                <DateInput
                   value={editDate}
-                  onChange={(e) => setEditDate(e.target.value)}
-                  className="h-11 w-full"
+                  onChange={setEditDate}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="editTime" className="text-xs text-muted-foreground block">
+                <Label className="text-xs text-muted-foreground block">
                   เวลา
                 </Label>
-                <Input
-                  id="editTime"
-                  type="time"
+                <TimeInput
                   value={editTime}
-                  onChange={(e) => setEditTime(e.target.value)}
-                  className="h-11 w-full"
+                  onChange={setEditTime}
                 />
               </div>
             </div>
@@ -361,43 +432,45 @@ export function VitalsForm({ onSuccess, onCancel }: VitalsFormProps) {
               return (
                 <div
                   key={log.id}
-                  className={cn(
-                    "flex items-center justify-between bg-muted/50 rounded-xl p-3",
-                    editingLog?.id === log.id && "ring-2 ring-primary"
-                  )}
+                  className="flex items-center gap-3 bg-muted/50 rounded-xl p-3 group cursor-pointer active:scale-[0.99] transition-transform"
+                  onClick={() => !isDeleting && handleEditDrawer(log)}
                 >
-                  <div className="space-y-1 flex-1">
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <Clock className="w-3 h-3" />
-                      {time}
+                  <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-950/50 flex items-center justify-center shrink-0">
+                    <Activity className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <Clock className="w-3 h-3 text-muted-foreground" />
+                      <span className="text-xs text-muted-foreground">{time} น.</span>
+                      {status && (
+                        <span className={cn('text-[10px] font-medium px-2 py-0.5 rounded-full', status.color)}>
+                          {status.label}
+                        </span>
+                      )}
                     </div>
-                    <p className="text-lg font-bold font-mono">
+                    <p className="text-sm font-bold font-mono text-foreground">
                       {log.bp_systolic}/{log.bp_diastolic} mmHg
+                      {log.heart_rate && (
+                        <span className="text-xs font-normal text-muted-foreground ml-2">
+                          <HeartPulse className="w-3 h-3 inline text-red-500" /> {log.heart_rate}
+                        </span>
+                      )}
                     </p>
-                    {log.heart_rate && (
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <HeartPulse className="w-3 h-3 text-red-500" />
-                        {log.heart_rate} ครั้ง/นาที
-                      </div>
-                    )}
-                    {status && (
-                      <div className={cn('inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium', status.color)}>
-                        {getStatusIcon(status.status)}
-                        {status.label}
-                      </div>
-                    )}
                   </div>
 
                   {/* Edit/Delete Buttons */}
-                  <div className="flex items-center gap-1 ml-2">
+                  <div className="flex items-center gap-1 shrink-0">
                     {isDeleting ? (
                       <>
                         <Button
                           variant="destructive"
                           size="sm"
-                          onClick={() => handleDelete(log.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(log.id);
+                          }}
                           disabled={deleteVitals.isPending}
-                          className="h-8 px-2 text-xs"
+                          className="h-7 px-2 text-xs"
                         >
                           {deleteVitals.isPending ? (
                             <Loader2 className="w-3 h-3 animate-spin" />
@@ -408,8 +481,11 @@ export function VitalsForm({ onSuccess, onCancel }: VitalsFormProps) {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => setDeleteConfirmId(null)}
-                          className="h-8 px-2 text-xs"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeleteConfirmId(null);
+                          }}
+                          className="h-7 px-2 text-xs"
                         >
                           ยกเลิก
                         </Button>
@@ -418,20 +494,16 @@ export function VitalsForm({ onSuccess, onCancel }: VitalsFormProps) {
                       <>
                         <Button
                           variant="ghost"
-                          size="icon"
-                          onClick={() => handleEdit(log)}
-                          className="h-8 w-8 text-muted-foreground hover:text-primary"
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setDeleteConfirmId(log.id)}
-                          className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                          size="sm"
+                          className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive opacity-50 group-hover:opacity-100 transition-opacity"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeleteConfirmId(log.id);
+                          }}
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
+                        <ChevronRight className="w-4 h-4 text-muted-foreground/40 group-hover:text-muted-foreground group-hover:translate-x-0.5 transition-all" />
                       </>
                     )}
                   </div>
@@ -440,6 +512,45 @@ export function VitalsForm({ onSuccess, onCancel }: VitalsFormProps) {
             })}
           </div>
         </div>
+      )}
+
+      {/* Edit Drawer - like history tab */}
+      {editDrawerItem && (
+        <Drawer open={true} onOpenChange={(open) => !open && handleCloseEditDrawer()}>
+          <DrawerContent className="max-h-[90vh]">
+            <DrawerHeader className="flex items-center justify-between px-6">
+              <DrawerTitle className="text-xl font-bold">แก้ไขบันทึกความดัน</DrawerTitle>
+              <DrawerClose asChild>
+                <Button variant="ghost" size="icon" className="rounded-full h-10 w-10">
+                  <X className="w-5 h-5" />
+                </Button>
+              </DrawerClose>
+            </DrawerHeader>
+
+            <div className="px-6 overflow-y-auto max-h-[calc(90vh-80px)]">
+              {editDrawerSuccess ? (
+                <div className="py-12 flex flex-col items-center text-center space-y-6 animate-in zoom-in-95 duration-300">
+                  <div className="w-20 h-20 bg-emerald-100 dark:bg-emerald-950/30 text-emerald-600 rounded-full flex items-center justify-center">
+                    <Check className="w-10 h-10 stroke-[3px]" />
+                  </div>
+                  <div className="space-y-2">
+                    <h2 className="text-2xl font-bold text-foreground">อัปเดตเรียบร้อย!</h2>
+                    <p className="text-muted-foreground text-sm leading-relaxed px-8">
+                      ข้อมูลความดันของคุณถูกอัปเดตแล้ว
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <VitalsForm
+                  key={editDrawerItem.id}
+                  onSuccess={handleEditDrawerSuccess}
+                  onCancel={handleCloseEditDrawer}
+                  initialEditData={editDrawerItem}
+                />
+              )}
+            </div>
+          </DrawerContent>
+        </Drawer>
       )}
 
       {/* Empty State */}

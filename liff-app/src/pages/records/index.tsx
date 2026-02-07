@@ -12,6 +12,9 @@ import {
   History,
   Check,
   X,
+  Clock,
+  Loader2,
+  Trash2,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -26,6 +29,21 @@ import { BottomNav } from '@/components/layout/bottom-nav';
 import { VitalsForm, WaterForm, MedicationForm, SymptomForm, SleepForm, ExerciseForm, MoodForm, MedicalNotesForm } from '@/components/forms';
 import { cn } from '@/lib/utils';
 import { useLocation } from 'wouter';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  useHealthHistory,
+  useDeleteVitals,
+  useDeleteSymptom,
+  useDeleteExercise,
+  useDeleteMood,
+  useDeleteMedicalNote,
+  useDeleteMedicationLog,
+  useDeleteSleep,
+  useDeleteWater,
+  type HealthHistoryItem,
+} from '@/lib/api/hooks/use-health';
+import { useEnsurePatient } from '@/hooks/use-ensure-patient';
+import { useToast } from '@/hooks/use-toast';
 
 type CategoryId = 'health' | 'meds' | 'sleep' | 'water' | 'exercise' | 'stress' | 'symptoms' | 'notes';
 
@@ -105,15 +123,174 @@ const categories: Category[] = [
   },
 ];
 
+// Map category to health history type
+const categoryToHistoryType: Record<CategoryId, string> = {
+  health: 'vitals',
+  meds: 'medications',
+  sleep: 'sleep',
+  water: 'water',
+  exercise: 'exercise',
+  stress: 'mood',
+  symptoms: 'symptoms',
+  notes: 'medical_notes',
+};
+
 export default function RecordsPage() {
   const [selectedCategory, setSelectedCategory] = useState<CategoryId | null>(null);
+  const [activeTab, setActiveTab] = useState<'today' | 'history'>('today');
   const [success, setSuccess] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [editingItem, setEditingItem] = useState<HealthHistoryItem | null>(null);
+  const [editSuccess, setEditSuccess] = useState(false);
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
+
+  // Get patient ID for history
+  const { patientId } = useEnsurePatient();
+  const { data: healthHistory, isLoading: historyLoading, refetch: refetchHistory } = useHealthHistory(patientId, 30);
+
+  // Delete hooks for each category
+  const deleteVitals = useDeleteVitals();
+  const deleteSymptom = useDeleteSymptom();
+  const deleteExercise = useDeleteExercise();
+  const deleteMood = useDeleteMood();
+  const deleteMedicalNote = useDeleteMedicalNote();
+  const deleteMedicationLog = useDeleteMedicationLog();
+  const deleteSleep = useDeleteSleep();
+  const deleteWater = useDeleteWater();
+
+  // Map category type to delete function
+  const getDeleteMutation = (type: string) => {
+    const deleteMap: Record<string, typeof deleteVitals> = {
+      vitals: deleteVitals,
+      symptoms: deleteSymptom,
+      exercise: deleteExercise,
+      mood: deleteMood,
+      medical_notes: deleteMedicalNote,
+      medications: deleteMedicationLog,
+      sleep: deleteSleep,
+      water: deleteWater,
+    };
+    return deleteMap[type];
+  };
+
+  const handleDeleteHistory = async (id: string, type: string) => {
+    if (!patientId) return;
+    const deleteMutation = getDeleteMutation(type);
+    if (!deleteMutation) {
+      toast({ description: `ไม่สามารถลบประเภท ${type} ได้`, variant: 'destructive' });
+      return;
+    }
+
+    try {
+      await deleteMutation.mutateAsync({ id, patientId });
+      toast({ description: 'ลบข้อมูลเรียบร้อยแล้ว' });
+      setDeleteConfirmId(null);
+      refetchHistory();
+    } catch (error) {
+      console.error('Error deleting history item:', error);
+      toast({ description: 'เกิดข้อผิดพลาดในการลบข้อมูล', variant: 'destructive' });
+    }
+  };
+
+  const isDeleting = deleteVitals.isPending || deleteSymptom.isPending || deleteExercise.isPending ||
+    deleteMood.isPending || deleteMedicalNote.isPending || deleteMedicationLog.isPending ||
+    deleteSleep.isPending || deleteWater.isPending;
+
+  // Handle edit item click
+  const handleEditItem = (item: HealthHistoryItem) => {
+    setEditingItem(item);
+  };
+
+  // Handle close edit drawer
+  const handleCloseEdit = () => {
+    setEditingItem(null);
+    setEditSuccess(false);
+    refetchHistory();
+  };
+
+  // Handle success from edit form
+  const handleEditSuccess = () => {
+    setEditSuccess(true);
+    setTimeout(() => {
+      handleCloseEdit();
+    }, 1500);
+  };
+
+  // Get the category ID from item type
+  const getEditCategoryFromType = (type: string): CategoryId | null => {
+    const typeToCategory: Record<string, CategoryId> = {
+      vitals: 'health',
+      medications: 'meds',
+      sleep: 'sleep',
+      water: 'water',
+      exercise: 'exercise',
+      mood: 'stress',
+      symptoms: 'symptoms',
+      medical_notes: 'notes',
+    };
+    return typeToCategory[type] || null;
+  };
+
+  // Render the edit form based on item type
+  const renderEditForm = () => {
+    if (!editingItem) return null;
+
+    const category = getEditCategoryFromType(editingItem.type);
+    if (!category) return null;
+
+    // Pass the raw data as initialEditData to open in edit mode
+    const rawData = editingItem.raw as Record<string, unknown>;
+
+    // Debug: Log the raw data being passed to the form
+    console.log('[Records] renderEditForm - editingItem:', editingItem);
+    console.log('[Records] renderEditForm - rawData:', rawData);
+    console.log('[Records] renderEditForm - category:', category);
+
+    // Use key prop to force re-mount when editing different items
+    const formKey = editingItem.id;
+
+    switch (category) {
+      case 'health':
+        return <VitalsForm key={formKey} onSuccess={handleEditSuccess} onCancel={handleCloseEdit} initialEditData={rawData as any} />;
+      case 'water':
+        return <WaterForm key={formKey} onSuccess={handleEditSuccess} onCancel={handleCloseEdit} initialEditData={rawData as any} />;
+      case 'meds':
+        return <MedicationForm key={formKey} onSuccess={handleEditSuccess} onCancel={handleCloseEdit} initialEditData={rawData as any} />;
+      case 'symptoms':
+        return <SymptomForm key={formKey} onSuccess={handleEditSuccess} onCancel={handleCloseEdit} initialEditData={rawData as any} />;
+      case 'sleep':
+        return <SleepForm key={formKey} onSuccess={handleEditSuccess} onCancel={handleCloseEdit} initialEditData={rawData as any} />;
+      case 'exercise':
+        return <ExerciseForm key={formKey} onSuccess={handleEditSuccess} onCancel={handleCloseEdit} initialEditData={rawData as any} />;
+      case 'stress':
+        return <MoodForm key={formKey} onSuccess={handleEditSuccess} onCancel={handleCloseEdit} initialEditData={rawData as any} />;
+      case 'notes':
+        return <MedicalNotesForm key={formKey} onSuccess={handleEditSuccess} onCancel={handleCloseEdit} initialEditData={rawData as any} />;
+      default:
+        return null;
+    }
+  };
+
+  // Get the edit drawer title
+  const getEditTitle = () => {
+    if (!editingItem) return '';
+    const category = getEditCategoryFromType(editingItem.type);
+    if (!category) return editingItem.title;
+    const categoryData = categories.find(c => c.id === category);
+    return categoryData?.title || editingItem.title;
+  };
 
   const handleOpenCategory = (id: CategoryId) => {
     setSelectedCategory(id);
+    setActiveTab('today'); // Reset to today tab when opening
     setSuccess(false);
   };
+
+  // Filter history by selected category
+  const filteredHistory = selectedCategory
+    ? (healthHistory || []).filter(item => item.type === categoryToHistoryType[selectedCategory])
+    : [];
 
   const handleClose = () => {
     setSelectedCategory(null);
@@ -261,11 +438,166 @@ export default function RecordsPage() {
                 </Button>
               </div>
             ) : (
-              renderForm()
+              <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'today' | 'history')} className="w-full">
+                <TabsList className="grid w-full grid-cols-2 mb-6 h-14 p-1.5 bg-muted/80 rounded-2xl">
+                  <TabsTrigger
+                    value="today"
+                    className="gap-2 h-full rounded-xl text-sm font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg data-[state=active]:shadow-primary/25 transition-all"
+                  >
+                    <PlusCircle className="w-5 h-5" />
+                    บันทึกวันนี้
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="history"
+                    className="gap-2 h-full rounded-xl text-sm font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg data-[state=active]:shadow-primary/25 transition-all"
+                  >
+                    <History className="w-5 h-5" />
+                    ประวัติย้อนหลัง
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="today" className="mt-0">
+                  {renderForm()}
+                </TabsContent>
+
+                <TabsContent value="history" className="mt-0">
+                  {historyLoading ? (
+                    <div className="flex flex-col items-center justify-center py-12 space-y-3">
+                      <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                      <p className="text-sm text-muted-foreground">กำลังโหลด...</p>
+                    </div>
+                  ) : filteredHistory.length === 0 ? (
+                    <div className="py-12 flex flex-col items-center text-center space-y-4">
+                      <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center">
+                        <History className="w-8 h-8 text-muted-foreground" />
+                      </div>
+                      <div className="space-y-2">
+                        <h3 className="font-bold text-foreground">ยังไม่มีประวัติ</h3>
+                        <p className="text-sm text-muted-foreground max-w-[250px]">
+                          เริ่มบันทึก{selectedCategoryData?.title}วันนี้เลย
+                        </p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        onClick={() => setActiveTab('today')}
+                      >
+                        <PlusCircle className="w-4 h-4 mr-2" />
+                        บันทึกใหม่
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-2 pb-6">
+                      {filteredHistory.map((item) => (
+                        <div
+                          key={item.id}
+                          className="flex items-center gap-3 bg-muted/50 rounded-xl p-3 group cursor-pointer active:scale-[0.99] transition-transform"
+                          onClick={() => deleteConfirmId !== item.id && handleEditItem(item)}
+                        >
+                          <div className={cn(
+                            'w-10 h-10 rounded-xl flex items-center justify-center shrink-0',
+                            selectedCategoryData?.color
+                          )}>
+                            {selectedCategoryData && <selectedCategoryData.icon className="w-5 h-5" />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <Clock className="w-3 h-3 text-muted-foreground" />
+                              <span className="text-xs text-muted-foreground">{item.time}</span>
+                              <span className="text-[10px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                                {item.date}
+                              </span>
+                            </div>
+                            <p className="text-sm font-medium text-foreground truncate">{item.detail}</p>
+                          </div>
+                          {/* Delete Button & Clickable Indicator */}
+                          {deleteConfirmId === item.id ? (
+                            <div className="flex items-center gap-1 shrink-0">
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                className="h-7 px-2 text-xs"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteHistory(item.id, item.type);
+                                }}
+                                disabled={isDeleting}
+                              >
+                                {isDeleting ? <Loader2 className="w-3 h-3 animate-spin" /> : 'ลบ'}
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 px-2 text-xs"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDeleteConfirmId(null);
+                                }}
+                              >
+                                ยกเลิก
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1 shrink-0">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive opacity-50 group-hover:opacity-100 transition-opacity"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDeleteConfirmId(item.id);
+                                }}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                              <ChevronRight className="w-4 h-4 text-muted-foreground/40 group-hover:text-muted-foreground group-hover:translate-x-0.5 transition-all" />
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </TabsContent>
+              </Tabs>
             )}
           </div>
         </DrawerContent>
       </Drawer>
+
+      {/* Edit Item Drawer - Only render when editingItem exists */}
+      {editingItem && (
+        <Drawer open={true} onOpenChange={(open) => !open && handleCloseEdit()}>
+          <DrawerContent className="max-h-[90vh]">
+            <DrawerHeader className="flex items-center justify-between px-6">
+              <DrawerTitle className="text-xl font-bold">
+                {getEditTitle()}
+              </DrawerTitle>
+              <DrawerClose asChild>
+                <Button variant="ghost" size="icon" className="rounded-full h-10 w-10">
+                  <X className="w-5 h-5" />
+                </Button>
+              </DrawerClose>
+            </DrawerHeader>
+
+            <div className="px-6 overflow-y-auto max-h-[calc(90vh-80px)]">
+              {editSuccess ? (
+                <div className="py-12 flex flex-col items-center text-center space-y-6 animate-in zoom-in-95 duration-300">
+                  <div className="w-20 h-20 bg-emerald-100 dark:bg-emerald-950/30 text-emerald-600 rounded-full flex items-center justify-center">
+                    <Check className="w-10 h-10 stroke-[3px]" />
+                  </div>
+                  <div className="space-y-2">
+                    <h2 className="text-2xl font-bold text-foreground">อัปเดตเรียบร้อย!</h2>
+                    <p className="text-muted-foreground text-sm leading-relaxed px-8">
+                      ข้อมูลของคุณถูกอัปเดตแล้ว
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                renderEditForm()
+              )}
+            </div>
+          </DrawerContent>
+        </Drawer>
+      )}
 
       <BottomNav />
     </div>

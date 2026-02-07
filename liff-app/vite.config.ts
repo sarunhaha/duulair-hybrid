@@ -15,7 +15,15 @@ export default defineConfig({
   base: process.env.NODE_ENV === 'production' ? '/liff-v2/' : '/',
   server: {
     port: 3000,
-    host: true, // Allow external access for ngrok
+    host: true,
+    allowedHosts: ['localhost', '.ngrok-free.app', '.ngrok.io'],
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3100',
+        changeOrigin: true,
+        secure: false,
+      },
+    },
   },
   build: {
     outDir: '../public/liff-v2',

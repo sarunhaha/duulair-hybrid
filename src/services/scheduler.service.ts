@@ -15,14 +15,22 @@ class SchedulerService {
   /**
    * Start all cron jobs
    *
-   * NOTE: On Vercel/Serverless, node-cron does NOT work because:
-   * - Serverless functions are stateless and short-lived
-   * - Cron jobs need a long-running process
+   * DISABLED: All reminder notifications are now handled by Supabase Edge Functions + pg_cron
+   * This prevents duplicate notifications from running both systems simultaneously.
    *
-   * For production on Vercel, use Supabase Edge Functions + pg_cron instead.
+   * See: supabase/functions/send-reminders/index.ts
    * See: docs/migrations/008_setup_pg_cron_reminders.sql
    */
   start() {
+    // DISABLED: Use Supabase Edge Functions + pg_cron for ALL environments
+    // This prevents duplicate notifications when both systems are active
+    console.log('⏰ Scheduler: DISABLED - Using Supabase Edge Functions + pg_cron for reminders');
+    console.log('   If you need local scheduling, enable pg_cron trigger in Supabase Dashboard');
+    return;
+
+    // ==================== DISABLED CODE BELOW ====================
+    // Uncomment only if Supabase Edge Functions are not available
+    /*
     // Skip on Vercel - use Supabase Edge Functions + pg_cron instead
     if (process.env.VERCEL || process.env.VERCEL_ENV) {
       console.log('⏰ Scheduler: Skipping node-cron on Vercel (use Supabase Edge Functions + pg_cron)');
@@ -48,6 +56,7 @@ class SchedulerService {
 
     this.isRunning = true;
     console.log('✅ Scheduler Service started (local mode)');
+    */
   }
 
   /**

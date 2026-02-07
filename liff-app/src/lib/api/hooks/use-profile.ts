@@ -139,9 +139,16 @@ export function useUpdatePatientProfile() {
   return useMutation({
     mutationFn: async ({ patientId, data }: { patientId: string; data: Partial<PatientProfile> }) => {
       // Backend endpoint: PUT /api/registration/profile/patient/:id
-      return apiClient.put(`/registration/profile/patient/${patientId}`, data);
+      console.log('[useUpdatePatientProfile] Calling API with:', { patientId, data });
+      const result = await apiClient.put(`/registration/profile/patient/${patientId}`, data);
+      console.log('[useUpdatePatientProfile] API result:', result);
+      return result;
+    },
+    onError: (error) => {
+      console.error('[useUpdatePatientProfile] Error:', error);
     },
     onSuccess: (_, { patientId }) => {
+      console.log('[useUpdatePatientProfile] Success, invalidating queries for:', patientId);
       queryClient.invalidateQueries({ queryKey: profileKeys.patient(patientId) });
     },
   });

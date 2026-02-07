@@ -7,7 +7,8 @@
  * OPTIMIZATION: Uses localStorage cache for instant loading on subsequent visits
  */
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useRef } from 'react';
 import { useLiff } from '@/lib/liff/provider';
 import { registrationApi } from '@/lib/api/client';
 import type { RegistrationCheckResponse } from '@/lib/api/client';
@@ -88,6 +89,8 @@ function setCachedAuth(lineUserId: string, data: RegistrationCheckResponse): voi
 
 export function useAuth(): AuthData {
   const { isInitialized, isLoading: liffLoading, profile, error: liffError } = useLiff();
+  const queryClient = useQueryClient();
+  const hasTriggeredFetch = useRef(false);
 
   const lineUserId = profile?.userId || null;
 
@@ -105,7 +108,7 @@ export function useAuth(): AuthData {
   const queryEnabled = isInitialized && !liffLoading && !!lineUserId;
   console.log('[useAuth] Query enabled:', queryEnabled, { isInitialized, liffLoading, hasLineUserId: !!lineUserId });
 
-  const { data, isLoading: queryLoading, error: queryError } = useQuery({
+  const { data, isLoading: queryLoading, error: queryError, refetch } = useQuery({
     queryKey: ['auth', 'check', lineUserId],
     queryFn: async () => {
       if (!lineUserId) {
@@ -127,6 +130,16 @@ export function useAuth(): AuthData {
     retry: 2,
     refetchOnMount: true, // Always refetch to ensure fresh data
   });
+
+  // Force fetch when lineUserId becomes available and no cache exists
+  useEffect(() => {
+    if (queryEnabled && lineUserId && !initialData && !hasTriggeredFetch.current) {
+      console.log('[useAuth] Force triggering fetch for lineUserId:', lineUserId);
+      hasTriggeredFetch.current = true;
+      // Invalidate and refetch to ensure query runs
+      queryClient.invalidateQueries({ queryKey: ['auth', 'check', lineUserId] });
+    }
+  }, [queryEnabled, lineUserId, initialData, queryClient]);
 
   console.log('[useAuth] Query state:', { queryLoading, hasData: !!data, queryError: queryError?.message });
 

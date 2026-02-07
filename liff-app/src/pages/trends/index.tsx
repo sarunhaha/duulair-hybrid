@@ -7,9 +7,23 @@ import {
   Info,
   AlertCircle,
   Loader2,
+  Calendar,
+  X,
+  Dumbbell,
+  Smile,
+  Droplets,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { BottomNav } from '@/components/layout/bottom-nav';
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+} from '@/components/ui/drawer';
+import { DateInput } from '@/components/ui/date-picker';
 import {
   LineChart,
   Line,
@@ -29,10 +43,14 @@ import {
   useVitalsTrend,
   useMedsTrend,
   useSleepTrend,
+  useExerciseTrend,
+  useMoodTrend,
+  useWaterTrend,
   type TimeRange,
   type TrendCategory,
   type TrendDataPoint,
   type TrendData,
+  type CustomDateRange,
 } from '@/lib/api/hooks/use-trends';
 
 // Mock data for fallback (with required 'date' field for TrendDataPoint)
@@ -93,6 +111,13 @@ const MOCK_SLEEP_DATA: TrendData = {
   insight: 'สัปดาห์นี้คุณนอนเฉลี่ย 6.9 ชม. ลองนอนก่อน 22:00 จะดีขึ้นนะคะ',
 };
 
+// Helper to get local date string
+const getLocalDateString = (daysAgo = 0) => {
+  const d = new Date();
+  d.setDate(d.getDate() - daysAgo);
+  return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}`;
+};
+
 export default function TrendsPage() {
   const { context, user } = useAuthStore();
   // Fallback to user.profileId if context.patientId is null (for patient role)
@@ -102,12 +127,24 @@ export default function TrendsPage() {
   const [category, setCategory] = useState<TrendCategory>('heart');
   const [selectedPoint, setSelectedPoint] = useState<TrendDataPoint | null>(null);
 
-  // Fetch data based on category
-  const { data: vitalsData, isLoading: vitalsLoading } = useVitalsTrend(patientId, range);
-  const { data: medsData, isLoading: medsLoading } = useMedsTrend(patientId, range);
-  const { data: sleepData, isLoading: sleepLoading } = useSleepTrend(patientId, range);
+  // Custom date range state
+  const [customRange, setCustomRange] = useState<CustomDateRange>({
+    startDate: getLocalDateString(30),
+    endDate: getLocalDateString(0),
+  });
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [tempStartDate, setTempStartDate] = useState(customRange.startDate);
+  const [tempEndDate, setTempEndDate] = useState(customRange.endDate);
 
-  // Get active data based on category (with mock fallback)
+  // Fetch data based on category
+  const { data: vitalsData, isLoading: vitalsLoading } = useVitalsTrend(patientId, range, range === 'custom' ? customRange : undefined);
+  const { data: medsData, isLoading: medsLoading } = useMedsTrend(patientId, range, range === 'custom' ? customRange : undefined);
+  const { data: sleepData, isLoading: sleepLoading } = useSleepTrend(patientId, range, range === 'custom' ? customRange : undefined);
+  const { data: exerciseData, isLoading: exerciseLoading } = useExerciseTrend(patientId, range, range === 'custom' ? customRange : undefined);
+  const { data: moodData, isLoading: moodLoading } = useMoodTrend(patientId, range, range === 'custom' ? customRange : undefined);
+  const { data: waterData, isLoading: waterLoading } = useWaterTrend(patientId, range, range === 'custom' ? customRange : undefined);
+
+  // Get active data based on category
   const activeData = useMemo(() => {
     switch (category) {
       case 'heart':
@@ -116,10 +153,16 @@ export default function TrendsPage() {
         return medsData || MOCK_MEDS_DATA;
       case 'sleep':
         return sleepData || MOCK_SLEEP_DATA;
+      case 'exercise':
+        return exerciseData;
+      case 'mood':
+        return moodData;
+      case 'water':
+        return waterData;
       default:
         return vitalsData || MOCK_VITALS_DATA;
     }
-  }, [category, vitalsData, medsData, sleepData]);
+  }, [category, vitalsData, medsData, sleepData, exerciseData, moodData, waterData]);
 
   const isLoading = useMemo(() => {
     switch (category) {
@@ -129,10 +172,16 @@ export default function TrendsPage() {
         return medsLoading;
       case 'sleep':
         return sleepLoading;
+      case 'exercise':
+        return exerciseLoading;
+      case 'mood':
+        return moodLoading;
+      case 'water':
+        return waterLoading;
       default:
         return false;
     }
-  }, [category, vitalsLoading, medsLoading, sleepLoading]);
+  }, [category, vitalsLoading, medsLoading, sleepLoading, exerciseLoading, moodLoading, waterLoading]);
 
   // Clear selected point when changing range/category
   useEffect(() => {
@@ -143,6 +192,9 @@ export default function TrendsPage() {
     { id: 'heart' as TrendCategory, label: 'ความดัน', icon: Heart },
     { id: 'meds' as TrendCategory, label: 'ยา', icon: Pill },
     { id: 'sleep' as TrendCategory, label: 'นอน', icon: Moon },
+    { id: 'exercise' as TrendCategory, label: 'ออกกำลัง', icon: Dumbbell },
+    { id: 'mood' as TrendCategory, label: 'อารมณ์', icon: Smile },
+    { id: 'water' as TrendCategory, label: 'น้ำ', icon: Droplets },
   ];
 
   const handleChartClick = (e: any) => {
@@ -160,29 +212,56 @@ export default function TrendsPage() {
 
       <main className="max-w-md mx-auto px-4 py-6 space-y-6 animate-in fade-in duration-500">
         {/* Time Range Selection */}
-        <div className="flex bg-muted/50 p-1 rounded-xl">
-          {(['7d', '15d', '30d'] as const).map((val, i) => {
-            const label = ['7 วัน', '15 วัน', '30 วัน'][i];
+        <div className="flex bg-muted/50 p-1 rounded-xl gap-1">
+          {(['7d', '15d', '30d', 'custom'] as const).map((val, i) => {
+            const labels = ['7 วัน', '15 วัน', '30 วัน', 'กำหนดเอง'];
             const isActive = range === val;
             return (
               <button
                 key={val}
-                onClick={() => setRange(val)}
+                onClick={() => {
+                  setRange(val);
+                  if (val === 'custom') {
+                    setTempStartDate(customRange.startDate);
+                    setTempEndDate(customRange.endDate);
+                    setShowDatePicker(true);
+                  }
+                }}
                 className={cn(
-                  'flex-1 py-2 text-xs font-semibold rounded-lg transition-all',
+                  'flex-1 py-2 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1',
                   isActive
                     ? 'bg-primary/10 text-primary shadow-sm border border-primary/30'
                     : 'text-muted-foreground'
                 )}
               >
-                {label}
+                {val === 'custom' && <Calendar className="w-3 h-3" />}
+                {labels[i]}
               </button>
             );
           })}
         </div>
 
-        {/* Category Tabs */}
-        <div className="flex bg-muted/50 p-1 rounded-xl">
+        {/* Show selected custom date range */}
+        {range === 'custom' && (
+          <button
+            onClick={() => {
+              setTempStartDate(customRange.startDate);
+              setTempEndDate(customRange.endDate);
+              setShowDatePicker(true);
+            }}
+            className="flex items-center justify-center gap-2 text-xs text-primary bg-primary/5 px-3 py-2 rounded-lg border border-primary/20"
+          >
+            <Calendar className="w-3.5 h-3.5" />
+            <span>
+              {new Date(customRange.startDate).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })}
+              {' - '}
+              {new Date(customRange.endDate).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })}
+            </span>
+          </button>
+        )}
+
+        {/* Category Tabs - Horizontal Scrollable (matching history page style) */}
+        <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
           {categories.map((cat) => {
             const isActive = category === cat.id;
             return (
@@ -190,13 +269,13 @@ export default function TrendsPage() {
                 key={cat.id}
                 onClick={() => setCategory(cat.id)}
                 className={cn(
-                  'flex-1 py-2 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5',
+                  'flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all border',
                   isActive
-                    ? 'bg-primary text-primary-foreground shadow-sm'
-                    : 'text-muted-foreground'
+                    ? 'bg-primary text-primary-foreground border-primary shadow-md shadow-primary/20'
+                    : 'bg-card text-muted-foreground border-border'
                 )}
               >
-                <cat.icon className="w-4 h-4" />
+                <cat.icon className="w-3.5 h-3.5" />
                 {cat.label}
               </button>
             );
@@ -356,7 +435,7 @@ export default function TrendsPage() {
                         ))}
                       </Bar>
                     </BarChart>
-                  ) : (
+                  ) : category === 'sleep' ? (
                     <BarChart
                       data={activeData.data}
                       margin={{ top: 10, right: 10, left: -25, bottom: 0 }}
@@ -386,6 +465,123 @@ export default function TrendsPage() {
                           <Cell
                             key={`cell-${index}`}
                             fill={entry.hours && entry.hours < 6 ? '#f97316' : '#8b5cf6'}
+                          />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  ) : category === 'exercise' ? (
+                    <BarChart
+                      data={activeData.data}
+                      margin={{ top: 10, right: 10, left: -25, bottom: 0 }}
+                      onClick={handleChartClick}
+                    >
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        vertical={false}
+                        stroke="hsl(var(--muted))"
+                      />
+                      <XAxis
+                        dataKey="day"
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                        dy={10}
+                      />
+                      <YAxis
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                        domain={[0, 60]}
+                      />
+                      <Tooltip cursor={{ fill: 'transparent' }} content={() => null} />
+                      <Bar dataKey="duration" radius={[6, 6, 0, 0]}>
+                        {activeData.data.map((entry, index) => (
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={entry.duration == null ? '#e5e7eb' : (entry.duration ?? 0) >= 30 ? '#10b981' : '#f97316'}
+                          />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  ) : category === 'mood' ? (
+                    <BarChart
+                      data={activeData.data}
+                      margin={{ top: 10, right: 10, left: -25, bottom: 0 }}
+                      onClick={handleChartClick}
+                    >
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        vertical={false}
+                        stroke="hsl(var(--muted))"
+                      />
+                      <XAxis
+                        dataKey="day"
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                        dy={10}
+                      />
+                      <YAxis
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                        domain={[0, 5]}
+                      />
+                      <Tooltip cursor={{ fill: 'transparent' }} content={() => null} />
+                      <Bar dataKey="moodScore" radius={[6, 6, 0, 0]}>
+                        {activeData.data.map((entry, index) => (
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={
+                              entry.moodScore == null
+                                ? '#e5e7eb'
+                                : (entry.moodScore ?? 0) >= 4
+                                  ? '#10b981'
+                                  : (entry.moodScore ?? 0) >= 3
+                                    ? '#f59e0b'
+                                    : '#ef4444'
+                            }
+                          />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  ) : (
+                    /* Water */
+                    <BarChart
+                      data={activeData.data}
+                      margin={{ top: 10, right: 10, left: -25, bottom: 0 }}
+                      onClick={handleChartClick}
+                    >
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        vertical={false}
+                        stroke="hsl(var(--muted))"
+                      />
+                      <XAxis
+                        dataKey="day"
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                        dy={10}
+                      />
+                      <YAxis
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                        domain={[0, 12]}
+                      />
+                      <Tooltip cursor={{ fill: 'transparent' }} content={() => null} />
+                      <Bar dataKey="glasses" radius={[6, 6, 0, 0]}>
+                        {activeData.data.map((entry, index) => (
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={
+                              (entry.glasses || 0) >= 8
+                                ? '#3b82f6'
+                                : (entry.glasses || 0) >= 6
+                                  ? '#60a5fa'
+                                  : '#93c5fd'
+                            }
                           />
                         ))}
                       </Bar>
@@ -434,6 +630,51 @@ export default function TrendsPage() {
                           </p>
                         </div>
                       )}
+                      {category === 'exercise' && (
+                        <div className="mt-1">
+                          <p className="text-xl font-bold text-emerald-600">
+                            {selectedPoint.duration !== null ? (
+                              <>
+                                {selectedPoint.duration}{' '}
+                                <span className="text-xs font-normal text-muted-foreground">นาที</span>
+                              </>
+                            ) : (
+                              <span className="text-muted-foreground text-base">ไม่ได้ออกกำลังกาย</span>
+                            )}
+                          </p>
+                          {selectedPoint.exerciseType && (
+                            <p className="text-xs text-muted-foreground mt-0.5">{selectedPoint.exerciseType}</p>
+                          )}
+                        </div>
+                      )}
+                      {category === 'mood' && (
+                        <div className="mt-1">
+                          <p className="text-xl font-bold text-amber-600">
+                            {selectedPoint.moodScore !== null ? (
+                              <>
+                                {selectedPoint.moodScore}/5{' '}
+                                <span className="text-xs font-normal text-muted-foreground">คะแนน</span>
+                              </>
+                            ) : (
+                              <span className="text-muted-foreground text-base">ไม่ได้บันทึก</span>
+                            )}
+                          </p>
+                          {selectedPoint.note && (
+                            <p className="text-xs text-muted-foreground mt-0.5">{selectedPoint.note}</p>
+                          )}
+                        </div>
+                      )}
+                      {category === 'water' && (
+                        <div className="mt-1">
+                          <p className="text-xl font-bold text-blue-600">
+                            {selectedPoint.glasses}{' '}
+                            <span className="text-xs font-normal text-muted-foreground">แก้ว</span>
+                          </p>
+                          {selectedPoint.ml && (
+                            <p className="text-xs text-muted-foreground mt-0.5">≈ {selectedPoint.ml} ml</p>
+                          )}
+                        </div>
+                      )}
                     </div>
                     {selectedPoint.note && (
                       <div className="bg-yellow-50 dark:bg-yellow-950/30 px-3 py-2 rounded-xl text-xs font-medium text-yellow-700 dark:text-yellow-400 max-w-[150px]">
@@ -473,6 +714,90 @@ export default function TrendsPage() {
           </>
         )}
       </main>
+
+      {/* Custom Date Range Picker Drawer */}
+      <Drawer open={showDatePicker} onOpenChange={setShowDatePicker}>
+        <DrawerContent className="max-h-[85vh]">
+          <DrawerHeader className="flex items-center justify-between px-6">
+            <DrawerTitle className="text-xl font-bold">เลือกช่วงวันที่</DrawerTitle>
+            <DrawerClose asChild>
+              <Button variant="ghost" size="icon" className="rounded-full h-10 w-10">
+                <X className="w-5 h-5" />
+              </Button>
+            </DrawerClose>
+          </DrawerHeader>
+
+          <div className="px-6 pb-8 space-y-6">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-muted-foreground">วันเริ่มต้น</label>
+                <DateInput
+                  value={tempStartDate}
+                  onChange={setTempStartDate}
+                  maxDate={tempEndDate}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-muted-foreground">วันสิ้นสุด</label>
+                <DateInput
+                  value={tempEndDate}
+                  onChange={setTempEndDate}
+                  minDate={tempStartDate}
+                  maxDate={getLocalDateString(0)}
+                />
+              </div>
+            </div>
+
+            {/* Quick select buttons */}
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground">เลือกด่วน</p>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { label: '7 วันที่แล้ว', days: 7 },
+                  { label: '14 วันที่แล้ว', days: 14 },
+                  { label: '30 วันที่แล้ว', days: 30 },
+                  { label: '60 วันที่แล้ว', days: 60 },
+                  { label: '90 วันที่แล้ว', days: 90 },
+                ].map((opt) => (
+                  <button
+                    key={opt.days}
+                    onClick={() => {
+                      setTempStartDate(getLocalDateString(opt.days - 1));
+                      setTempEndDate(getLocalDateString(0));
+                    }}
+                    className="px-3 py-1.5 text-xs font-medium rounded-full bg-muted hover:bg-muted/80 text-muted-foreground transition-colors"
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex gap-3 pt-4">
+              <Button
+                variant="ghost"
+                className="flex-1 h-12 rounded-xl"
+                onClick={() => setShowDatePicker(false)}
+              >
+                ยกเลิก
+              </Button>
+              <Button
+                className="flex-1 h-12 rounded-xl bg-primary text-primary-foreground"
+                onClick={() => {
+                  setCustomRange({
+                    startDate: tempStartDate,
+                    endDate: tempEndDate,
+                  });
+                  setShowDatePicker(false);
+                }}
+              >
+                ยืนยัน
+              </Button>
+            </div>
+          </div>
+        </DrawerContent>
+      </Drawer>
 
       <BottomNav />
     </div>

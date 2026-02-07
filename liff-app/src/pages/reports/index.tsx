@@ -52,6 +52,11 @@ import {
   exportToPDF,
   type DateRange,
 } from '@/lib/api/hooks/use-reports';
+import {
+  useDoctorQuestions,
+  useAddDoctorQuestion,
+  useDeleteDoctorQuestion,
+} from '@/lib/api/hooks/use-health';
 import { BottomNav } from '@/components/layout/bottom-nav';
 
 // Calculate dates for today reference
@@ -111,6 +116,9 @@ export default function ReportsPage() {
   const { data: profile } = usePatientProfile(patientId);
   const { data: medications } = usePatientMedicationsAll(patientId);
   const { data: reportData, isLoading: isReportLoading } = useReportData(patientId, mapRangeToDateRange(range));
+  const { data: doctorQuestions, isLoading: isQuestionsLoading } = useDoctorQuestions(patientId);
+  const addQuestionMutation = useAddDoctorQuestion();
+  const deleteQuestionMutation = useDeleteDoctorQuestion();
 
   // Get allergies from profile
   const drugAllergies = profile?.drug_allergies || [];
@@ -146,19 +154,28 @@ export default function ReportsPage() {
   const chartData = reportData?.chartData || [];
   const significantEvents = reportData?.significantEvents || [];
 
-  // Questions State
-  const [questions, setQuestions] = useState<string[]>([
-    'อาการเวียนหัวช่วงบ่ายเกี่ยวกับความดันไหม?',
-    'ควรปรับเวลายาหรือไม่?',
-  ]);
+  // Questions State (now uses database)
+  const questions = doctorQuestions?.filter(q => !q.answered) || [];
   const [newQuestion, setNewQuestion] = useState('');
   const [isAddingQuestion, setIsAddingQuestion] = useState(false);
 
-  const addQuestion = () => {
-    if (newQuestion.trim()) {
-      setQuestions([...questions, newQuestion.trim()]);
+  const addQuestion = async () => {
+    if (newQuestion.trim() && patientId) {
+      await addQuestionMutation.mutateAsync({
+        patientId,
+        question: newQuestion.trim(),
+      });
       setNewQuestion('');
       setIsAddingQuestion(false);
+    }
+  };
+
+  const deleteQuestion = async (questionId: string) => {
+    if (patientId) {
+      await deleteQuestionMutation.mutateAsync({
+        id: questionId,
+        patientId,
+      });
     }
   };
 
@@ -195,9 +212,31 @@ export default function ReportsPage() {
     return `${summary.sleep.avgHours.toFixed(1)} ชม.`;
   }, [summary]);
 
-  const handleExportPDF = () => {
-    if (!reportData) return;
-    exportToPDF(reportData, patientName, dateRangeText);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExportPDF = async () => {
+    if (!reportData || isExporting) return;
+    setIsExporting(true);
+    try {
+      await exportToPDF(reportData, patientName, dateRangeText, {
+        patientName,
+        patientAge,
+        patientGender: profile?.gender,
+        dateRange: dateRangeText,
+        drugAllergies,
+        foodAllergies,
+        medications: activeMedications.map(m => ({
+          name: m.name,
+          dosage_amount: m.dosage_amount,
+          dosage_unit: m.dosage_unit,
+        })),
+        doctorQuestions: questions.map(q => q.question),
+      });
+    } catch (error) {
+      console.error('PDF export failed:', error);
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   return (
@@ -579,24 +618,29 @@ export default function ReportsPage() {
           <div className="bg-card rounded-2xl p-4 shadow-sm border-2 border-dashed border-border relative space-y-3">
             <MessageSquare className="absolute top-4 right-4 w-4 h-4 text-muted-foreground/30" />
 
-            {questions.length === 0 && !isAddingQuestion && (
+            {isQuestionsLoading ? (
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="w-5 h-5 animate-spin text-primary" />
+              </div>
+            ) : questions.length === 0 && !isAddingQuestion ? (
               <p className="text-xs text-muted-foreground text-center py-2">ยังไม่มีคำถาม</p>
+            ) : (
+              <ul className="space-y-2">
+                {questions.map((q, i) => (
+                  <li key={q.id} className="flex items-start gap-2 group">
+                    <span className="text-xs font-bold text-muted-foreground min-w-[16px] mt-0.5">{i + 1})</span>
+                    <p className="text-xs text-foreground flex-1 leading-relaxed">{q.question}</p>
+                    <button
+                      onClick={() => deleteQuestion(q.id)}
+                      disabled={deleteQuestionMutation.isPending}
+                      className="text-muted-foreground hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
             )}
-
-            <ul className="space-y-2">
-              {questions.map((q, i) => (
-                <li key={i} className="flex items-start gap-2 group">
-                  <span className="text-xs font-bold text-muted-foreground min-w-[16px] mt-0.5">{i + 1})</span>
-                  <p className="text-xs text-foreground flex-1 leading-relaxed">{q}</p>
-                  <button
-                    onClick={() => setQuestions(questions.filter((_, idx) => idx !== i))}
-                    className="text-muted-foreground hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </li>
-              ))}
-            </ul>
 
             {isAddingQuestion ? (
               <div className="flex gap-2 animate-in fade-in zoom-in-95 duration-200">
@@ -612,8 +656,17 @@ export default function ReportsPage() {
                     if (e.key === 'Escape') setIsAddingQuestion(false);
                   }}
                 />
-                <Button size="icon" className="h-8 w-8 rounded-xl bg-primary text-primary-foreground" onClick={addQuestion}>
-                  <Plus className="w-4 h-4" />
+                <Button
+                  size="icon"
+                  className="h-8 w-8 rounded-xl bg-primary text-primary-foreground"
+                  onClick={addQuestion}
+                  disabled={addQuestionMutation.isPending}
+                >
+                  {addQuestionMutation.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Plus className="w-4 h-4" />
+                  )}
                 </Button>
               </div>
             ) : (
@@ -689,14 +742,14 @@ export default function ReportsPage() {
           <Button
             onClick={handleExportPDF}
             className="w-full h-12 rounded-2xl bg-primary text-primary-foreground font-bold shadow-xl shadow-primary/20"
-            disabled={isReportLoading || !reportData}
+            disabled={isReportLoading || !reportData || isExporting}
           >
-            {isReportLoading ? (
+            {isReportLoading || isExporting ? (
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
             ) : (
               <FileDown className="w-4 h-4 mr-2" />
             )}
-            ดาวน์โหลด PDF
+            {isExporting ? 'กำลังสร้าง PDF...' : 'ดาวน์โหลด PDF'}
           </Button>
         </div>
       </main>

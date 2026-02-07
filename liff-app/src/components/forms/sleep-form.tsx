@@ -6,14 +6,24 @@ import {
   Loader2,
   Star,
   Check,
-  Pencil,
   Trash2,
   Calendar,
+  X,
+  ChevronRight,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { DateInput } from '@/components/ui/date-picker';
+import { TimeInput } from '@/components/ui/time-picker';
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+} from '@/components/ui/drawer';
 import { useLogSleep, useTodaySleep, useUpdateSleep, useDeleteSleep } from '@/lib/api/hooks/use-health';
 import type { SleepLog } from '@/lib/api/hooks/use-health';
 import { useToast } from '@/hooks/use-toast';
@@ -58,9 +68,10 @@ const defaultFormData: SleepFormData = {
 interface SleepFormProps {
   onSuccess?: () => void;
   onCancel?: () => void;
+  initialEditData?: SleepLog;
 }
 
-export function SleepForm({ onSuccess, onCancel }: SleepFormProps) {
+export function SleepForm({ onSuccess, onCancel, initialEditData }: SleepFormProps) {
   const { patientId, isLoading: authLoading, ensurePatient } = useEnsurePatient();
   const { toast } = useToast();
   const logSleep = useLogSleep();
@@ -68,13 +79,52 @@ export function SleepForm({ onSuccess, onCancel }: SleepFormProps) {
   const deleteSleep = useDeleteSleep();
   const { data: todayLogs, refetch } = useTodaySleep(patientId);
 
-  const [formData, setFormData] = useState<SleepFormData>(defaultFormData);
-  const [editingLog, setEditingLog] = useState<SleepLog | null>(null);
+  // Initialize state - use initialEditData if provided (component is re-mounted via key prop)
+  const [formData, setFormData] = useState<SleepFormData>(() => {
+    if (initialEditData) {
+      console.log('[SleepForm] Initializing from initialEditData:', initialEditData);
+      return {
+        sleep_hours: initialEditData.sleep_hours,
+        sleep_quality: initialEditData.sleep_quality || '',
+        sleep_quality_score: initialEditData.sleep_quality_score,
+        sleep_time: initialEditData.sleep_time || '22:00',
+        wake_time: initialEditData.wake_time || '06:00',
+        notes: initialEditData.notes || '',
+      };
+    }
+    return defaultFormData;
+  });
+  const [editingLog, setEditingLog] = useState<SleepLog | null>(() => initialEditData || null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
-  const [editDate, setEditDate] = useState('');
+  const [editDate, setEditDate] = useState(() => initialEditData?.sleep_date || '');
   const allLogs = todayLogs || [];
 
-  // Load log data into form for editing
+  // Drawer-based edit state
+  const [editDrawerItem, setEditDrawerItem] = useState<SleepLog | null>(null);
+  const [editDrawerSuccess, setEditDrawerSuccess] = useState(false);
+
+  // Open edit drawer
+  const handleEditDrawer = (log: SleepLog) => {
+    setEditDrawerItem(log);
+    setEditDrawerSuccess(false);
+  };
+
+  // Close edit drawer
+  const handleCloseEditDrawer = () => {
+    setEditDrawerItem(null);
+    setEditDrawerSuccess(false);
+    refetch();
+  };
+
+  // Handle edit drawer success
+  const handleEditDrawerSuccess = () => {
+    setEditDrawerSuccess(true);
+    setTimeout(() => {
+      handleCloseEditDrawer();
+    }, 1500);
+  };
+
+  // Load log data into form for editing (used by initialEditData mode)
   const handleEdit = (log: SleepLog) => {
     setEditingLog(log);
     setFormData({
@@ -86,7 +136,9 @@ export function SleepForm({ onSuccess, onCancel }: SleepFormProps) {
       notes: log.notes || '',
     });
     // Set the date for editing
-    setEditDate(log.sleep_date || new Date().toISOString().split('T')[0]);
+    const d = new Date();
+    const localDate = `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}`;
+    setEditDate(log.sleep_date || localDate);
   };
 
   // Cancel editing
@@ -194,9 +246,7 @@ export function SleepForm({ onSuccess, onCancel }: SleepFormProps) {
 
       setFormData(defaultFormData);
       refetch();
-      if (!editingLog) {
-        onSuccess?.();
-      }
+      onSuccess?.();
     } catch (error) {
       console.error('Error logging sleep:', error);
       toast({ title: 'ไม่สามารถบันทึกได้', variant: 'destructive' });
@@ -243,11 +293,9 @@ export function SleepForm({ onSuccess, onCancel }: SleepFormProps) {
               <Moon className="w-4 h-4 text-indigo-500" />
               <span>เข้านอน</span>
             </Label>
-            <Input
-              type="time"
+            <TimeInput
               value={formData.sleep_time}
-              onChange={(e) => handleTimeChange('sleep_time', e.target.value)}
-              className="text-xl h-12 font-medium"
+              onChange={(value) => handleTimeChange('sleep_time', value)}
             />
           </div>
 
@@ -257,11 +305,9 @@ export function SleepForm({ onSuccess, onCancel }: SleepFormProps) {
               <Sun className="w-4 h-4 text-amber-500" />
               <span>ตื่นนอน</span>
             </Label>
-            <Input
-              type="time"
+            <TimeInput
               value={formData.wake_time}
-              onChange={(e) => handleTimeChange('wake_time', e.target.value)}
-              className="text-xl h-12 font-medium"
+              onChange={(value) => handleTimeChange('wake_time', value)}
             />
           </div>
         </div>
@@ -338,11 +384,9 @@ export function SleepForm({ onSuccess, onCancel }: SleepFormProps) {
             <Calendar className="w-5 h-5 text-primary" />
             <Label className="text-base font-bold">วันที่บันทึก</Label>
           </div>
-          <Input
-            type="date"
+          <DateInput
             value={editDate}
-            onChange={(e) => setEditDate(e.target.value)}
-            className="h-12"
+            onChange={setEditDate}
           />
         </div>
       )}
@@ -368,91 +412,119 @@ export function SleepForm({ onSuccess, onCancel }: SleepFormProps) {
               return (
                 <div
                   key={log.id}
-                  className={cn(
-                    "flex items-center justify-between bg-muted/50 rounded-xl p-3",
-                    editingLog?.id === log.id && "ring-2 ring-primary"
-                  )}
+                  className="flex items-center gap-3 bg-muted/50 rounded-xl p-3 group cursor-pointer active:scale-[0.99] transition-transform"
+                  onClick={() => !isDeleting && handleEditDrawer(log)}
                 >
-                  <div className="space-y-1 flex-1">
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <Clock className="w-3 h-3" />
-                      <span>{dateDisplay}</span>
-                      {(log.sleep_time || log.wake_time) && (
-                        <span className="text-muted-foreground/70">
-                          • {log.sleep_time && `นอน ${log.sleep_time}`}
-                          {log.sleep_time && log.wake_time && ' '}
-                          {log.wake_time && `ตื่น ${log.wake_time}`}
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Moon className="w-4 h-4 text-indigo-500" />
-                      <span className="text-lg font-bold">
-                        {log.sleep_hours ? `${log.sleep_hours} ชม.` : '-'}
-                      </span>
+                  <div className="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-950/30 flex items-center justify-center shrink-0">
+                    <Moon className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <Clock className="w-3 h-3 text-muted-foreground" />
+                      <span className="text-xs text-muted-foreground">{dateDisplay}</span>
                       {qualityOpt && (
-                        <span className={cn('px-2 py-0.5 rounded text-xs font-medium', qualityOpt.color)}>
+                        <span className={cn('text-[10px] font-medium px-2 py-0.5 rounded-full', qualityOpt.color)}>
                           {qualityOpt.icon} {qualityOpt.label}
                         </span>
                       )}
                     </div>
+                    <p className="text-sm font-medium text-foreground truncate">
+                      {log.sleep_hours ? `${log.sleep_hours} ชม.` : '-'}
+                      {(log.sleep_time || log.wake_time) && (
+                        <span className="text-muted-foreground font-normal ml-2">
+                          {log.sleep_time && `นอน ${log.sleep_time}`}
+                          {log.sleep_time && log.wake_time && ' · '}
+                          {log.wake_time && `ตื่น ${log.wake_time}`}
+                        </span>
+                      )}
+                    </p>
                     {log.notes && (
-                      <p className="text-xs text-muted-foreground italic">{log.notes}</p>
+                      <p className="text-xs text-muted-foreground truncate mt-0.5">{log.notes}</p>
                     )}
                   </div>
 
                   {/* Edit/Delete Buttons */}
-                  <div className="flex items-center gap-1 ml-2">
-                    {isDeleting ? (
-                      <>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => handleDelete(log.id)}
-                          disabled={deleteSleep.isPending}
-                          className="h-8 px-2 text-xs"
-                        >
-                          {deleteSleep.isPending ? (
-                            <Loader2 className="w-3 h-3 animate-spin" />
-                          ) : (
-                            'ยืนยัน'
-                          )}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setDeleteConfirmId(null)}
-                          className="h-8 px-2 text-xs"
-                        >
-                          ยกเลิก
-                        </Button>
-                      </>
-                    ) : (
-                      <>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleEdit(log)}
-                          className="h-8 w-8 text-muted-foreground hover:text-primary"
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setDeleteConfirmId(log.id)}
-                          className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </>
-                    )}
-                  </div>
+                  {isDeleting ? (
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={(e) => { e.stopPropagation(); handleDelete(log.id); }}
+                        disabled={deleteSleep.isPending}
+                        className="h-8 px-2 text-xs"
+                      >
+                        {deleteSleep.isPending ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          'ยืนยัน'
+                        )}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(null); }}
+                        className="h-8 px-2 text-xs"
+                      >
+                        ยกเลิก
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(log.id); }}
+                        className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive opacity-50 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                      <ChevronRight className="w-4 h-4 text-muted-foreground/40 group-hover:text-muted-foreground group-hover:translate-x-0.5 transition-all" />
+                    </div>
+                  )}
                 </div>
               );
             })}
           </div>
         </div>
+      )}
+
+      {/* Edit Drawer - like history tab */}
+      {editDrawerItem && (
+        <Drawer open={true} onOpenChange={(open) => !open && handleCloseEditDrawer()}>
+          <DrawerContent className="max-h-[90vh]">
+            <DrawerHeader className="flex items-center justify-between px-6">
+              <DrawerTitle className="text-xl font-bold">แก้ไขบันทึกการนอน</DrawerTitle>
+              <DrawerClose asChild>
+                <Button variant="ghost" size="icon" className="rounded-full h-10 w-10">
+                  <X className="w-5 h-5" />
+                </Button>
+              </DrawerClose>
+            </DrawerHeader>
+
+            <div className="px-6 overflow-y-auto max-h-[calc(90vh-80px)]">
+              {editDrawerSuccess ? (
+                <div className="py-12 flex flex-col items-center text-center space-y-6 animate-in zoom-in-95 duration-300">
+                  <div className="w-20 h-20 bg-emerald-100 dark:bg-emerald-950/30 text-emerald-600 rounded-full flex items-center justify-center">
+                    <Check className="w-10 h-10 stroke-[3px]" />
+                  </div>
+                  <div className="space-y-2">
+                    <h2 className="text-2xl font-bold text-foreground">อัปเดตเรียบร้อย!</h2>
+                    <p className="text-muted-foreground text-sm leading-relaxed px-8">
+                      ข้อมูลการนอนของคุณถูกอัปเดตแล้ว
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <SleepForm
+                  key={editDrawerItem.id}
+                  onSuccess={handleEditDrawerSuccess}
+                  onCancel={handleCloseEditDrawer}
+                  initialEditData={editDrawerItem}
+                />
+              )}
+            </div>
+          </DrawerContent>
+        </Drawer>
       )}
 
       {/* Action Buttons */}

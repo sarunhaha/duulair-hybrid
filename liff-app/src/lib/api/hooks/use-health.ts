@@ -213,16 +213,61 @@ export function useAddWater() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (data: { patientId: string; glasses?: number; amount_ml?: number }) => {
+    mutationFn: async (data: { patientId: string; glasses?: number; amount_ml?: number; logged_at?: string }) => {
       return await apiClient.post('/health/water', {
         patient_id: data.patientId,
         glasses: data.glasses,
         amount_ml: data.amount_ml,
+        logged_at: data.logged_at, // Include timestamp for custom time entries
       });
     },
     onSuccess: (_, variables) => {
       const today = new Date().toISOString().split('T')[0];
       queryClient.invalidateQueries({ queryKey: healthKeys.water(variables.patientId, today) });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}
+
+export function useUpdateWater() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: {
+      id: string;
+      patientId: string;
+      glasses?: number;
+      amount_ml?: number;
+      note?: string;
+      log_date?: string;
+    }) => {
+      return await apiClient.put(`/health/water/${data.id}`, {
+        glasses: data.glasses,
+        amount_ml: data.amount_ml,
+        note: data.note,
+        log_date: data.log_date,
+      });
+    },
+    onSuccess: (_, variables) => {
+      const today = new Date().toISOString().split('T')[0];
+      queryClient.invalidateQueries({ queryKey: healthKeys.water(variables.patientId, today) });
+      queryClient.invalidateQueries({ queryKey: ['health', 'history'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}
+
+export function useDeleteWater() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: { id: string; patientId: string }) => {
+      return await apiClient.delete(`/health/water/${data.id}`);
+    },
+    onSuccess: (_, variables) => {
+      const today = new Date().toISOString().split('T')[0];
+      queryClient.invalidateQueries({ queryKey: healthKeys.water(variables.patientId, today) });
+      queryClient.invalidateQueries({ queryKey: ['health', 'history'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
@@ -305,6 +350,37 @@ export function useLogMedication() {
 }
 
 // Symptom Hooks
+export interface SymptomLogEntry {
+  id: string;
+  symptom_name: string;
+  severity_1to5: number | null;
+  body_location: string | null;
+  duration_text: string | null;
+  notes: string | null;
+  created_at: string;
+}
+
+export function useTodaySymptoms(patientId: string | null) {
+  const today = new Date().toISOString().split('T')[0];
+
+  return useQuery({
+    queryKey: patientId ? healthKeys.symptoms(patientId, today) : ['symptoms', 'none'],
+    queryFn: async (): Promise<SymptomLogEntry[]> => {
+      if (!patientId) return [];
+      try {
+        const data = await apiClient.get<{ symptoms: SymptomLogEntry[] }>(`/health/today/${patientId}`);
+        console.log('[useTodaySymptoms] API response:', data);
+        return data.symptoms || [];
+      } catch (err) {
+        console.warn('[useTodaySymptoms] API error:', err);
+        return [];
+      }
+    },
+    enabled: !!patientId,
+    staleTime: 30 * 1000,
+  });
+}
+
 export function useLogSymptom() {
   const queryClient = useQueryClient();
 
@@ -317,8 +393,41 @@ export function useLogSymptom() {
       duration_text?: string;
       notes?: string;
     }) => {
-      return await apiClient.post('/health/symptoms', {
+      console.log('[useLogSymptom] Sending:', data);
+      const result = await apiClient.post('/health/symptoms', {
         patient_id: data.patientId,
+        symptom_name: data.symptom_name,
+        severity_1to5: data.severity_1to5,
+        body_location: data.body_location,
+        duration_text: data.duration_text,
+        notes: data.notes,
+      });
+      console.log('[useLogSymptom] Result:', result);
+      return result;
+    },
+    onSuccess: (_, variables) => {
+      const today = new Date().toISOString().split('T')[0];
+      queryClient.invalidateQueries({ queryKey: healthKeys.symptoms(variables.patientId, today) });
+      queryClient.invalidateQueries({ queryKey: ['health', 'history'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}
+
+export function useUpdateSymptom() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: {
+      id: string;
+      patientId: string;
+      symptom_name?: string;
+      severity_1to5?: number;
+      body_location?: string;
+      duration_text?: string;
+      notes?: string;
+    }) => {
+      return await apiClient.put(`/health/symptoms/${data.id}`, {
         symptom_name: data.symptom_name,
         severity_1to5: data.severity_1to5,
         body_location: data.body_location,
@@ -329,6 +438,23 @@ export function useLogSymptom() {
     onSuccess: (_, variables) => {
       const today = new Date().toISOString().split('T')[0];
       queryClient.invalidateQueries({ queryKey: healthKeys.symptoms(variables.patientId, today) });
+      queryClient.invalidateQueries({ queryKey: ['health', 'history'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}
+
+export function useDeleteSymptom() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: { id: string; patientId: string }) => {
+      return await apiClient.delete(`/health/symptoms/${data.id}`);
+    },
+    onSuccess: (_, variables) => {
+      const today = new Date().toISOString().split('T')[0];
+      queryClient.invalidateQueries({ queryKey: healthKeys.symptoms(variables.patientId, today) });
+      queryClient.invalidateQueries({ queryKey: ['health', 'history'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
@@ -496,6 +622,57 @@ export function useLogExercise() {
     onSuccess: (_, variables) => {
       const today = new Date().toISOString().split('T')[0];
       queryClient.invalidateQueries({ queryKey: healthKeys.exercise(variables.patientId, today) });
+      queryClient.invalidateQueries({ queryKey: ['health', 'history'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}
+
+export function useUpdateExercise() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: {
+      id: string;
+      patientId: string;
+      exercise_type?: string;
+      duration_minutes?: number;
+      intensity?: string;
+      distance_meters?: number;
+      calories_burned?: number;
+      exercise_date?: string;
+      notes?: string;
+    }) => {
+      return await apiClient.put(`/health/exercise/${data.id}`, {
+        exercise_type: data.exercise_type,
+        duration_minutes: data.duration_minutes,
+        intensity: data.intensity,
+        distance_meters: data.distance_meters,
+        calories_burned: data.calories_burned,
+        exercise_date: data.exercise_date,
+        notes: data.notes,
+      });
+    },
+    onSuccess: (_, variables) => {
+      const today = new Date().toISOString().split('T')[0];
+      queryClient.invalidateQueries({ queryKey: healthKeys.exercise(variables.patientId, today) });
+      queryClient.invalidateQueries({ queryKey: ['health', 'history'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}
+
+export function useDeleteExercise() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: { id: string; patientId: string }) => {
+      return await apiClient.delete(`/health/exercise/${data.id}`);
+    },
+    onSuccess: (_, variables) => {
+      const today = new Date().toISOString().split('T')[0];
+      queryClient.invalidateQueries({ queryKey: healthKeys.exercise(variables.patientId, today) });
+      queryClient.invalidateQueries({ queryKey: ['health', 'history'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
@@ -548,6 +725,55 @@ export function useLogMood() {
     onSuccess: (_, variables) => {
       const today = new Date().toISOString().split('T')[0];
       queryClient.invalidateQueries({ queryKey: healthKeys.mood(variables.patientId, today) });
+      queryClient.invalidateQueries({ queryKey: ['health', 'history'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}
+
+export function useUpdateMood() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: {
+      id: string;
+      patientId: string;
+      mood?: string;
+      mood_score?: number;
+      stress_level?: string;
+      stress_cause?: string;
+      energy_level?: string;
+      note?: string;
+    }) => {
+      return await apiClient.put(`/health/mood/${data.id}`, {
+        mood: data.mood,
+        mood_score: data.mood_score,
+        stress_level: data.stress_level,
+        stress_cause: data.stress_cause,
+        energy_level: data.energy_level,
+        note: data.note,
+      });
+    },
+    onSuccess: (_, variables) => {
+      const today = new Date().toISOString().split('T')[0];
+      queryClient.invalidateQueries({ queryKey: healthKeys.mood(variables.patientId, today) });
+      queryClient.invalidateQueries({ queryKey: ['health', 'history'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}
+
+export function useDeleteMood() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: { id: string; patientId: string }) => {
+      return await apiClient.delete(`/health/mood/${data.id}`);
+    },
+    onSuccess: (_, variables) => {
+      const today = new Date().toISOString().split('T')[0];
+      queryClient.invalidateQueries({ queryKey: healthKeys.mood(variables.patientId, today) });
+      queryClient.invalidateQueries({ queryKey: ['health', 'history'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
@@ -598,6 +824,103 @@ export function useLogMedicalNote() {
     onSuccess: (_, variables) => {
       const today = new Date().toISOString().split('T')[0];
       queryClient.invalidateQueries({ queryKey: healthKeys.medicalNotes(variables.patientId, today) });
+      queryClient.invalidateQueries({ queryKey: ['health', 'history'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}
+
+export function useUpdateMedicalNote() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: {
+      id: string;
+      patientId: string;
+      event_date?: string;
+      event_type?: string;
+      description?: string;
+      hospital_name?: string;
+      doctor_name?: string;
+    }) => {
+      return await apiClient.put(`/health/medical-notes/${data.id}`, {
+        event_date: data.event_date,
+        event_type: data.event_type,
+        description: data.description,
+        hospital_name: data.hospital_name,
+        doctor_name: data.doctor_name,
+      });
+    },
+    onSuccess: (_, variables) => {
+      const today = new Date().toISOString().split('T')[0];
+      queryClient.invalidateQueries({ queryKey: healthKeys.medicalNotes(variables.patientId, today) });
+      queryClient.invalidateQueries({ queryKey: ['health', 'history'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}
+
+export function useDeleteMedicalNote() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: { id: string; patientId: string }) => {
+      return await apiClient.delete(`/health/medical-notes/${data.id}`);
+    },
+    onSuccess: (_, variables) => {
+      const today = new Date().toISOString().split('T')[0];
+      queryClient.invalidateQueries({ queryKey: healthKeys.medicalNotes(variables.patientId, today) });
+      queryClient.invalidateQueries({ queryKey: ['health', 'history'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}
+
+export function useUpdateMedicationLog() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: {
+      id: string;
+      patientId: string;
+      medication_name?: string;
+      dosage?: string;
+      scheduled_time?: string;
+      taken_at?: string;
+      note?: string;
+      status?: string;
+      skipped_reason?: string;
+    }) => {
+      return await apiClient.put(`/health/medications/${data.id}`, {
+        medication_name: data.medication_name,
+        dosage: data.dosage,
+        scheduled_time: data.scheduled_time,
+        taken_at: data.taken_at,
+        note: data.note,
+        status: data.status,
+        skipped_reason: data.skipped_reason,
+      });
+    },
+    onSuccess: (_, variables) => {
+      const today = new Date().toISOString().split('T')[0];
+      queryClient.invalidateQueries({ queryKey: healthKeys.medicationLogs(variables.patientId, today) });
+      queryClient.invalidateQueries({ queryKey: ['health', 'history'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}
+
+export function useDeleteMedicationLog() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: { id: string; patientId: string }) => {
+      return await apiClient.delete(`/health/medications/${data.id}`);
+    },
+    onSuccess: (_, variables) => {
+      const today = new Date().toISOString().split('T')[0];
+      queryClient.invalidateQueries({ queryKey: healthKeys.medicationLogs(variables.patientId, today) });
+      queryClient.invalidateQueries({ queryKey: ['health', 'history'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
@@ -631,23 +954,56 @@ export interface HealthHistoryItem {
   raw: unknown;
 }
 
-export function useHealthHistory(patientId: string | null, days: number = 7) {
+export function useHealthHistory(
+  patientId: string | null,
+  days: number = 7,
+  options?: { startDate?: string; endDate?: string }
+) {
+  const queryKey = options?.startDate && options?.endDate
+    ? ['health', 'history', patientId, options.startDate, options.endDate]
+    : ['health', 'history', patientId, days];
+
   return useQuery({
-    queryKey: patientId ? ['health', 'history', patientId, days] : ['history', 'none'],
+    queryKey: patientId ? queryKey : ['history', 'none'],
     queryFn: async (): Promise<HealthHistoryItem[]> => {
       if (!patientId) return [];
       try {
-        // Get historical data (configurable days, default 7)
+        // Build query params - custom date range or days
+        let queryParams = `days=${days}`;
+        if (options?.startDate && options?.endDate) {
+          queryParams = `start_date=${options.startDate}&end_date=${options.endDate}`;
+        }
+
         const data = await apiClient.get<{
           vitals: VitalsLog[];
           sleep: SleepLog[];
-          symptoms: { id: string; symptom_name: string; severity_1to5: number | null; created_at: string }[];
+          symptoms: {
+            id: string;
+            patient_id: string;
+            symptom_name: string;
+            severity_1to5: number | null;
+            body_location: string | null;
+            duration_text: string | null;
+            notes: string | null;
+            created_at: string;
+          }[];
           medications: MedicationLog[];
           water: WaterLog[];
-          exercise: { id: string; exercise_type: string | null; duration_minutes: number | null; created_at: string }[];
+          exercise: {
+            id: string;
+            patient_id: string;
+            exercise_type: string | null;
+            duration_minutes: number | null;
+            intensity: string | null;
+            distance_meters: number | null;
+            calories_burned: number | null;
+            exercise_date: string | null;
+            notes: string | null;
+            created_at: string;
+          }[];
           mood: MoodLogEntry[];
           medicalNotes: MedicalNote[];
-        }>(`/health/history/${patientId}?days=${days}`);
+        }>(`/health/history/${patientId}?${queryParams}`);
 
         const items: HealthHistoryItem[] = [];
         const today = new Date().toISOString().split('T')[0];
@@ -702,6 +1058,38 @@ export function useHealthHistory(patientId: string | null, days: number = 7) {
             time: new Date(m.taken_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.',
             date: m.taken_at.split('T')[0] === today ? 'วันนี้' : formatDate(m.taken_at),
             raw: m,
+          });
+        });
+
+        // Format water
+        (data.water || []).forEach(w => {
+          const glasses = w.amount_ml ? Math.round(w.amount_ml / 250) : 0;
+          items.push({
+            id: w.id,
+            type: 'water',
+            title: 'น้ำ',
+            detail: `${glasses} แก้ว (${w.amount_ml || 0} ml)`,
+            time: new Date(w.logged_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.',
+            date: w.logged_at.split('T')[0] === today ? 'วันนี้' : formatDate(w.logged_at),
+            raw: w,
+          });
+        });
+
+        // Format exercise
+        const exerciseLabels: Record<string, string> = {
+          walk: 'เดิน', run: 'วิ่ง', swim: 'ว่ายน้ำ', bicycle: 'ปั่นจักรยาน',
+          yoga: 'โยคะ', custom: 'กำหนดเอง',
+        };
+        (data.exercise || []).forEach(e => {
+          const typeTh = exerciseLabels[e.exercise_type || ''] || e.exercise_type || 'ออกกำลังกาย';
+          items.push({
+            id: e.id,
+            type: 'exercise',
+            title: 'ออกกำลังกาย',
+            detail: `${typeTh}${e.duration_minutes ? ` ${e.duration_minutes} นาที` : ''}`,
+            time: new Date(e.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.',
+            date: e.created_at.split('T')[0] === today ? 'วันนี้' : formatDate(e.created_at),
+            raw: e,
           });
         });
 
@@ -779,6 +1167,95 @@ function getQualityLabel(quality: string): string {
     excellent: 'ดีมาก',
   };
   return labels[quality] || quality;
+}
+
+// Doctor Questions Types and Hooks
+export interface DoctorQuestion {
+  id: string;
+  patient_id: string;
+  question: string;
+  answered: boolean;
+  answer: string | null;
+  answered_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export const doctorQuestionsKeys = {
+  all: ['doctor-questions'] as const,
+  list: (patientId: string) => [...doctorQuestionsKeys.all, patientId] as const,
+};
+
+export function useDoctorQuestions(patientId: string | null) {
+  return useQuery({
+    queryKey: patientId ? doctorQuestionsKeys.list(patientId) : ['doctor-questions', 'none'],
+    queryFn: async (): Promise<DoctorQuestion[]> => {
+      if (!patientId) return [];
+      try {
+        const data = await apiClient.get<{ success: boolean; questions: DoctorQuestion[] }>(
+          `/health/doctor-questions/${patientId}`
+        );
+        return data.questions || [];
+      } catch (err) {
+        console.warn('[useDoctorQuestions] API error:', err);
+        return [];
+      }
+    },
+    enabled: !!patientId,
+    staleTime: 30 * 1000,
+  });
+}
+
+export function useAddDoctorQuestion() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: { patientId: string; question: string }) => {
+      return await apiClient.post('/health/doctor-questions', {
+        patient_id: data.patientId,
+        question: data.question,
+      });
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: doctorQuestionsKeys.list(variables.patientId) });
+    },
+  });
+}
+
+export function useUpdateDoctorQuestion() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: {
+      id: string;
+      patientId: string;
+      question?: string;
+      answered?: boolean;
+      answer?: string;
+    }) => {
+      return await apiClient.put(`/health/doctor-questions/${data.id}`, {
+        question: data.question,
+        answered: data.answered,
+        answer: data.answer,
+      });
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: doctorQuestionsKeys.list(variables.patientId) });
+    },
+  });
+}
+
+export function useDeleteDoctorQuestion() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: { id: string; patientId: string }) => {
+      return await apiClient.delete(`/health/doctor-questions/${data.id}`);
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: doctorQuestionsKeys.list(variables.patientId) });
+    },
+  });
 }
 
 // Mock data for development

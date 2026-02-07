@@ -278,6 +278,7 @@ export interface NLUContext {
   groupId?: string;
   isGroupChat: boolean;
   voiceConfirmed?: boolean; // Voice transcription already confirmed by user - execute immediately
+  originalMessage?: string; // The original user message text (for raw_text in DB)
   // Onboarding state
   onboardingCompleted?: boolean;
   onboardingStep?: 'welcome' | 'ask_name' | 'ask_birthdate' | 'ask_conditions' | 'complete';

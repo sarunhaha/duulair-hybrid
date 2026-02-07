@@ -5,6 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/use-auth';
+import { useAddWater, useDeleteWater, useTodayWater } from '@/lib/api/hooks/use-health';
 
 interface WaterLog {
   id: string;
@@ -13,16 +15,31 @@ interface WaterLog {
   timestamp: string;
 }
 
+interface WaterLogDB {
+  id: string;
+  amount_ml: number;
+  logged_at: string;
+}
+
 interface WaterFormProps {
   onSuccess?: () => void;
   onCancel?: () => void;
+  initialEditData?: WaterLogDB;
 }
 
-export function WaterForm({ onSuccess, onCancel }: WaterFormProps) {
-  // Note: patientId is available for future API integration
-  // const { context } = useAuthStore();
-  // const patientId = context.patientId;
+export function WaterForm({ onSuccess, onCancel, initialEditData }: WaterFormProps) {
+  // Note: initialEditData is received but WaterForm uses localStorage
+  // Edit from history tab for water is not fully supported yet
+  if (initialEditData) {
+    console.log('[WaterForm] initialEditData received (not fully supported):', initialEditData);
+  }
+  const { patientId } = useAuth();
   const { toast } = useToast();
+
+  // API hooks
+  const addWaterMutation = useAddWater();
+  const deleteWaterMutation = useDeleteWater();
+  const { data: todayWaterData, refetch: refetchTodayWater } = useTodayWater(patientId);
 
   const [totalToday, setTotalToday] = useState(0);
   const [dailyGoal, setDailyGoal] = useState(2000);
@@ -34,9 +51,15 @@ export function WaterForm({ onSuccess, onCancel }: WaterFormProps) {
   const [editingLogId, setEditingLogId] = useState<string | null>(null);
   const [editingTime, setEditingTime] = useState('');
 
+  // Helper to get local date string (Bangkok timezone)
+  const getLocalDateString = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}`;
+  };
+
   // Load data on mount
   useEffect(() => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDateString();
     const savedData = JSON.parse(localStorage.getItem(`water_${today}`) || '{"total": 0, "logs": [], "goal": 2000}');
     setTotalToday(savedData.total || 0);
     setTodayLogs(savedData.logs || []);
@@ -44,7 +67,7 @@ export function WaterForm({ onSuccess, onCancel }: WaterFormProps) {
   }, []);
 
   const saveData = (total: number, logs: WaterLog[], goal: number) => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDateString();
     localStorage.setItem(`water_${today}`, JSON.stringify({
       total,
       logs,
@@ -75,6 +98,32 @@ export function WaterForm({ onSuccess, onCancel }: WaterFormProps) {
         timestamp = now.toISOString();
       }
 
+      // Calculate glasses (1 glass = 250ml)
+      const glasses = Math.round(amount / 250);
+
+      console.log('[WaterForm] Saving water:', { patientId, glasses, amount });
+
+      // Save to backend API
+      if (patientId) {
+        console.log('[WaterForm] Calling API with patientId:', patientId, 'timestamp:', timestamp);
+        try {
+          const result = await addWaterMutation.mutateAsync({
+            patientId,
+            glasses: glasses || 1,
+            amount_ml: amount,
+            logged_at: timestamp, // Send custom timestamp to backend
+          });
+          console.log('[WaterForm] API result:', result);
+          // Refetch to get updated data from API
+          refetchTodayWater();
+        } catch (apiError) {
+          console.error('[WaterForm] API error:', apiError);
+        }
+      } else {
+        console.warn('[WaterForm] No patientId, skipping API call');
+      }
+
+      // Also save to localStorage for local display
       const log: WaterLog = {
         id: Date.now().toString(),
         amount,

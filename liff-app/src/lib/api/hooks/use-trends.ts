@@ -17,6 +17,16 @@ export interface TrendDataPoint {
   target?: number;
   done?: number;
   percent?: number;
+  // Exercise
+  duration?: number | null; // minutes
+  exerciseType?: string;
+  // Mood
+  mood?: string | null;
+  moodScore?: number | null;
+  stressLevel?: number | null;
+  // Water
+  glasses?: number | null;
+  ml?: number | null;
   // Common
   note?: string;
   event?: string;
@@ -35,8 +45,13 @@ export interface TrendData {
   insight: string;
 }
 
-export type TimeRange = '7d' | '15d' | '30d';
-export type TrendCategory = 'heart' | 'meds' | 'sleep';
+export type TimeRange = '7d' | '15d' | '30d' | 'custom';
+export type TrendCategory = 'heart' | 'meds' | 'sleep' | 'exercise' | 'mood' | 'water';
+
+export interface CustomDateRange {
+  startDate: string; // YYYY-MM-DD
+  endDate: string; // YYYY-MM-DD
+}
 
 // Helper functions
 export function getLastNDays(n: number): string[] {
@@ -55,10 +70,11 @@ export function getLastNDates(n: number): string[] {
   });
 }
 
-const DAYS_MAP = {
+const DAYS_MAP: Record<string, number> = {
   '7d': 7,
   '15d': 15,
   '30d': 30,
+  'custom': 0, // Will be calculated from custom dates
 };
 
 // Query keys
@@ -70,20 +86,36 @@ export const trendKeys = {
     [...trendKeys.all, 'meds', patientId, range] as const,
   sleep: (patientId: string, range: TimeRange) =>
     [...trendKeys.all, 'sleep', patientId, range] as const,
+  exercise: (patientId: string, range: TimeRange) =>
+    [...trendKeys.all, 'exercise', patientId, range] as const,
+  mood: (patientId: string, range: TimeRange) =>
+    [...trendKeys.all, 'mood', patientId, range] as const,
+  water: (patientId: string, range: TimeRange) =>
+    [...trendKeys.all, 'water', patientId, range] as const,
 };
 
 // Vitals Trends Hook
-export function useVitalsTrend(patientId: string | null, range: TimeRange) {
+export function useVitalsTrend(patientId: string | null, range: TimeRange, customRange?: CustomDateRange) {
+  const queryKey = patientId
+    ? range === 'custom' && customRange
+      ? [...trendKeys.vitals(patientId, range), customRange.startDate, customRange.endDate]
+      : trendKeys.vitals(patientId, range)
+    : ['trends', 'vitals', 'none'];
+
   return useQuery({
-    queryKey: patientId ? trendKeys.vitals(patientId, range) : ['trends', 'vitals', 'none'],
+    queryKey,
     queryFn: async (): Promise<TrendData> => {
-      if (!patientId) return getMockVitalsData(range);
+      if (!patientId) return getMockVitalsData(range, customRange);
       try {
-        const data = await apiClient.get<TrendData>(`/trends/vitals/${patientId}?range=${range}`);
+        let url = `/trends/vitals/${patientId}?range=${range}`;
+        if (range === 'custom' && customRange) {
+          url += `&startDate=${customRange.startDate}&endDate=${customRange.endDate}`;
+        }
+        const data = await apiClient.get<TrendData>(url);
         return data;
       } catch {
         console.warn('Vitals trend API not available, using mock data');
-        return getMockVitalsData(range);
+        return getMockVitalsData(range, customRange);
       }
     },
     enabled: true,
@@ -92,17 +124,27 @@ export function useVitalsTrend(patientId: string | null, range: TimeRange) {
 }
 
 // Medication Trends Hook
-export function useMedsTrend(patientId: string | null, range: TimeRange) {
+export function useMedsTrend(patientId: string | null, range: TimeRange, customRange?: CustomDateRange) {
+  const queryKey = patientId
+    ? range === 'custom' && customRange
+      ? [...trendKeys.meds(patientId, range), customRange.startDate, customRange.endDate]
+      : trendKeys.meds(patientId, range)
+    : ['trends', 'meds', 'none'];
+
   return useQuery({
-    queryKey: patientId ? trendKeys.meds(patientId, range) : ['trends', 'meds', 'none'],
+    queryKey,
     queryFn: async (): Promise<TrendData> => {
-      if (!patientId) return getMockMedsData(range);
+      if (!patientId) return getMockMedsData(range, customRange);
       try {
-        const data = await apiClient.get<TrendData>(`/trends/meds/${patientId}?range=${range}`);
+        let url = `/trends/meds/${patientId}?range=${range}`;
+        if (range === 'custom' && customRange) {
+          url += `&startDate=${customRange.startDate}&endDate=${customRange.endDate}`;
+        }
+        const data = await apiClient.get<TrendData>(url);
         return data;
       } catch {
         console.warn('Meds trend API not available, using mock data');
-        return getMockMedsData(range);
+        return getMockMedsData(range, customRange);
       }
     },
     enabled: true,
@@ -111,17 +153,27 @@ export function useMedsTrend(patientId: string | null, range: TimeRange) {
 }
 
 // Sleep Trends Hook
-export function useSleepTrend(patientId: string | null, range: TimeRange) {
+export function useSleepTrend(patientId: string | null, range: TimeRange, customRange?: CustomDateRange) {
+  const queryKey = patientId
+    ? range === 'custom' && customRange
+      ? [...trendKeys.sleep(patientId, range), customRange.startDate, customRange.endDate]
+      : trendKeys.sleep(patientId, range)
+    : ['trends', 'sleep', 'none'];
+
   return useQuery({
-    queryKey: patientId ? trendKeys.sleep(patientId, range) : ['trends', 'sleep', 'none'],
+    queryKey,
     queryFn: async (): Promise<TrendData> => {
-      if (!patientId) return getMockSleepData(range);
+      if (!patientId) return getMockSleepData(range, customRange);
       try {
-        const data = await apiClient.get<TrendData>(`/trends/sleep/${patientId}?range=${range}`);
+        let url = `/trends/sleep/${patientId}?range=${range}`;
+        if (range === 'custom' && customRange) {
+          url += `&startDate=${customRange.startDate}&endDate=${customRange.endDate}`;
+        }
+        const data = await apiClient.get<TrendData>(url);
         return data;
       } catch {
         console.warn('Sleep trend API not available, using mock data');
-        return getMockSleepData(range);
+        return getMockSleepData(range, customRange);
       }
     },
     enabled: true,
@@ -129,11 +181,46 @@ export function useSleepTrend(patientId: string | null, range: TimeRange) {
   });
 }
 
+// Helper to get days between dates
+function getDaysBetween(startDate: string, endDate: string): number {
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  return Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+}
+
+// Helper to get date range from custom dates
+function getCustomDateRange(startDate: string, endDate: string): { dates: string[]; labels: string[] } {
+  const days = getDaysBetween(startDate, endDate);
+  const start = new Date(startDate);
+  const dates: string[] = [];
+  const labels: string[] = [];
+
+  for (let i = 0; i < days; i++) {
+    const d = new Date(start);
+    d.setDate(d.getDate() + i);
+    dates.push(format(d, 'yyyy-MM-dd'));
+    labels.push(format(d, 'd MMM', { locale: th }));
+  }
+
+  return { dates, labels };
+}
+
 // Mock Data Generators
-function getMockVitalsData(range: TimeRange): TrendData {
-  const days = DAYS_MAP[range];
-  const labels = getLastNDays(days);
-  const dates = getLastNDates(days);
+function getMockVitalsData(range: TimeRange, customRange?: CustomDateRange): TrendData {
+  let days: number;
+  let labels: string[];
+  let dates: string[];
+
+  if (range === 'custom' && customRange) {
+    days = getDaysBetween(customRange.startDate, customRange.endDate);
+    const customDates = getCustomDateRange(customRange.startDate, customRange.endDate);
+    labels = customDates.labels;
+    dates = customDates.dates;
+  } else {
+    days = DAYS_MAP[range] || 7;
+    labels = getLastNDays(days);
+    dates = getLastNDates(days);
+  }
 
   const data: TrendDataPoint[] = labels.map((day, i) => {
     const sys = 120 + Math.floor(Math.random() * 25);
@@ -169,10 +256,21 @@ function getMockVitalsData(range: TimeRange): TrendData {
   };
 }
 
-function getMockMedsData(range: TimeRange): TrendData {
-  const days = DAYS_MAP[range];
-  const labels = getLastNDays(days);
-  const dates = getLastNDates(days);
+function getMockMedsData(range: TimeRange, customRange?: CustomDateRange): TrendData {
+  let days: number;
+  let labels: string[];
+  let dates: string[];
+
+  if (range === 'custom' && customRange) {
+    days = getDaysBetween(customRange.startDate, customRange.endDate);
+    const customDates = getCustomDateRange(customRange.startDate, customRange.endDate);
+    labels = customDates.labels;
+    dates = customDates.dates;
+  } else {
+    days = DAYS_MAP[range] || 7;
+    labels = getLastNDays(days);
+    dates = getLastNDates(days);
+  }
 
   const data: TrendDataPoint[] = labels.map((day, i) => {
     const target = 2;
@@ -206,10 +304,21 @@ function getMockMedsData(range: TimeRange): TrendData {
   };
 }
 
-function getMockSleepData(range: TimeRange): TrendData {
-  const days = DAYS_MAP[range];
-  const labels = getLastNDays(days);
-  const dates = getLastNDates(days);
+function getMockSleepData(range: TimeRange, customRange?: CustomDateRange): TrendData {
+  let days: number;
+  let labels: string[];
+  let dates: string[];
+
+  if (range === 'custom' && customRange) {
+    days = getDaysBetween(customRange.startDate, customRange.endDate);
+    const customDates = getCustomDateRange(customRange.startDate, customRange.endDate);
+    labels = customDates.labels;
+    dates = customDates.dates;
+  } else {
+    days = DAYS_MAP[range] || 7;
+    labels = getLastNDays(days);
+    dates = getLastNDates(days);
+  }
 
   const data: TrendDataPoint[] = labels.map((day, i) => {
     const hours = parseFloat((5 + Math.random() * 3.5).toFixed(1));
@@ -269,4 +378,293 @@ function getSleepInsight(avgHours: number, _totalDays: number): string {
     return 'นอนได้พอประมาณ ลองเข้านอนเร็วขึ้นอีกสัก 30 นาทีจะดีมากครับ';
   }
   return 'นอนน้อยกว่าเกณฑ์ ลองพักงีบช่วงบ่าย และเข้านอนเร็วขึ้นนะครับ';
+}
+
+// Exercise Trends Hook
+export function useExerciseTrend(patientId: string | null, range: TimeRange, customRange?: CustomDateRange) {
+  const queryKey = patientId
+    ? range === 'custom' && customRange
+      ? [...trendKeys.exercise(patientId, range), customRange.startDate, customRange.endDate]
+      : trendKeys.exercise(patientId, range)
+    : ['trends', 'exercise', 'none'];
+
+  return useQuery({
+    queryKey,
+    queryFn: async (): Promise<TrendData> => {
+      if (!patientId) return getMockExerciseData(range, customRange);
+      try {
+        let url = `/trends/exercise/${patientId}?range=${range}`;
+        if (range === 'custom' && customRange) {
+          url += `&startDate=${customRange.startDate}&endDate=${customRange.endDate}`;
+        }
+        const data = await apiClient.get<TrendData>(url);
+        return data;
+      } catch {
+        console.warn('Exercise trend API not available, using mock data');
+        return getMockExerciseData(range, customRange);
+      }
+    },
+    enabled: true,
+    staleTime: 60 * 1000,
+  });
+}
+
+// Mood Trends Hook
+export function useMoodTrend(patientId: string | null, range: TimeRange, customRange?: CustomDateRange) {
+  const queryKey = patientId
+    ? range === 'custom' && customRange
+      ? [...trendKeys.mood(patientId, range), customRange.startDate, customRange.endDate]
+      : trendKeys.mood(patientId, range)
+    : ['trends', 'mood', 'none'];
+
+  return useQuery({
+    queryKey,
+    queryFn: async (): Promise<TrendData> => {
+      if (!patientId) return getMockMoodData(range, customRange);
+      try {
+        let url = `/trends/mood/${patientId}?range=${range}`;
+        if (range === 'custom' && customRange) {
+          url += `&startDate=${customRange.startDate}&endDate=${customRange.endDate}`;
+        }
+        const data = await apiClient.get<TrendData>(url);
+        return data;
+      } catch {
+        console.warn('Mood trend API not available, using mock data');
+        return getMockMoodData(range, customRange);
+      }
+    },
+    enabled: true,
+    staleTime: 60 * 1000,
+  });
+}
+
+// Water Trends Hook
+export function useWaterTrend(patientId: string | null, range: TimeRange, customRange?: CustomDateRange) {
+  const queryKey = patientId
+    ? range === 'custom' && customRange
+      ? [...trendKeys.water(patientId, range), customRange.startDate, customRange.endDate]
+      : trendKeys.water(patientId, range)
+    : ['trends', 'water', 'none'];
+
+  return useQuery({
+    queryKey,
+    queryFn: async (): Promise<TrendData> => {
+      if (!patientId) return getMockWaterData(range, customRange);
+      try {
+        let url = `/trends/water/${patientId}?range=${range}`;
+        if (range === 'custom' && customRange) {
+          url += `&startDate=${customRange.startDate}&endDate=${customRange.endDate}`;
+        }
+        const data = await apiClient.get<TrendData>(url);
+        return data;
+      } catch {
+        console.warn('Water trend API not available, using mock data');
+        return getMockWaterData(range, customRange);
+      }
+    },
+    enabled: true,
+    staleTime: 60 * 1000,
+  });
+}
+
+// Mock Data for Exercise
+function getMockExerciseData(range: TimeRange, customRange?: CustomDateRange): TrendData {
+  let days: number;
+  let labels: string[];
+  let dates: string[];
+
+  if (range === 'custom' && customRange) {
+    days = getDaysBetween(customRange.startDate, customRange.endDate);
+    const customDates = getCustomDateRange(customRange.startDate, customRange.endDate);
+    labels = customDates.labels;
+    dates = customDates.dates;
+  } else {
+    days = DAYS_MAP[range] || 7;
+    labels = getLastNDays(days);
+    dates = getLastNDates(days);
+  }
+
+  const exerciseTypes = ['เดิน', 'วิ่ง', 'ว่ายน้ำ', 'ปั่นจักรยาน', 'โยคะ'];
+
+  const data: TrendDataPoint[] = labels.map((day, i) => {
+    const hasExercise = Math.random() > 0.3;
+    const duration = hasExercise ? Math.floor(15 + Math.random() * 45) : null;
+    const exerciseType = hasExercise ? exerciseTypes[Math.floor(Math.random() * exerciseTypes.length)] : undefined;
+
+    return {
+      day,
+      date: dates[i],
+      duration,
+      exerciseType,
+      event: duration && duration >= 30 ? 'ดี' : undefined,
+      note: exerciseType,
+    };
+  });
+
+  const exerciseDays = data.filter((d) => d.duration !== null).length;
+  const avgDuration = exerciseDays > 0
+    ? Math.round(data.reduce((sum, d) => sum + (d.duration || 0), 0) / exerciseDays)
+    : 0;
+
+  return {
+    data,
+    summary: {
+      avg: exerciseDays > 0 ? `${avgDuration} นาที` : '-',
+      label1: 'เวลาเฉลี่ย',
+      count: `ออกกำลังกาย ${exerciseDays}/${days} วัน`,
+      label2: 'วันที่ออกกำลังกาย',
+    },
+    insight: getExerciseInsight(exerciseDays, days, avgDuration),
+  };
+}
+
+function getExerciseInsight(exerciseDays: number, totalDays: number, avgDuration: number): string {
+  const ratio = exerciseDays / totalDays;
+  if (ratio >= 0.7 && avgDuration >= 30) {
+    return 'ออกกำลังกายสม่ำเสมอมาก สุขภาพแข็งแรงแน่นอนครับ!';
+  } else if (ratio >= 0.5) {
+    return 'ออกกำลังกายได้ดี ลองเพิ่มเวลาออกกำลังกายอีกนิดจะยิ่งดีครับ';
+  } else if (ratio >= 0.3) {
+    return 'ออกกำลังกายบ้าง ลองตั้งเป้าอย่างน้อยวันละ 30 นาที 5 วัน/สัปดาห์นะครับ';
+  }
+  return 'ช่วงนี้ออกกำลังกายน้อย ลองเริ่มจากเดินวันละ 15-20 นาทีก่อนนะครับ';
+}
+
+// Mock Data for Mood
+function getMockMoodData(range: TimeRange, customRange?: CustomDateRange): TrendData {
+  let days: number;
+  let labels: string[];
+  let dates: string[];
+
+  if (range === 'custom' && customRange) {
+    days = getDaysBetween(customRange.startDate, customRange.endDate);
+    const customDates = getCustomDateRange(customRange.startDate, customRange.endDate);
+    labels = customDates.labels;
+    dates = customDates.dates;
+  } else {
+    days = DAYS_MAP[range] || 7;
+    labels = getLastNDays(days);
+    dates = getLastNDates(days);
+  }
+
+  const moods = ['happy', 'calm', 'neutral', 'sad', 'anxious'];
+  const moodLabels: Record<string, string> = {
+    happy: 'มีความสุข',
+    calm: 'สงบ',
+    neutral: 'เฉยๆ',
+    sad: 'เศร้า',
+    anxious: 'กังวล',
+  };
+  const moodScores: Record<string, number> = {
+    happy: 5,
+    calm: 4,
+    neutral: 3,
+    sad: 2,
+    anxious: 1,
+  };
+
+  const data: TrendDataPoint[] = labels.map((day, i) => {
+    const hasMood = Math.random() > 0.2;
+    const mood = hasMood ? moods[Math.floor(Math.random() * moods.length)] : null;
+    const moodScore = mood ? moodScores[mood] : null;
+    const stressLevel = hasMood ? Math.floor(1 + Math.random() * 5) : null;
+
+    return {
+      day,
+      date: dates[i],
+      mood,
+      moodScore,
+      stressLevel,
+      event: moodScore && moodScore <= 2 ? 'ต่ำ' : undefined,
+      note: mood ? moodLabels[mood] : undefined,
+    };
+  });
+
+  const recordedDays = data.filter((d) => d.moodScore !== null).length;
+  const avgMood = recordedDays > 0
+    ? (data.reduce((sum, d) => sum + (d.moodScore || 0), 0) / recordedDays).toFixed(1)
+    : '0';
+
+  return {
+    data,
+    summary: {
+      avg: recordedDays > 0 ? `${avgMood}/5` : '-',
+      label1: 'คะแนนอารมณ์เฉลี่ย',
+      count: `บันทึก ${recordedDays}/${days} วัน`,
+      label2: 'วันที่บันทึก',
+    },
+    insight: getMoodInsight(parseFloat(avgMood), recordedDays, days),
+  };
+}
+
+function getMoodInsight(avgMood: number, recordedDays: number, totalDays: number): string {
+  if (recordedDays === 0) {
+    return 'ยังไม่มีการบันทึกอารมณ์ ลองบันทึกทุกวันเพื่อติดตามสุขภาพจิตนะครับ';
+  }
+  if (avgMood >= 4) {
+    return 'อารมณ์ดีสม่ำเสมอ ยอดเยี่ยมครับ! รักษาความสุขนี้ไว้นะครับ';
+  } else if (avgMood >= 3) {
+    return 'อารมณ์โดยรวมปกติดี ลองหากิจกรรมที่ชอบทำเพื่อเพิ่มความสุขนะครับ';
+  } else if (avgMood >= 2) {
+    return 'ช่วงนี้อารมณ์อาจไม่ค่อยดี ลองพูดคุยกับคนใกล้ชิดหรือทำกิจกรรมผ่อนคลายนะครับ';
+  }
+  return 'ดูเหมือนช่วงนี้อารมณ์ไม่ค่อยดี หากรู้สึกหนักใจ ลองปรึกษาผู้เชี่ยวชาญนะครับ';
+}
+
+// Mock Data for Water
+function getMockWaterData(range: TimeRange, customRange?: CustomDateRange): TrendData {
+  let days: number;
+  let labels: string[];
+  let dates: string[];
+
+  if (range === 'custom' && customRange) {
+    days = getDaysBetween(customRange.startDate, customRange.endDate);
+    const customDates = getCustomDateRange(customRange.startDate, customRange.endDate);
+    labels = customDates.labels;
+    dates = customDates.dates;
+  } else {
+    days = DAYS_MAP[range] || 7;
+    labels = getLastNDays(days);
+    dates = getLastNDates(days);
+  }
+
+  const data: TrendDataPoint[] = labels.map((day, i) => {
+    const glasses = Math.floor(4 + Math.random() * 6);
+    const ml = glasses * 250;
+    const isLow = glasses < 6;
+
+    return {
+      day,
+      date: dates[i],
+      glasses,
+      ml,
+      event: isLow ? 'น้อย' : glasses >= 8 ? 'ดี' : undefined,
+      note: isLow ? 'ดื่มน้ำน้อย' : glasses >= 8 ? 'ดื่มน้ำได้ดี' : undefined,
+    };
+  });
+
+  const avgGlasses = Math.round(data.reduce((sum, d) => sum + (d.glasses || 0), 0) / data.length);
+  const goodDays = data.filter((d) => (d.glasses || 0) >= 8).length;
+
+  return {
+    data,
+    summary: {
+      avg: `${avgGlasses} แก้ว`,
+      label1: 'เฉลี่ย/วัน',
+      count: `ดื่มครบ ${goodDays}/${days} วัน`,
+      label2: 'วันดื่มครบ 8 แก้ว',
+    },
+    insight: getWaterInsight(avgGlasses, goodDays, days),
+  };
+}
+
+function getWaterInsight(avgGlasses: number, goodDays: number, totalDays: number): string {
+  if (avgGlasses >= 8) {
+    return 'ดื่มน้ำได้ตามเป้าหมาย สุขภาพดีแน่นอนครับ!';
+  } else if (avgGlasses >= 6) {
+    return 'ดื่มน้ำได้ดี ลองเพิ่มอีก 2-3 แก้วต่อวันจะยิ่งดีครับ';
+  } else if (avgGlasses >= 4) {
+    return 'ดื่มน้ำน้อยไป ลองพกขวดน้ำติดตัวเพื่อเตือนให้ดื่มบ่อยขึ้นนะครับ';
+  }
+  return 'ดื่มน้ำน้อยมาก ร่างกายต้องการน้ำอย่างน้อย 8 แก้ว/วันนะครับ';
 }

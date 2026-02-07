@@ -34,22 +34,39 @@ export default function ProfileEditPage() {
 
   useEffect(() => {
     if (profile) {
+      console.log('[ProfileEdit] Profile loaded from API:', profile);
+      console.log('[ProfileEdit] Profile gender:', profile.gender);
+      console.log('[ProfileEdit] Profile blood_type:', profile.blood_type);
       setFormData(profile);
     }
   }, [profile]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!patientId) return;
+    console.log('[ProfileEdit] handleSubmit - patientId:', patientId);
+    console.log('[ProfileEdit] handleSubmit - formData:', formData);
+
+    if (!patientId) {
+      console.error('[ProfileEdit] No patientId!');
+      toast({
+        title: 'เกิดข้อผิดพลาด',
+        description: 'ไม่พบ patientId กรุณาลองใหม่อีกครั้ง',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     try {
-      await updateProfile.mutateAsync({ patientId, data: formData });
+      console.log('[ProfileEdit] Calling updateProfile.mutateAsync...');
+      const result = await updateProfile.mutateAsync({ patientId, data: formData });
+      console.log('[ProfileEdit] Update result:', result);
       toast({
         title: 'บันทึกสำเร็จ',
         description: 'อัพเดทข้อมูลโปรไฟล์เรียบร้อยแล้ว',
       });
       navigate('/settings');
-    } catch {
+    } catch (error) {
+      console.error('[ProfileEdit] Update error:', error);
       toast({
         title: 'เกิดข้อผิดพลาด',
         description: 'ไม่สามารถบันทึกข้อมูลได้ กรุณาลองใหม่อีกครั้ง',
@@ -59,7 +76,12 @@ export default function ProfileEditPage() {
   };
 
   const handleInputChange = (field: keyof PatientProfile, value: string | number | undefined) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    console.log(`[ProfileEdit] handleInputChange - field: ${field}, value:`, value);
+    setFormData((prev) => {
+      const newData = { ...prev, [field]: value };
+      console.log(`[ProfileEdit] Updated formData.${field}:`, newData[field]);
+      return newData;
+    });
   };
 
   const addToArray = (field: 'drug_allergies' | 'food_allergies' | 'chronic_diseases', value: string) => {
@@ -157,8 +179,12 @@ export default function ProfileEditPage() {
               <div className="space-y-2">
                 <Label htmlFor="gender">เพศ</Label>
                 <Select
-                  value={formData.gender || undefined}
-                  onValueChange={(v) => handleInputChange('gender', v as PatientProfile['gender'])}
+                  key={`gender-${formData.gender || 'none'}`}
+                  value={formData.gender ?? undefined}
+                  onValueChange={(v) => {
+                    console.log('[ProfileEdit] Gender selected:', v);
+                    handleInputChange('gender', v as PatientProfile['gender']);
+                  }}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="เลือกเพศ" />
@@ -226,8 +252,12 @@ export default function ProfileEditPage() {
               <div className="space-y-2">
                 <Label htmlFor="blood_type">กรุ๊ปเลือด</Label>
                 <Select
-                  value={formData.blood_type || undefined}
-                  onValueChange={(v) => handleInputChange('blood_type', v)}
+                  key={`blood_type-${formData.blood_type || 'none'}`}
+                  value={formData.blood_type ?? undefined}
+                  onValueChange={(v) => {
+                    console.log('[ProfileEdit] Blood type selected:', v);
+                    handleInputChange('blood_type', v);
+                  }}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="-" />

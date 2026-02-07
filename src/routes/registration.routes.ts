@@ -315,7 +315,11 @@ router.put('/profile/patient/:id', async (req: Request, res: Response) => {
     const { id } = req.params;
     const updates = req.body;
 
+    console.log(`📝 [PUT /profile/patient/${id}] Received update request:`, updates);
+
     const profile = await userService.updatePatientProfile(id, updates);
+
+    console.log(`✅ [PUT /profile/patient/${id}] Updated profile:`, profile);
 
     res.json({
       success: true,

@@ -157,6 +157,7 @@ export class OrchestratorAgent extends BaseAgent {
         patientId: message.context.patientId,
         groupId: message.context.groupId,
         isGroupChat,
+        originalMessage: message.content,
         onboardingCompleted: onboardingContext?.completed ?? true,
         onboardingStep: (onboardingContext?.step as any) ?? 'complete',
         patientData: patientData ? {
@@ -202,6 +203,22 @@ export class OrchestratorAgent extends BaseAgent {
 
       const nluResult: NLUResult = nluResponse.data;
       this.log('info', `NLU: ${nluResult.intent}/${nluResult.subIntent} (${(nluResult.confidence * 100).toFixed(0)}%)`);
+
+      // Debug: warn if health_log intent but no healthData extracted
+      if (nluResult.intent === 'health_log' && !nluResult.healthData && !(nluResult as any).healthDataArray) {
+        console.warn(`⚠️ [NLU] health_log intent detected but NO healthData extracted!`, {
+          message: message.content.substring(0, 100),
+          subIntent: nluResult.subIntent,
+          action: nluResult.action?.type,
+          entities: nluResult.entities
+        });
+      } else if (nluResult.intent === 'health_log') {
+        console.log(`✅ [NLU] health_log with data:`, {
+          type: nluResult.healthData?.type,
+          hasArray: !!(nluResult as any).healthDataArray,
+          subIntent: nluResult.subIntent
+        });
+      }
 
       // Special case: emergency - also notify alert agent
       if (nluResult.intent === 'emergency') {

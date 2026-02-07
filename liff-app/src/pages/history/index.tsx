@@ -8,8 +8,8 @@ import {
   Smile,
   MoreHorizontal,
   ChevronLeft,
+  ChevronRight,
   Clock,
-  Camera,
   Droplet,
   Check,
   X,
@@ -18,6 +18,7 @@ import {
   Loader2,
   Calendar,
   ChevronDown,
+  Trash2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -30,9 +31,21 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from '@/components/ui/drawer';
-import { useHealthHistory } from '@/lib/api/hooks/use-health';
+import {
+  useHealthHistory,
+  useDeleteVitals,
+  useDeleteSymptom,
+  useDeleteExercise,
+  useDeleteMood,
+  useDeleteMedicalNote,
+  useDeleteMedicationLog,
+  useDeleteSleep,
+  useDeleteWater,
+} from '@/lib/api/hooks/use-health';
+import { useToast } from '@/hooks/use-toast';
 import { useEnsurePatient } from '@/hooks/use-ensure-patient';
 import { BottomNav } from '@/components/layout/bottom-nav';
+import { VitalsForm, WaterForm, MedicationForm, SymptomForm, SleepForm, ExerciseForm, MoodForm, MedicalNotesForm } from '@/components/forms';
 
 interface HistoryItem {
   id: number;
@@ -64,20 +77,92 @@ const DATE_RANGES = [
   { id: 14, label: '14 วัน', shortLabel: '14 วัน' },
   { id: 30, label: '30 วัน', shortLabel: '30 วัน' },
   { id: 90, label: '3 เดือน', shortLabel: '3 เดือน' },
+  { id: -1, label: 'กำหนดเอง', shortLabel: 'กำหนดเอง' },
 ];
 
 export default function HistoryPage() {
   const [, setLocation] = useLocation();
   const [filter, setFilter] = useState('all');
-  const [dateRange, setDateRange] = useState(7); // Default 7 days
+  const [dateRange, setDateRange] = useState(7); // Default 7 days, -1 = custom
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showCustomDateDrawer, setShowCustomDateDrawer] = useState(false);
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
   const [editingItem, setEditingItem] = useState<HistoryItem | null>(null);
   const [success, setSuccess] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
+  const { toast } = useToast();
 
   // Fetch real data with date range
   const ensurePatient = useEnsurePatient();
   const { patientId, isLoading: authLoading } = ensurePatient;
-  const { data: healthHistory, isLoading: historyLoading } = useHealthHistory(patientId, dateRange);
+
+  // Delete hooks
+  const deleteVitals = useDeleteVitals();
+  const deleteSymptom = useDeleteSymptom();
+  const deleteExercise = useDeleteExercise();
+  const deleteMood = useDeleteMood();
+  const deleteMedicalNote = useDeleteMedicalNote();
+  const deleteMedicationLog = useDeleteMedicationLog();
+  const deleteSleep = useDeleteSleep();
+  const deleteWater = useDeleteWater();
+
+  // Map type to delete function
+  const getDeleteMutation = (type: string) => {
+    const deleteMap: Record<string, typeof deleteVitals> = {
+      health: deleteVitals,
+      vitals: deleteVitals,
+      symptoms: deleteSymptom,
+      exercise: deleteExercise,
+      mood: deleteMood,
+      medical_notes: deleteMedicalNote,
+      meds: deleteMedicationLog,
+      medications: deleteMedicationLog,
+      sleep: deleteSleep,
+      water: deleteWater,
+    };
+    return deleteMap[type];
+  };
+
+  const isDeleting = deleteVitals.isPending || deleteSymptom.isPending || deleteExercise.isPending ||
+    deleteMood.isPending || deleteMedicalNote.isPending || deleteMedicationLog.isPending ||
+    deleteSleep.isPending || deleteWater.isPending;
+
+  // Use custom dates if dateRange is -1, otherwise use days
+  const historyOptions = dateRange === -1 && customStartDate && customEndDate
+    ? { startDate: customStartDate, endDate: customEndDate }
+    : undefined;
+  const { data: healthHistory, isLoading: historyLoading, refetch: refetchHistory } = useHealthHistory(
+    patientId,
+    dateRange === -1 ? 30 : dateRange, // fallback to 30 if custom but no dates yet
+    historyOptions
+  );
+
+  // Handle delete from real data
+  const handleDeleteRealItem = async (item: HistoryItem) => {
+    if (!patientId) return;
+
+    // Get the raw data ID - the item.id is the index, we need the actual ID from raw
+    const rawData = realHistoryData.find(h => h.id === item.id);
+    if (!rawData) return;
+
+    // Extract actual ID from the raw item (stored in the item when converted)
+    const actualId = (rawData as any).rawId;
+    if (!actualId) return;
+
+    const deleteMutation = getDeleteMutation(item.type);
+    if (!deleteMutation) return;
+
+    try {
+      await deleteMutation.mutateAsync({ id: actualId, patientId });
+      toast({ description: 'ลบข้อมูลเรียบร้อยแล้ว' });
+      setDeleteConfirmId(null);
+      refetchHistory();
+    } catch (error) {
+      console.error('Error deleting history item:', error);
+      toast({ description: 'เกิดข้อผิดพลาดในการลบข้อมูล', variant: 'destructive' });
+    }
+  };
 
   // Auto-ensure patient on mount
   const [hasEnsured, setHasEnsured] = useState(false);
@@ -103,7 +188,7 @@ export default function HistoryPage() {
   ];
 
   // Convert API data to display format
-  const realHistoryData: HistoryItem[] = (healthHistory || []).map((item, index) => {
+  const realHistoryData: (HistoryItem & { rawId: string })[] = (healthHistory || []).map((item, index) => {
     const config = TYPE_CONFIG[item.type] || TYPE_CONFIG.health;
     const typeMapping: Record<string, string> = {
       vitals: 'health',
@@ -111,6 +196,7 @@ export default function HistoryPage() {
     };
     return {
       id: index + 1,
+      rawId: item.id, // Store actual DB ID
       type: typeMapping[item.type] || item.type,
       title: item.title,
       detail: item.detail,
@@ -130,17 +216,74 @@ export default function HistoryPage() {
     ? dataSource
     : dataSource.filter((item) => item.type === filter);
 
-  const handleSave = () => {
+  const handleEditSuccess = () => {
     setSuccess(true);
     setTimeout(() => {
       setSuccess(false);
       setEditingItem(null);
+      refetchHistory();
     }, 1500);
   };
 
   const handleCloseEdit = () => {
     setEditingItem(null);
     setSuccess(false);
+    refetchHistory();
+  };
+
+  // Map type to form component
+  const renderEditForm = () => {
+    if (!editingItem) return null;
+
+    // Map display type to form type
+    const typeMap: Record<string, string> = {
+      health: 'vitals',
+      meds: 'medications',
+    };
+    const formType = typeMap[editingItem.type] || editingItem.type;
+
+    switch (formType) {
+      case 'vitals':
+        return <VitalsForm onSuccess={handleEditSuccess} onCancel={handleCloseEdit} />;
+      case 'water':
+        return <WaterForm onSuccess={handleEditSuccess} onCancel={handleCloseEdit} />;
+      case 'medications':
+        return <MedicationForm onSuccess={handleEditSuccess} onCancel={handleCloseEdit} />;
+      case 'symptoms':
+        return <SymptomForm onSuccess={handleEditSuccess} onCancel={handleCloseEdit} />;
+      case 'sleep':
+        return <SleepForm onSuccess={handleEditSuccess} onCancel={handleCloseEdit} />;
+      case 'exercise':
+        return <ExerciseForm onSuccess={handleEditSuccess} onCancel={handleCloseEdit} />;
+      case 'mood':
+        return <MoodForm onSuccess={handleEditSuccess} onCancel={handleCloseEdit} />;
+      case 'medical_notes':
+        return <MedicalNotesForm onSuccess={handleEditSuccess} onCancel={handleCloseEdit} />;
+      default:
+        return (
+          <div className="p-4 bg-muted/20 rounded-2xl text-center text-muted-foreground text-sm">
+            แบบฟอร์มสำหรับประเภทนี้ยังไม่พร้อมใช้งาน
+          </div>
+        );
+    }
+  };
+
+  // Get the drawer title based on type
+  const getEditDrawerTitle = () => {
+    if (!editingItem) return '';
+    const typeLabels: Record<string, string> = {
+      health: 'ความดัน/ชีพจร',
+      vitals: 'ความดัน/ชีพจร',
+      meds: 'ยา',
+      medications: 'ยา',
+      sleep: 'การนอน',
+      water: 'การดื่มน้ำ',
+      exercise: 'ออกกำลังกาย',
+      symptoms: 'อาการ',
+      mood: 'อารมณ์',
+      medical_notes: 'โน้ต/บันทึกแพทย์',
+    };
+    return typeLabels[editingItem.type] || editingItem.title;
   };
 
   return (
@@ -168,7 +311,7 @@ export default function HistoryPage() {
           >
             <Calendar className="w-4 h-4" />
             <span className="text-xs font-medium">
-              {DATE_RANGES.find(d => d.id === dateRange)?.shortLabel}
+              {dateRange === -1 ? 'กำหนดเอง' : DATE_RANGES.find(d => d.id === dateRange)?.shortLabel}
             </span>
             <ChevronDown className={cn("w-3 h-3 transition-transform", showDatePicker && "rotate-180")} />
           </Button>
@@ -176,16 +319,22 @@ export default function HistoryPage() {
 
         {/* Date Range Dropdown */}
         {showDatePicker && (
-          <div className="mt-3 flex gap-2 animate-in slide-in-from-top-2 duration-200">
+          <div className="mt-3 flex gap-2 flex-wrap animate-in slide-in-from-top-2 duration-200">
             {DATE_RANGES.map((range) => (
               <button
                 key={range.id}
                 onClick={() => {
-                  setDateRange(range.id);
-                  setShowDatePicker(false);
+                  if (range.id === -1) {
+                    // Show custom date drawer
+                    setShowCustomDateDrawer(true);
+                    setShowDatePicker(false);
+                  } else {
+                    setDateRange(range.id);
+                    setShowDatePicker(false);
+                  }
                 }}
                 className={cn(
-                  'flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all border',
+                  'flex-1 min-w-[70px] py-2 px-3 rounded-xl text-xs font-bold transition-all border',
                   dateRange === range.id
                     ? 'bg-primary text-primary-foreground border-primary shadow-md shadow-primary/20'
                     : 'bg-card text-muted-foreground border-border hover:border-primary/50'
@@ -194,6 +343,15 @@ export default function HistoryPage() {
                 {range.label}
               </button>
             ))}
+          </div>
+        )}
+
+        {/* Custom Date Range Display */}
+        {dateRange === -1 && customStartDate && customEndDate && (
+          <div className="mt-2 text-xs text-muted-foreground text-center">
+            {new Date(customStartDate).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })}
+            {' - '}
+            {new Date(customEndDate).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })}
           </div>
         )}
       </header>
@@ -261,8 +419,8 @@ export default function HistoryPage() {
             {filteredData.map((item) => (
               <div
                 key={item.id}
-                className="flex items-center justify-between bg-muted/50 rounded-xl p-3 cursor-pointer active:scale-[0.99] transition-transform"
-                onClick={() => setEditingItem(item)}
+                className="flex items-center justify-between bg-muted/50 rounded-xl p-3 cursor-pointer active:scale-[0.99] transition-transform group"
+                onClick={() => !isExampleTab && deleteConfirmId !== item.id && setEditingItem(item)}
               >
                 <div className="flex items-center gap-3 flex-1 min-w-0">
                   {/* Icon */}
@@ -289,6 +447,54 @@ export default function HistoryPage() {
                     </div>
                   </div>
                 </div>
+                {/* Delete / Edit Indicator */}
+                {!isExampleTab && (
+                  deleteConfirmId === item.id ? (
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        className="h-7 px-2 text-xs"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteRealItem(item);
+                        }}
+                        disabled={isDeleting}
+                      >
+                        {isDeleting ? <Loader2 className="w-3 h-3 animate-spin" /> : 'ลบ'}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-xs"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteConfirmId(null);
+                        }}
+                      >
+                        ยกเลิก
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive opacity-40 group-hover:opacity-100 transition-opacity"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteConfirmId(item.id);
+                        }}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                      <ChevronRight className="w-4 h-4 text-muted-foreground/50 group-hover:text-muted-foreground group-hover:translate-x-0.5 transition-all" />
+                    </div>
+                  )
+                )}
+                {isExampleTab && (
+                  <ChevronRight className="w-4 h-4 text-muted-foreground/50 shrink-0" />
+                )}
               </div>
             ))}
           </div>
@@ -353,7 +559,7 @@ export default function HistoryPage() {
         <DrawerContent className="max-h-[90vh]">
           <DrawerHeader className="flex items-center justify-between px-6">
             <DrawerTitle className="text-xl font-bold">
-              แก้ไข: {editingItem?.title}
+              {getEditDrawerTitle()}
             </DrawerTitle>
             <DrawerClose asChild>
               <Button variant="ghost" size="icon" className="rounded-full h-10 w-10">
@@ -362,128 +568,103 @@ export default function HistoryPage() {
             </DrawerClose>
           </DrawerHeader>
 
-          <div className="px-6 pb-8 overflow-y-auto max-h-[calc(90vh-80px)]">
+          <div className="px-6 overflow-y-auto max-h-[calc(90vh-80px)]">
             {success ? (
               <div className="py-12 flex flex-col items-center text-center space-y-6 animate-in zoom-in-95 duration-300">
                 <div className="w-20 h-20 bg-emerald-100 dark:bg-emerald-950/30 text-emerald-600 rounded-full flex items-center justify-center">
                   <Check className="w-10 h-10 stroke-[3px]" />
                 </div>
                 <div className="space-y-2">
-                  <h2 className="text-2xl font-bold text-foreground">แก้ไขเรียบร้อย!</h2>
+                  <h2 className="text-2xl font-bold text-foreground">อัปเดตเรียบร้อย!</h2>
                   <p className="text-muted-foreground text-sm leading-relaxed px-8">
                     ข้อมูลของคุณถูกอัปเดตแล้ว
                   </p>
                 </div>
               </div>
             ) : (
-              <div className="space-y-8">
-                {/* Time Selection */}
-                <div className="flex items-center gap-4 bg-muted/30 p-4 rounded-3xl">
-                  <Clock className="w-5 h-5 text-muted-foreground" />
-                  <div className="flex-1 flex justify-between items-center">
-                    <span className="text-sm font-bold">เวลาที่บันทึก</span>
-                    <Button
-                      variant="ghost"
-                      className="text-foreground font-bold text-sm bg-card shadow-sm rounded-xl px-4 h-9"
-                    >
-                      {editingItem?.time}
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Dynamic Form Content based on Type */}
-                {editingItem?.type === 'symptoms' && (
-                  <div className="space-y-6">
-                    <div className="space-y-3">
-                      <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest pl-1">
-                        อาการ
-                      </label>
-                      <div className="flex flex-wrap gap-2">
-                        <button className="px-5 py-2.5 rounded-2xl bg-red-50 dark:bg-red-950/30 border-2 border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 text-sm font-bold transition-all">
-                          ปวดหัว
-                        </button>
-                        <button className="px-5 py-2.5 rounded-2xl bg-card border-2 border-border hover:border-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 text-sm font-bold transition-all">
-                          เวียนหัว
-                        </button>
-                      </div>
-                    </div>
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-end pl-1">
-                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
-                          ระดับความรุนแรง
-                        </label>
-                        <span className="text-lg font-bold text-red-500">ระดับ 3</span>
-                      </div>
-                      <input
-                        type="range"
-                        min="1"
-                        max="5"
-                        defaultValue="3"
-                        className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-red-500"
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {editingItem?.type === 'health' && (
-                  <div className="space-y-8">
-                    <div className="flex items-center justify-center gap-4 py-4">
-                      <div className="text-center space-y-2">
-                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                          SYS
-                        </p>
-                        <div className="bg-card border-2 border-border rounded-[32px] w-24 h-24 flex items-center justify-center text-4xl font-bold shadow-sm text-foreground">
-                          128
-                        </div>
-                      </div>
-                      <span className="text-2xl text-muted-foreground pt-6">/</span>
-                      <div className="text-center space-y-2">
-                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                          DIA
-                        </p>
-                        <div className="bg-card border-2 border-border rounded-[32px] w-24 h-24 flex items-center justify-center text-4xl font-bold shadow-sm text-foreground">
-                          82
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Fallback for other types */}
-                {editingItem && !['symptoms', 'health'].includes(editingItem.type) && (
-                  <div className="p-4 bg-muted/20 rounded-2xl text-center text-muted-foreground text-sm">
-                    แบบฟอร์มแก้ไขสำหรับประเภทนี้ยังไม่พร้อมใช้งาน
-                  </div>
-                )}
-
-                {/* Shared: Notes & Photo */}
-                <div className="space-y-4 pt-4">
-                  <div className="bg-muted/20 rounded-3xl p-4 flex gap-4">
-                    <Camera className="w-5 h-5 text-muted-foreground mt-1" />
-                    <textarea
-                      className="flex-1 bg-transparent border-none resize-none text-sm focus:outline-none min-h-[60px] text-foreground"
-                      placeholder="เพิ่มโน้ตสั้นๆ หรือแนบรูปภาพ..."
-                      defaultValue={editingItem?.detail}
-                    />
-                  </div>
-                </div>
-
-                <div className="flex gap-3 pt-4">
-                  <Button
-                    variant="ghost"
-                    className="flex-1 h-14 rounded-2xl font-bold text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
-                  >
-                    ลบรายการ
-                  </Button>
-                  <Button
-                    className="flex-[2] h-14 rounded-2xl bg-primary text-primary-foreground font-bold text-lg shadow-xl shadow-primary/20"
-                    onClick={handleSave}
-                  >
-                    บันทึกการแก้ไข
-                  </Button>
-                </div>
-              </div>
+              renderEditForm()
             )}
+          </div>
+        </DrawerContent>
+      </Drawer>
+
+      {/* Custom Date Range Drawer */}
+      <Drawer open={showCustomDateDrawer} onOpenChange={setShowCustomDateDrawer}>
+        <DrawerContent className="max-h-[85vh]">
+          <DrawerHeader className="flex items-center justify-between px-6">
+            <DrawerTitle className="text-xl font-bold">กำหนดช่วงวันที่</DrawerTitle>
+            <DrawerClose asChild>
+              <Button variant="ghost" size="icon" className="rounded-full h-10 w-10">
+                <X className="w-5 h-5" />
+              </Button>
+            </DrawerClose>
+          </DrawerHeader>
+
+          <div className="px-6 pb-8 space-y-6">
+            {/* Start Date */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-muted-foreground">วันเริ่มต้น</label>
+              <input
+                type="date"
+                value={customStartDate}
+                onChange={(e) => setCustomStartDate(e.target.value)}
+                max={customEndDate || new Date().toISOString().split('T')[0]}
+                className="w-full h-12 px-4 rounded-xl border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
+
+            {/* End Date */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-muted-foreground">วันสิ้นสุด</label>
+              <input
+                type="date"
+                value={customEndDate}
+                onChange={(e) => setCustomEndDate(e.target.value)}
+                min={customStartDate}
+                max={new Date().toISOString().split('T')[0]}
+                className="w-full h-12 px-4 rounded-xl border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
+
+            {/* Quick Presets */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-muted-foreground">เลือกด่วน</label>
+              <div className="flex gap-2 flex-wrap">
+                {[
+                  { label: 'สัปดาห์นี้', days: 7 },
+                  { label: 'เดือนนี้', days: 30 },
+                  { label: '3 เดือน', days: 90 },
+                  { label: '6 เดือน', days: 180 },
+                ].map((preset) => (
+                  <button
+                    key={preset.days}
+                    onClick={() => {
+                      const end = new Date();
+                      const start = new Date();
+                      start.setDate(start.getDate() - preset.days);
+                      setCustomStartDate(start.toISOString().split('T')[0]);
+                      setCustomEndDate(end.toISOString().split('T')[0]);
+                    }}
+                    className="px-4 py-2 rounded-xl text-xs font-medium bg-muted hover:bg-muted/80 transition-colors"
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Apply Button */}
+            <Button
+              className="w-full h-14 rounded-2xl font-bold text-lg"
+              disabled={!customStartDate || !customEndDate}
+              onClick={() => {
+                setDateRange(-1);
+                setShowCustomDateDrawer(false);
+              }}
+            >
+              <Calendar className="w-5 h-5 mr-2" />
+              ใช้ช่วงวันที่นี้
+            </Button>
           </div>
         </DrawerContent>
       </Drawer>

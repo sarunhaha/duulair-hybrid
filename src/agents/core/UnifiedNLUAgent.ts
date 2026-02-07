@@ -172,6 +172,18 @@ ${userPrompt}`;
       confidence: nluResult.confidence
     });
 
+    // Enhanced debug logging for health data extraction
+    if (nluResult.intent === 'health_log') {
+      console.log(`🔍 [UnifiedNLU] Health data extraction:`, {
+        message: message.substring(0, 80),
+        healthDataType: nluResult.healthData?.type || 'null',
+        hasHealthData: !!nluResult.healthData,
+        hasHealthDataArray: !!(nluResult as any).healthDataArray,
+        medicationName: nluResult.healthData?.medication?.medicationName || 'none',
+        actionType: nluResult.action?.type
+      });
+    }
+
     return nluResult;
   }
 
@@ -271,8 +283,15 @@ ${userPrompt}`;
   private normalizeHealthData(healthData: any): NLUHealthData | null {
     if (!healthData) return null;
 
+    // Infer type from data present if not explicitly set
+    const type = healthData.type || this.inferHealthDataType(healthData);
+
+    if (!healthData.type && type !== 'medication') {
+      console.log(`🔄 [UnifiedNLU] Type inferred from data: "${type}" (Claude didn't set type explicitly)`);
+    }
+
     return {
-      type: healthData.type || 'medication',
+      type,
       medication: healthData.medication,
       vitals: healthData.vitals,
       water: healthData.water,
@@ -282,6 +301,21 @@ ${userPrompt}`;
       symptom: healthData.symptom,
       mood: healthData.mood
     };
+  }
+
+  /**
+   * Infer health data type from which fields have data
+   */
+  private inferHealthDataType(healthData: any): string {
+    if (healthData.vitals && (healthData.vitals.bloodPressure || healthData.vitals.heartRate || healthData.vitals.bloodSugar || healthData.vitals.weight || healthData.vitals.temperature || healthData.vitals.oxygenSaturation)) return 'vitals';
+    if (healthData.sleep && (healthData.sleep.duration_hours || healthData.sleep.bedTime || healthData.sleep.wakeTime)) return 'sleep';
+    if (healthData.mood && healthData.mood.mood) return 'mood';
+    if (healthData.symptom && healthData.symptom.symptom) return 'symptom';
+    if (healthData.exercise && (healthData.exercise.type || healthData.exercise.duration_minutes)) return 'exercise';
+    if (healthData.water && (healthData.water.glasses || healthData.water.amount_ml)) return 'water';
+    if (healthData.food) return 'food';
+    if (healthData.medication) return 'medication';
+    return 'medication'; // final fallback
   }
 
   /**

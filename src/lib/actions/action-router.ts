@@ -88,15 +88,18 @@ async function handleSaveAction(
 ): Promise<ActionResult> {
   const { healthData, action, entities } = nluResult;
 
+  // Use original user message for raw_text (not AI response)
+  const rawText = context.originalMessage || nluResult.response;
+
   // Check for healthDataArray (multiple health data in one message)
   const healthDataArray = (nluResult as any).healthDataArray;
   if (nluResult.intent === 'health_log' && healthDataArray && Array.isArray(healthDataArray) && healthDataArray.length > 0) {
-    return await saveMultipleHealthData(healthDataArray, context, nluResult.response);
+    return await saveMultipleHealthData(healthDataArray, context, rawText);
   }
 
   // Health log saves (single healthData)
   if (nluResult.intent === 'health_log' && healthData) {
-    return await saveHealthData(healthData, context, nluResult.response);
+    return await saveHealthData(healthData, context, rawText);
   }
 
   // Profile update saves

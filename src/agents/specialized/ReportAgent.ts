@@ -2,6 +2,8 @@
 import { BaseAgent, Message, Response, Config } from '../core/BaseAgent';
 import { reportService } from '../../services/report.service';
 
+const LIFF_ID = process.env.LIFF_ID || '2008278683-5k69jxNq';
+
 export class ReportAgent extends BaseAgent {
   constructor(config?: Partial<Config>) {
     super({
@@ -743,7 +745,7 @@ Example format:
             action: {
               type: 'uri',
               label: 'รายงานพร้อมกราฟ',
-              uri: 'https://liff.line.me/2008278683-5k69jxNq/reports.html'
+              uri: `https://liff.line.me/${LIFF_ID}/reports`
             },
             contents: [
               {

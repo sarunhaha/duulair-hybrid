@@ -1,10 +1,11 @@
+import { useEffect } from 'react';
 import { TrendingUp, ArrowDownRight, ArrowUpRight, Flame, Moon, Sun, Droplets, Loader2, PlusCircle, FileText } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import { useLiff } from '@/lib/liff/provider';
-import { useAuthStore } from '@/stores/auth';
+import { useAuth } from '@/hooks/use-auth';
 import { BottomNav } from '@/components/layout/bottom-nav';
 import { useDashboardSummary } from '@/lib/api/hooks/use-dashboard';
 import { useLocation } from 'wouter';
@@ -25,15 +26,42 @@ const DEFAULT_INSIGHT = {
 
 export default function DashboardPage() {
   const { profile } = useLiff();
-  const { context, user } = useAuthStore();
+  const auth = useAuth();
   const [, setLocation] = useLocation();
   const displayName = profile?.displayName || 'คุณ';
 
-  // Fallback to user.profileId if context.patientId is null (for patient role)
-  const patientId = context.patientId || (user.role === 'patient' ? user.profileId : null);
+  // Get patientId directly from useAuth hook (more reliable than Zustand store)
+  const patientId = auth.patientId;
+
+  console.log('[Dashboard] patientId:', patientId, 'auth:', { isLoading: auth.isLoading, isRegistered: auth.isRegistered });
 
   // Fetch dashboard data
-  const { data: summary, isLoading } = useDashboardSummary(patientId);
+  const { data: summary, isLoading, refetch } = useDashboardSummary(patientId);
+
+  // Refetch when page becomes visible (user returns from another page)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && patientId) {
+        console.log('[Dashboard] Page visible, refetching...');
+        refetch();
+      }
+    };
+
+    const handleFocus = () => {
+      if (patientId) {
+        console.log('[Dashboard] Window focus, refetching...');
+        refetch();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [patientId, refetch]);
 
   // Use real data with proper empty states
   const vitals = summary?.latestVitals;

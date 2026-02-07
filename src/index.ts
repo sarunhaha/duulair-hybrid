@@ -2778,7 +2778,7 @@ async function handleFollow(event: any) {
 
     // ✅ New user - send registration link
     console.log('📝 New user - sending registration link');
-    const registrationUrl = `https://liff.line.me/${LIFF_ID}/registration.html`;
+    const registrationUrl = `https://liff.line.me/${LIFF_ID}/registration`;
 
     const welcomeMessage: FlexMessage = {
       type: 'flex',
@@ -2989,37 +2989,57 @@ async function handlePostback(event: any) {
 
     console.log('🔘 Postback event:', postbackData);
 
-    // Parse postback data
+    // Parse postback data - support both short keys (a,t,r,p,st,tt) and long keys
     const params = new URLSearchParams(postbackData);
-    const action = params.get('action');
+    const action = params.get('action') || params.get('a');
+    // Normalize short action codes: rc=reminder_confirm, rs=reminder_skip
+    const normalizedAction = action === 'rc' ? 'reminder_confirm' : action === 'rs' ? 'reminder_skip' : action;
 
     // Handle reminder confirmation (medication, vitals, water, etc.)
-    if (action === 'reminder_confirm') {
-      const reminderType = params.get('type') || 'medication';
-      const reminderId = params.get('reminder_id') || '';
-      const patientId = params.get('patient_id') || '';
+    if (normalizedAction === 'reminder_confirm') {
+      const reminderType = params.get('type') || params.get('t') || 'medication';
+      const reminderId = params.get('reminder_id') || params.get('r') || '';
+      const patientId = params.get('patient_id') || params.get('p') || '';
       const medicationId = params.get('medication_id') || null;
       const medicationName = decodeURIComponent(params.get('medication_name') || '');
+      const scheduledTime = params.get('scheduled_time') || params.get('st') || null;
+      const title = decodeURIComponent(params.get('title') || params.get('tt') || '');
 
-      console.log(`✅ Reminder confirm: type=${reminderType}, reminder=${reminderId}, patient=${patientId}, med=${medicationId}`);
+      console.log(`✅ Reminder confirm: type=${reminderType}, reminder=${reminderId}, patient=${patientId}, med=${medicationId}, scheduled=${scheduledTime}`);
 
       try {
         const now = new Date();
+        console.log(`🔍 DEBUG: About to process reminder_confirm. reminderType=${reminderType}, patientId=${patientId}, title=${title}, scheduledTime=${scheduledTime}`);
+
+        // Convert scheduledTime (e.g., "08:00") to full timestamp for today in Bangkok timezone
+        let scheduledTimestamp: string | null = null;
+        if (scheduledTime && scheduledTime.match(/^\d{2}:\d{2}$/)) {
+          // Get today's date in Bangkok timezone
+          const todayBangkok = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' });
+          // Create full timestamp: "2026-02-07T08:00:00+07:00"
+          scheduledTimestamp = `${todayBangkok}T${scheduledTime}:00+07:00`;
+          console.log(`🔍 DEBUG: Converted scheduledTime ${scheduledTime} to ${scheduledTimestamp}`);
+        }
 
         if (reminderType === 'medication') {
-          // Log medication taken with specific medication_id
+          // Log medication taken with scheduled_time for dashboard matching
+          console.log(`🔍 DEBUG: Inserting medication_log...`);
           const { error: medError } = await supabase.from('medication_logs').insert({
             patient_id: patientId,
             medication_id: medicationId,
-            medication_name: medicationName,
+            medication_name: medicationName || title || 'ยา',
             taken_at: now.toISOString(),
+            scheduled_time: scheduledTimestamp, // เก็บเป็น timestamp เต็มรูปแบบ
             status: 'taken',
             skipped: false,
-            note: `บันทึกจากการกดปุ่มแจ้งเตือน (reminder: ${reminderId})`
+            note: `บันทึกจากการกดปุ่มแจ้งเตือน (reminder: ${reminderId}, scheduled: ${scheduledTime})`
           });
 
           if (medError) {
             console.error('❌ Error logging medication:', medError);
+            console.error('❌ Error details:', JSON.stringify(medError, null, 2));
+          } else {
+            console.log(`✅ Medication logged SUCCESS: patient=${patientId}, scheduled=${scheduledTime}, taken_at=${now.toISOString()}`);
           }
         } else if (reminderType === 'water') {
           // Log water intake
@@ -3088,10 +3108,10 @@ async function handlePostback(event: any) {
     }
 
     // Handle reminder skip/decline
-    if (action === 'reminder_skip') {
-      const reminderType = params.get('type') || 'medication';
-      const reminderId = params.get('reminder_id') || '';
-      const patientId = params.get('patient_id') || '';
+    if (normalizedAction === 'reminder_skip') {
+      const reminderType = params.get('type') || params.get('t') || 'medication';
+      const reminderId = params.get('reminder_id') || params.get('r') || '';
+      const patientId = params.get('patient_id') || params.get('p') || '';
       const medicationId = params.get('medication_id') || null;
 
       console.log(`⏰ Reminder skipped: type=${reminderType}, reminder=${reminderId}, patient=${patientId}`);

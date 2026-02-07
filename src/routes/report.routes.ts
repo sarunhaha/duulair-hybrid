@@ -11,6 +11,363 @@ import { supabase } from '../services/supabase.service';
 const router = Router();
 
 /**
+ * GET /api/reports/:patientId
+ *
+ * Get report data for patient with date range
+ * Query Parameters:
+ * - start: Start date (YYYY-MM-DD)
+ * - end: End date (YYYY-MM-DD)
+ */
+router.get('/:patientId', async (req: Request, res: Response) => {
+  try {
+    const { patientId } = req.params;
+    const { start, end } = req.query;
+
+    if (!patientId) {
+      return res.status(400).json({ success: false, error: 'Patient ID is required' });
+    }
+
+    const startDate = start ? new Date(start as string) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const endDate = end ? new Date(end as string) : new Date();
+
+    // Validate dates
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      return res.status(400).json({ success: false, error: 'Invalid date format' });
+    }
+
+    const startStr = startDate.toISOString().split('T')[0];
+    const endStr = endDate.toISOString().split('T')[0];
+    const startDatetime = startDate.toISOString();
+    const endDatetime = new Date(endDate.getTime() + 24 * 60 * 60 * 1000).toISOString(); // End of day
+
+    console.log(`[GET /reports/${patientId}] Date range: ${startStr} to ${endStr}`);
+
+    // Fetch all data in parallel
+    const [vitals, medications, water, sleep, symptoms, healthEvents] = await Promise.all([
+      // Vitals data
+      supabase
+        .from('vitals_logs')
+        .select('*')
+        .eq('patient_id', patientId)
+        .gte('measured_at', startDatetime)
+        .lte('measured_at', endDatetime)
+        .order('measured_at', { ascending: true }),
+
+      // Medication logs
+      supabase
+        .from('medication_logs')
+        .select('*')
+        .eq('patient_id', patientId)
+        .gte('taken_at', startDatetime)
+        .lte('taken_at', endDatetime)
+        .order('taken_at', { ascending: true }),
+
+      // Water logs
+      supabase
+        .from('water_logs')
+        .select('*')
+        .eq('patient_id', patientId)
+        .gte('log_date', startStr)
+        .lte('log_date', endStr)
+        .order('log_date', { ascending: true }),
+
+      // Sleep logs
+      supabase
+        .from('sleep_logs')
+        .select('*')
+        .eq('patient_id', patientId)
+        .gte('sleep_date', startStr)
+        .lte('sleep_date', endStr)
+        .order('sleep_date', { ascending: true }),
+
+      // Symptoms
+      supabase
+        .from('symptoms')
+        .select('*')
+        .eq('patient_id', patientId)
+        .gte('created_at', startDatetime)
+        .lte('created_at', endDatetime)
+        .order('created_at', { ascending: true }),
+
+      // Health events (significant events)
+      supabase
+        .from('health_events')
+        .select('*')
+        .eq('patient_id', patientId)
+        .gte('event_timestamp', startDatetime)
+        .lte('event_timestamp', endDatetime)
+        .order('event_timestamp', { ascending: false }),
+    ]);
+
+    // Calculate BP summary
+    const bpData = vitals.data?.filter(v => v.bp_systolic && v.bp_diastolic) || [];
+    const avgSystolic = bpData.length > 0
+      ? Math.round(bpData.reduce((sum, v) => sum + v.bp_systolic, 0) / bpData.length)
+      : 0;
+    const avgDiastolic = bpData.length > 0
+      ? Math.round(bpData.reduce((sum, v) => sum + v.bp_diastolic, 0) / bpData.length)
+      : 0;
+    const avgHeartRate = bpData.length > 0
+      ? Math.round(bpData.filter(v => v.heart_rate).reduce((sum, v) => sum + (v.heart_rate || 0), 0) / bpData.filter(v => v.heart_rate).length) || 0
+      : 0;
+
+    // Calculate medication adherence
+    const medsData = medications.data || [];
+    const takenCount = medsData.filter(m => m.status === 'taken').length;
+    const totalMeds = medsData.length;
+    const adherencePercent = totalMeds > 0 ? Math.round((takenCount / totalMeds) * 100) : 0;
+
+    // Calculate water average
+    const waterData = water.data || [];
+    const waterTotal = waterData.reduce((sum, w) => sum + (w.amount_ml || 0), 0);
+    const waterDays = new Set(waterData.map(w => w.log_date)).size;
+    const avgWaterMl = waterDays > 0 ? Math.round(waterTotal / waterDays) : 0;
+
+    // Calculate sleep average
+    const sleepData = sleep.data || [];
+    const avgSleepHours = sleepData.length > 0
+      ? Math.round(sleepData.reduce((sum, s) => sum + (s.sleep_hours || 0), 0) / sleepData.length * 10) / 10
+      : 0;
+
+    // Get BP status
+    const bpStatus = getBpStatus(avgSystolic, avgDiastolic);
+
+    // Build chart data (daily)
+    const chartData = buildChartData(startDate, endDate, vitals.data || [], medications.data || [], water.data || [], sleep.data || []);
+
+    // Build significant events
+    const significantEvents = buildSignificantEvents(healthEvents.data || [], symptoms.data || [], vitals.data || [], medications.data || []);
+
+    // Build activities list
+    const activities = buildActivities(vitals.data || [], medications.data || [], water.data || [], symptoms.data || []);
+
+    const reportData = {
+      summary: {
+        bp: {
+          avgSystolic,
+          avgDiastolic,
+          avgHeartRate,
+          count: bpData.length,
+          status: bpStatus,
+        },
+        meds: {
+          adherencePercent,
+          takenCount,
+          totalCount: totalMeds,
+          status: adherencePercent >= 90 ? 'good' : adherencePercent >= 70 ? 'fair' : 'poor',
+        },
+        water: {
+          avgMl: avgWaterMl,
+          daysRecorded: waterDays,
+          status: avgWaterMl >= 1500 ? 'good' : avgWaterMl >= 1000 ? 'fair' : 'poor',
+        },
+        sleep: {
+          avgHours: avgSleepHours,
+          daysRecorded: sleepData.length,
+          status: avgSleepHours >= 7 ? 'good' : avgSleepHours >= 5 ? 'fair' : 'poor',
+        },
+        activities: {
+          total: activities.length,
+          byType: activities.reduce((acc, a) => {
+            acc[a.type] = (acc[a.type] || 0) + 1;
+            return acc;
+          }, {} as Record<string, number>),
+        },
+      },
+      chartData,
+      significantEvents,
+      activities: activities.slice(0, 50), // Limit to 50 most recent
+    };
+
+    console.log(`[GET /reports/${patientId}] Summary: BP ${avgSystolic}/${avgDiastolic}, Meds ${adherencePercent}%, Water ${avgWaterMl}ml, Sleep ${avgSleepHours}h`);
+
+    res.json(reportData);
+  } catch (error: any) {
+    console.error('Get report data error:', error);
+    res.status(500).json({ success: false, error: error.message || 'Failed to get report data' });
+  }
+});
+
+/**
+ * Helper: Get BP status
+ */
+function getBpStatus(systolic: number, diastolic: number): 'normal' | 'elevated' | 'high' | 'crisis' {
+  if (systolic >= 180 || diastolic >= 120) return 'crisis';
+  if (systolic >= 140 || diastolic >= 90) return 'high';
+  if (systolic >= 130 || diastolic >= 80) return 'elevated';
+  return 'normal';
+}
+
+/**
+ * Helper: Build chart data from raw data
+ */
+function buildChartData(startDate: Date, endDate: Date, vitals: any[], meds: any[], water: any[], sleep: any[]) {
+  const days: any[] = [];
+  const currentDate = new Date(startDate);
+
+  while (currentDate <= endDate) {
+    const dateStr = currentDate.toISOString().split('T')[0];
+    const dayFormatted = currentDate.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
+
+    // Get vitals for this day
+    const dayVitals = vitals.filter(v => v.measured_at?.startsWith(dateStr));
+    const avgSystolic = dayVitals.length > 0
+      ? Math.round(dayVitals.reduce((sum, v) => sum + (v.bp_systolic || 0), 0) / dayVitals.length)
+      : undefined;
+    const avgDiastolic = dayVitals.length > 0
+      ? Math.round(dayVitals.reduce((sum, v) => sum + (v.bp_diastolic || 0), 0) / dayVitals.length)
+      : undefined;
+    const avgPulse = dayVitals.filter(v => v.heart_rate).length > 0
+      ? Math.round(dayVitals.filter(v => v.heart_rate).reduce((sum, v) => sum + (v.heart_rate || 0), 0) / dayVitals.filter(v => v.heart_rate).length)
+      : undefined;
+
+    // Get meds for this day
+    const dayMeds = meds.filter(m => m.taken_at?.startsWith(dateStr));
+    const takenCount = dayMeds.filter(m => m.status === 'taken').length;
+    const medsPercent = dayMeds.length > 0 ? Math.round((takenCount / dayMeds.length) * 100) : undefined;
+
+    // Get water for this day
+    const dayWater = water.filter(w => w.log_date === dateStr);
+    const waterMl = dayWater.length > 0
+      ? dayWater.reduce((sum, w) => sum + (w.amount_ml || 0), 0)
+      : undefined;
+
+    // Get sleep for this day
+    const daySleep = sleep.find(s => s.sleep_date === dateStr);
+    const sleepHours = daySleep?.sleep_hours || undefined;
+
+    days.push({
+      date: dateStr,
+      day: dayFormatted,
+      systolic: avgSystolic,
+      diastolic: avgDiastolic,
+      pulse: avgPulse,
+      medsPercent,
+      waterMl,
+      sleepHours,
+    });
+
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+
+  return days;
+}
+
+/**
+ * Helper: Build significant events
+ */
+function buildSignificantEvents(healthEvents: any[], symptoms: any[], vitals: any[], meds: any[]) {
+  const events: any[] = [];
+
+  // Add health events from database
+  healthEvents.forEach(event => {
+    events.push({
+      date: new Date(event.event_timestamp).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' }),
+      title: event.summary_text || `${event.event_type}: ${event.event_subtype || ''}`,
+      tag: event.event_type === 'vitals' ? 'BP/HR' : event.event_type === 'medication' ? 'ยา' : 'อื่นๆ',
+      type: event.event_type === 'vitals' ? 'health' : event.event_type === 'medication' ? 'meds' : 'symptom',
+      timestamp: event.event_timestamp,
+    });
+  });
+
+  // Add high BP readings
+  vitals.filter(v => v.bp_systolic >= 140 || v.bp_diastolic >= 90).forEach(v => {
+    events.push({
+      date: new Date(v.measured_at).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' }),
+      title: `ความดันสูงผิดปกติ (${v.bp_systolic}/${v.bp_diastolic})`,
+      tag: 'BP/HR',
+      type: 'health',
+      timestamp: v.measured_at,
+    });
+  });
+
+  // Add severe symptoms
+  symptoms.filter(s => s.severity_1to5 >= 4).forEach(s => {
+    events.push({
+      date: new Date(s.created_at).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' }),
+      title: `${s.symptom_name} ระดับ ${s.severity_1to5}`,
+      tag: 'อาการ',
+      type: 'symptom',
+      timestamp: s.created_at,
+    });
+  });
+
+  // Add missed medications
+  meds.filter(m => m.status === 'skipped').forEach(m => {
+    events.push({
+      date: new Date(m.taken_at).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' }),
+      title: `ลืมกินยา ${m.medication_name || ''}`,
+      tag: 'ยา',
+      type: 'meds',
+      timestamp: m.taken_at,
+    });
+  });
+
+  // Sort by timestamp descending and limit to 10
+  return events
+    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+    .slice(0, 10);
+}
+
+/**
+ * Helper: Build activities list
+ */
+function buildActivities(vitals: any[], meds: any[], water: any[], symptoms: any[]) {
+  const activities: any[] = [];
+
+  vitals.forEach(v => {
+    activities.push({
+      id: v.id,
+      type: 'vitals',
+      title: 'วัดความดัน',
+      value: `${v.bp_systolic}/${v.bp_diastolic} mmHg${v.heart_rate ? `, ชีพจร ${v.heart_rate}` : ''}`,
+      timestamp: v.measured_at,
+      date: new Date(v.measured_at).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' }),
+      time: new Date(v.measured_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
+    });
+  });
+
+  meds.forEach(m => {
+    activities.push({
+      id: m.id,
+      type: 'medication',
+      title: m.status === 'taken' ? 'กินยา' : 'ลืมกินยา',
+      value: m.medication_name || m.dosage || '-',
+      timestamp: m.taken_at,
+      date: new Date(m.taken_at).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' }),
+      time: new Date(m.taken_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
+    });
+  });
+
+  water.forEach(w => {
+    activities.push({
+      id: w.id,
+      type: 'water',
+      title: 'ดื่มน้ำ',
+      value: `${w.amount_ml} มล.`,
+      timestamp: w.logged_at,
+      date: new Date(w.logged_at).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' }),
+      time: new Date(w.logged_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
+    });
+  });
+
+  symptoms.forEach(s => {
+    activities.push({
+      id: s.id,
+      type: 'symptom',
+      title: 'บันทึกอาการ',
+      value: `${s.symptom_name}${s.severity_1to5 ? ` (ระดับ ${s.severity_1to5})` : ''}`,
+      timestamp: s.created_at,
+      date: new Date(s.created_at).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' }),
+      time: new Date(s.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
+    });
+  });
+
+  // Sort by timestamp descending
+  return activities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+}
+
+/**
  * GET /api/reports/download
  *
  * Download patient report in PDF or CSV format

@@ -29,19 +29,19 @@ interface DashboardSummary {
  */
 router.get('/summary/:patientId', async (req: Request, res: Response) => {
   const { patientId } = req.params;
+  console.log('📊 [Dashboard] GET /summary/:patientId called with:', patientId);
 
   if (!patientId) {
     return res.status(400).json({ error: 'Patient ID is required' });
   }
 
   try {
-    // Get today's date boundaries
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const todayStr = today.toISOString().split('T')[0];
+    // Get today's date boundaries in Bangkok timezone
+    const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' });
+    const today = new Date(todayStr + 'T00:00:00+07:00'); // Bangkok midnight
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toISOString().split('T')[0];
+    const yesterdayStr = yesterday.toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' });
 
     // Fetch all data in parallel
     const [
@@ -112,14 +112,34 @@ router.get('/summary/:patientId', async (req: Request, res: Response) => {
         .eq('patient_id', patientId)
         .eq('log_date', todayStr),
 
-      // Streak calculation - count consecutive days with data
-      supabase
-        .from('daily_patient_summaries')
-        .select('summary_date, has_data')
-        .eq('patient_id', patientId)
-        .eq('has_data', true)
-        .order('summary_date', { ascending: false })
-        .limit(30),
+      // Streak calculation - get recent activity dates from multiple tables
+      // Using activity_logs + medication_logs as reliable sources instead of daily_patient_summaries
+      Promise.all([
+        supabase
+          .from('activity_logs')
+          .select('timestamp')
+          .eq('patient_id', patientId)
+          .order('timestamp', { ascending: false })
+          .limit(100),
+        supabase
+          .from('medication_logs')
+          .select('taken_at')
+          .eq('patient_id', patientId)
+          .order('taken_at', { ascending: false })
+          .limit(100),
+        supabase
+          .from('vitals_logs')
+          .select('measured_at')
+          .eq('patient_id', patientId)
+          .order('measured_at', { ascending: false })
+          .limit(50),
+        supabase
+          .from('water_logs')
+          .select('log_date')
+          .eq('patient_id', patientId)
+          .order('log_date', { ascending: false })
+          .limit(50),
+      ]),
     ]);
 
     // Process vitals
@@ -146,23 +166,41 @@ router.get('/summary/:patientId', async (req: Request, res: Response) => {
       ? Number((latestSleep.sleep_hours - previousSleep.sleep_hours).toFixed(1))
       : null;
 
-    // Calculate streak
+    // Calculate streak from actual health data across tables
     let streak = 0;
-    if (streakResult.data && streakResult.data.length > 0) {
-      const summaries = streakResult.data;
-      let expectedDate = new Date();
-      expectedDate.setHours(0, 0, 0, 0);
+    {
+      const [activityResult, medLogResult, vitalsResult, waterResult] = streakResult as any;
 
-      for (const summary of summaries) {
-        const summaryDate = new Date(summary.summary_date);
-        summaryDate.setHours(0, 0, 0, 0);
+      // Collect all unique dates (Bangkok timezone) from all health tables
+      const dateSet = new Set<string>();
 
-        // Check if this is the expected date or yesterday (allow gap for today not yet recorded)
-        const diffDays = Math.floor((expectedDate.getTime() - summaryDate.getTime()) / (1000 * 60 * 60 * 24));
+      for (const row of (activityResult.data || [])) {
+        if (row.timestamp) dateSet.add(new Date(row.timestamp).toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' }));
+      }
+      for (const row of (medLogResult.data || [])) {
+        if (row.taken_at) dateSet.add(new Date(row.taken_at).toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' }));
+      }
+      for (const row of (vitalsResult.data || [])) {
+        if (row.measured_at) dateSet.add(new Date(row.measured_at).toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' }));
+      }
+      for (const row of (waterResult.data || [])) {
+        if (row.log_date) dateSet.add(row.log_date);
+      }
+
+      // Sort dates descending
+      const sortedDates = Array.from(dateSet).sort((a, b) => b.localeCompare(a));
+
+      // Count consecutive days starting from today or yesterday
+      const todayBangkok = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' });
+      let expectedDate = new Date(todayBangkok + 'T00:00:00+07:00');
+
+      for (const dateStr of sortedDates) {
+        const date = new Date(dateStr + 'T00:00:00+07:00');
+        const diffDays = Math.floor((expectedDate.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
 
         if (diffDays <= 1) {
           streak++;
-          expectedDate = new Date(summaryDate);
+          expectedDate = new Date(date);
           expectedDate.setDate(expectedDate.getDate() - 1);
         } else {
           break;
@@ -177,21 +215,66 @@ router.get('/summary/:patientId', async (req: Request, res: Response) => {
     const reminders = todayRemindersResult.data || [];
     const medLogs = todayMedLogsResult.data || [];
 
-    for (const reminder of reminders) {
-      if (reminder.type === 'medication') {
-        const isTaken = medLogs.some(log => {
-          // Match by scheduled time (approximate)
-          const logTime = log.scheduled_time || (log.taken_at ? new Date(log.taken_at).toTimeString().slice(0, 5) : null);
-          return logTime && reminder.time && logTime.slice(0, 5) === reminder.time.slice(0, 5);
-        });
+    // Track which logs have been matched to prevent one log matching multiple reminders
+    // (e.g., "วิตามิน บำรุงตับ" at 11:00 and 20:00 should not both match from a single log)
+    const matchedLogIds = new Set<string>();
 
-        tasks.push({
-          id: reminder.id,
-          label: reminder.title || 'กินยา',
-          done: isTaken,
-          time: reminder.time?.slice(0, 5),
-        });
+    // Sort reminders by time so earlier reminders get matched first
+    const medReminders = reminders
+      .filter((r: any) => r.type === 'medication')
+      .sort((a: any, b: any) => (a.time || '').localeCompare(b.time || ''));
+
+    for (const reminder of medReminders) {
+      let matchedLogId: string | null = null;
+
+      // Priority 1: Match by scheduled_time (most precise - from postback button)
+      for (const log of medLogs) {
+        if (matchedLogIds.has(log.id)) continue;
+
+        const reminderTime = reminder.time;
+        const logScheduledTime = log.scheduled_time;
+
+        if (reminderTime && logScheduledTime) {
+          const logScheduledBangkok = new Date(logScheduledTime)
+            .toLocaleTimeString('en-GB', { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit', hour12: false });
+
+          if (logScheduledBangkok === reminderTime.slice(0, 5)) {
+            matchedLogId = log.id;
+            break;
+          }
+        }
       }
+
+      // Priority 2: Match by medication name (fallback for chat-based logs)
+      if (!matchedLogId) {
+        for (const log of medLogs) {
+          if (matchedLogIds.has(log.id)) continue;
+
+          const reminderTitle = (reminder.title || '').toLowerCase().trim();
+          const logMedName = (log.medication_name || '').toLowerCase().trim();
+
+          if (reminderTitle && logMedName) {
+            if (reminderTitle === logMedName ||
+                reminderTitle.includes(logMedName) ||
+                logMedName.includes(reminderTitle)) {
+              matchedLogId = log.id;
+              break;
+            }
+          }
+        }
+      }
+
+      const isTaken = matchedLogId !== null;
+      if (matchedLogId) {
+        matchedLogIds.add(matchedLogId);
+      }
+
+      tasks.push({
+        id: reminder.id,
+        label: reminder.title || 'กินยา',
+        done: isTaken,
+        time: reminder.time?.slice(0, 5),
+      });
     }
 
     // Add water goal task
@@ -206,6 +289,13 @@ router.get('/summary/:patientId', async (req: Request, res: Response) => {
       label: `ดื่มน้ำ ${waterGoalGlasses} แก้ว`,
       done: remainingGlasses === 0,
       sub: remainingGlasses > 0 ? `เหลือ ${remainingGlasses} แก้ว` : undefined,
+    });
+
+    // Sort tasks by time (water-goal at the end)
+    tasks.sort((a, b) => {
+      if (!a.time) return 1;  // water-goal goes last
+      if (!b.time) return -1;
+      return a.time.localeCompare(b.time);
     });
 
     // Calculate completed tasks
@@ -445,13 +535,13 @@ async function getPatientDashboardSummary(patientId: string): Promise<DashboardS
       .select('amount_ml, glasses')
       .eq('patient_id', patientId)
       .eq('log_date', todayStr),
-    supabase
-      .from('daily_patient_summaries')
-      .select('summary_date, has_data')
-      .eq('patient_id', patientId)
-      .eq('has_data', true)
-      .order('summary_date', { ascending: false })
-      .limit(30),
+    // Streak calculation - get recent activity dates from multiple tables
+    Promise.all([
+      supabase.from('activity_logs').select('timestamp').eq('patient_id', patientId).order('timestamp', { ascending: false }).limit(100),
+      supabase.from('medication_logs').select('taken_at').eq('patient_id', patientId).order('taken_at', { ascending: false }).limit(100),
+      supabase.from('vitals_logs').select('measured_at').eq('patient_id', patientId).order('measured_at', { ascending: false }).limit(50),
+      supabase.from('water_logs').select('log_date').eq('patient_id', patientId).order('log_date', { ascending: false }).limit(50),
+    ]),
   ]);
 
   // Process vitals
@@ -478,21 +568,36 @@ async function getPatientDashboardSummary(patientId: string): Promise<DashboardS
     ? Number((latestSleep.sleep_hours - previousSleep.sleep_hours).toFixed(1))
     : null;
 
-  // Calculate streak
+  // Calculate streak from actual health data
   let streak = 0;
-  if (streakResult.data && streakResult.data.length > 0) {
-    const summaries = streakResult.data;
-    let expectedDate = new Date();
-    expectedDate.setHours(0, 0, 0, 0);
+  {
+    const [activityResult, medLogResult, vitalsResult, waterResult] = streakResult as any;
 
-    for (const summary of summaries) {
-      const summaryDate = new Date(summary.summary_date);
-      summaryDate.setHours(0, 0, 0, 0);
-      const diffDays = Math.floor((expectedDate.getTime() - summaryDate.getTime()) / (1000 * 60 * 60 * 24));
+    const dateSet = new Set<string>();
+    for (const row of ((activityResult as any).data || [])) {
+      if (row.timestamp) dateSet.add(new Date(row.timestamp).toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' }));
+    }
+    for (const row of ((medLogResult as any).data || [])) {
+      if (row.taken_at) dateSet.add(new Date(row.taken_at).toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' }));
+    }
+    for (const row of ((vitalsResult as any).data || [])) {
+      if (row.measured_at) dateSet.add(new Date(row.measured_at).toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' }));
+    }
+    for (const row of ((waterResult as any).data || [])) {
+      if (row.log_date) dateSet.add(row.log_date);
+    }
+
+    const sortedDates = Array.from(dateSet).sort((a, b) => b.localeCompare(a));
+    const todayBangkok = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' });
+    let expectedDate = new Date(todayBangkok + 'T00:00:00+07:00');
+
+    for (const dateStr of sortedDates) {
+      const date = new Date(dateStr + 'T00:00:00+07:00');
+      const diffDays = Math.floor((expectedDate.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
 
       if (diffDays <= 1) {
         streak++;
-        expectedDate = new Date(summaryDate);
+        expectedDate = new Date(date);
         expectedDate.setDate(expectedDate.getDate() - 1);
       } else {
         break;
@@ -506,20 +611,65 @@ async function getPatientDashboardSummary(patientId: string): Promise<DashboardS
   const reminders = todayRemindersResult.data || [];
   const medLogs = todayMedLogsResult.data || [];
 
-  for (const reminder of reminders) {
-    if (reminder.type === 'medication') {
-      const isTaken = medLogs.some((log: any) => {
-        const logTime = log.scheduled_time || (log.taken_at ? new Date(log.taken_at).toTimeString().slice(0, 5) : null);
-        return logTime && reminder.time && logTime.slice(0, 5) === reminder.time.slice(0, 5);
-      });
+  // Track which logs have been matched to prevent one log matching multiple reminders
+  const matchedLogIds = new Set<string>();
 
-      tasks.push({
-        id: reminder.id,
-        label: reminder.title || 'กินยา',
-        done: isTaken,
-        time: reminder.time?.slice(0, 5),
-      });
+  // Sort reminders by time so earlier reminders get matched first
+  const medReminders = reminders
+    .filter((r: any) => r.type === 'medication')
+    .sort((a: any, b: any) => ((a as any).time || '').localeCompare((b as any).time || ''));
+
+  for (const reminder of medReminders) {
+    let matchedLogId: string | null = null;
+
+    // Priority 1: Match by scheduled_time (most precise - from postback button)
+    for (const log of medLogs) {
+      if (matchedLogIds.has((log as any).id)) continue;
+
+      const reminderTime = (reminder as any).time;
+      const logScheduledTime = (log as any).scheduled_time;
+
+      if (reminderTime && logScheduledTime) {
+        const logScheduledBangkok = new Date(logScheduledTime)
+          .toLocaleTimeString('en-GB', { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit', hour12: false });
+
+        if (logScheduledBangkok === reminderTime.slice(0, 5)) {
+          matchedLogId = (log as any).id;
+          break;
+        }
+      }
     }
+
+    // Priority 2: Match by medication name (fallback for chat-based logs)
+    if (!matchedLogId) {
+      for (const log of medLogs) {
+        if (matchedLogIds.has((log as any).id)) continue;
+
+        const reminderTitle = ((reminder as any).title || '').toLowerCase().trim();
+        const logMedName = ((log as any).medication_name || '').toLowerCase().trim();
+
+        if (reminderTitle && logMedName) {
+          if (reminderTitle === logMedName ||
+              reminderTitle.includes(logMedName) ||
+              logMedName.includes(reminderTitle)) {
+            matchedLogId = (log as any).id;
+            break;
+          }
+        }
+      }
+    }
+
+    const isTaken = matchedLogId !== null;
+    if (matchedLogId) {
+      matchedLogIds.add(matchedLogId);
+    }
+
+    tasks.push({
+      id: (reminder as any).id,
+      label: (reminder as any).title || 'กินยา',
+      done: isTaken,
+      time: (reminder as any).time?.slice(0, 5),
+    });
   }
 
   // Add water goal task
@@ -533,6 +683,13 @@ async function getPatientDashboardSummary(patientId: string): Promise<DashboardS
     label: `ดื่มน้ำ ${waterGoalGlasses} แก้ว`,
     done: remainingGlasses === 0,
     sub: remainingGlasses > 0 ? `เหลือ ${remainingGlasses} แก้ว` : undefined,
+  });
+
+  // Sort tasks by time (water-goal at the end)
+  tasks.sort((a, b) => {
+    if (!a.time) return 1;  // water-goal goes last
+    if (!b.time) return -1;
+    return a.time.localeCompare(b.time);
   });
 
   const completedTasks = tasks.filter(t => t.done).length;

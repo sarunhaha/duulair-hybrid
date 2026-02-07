@@ -12,92 +12,90 @@
   ],
   "routes": [
     {
+      "src": "/liff/registration/?$",
+      "status": 302,
+      "headers": { "Location": "/liff-v2/registration" }
+    },
+    {
+      "src": "/liff/group-registration/?$",
+      "status": 302,
+      "headers": { "Location": "/liff-v2/registration/group" }
+    },
+    {
+      "src": "/liff/success/?$",
+      "status": 302,
+      "headers": { "Location": "/liff-v2/registration/success" }
+    },
+    {
+      "src": "/liff/dashboard/?$",
+      "status": 302,
+      "headers": { "Location": "/liff-v2/dashboard" }
+    },
+    {
+      "src": "/liff/group-dashboard/?$",
+      "status": 302,
+      "headers": { "Location": "/liff-v2/dashboard/group" }
+    },
+    {
+      "src": "/liff/(patient-profile|my-profile)/?$",
+      "status": 302,
+      "headers": { "Location": "/liff-v2/profile" }
+    },
+    {
+      "src": "/liff/edit-profile/?$",
+      "status": 302,
+      "headers": { "Location": "/liff-v2/profile/edit" }
+    },
+    {
+      "src": "/liff/settings/?$",
+      "status": 302,
+      "headers": { "Location": "/liff-v2/settings" }
+    },
+    {
+      "src": "/liff/medications/?$",
+      "status": 302,
+      "headers": { "Location": "/liff-v2/settings/medications" }
+    },
+    {
+      "src": "/liff/reminders/?$",
+      "status": 302,
+      "headers": { "Location": "/liff-v2/settings/reminders" }
+    },
+    {
+      "src": "/liff/(health-log|log-medication|log-symptom|vitals-tracking|water-tracking|log-exercise|log-mood|log-medical-notes)/?$",
+      "status": 302,
+      "headers": { "Location": "/liff-v2/records" }
+    },
+    {
+      "src": "/liff/reports/?$",
+      "status": 302,
+      "headers": { "Location": "/liff-v2/reports" }
+    },
+    {
       "src": "/liff/(records|trends|history|link)(/?.*)",
       "status": 302,
       "headers": { "Location": "/liff-v2/$1$2" }
     },
     {
       "src": "/liff/?$",
-      "dest": "public/liff/index.html"
-    },
-    {
-      "src": "/liff/group-registration/?$",
-      "dest": "public/liff/group-registration.html"
-    },
-    {
-      "src": "/liff/group-dashboard/?$",
-      "dest": "public/liff/group-dashboard.html"
-    },
-    {
-      "src": "/liff/my-profile/?$",
-      "dest": "public/liff/my-profile.html"
-    },
-    {
-      "src": "/liff/success/?$",
-      "dest": "public/liff/success.html"
-    },
-    {
-      "src": "/liff/water-tracking/?$",
-      "dest": "public/liff/water-tracking.html"
-    },
-    {
-      "src": "/liff/medications/?$",
-      "dest": "public/liff/medications.html"
-    },
-    {
-      "src": "/liff/reminders/?$",
-      "dest": "public/liff/reminders.html"
-    },
-    {
-      "src": "/liff/patient-profile/?$",
-      "dest": "public/liff/patient-profile.html"
-    },
-    {
-      "src": "/liff/settings/?$",
-      "dest": "public/liff/settings.html"
-    },
-    {
-      "src": "/liff/dashboard/?$",
-      "dest": "public/liff/dashboard.html"
-    },
-    {
-      "src": "/liff/health-log/?$",
-      "dest": "public/liff/health-log.html"
-    },
-    {
-      "src": "/liff/log-medication/?$",
-      "dest": "public/liff/log-medication.html"
-    },
-    {
-      "src": "/liff/log-symptom/?$",
-      "dest": "public/liff/log-symptom.html"
-    },
-    {
-      "src": "/liff/vitals-tracking/?$",
-      "dest": "public/liff/vitals-tracking.html"
-    },
-    {
-      "src": "/liff/log-exercise/?$",
-      "dest": "public/liff/log-exercise.html"
-    },
-    {
-      "src": "/liff/log-mood/?$",
-      "dest": "public/liff/log-mood.html"
-    },
-    {
-      "src": "/liff/log-medical-notes/?$",
-      "dest": "public/liff/log-medical-notes.html"
+      "status": 302,
+      "headers": { "Location": "/liff-v2/" }
     },
     {
       "src": "/liff/(.*)",
       "dest": "public/liff/$1"
     },
+
     {
       "src": "/liff-v2/assets/(.*)",
       "dest": "public/liff-v2/assets/$1"
     },
     {
-      "src": "/liff-v2/(.*\\.(html|css|js|png|jpg|jpeg|gif|svg|ico|json))",
+      "src": "/liff-v2/fonts/(.*)",
+      "dest": "public/liff-v2/fonts/$1"
+    },
+    {
+      "src": "/liff-v2/(.*\\.(html|css|js|png|jpg|jpeg|gif|svg|ico|json|ttf|woff|woff2))",
       "dest": "public/liff-v2/$1"
     },
     {

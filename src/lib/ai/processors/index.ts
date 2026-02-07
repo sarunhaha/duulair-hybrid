@@ -408,6 +408,13 @@ async function processMedication(
   const now = new Date().toISOString();
   const summary = `${medication.medicationName || 'ยา'}: ${medication.taken ? 'ทานแล้ว' : 'ยังไม่ได้ทาน'}`;
 
+  console.log('[processMedication] Saving medication log:', {
+    patientId: context.patientId,
+    medicationName: medication.medicationName,
+    taken: medication.taken,
+    now
+  });
+
   // Primary: Save to medication_logs
   const medLogInsert: MedicationLogInsert = {
     patient_id: context.patientId,
@@ -420,6 +427,7 @@ async function processMedication(
   };
 
   const recordId = await supabaseService.saveMedicationLog(medLogInsert);
+  console.log('[processMedication] Saved medication_logs record:', recordId);
 
   // Dual-write: Also save to activity_logs for backwards compatibility
   const client = supabaseService.getClient();

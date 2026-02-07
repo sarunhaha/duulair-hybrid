@@ -3,7 +3,8 @@ import { Route, Switch, Router } from 'wouter';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Base path for the app (must match vite.config.ts base)
-const BASE_PATH = '/liff-v2';
+// In dev mode, base is '/', in production it's '/liff-v2'
+const BASE_PATH = import.meta.env.DEV ? '' : '/liff-v2';
 import { LiffProvider } from '@/lib/liff/provider';
 import { AuthGuard } from '@/components/auth/auth-guard';
 import { Toaster } from '@/components/ui/toaster';

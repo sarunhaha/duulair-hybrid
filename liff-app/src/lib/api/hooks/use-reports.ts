@@ -5,11 +5,83 @@ import { th } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
+// Thai font support - using Sarabun TTF (Regular + Bold)
+let thaiFontRegular: string | null = null;
+let thaiFontBold: string | null = null;
+let fontLoadPromise: Promise<{ regular: string | null; bold: string | null }> | null = null;
+
+async function loadFontFromUrl(url: string): Promise<string | null> {
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+    const response = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+
+    if (!response.ok) return null;
+
+    const arrayBuffer = await response.arrayBuffer();
+
+    // Verify valid TTF
+    const header = new Uint8Array(arrayBuffer.slice(0, 4));
+    const isValidTTF = (header[0] === 0x00 && header[1] === 0x01 && header[2] === 0x00 && header[3] === 0x00) ||
+                      (header[0] === 0x74 && header[1] === 0x72 && header[2] === 0x75 && header[3] === 0x65);
+    if (!isValidTTF) return null;
+
+    // Convert to base64
+    const bytes = new Uint8Array(arrayBuffer);
+    let binary = '';
+    const chunkSize = 8192;
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      const chunk = bytes.subarray(i, i + chunkSize);
+      binary += String.fromCharCode.apply(null, Array.from(chunk));
+    }
+    return btoa(binary);
+  } catch {
+    return null;
+  }
+}
+
+async function loadThaiFonts(): Promise<{ regular: string | null; bold: string | null }> {
+  if (thaiFontRegular) return { regular: thaiFontRegular, bold: thaiFontBold };
+  if (fontLoadPromise) return fontLoadPromise;
+
+  fontLoadPromise = (async () => {
+    // Use Vite base URL for correct path in production (/liff-v2/) vs dev (/)
+    const base = import.meta.env.BASE_URL || '/';
+
+    // Load Regular
+    const regular = await loadFontFromUrl(`${base}fonts/Sarabun-Regular.ttf`)
+      || await loadFontFromUrl('https://github.com/google/fonts/raw/main/ofl/sarabun/Sarabun-Regular.ttf');
+
+    // Load Bold
+    const bold = await loadFontFromUrl(`${base}fonts/Sarabun-Bold.ttf`)
+      || await loadFontFromUrl('https://github.com/google/fonts/raw/main/ofl/sarabun/Sarabun-Bold.ttf');
+
+    if (regular) {
+      thaiFontRegular = regular;
+      console.log('Thai font Regular loaded');
+    }
+    if (bold) {
+      thaiFontBold = bold;
+      console.log('Thai font Bold loaded');
+    }
+    if (!regular) {
+      console.warn('Thai Regular font failed to load, PDF will use default font');
+    }
+
+    return { regular, bold };
+  })();
+
+  return fontLoadPromise;
+}
+
 // Types
 export interface ReportSummary {
   bp: {
     avgSystolic: number;
     avgDiastolic: number;
+    avgHeartRate?: number;
     count: number;
     status: 'normal' | 'elevated' | 'high' | 'crisis';
   };
@@ -24,10 +96,23 @@ export interface ReportSummary {
     daysRecorded: number;
     status: 'good' | 'fair' | 'poor';
   };
+  sleep?: {
+    avgHours: number;
+    daysRecorded: number;
+    status: 'good' | 'fair' | 'poor';
+  };
   activities: {
     total: number;
     byType: Record<string, number>;
   };
+}
+
+export interface SignificantEvent {
+  date: string;
+  title: string;
+  tag: string;
+  type: 'health' | 'meds' | 'symptom' | 'sleep';
+  timestamp?: string;
 }
 
 export interface ActivityLogItem {
@@ -45,13 +130,16 @@ export interface ChartDataPoint {
   day: string;
   systolic?: number;
   diastolic?: number;
+  pulse?: number;
   medsPercent?: number;
   waterMl?: number;
+  sleepHours?: number;
 }
 
 export interface ReportData {
   summary: ReportSummary;
   chartData: ChartDataPoint[];
+  significantEvents?: SignificantEvent[];
   activities: ActivityLogItem[];
 }
 
@@ -226,123 +314,314 @@ export function exportToCSV(data: ReportData, patientName: string, dateRange: st
   link.click();
 }
 
-// Export to PDF
-export function exportToPDF(data: ReportData, patientName: string, dateRange: string): void {
+// Extended PDF Export Options
+export interface PDFExportOptions {
+  patientName: string;
+  patientAge?: number | null;
+  patientGender?: string | null;
+  dateRange: string;
+  drugAllergies?: string[];
+  foodAllergies?: string[];
+  medications?: Array<{
+    name: string;
+    dosage_amount?: number;
+    dosage_unit?: string;
+  }>;
+  doctorQuestions?: string[];
+}
+
+// Export to PDF with Thai support
+export async function exportToPDF(
+  data: ReportData,
+  patientName: string,
+  dateRange: string,
+  options?: Partial<PDFExportOptions>
+): Promise<void> {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   let yPos = 20;
 
-  // Title
-  doc.setFontSize(18);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Health Report - OONJAI', pageWidth / 2, yPos, { align: 'center' });
+  // Track if Thai font is available
+  let hasThaiFont = false;
+
+  // Load Thai fonts (Regular + Bold)
+  try {
+    const fonts = await loadThaiFonts();
+    if (fonts.regular) {
+      doc.addFileToVFS('Sarabun-Regular.ttf', fonts.regular);
+      doc.addFont('Sarabun-Regular.ttf', 'Sarabun', 'normal');
+
+      if (fonts.bold) {
+        doc.addFileToVFS('Sarabun-Bold.ttf', fonts.bold);
+        doc.addFont('Sarabun-Bold.ttf', 'Sarabun', 'bold');
+      } else {
+        // Fallback: use Regular as Bold if Bold not available
+        doc.addFont('Sarabun-Regular.ttf', 'Sarabun', 'bold');
+      }
+
+      doc.setFont('Sarabun');
+      hasThaiFont = true;
+    }
+  } catch (e) {
+    console.warn('Could not load Thai font:', e);
+  }
+
+  const primaryColor: [number, number, number] = [30, 123, 156]; // OONJAI teal
+
+  // Helper to set font
+  const setFont = (style: 'normal' | 'bold' = 'normal', size = 11) => {
+    doc.setFontSize(size);
+    if (hasThaiFont) {
+      try {
+        doc.setFont('Sarabun', style);
+        return;
+      } catch {
+        // Fall through to default
+      }
+    }
+    doc.setFont('helvetica', style);
+  };
+
+  // ============ HEADER ============
+  setFont('bold', 18);
+  doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+  doc.text('รายงานสุขภาพ - OONJAI', pageWidth / 2, yPos, { align: 'center' });
   yPos += 10;
 
-  doc.setFontSize(12);
-  doc.setFont('helvetica', 'normal');
-  doc.text(`Patient: ${patientName}`, pageWidth / 2, yPos, { align: 'center' });
+  doc.setTextColor(0, 0, 0);
+  setFont('normal', 12);
+  doc.text(`ชื่อ: ${patientName}`, pageWidth / 2, yPos, { align: 'center' });
   yPos += 7;
-  doc.text(`Period: ${dateRange}`, pageWidth / 2, yPos, { align: 'center' });
-  yPos += 15;
 
-  // Summary Section
-  doc.setFontSize(14);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Summary', 14, yPos);
-  yPos += 10;
+  // Patient info line
+  const infoLine: string[] = [];
+  if (options?.patientAge) infoLine.push(`อายุ ${options.patientAge} ปี`);
+  if (options?.patientGender) {
+    infoLine.push(options.patientGender === 'male' ? 'เพศชาย' : options.patientGender === 'female' ? 'เพศหญิง' : options.patientGender);
+  }
+  if (infoLine.length > 0) {
+    doc.text(infoLine.join(' | '), pageWidth / 2, yPos, { align: 'center' });
+    yPos += 7;
+  }
 
-  doc.setFontSize(11);
-  doc.setFont('helvetica', 'normal');
+  doc.text(`ช่วงเวลา: ${dateRange}`, pageWidth / 2, yPos, { align: 'center' });
+  yPos += 5;
+
+  setFont('normal', 9);
+  doc.setTextColor(100, 100, 100);
+  doc.text(`สร้างเมื่อ: ${format(new Date(), 'd MMM yyyy HH:mm', { locale: th })} น.`, pageWidth / 2, yPos, { align: 'center' });
+  doc.setTextColor(0, 0, 0);
+  yPos += 12;
+
+  // ============ ALLERGIES ============
+  const drugAllergies = options?.drugAllergies || [];
+  const foodAllergies = options?.foodAllergies || [];
+  if (drugAllergies.length > 0 || foodAllergies.length > 0) {
+    // Red warning box
+    doc.setFillColor(254, 226, 226);
+    doc.setDrawColor(239, 68, 68);
+    doc.roundedRect(14, yPos - 2, pageWidth - 28, 18, 3, 3, 'FD');
+
+    setFont('bold', 11);
+    doc.setTextColor(185, 28, 28);
+    doc.text('[!] แพ้:', 18, yPos + 6);
+
+    setFont('normal', 10);
+    const allergiesText = [...drugAllergies, ...foodAllergies].join(', ');
+    doc.text(allergiesText, 40, yPos + 6);
+    doc.setTextColor(0, 0, 0);
+    yPos += 22;
+  }
+
+  // ============ MEDICATIONS ============
+  const medications = options?.medications || [];
+  if (medications.length > 0) {
+    setFont('bold', 12);
+    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.text('รายการยา', 14, yPos);
+    doc.setTextColor(0, 0, 0);
+    yPos += 8;
+
+    const medsData = medications.map((med, idx) => [
+      (idx + 1).toString(),
+      med.name,
+      med.dosage_amount && med.dosage_unit ? `${med.dosage_amount} ${med.dosage_unit}` : '-',
+    ]);
+
+    autoTable(doc, {
+      startY: yPos,
+      head: [['#', 'ชื่อยา', 'ขนาด']],
+      body: medsData,
+      theme: 'striped',
+      headStyles: { fillColor: [249, 115, 22], ...(hasThaiFont && { font: 'Sarabun' }) },
+      bodyStyles: { ...(hasThaiFont && { font: 'Sarabun' }) },
+      margin: { left: 14, right: 14 },
+      styles: { fontSize: 10, ...(hasThaiFont && { font: 'Sarabun' }) },
+    });
+
+    yPos = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
+  }
+
+  // ============ SUMMARY ============
+  setFont('bold', 12);
+  doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+  doc.text('สรุปภาพรวม', 14, yPos);
+  doc.setTextColor(0, 0, 0);
+  yPos += 8;
 
   const summaryData = [
-    ['Blood Pressure (Average)', `${data.summary.bp.avgSystolic}/${data.summary.bp.avgDiastolic} mmHg`, getBpStatusLabel(data.summary.bp.status)],
-    ['Medication Adherence', `${data.summary.meds.adherencePercent}%`, getMedsStatusLabel(data.summary.meds.status)],
-    ['Water Intake (Average)', `${data.summary.water.avgMl} ml/day`, getWaterStatusLabel(data.summary.water.status)],
-    ['Total Activities', `${data.summary.activities.total}`, ''],
+    ['ความดันเฉลี่ย', `${data.summary.bp.avgSystolic}/${data.summary.bp.avgDiastolic} mmHg`, getBpStatusLabel(data.summary.bp.status)],
+    ['การกินยาครบ', `${data.summary.meds.adherencePercent}%`, getMedsStatusLabel(data.summary.meds.status)],
+    ['น้ำดื่มเฉลี่ย', `${data.summary.water.avgMl} มล./วัน`, getWaterStatusLabel(data.summary.water.status)],
   ];
 
+  if (data.summary.sleep) {
+    const sleepStatus = data.summary.sleep.status === 'good' ? 'ดี' : data.summary.sleep.status === 'fair' ? 'พอใช้' : 'น้อย';
+    summaryData.push(['การนอนเฉลี่ย', `${data.summary.sleep.avgHours.toFixed(1)} ชม.`, sleepStatus]);
+  }
+
   autoTable(doc, {
     startY: yPos,
-    head: [['Metric', 'Value', 'Status']],
+    head: [['รายการ', 'ค่า', 'สถานะ']],
     body: summaryData,
     theme: 'striped',
-    headStyles: { fillColor: [30, 123, 156] },
+    headStyles: { fillColor: primaryColor, ...(hasThaiFont && { font: 'Sarabun' }) },
+    bodyStyles: { ...(hasThaiFont && { font: 'Sarabun' }) },
     margin: { left: 14, right: 14 },
+    styles: { fontSize: 10, ...(hasThaiFont && { font: 'Sarabun' }) },
   });
 
-  yPos = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 15;
+  yPos = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
 
-  // Daily Data Table
-  doc.setFontSize(14);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Daily Records', 14, yPos);
-  yPos += 10;
+  // ============ SIGNIFICANT EVENTS ============
+  if (data.significantEvents && data.significantEvents.length > 0) {
+    if (yPos > 220) {
+      doc.addPage();
+      yPos = 20;
+    }
 
-  const dailyData = data.chartData.map((point) => [
-    point.date,
-    point.systolic?.toString() || '-',
-    point.diastolic?.toString() || '-',
-    point.medsPercent !== undefined ? `${point.medsPercent}%` : '-',
-    point.waterMl?.toString() || '-',
-  ]);
+    setFont('bold', 12);
+    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.text('วันที่มีนัยยะ (หมอควรดู)', 14, yPos);
+    doc.setTextColor(0, 0, 0);
+    yPos += 8;
 
-  autoTable(doc, {
-    startY: yPos,
-    head: [['Date', 'Systolic', 'Diastolic', 'Meds (%)', 'Water (ml)']],
-    body: dailyData,
-    theme: 'striped',
-    headStyles: { fillColor: [30, 123, 156] },
-    margin: { left: 14, right: 14 },
-    styles: { fontSize: 9 },
-  });
+    const eventsData = data.significantEvents.slice(0, 10).map((event) => [
+      event.date,
+      event.title,
+      event.tag,
+    ]);
 
-  yPos = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 15;
+    autoTable(doc, {
+      startY: yPos,
+      head: [['วันที่', 'รายละเอียด', 'ประเภท']],
+      body: eventsData,
+      theme: 'striped',
+      headStyles: { fillColor: [245, 158, 11], ...(hasThaiFont && { font: 'Sarabun' }) },
+      bodyStyles: { ...(hasThaiFont && { font: 'Sarabun' }) },
+      margin: { left: 14, right: 14 },
+      styles: { fontSize: 9, ...(hasThaiFont && { font: 'Sarabun' }) },
+    });
 
-  // Check if we need a new page for activities
-  if (yPos > 230) {
+    yPos = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
+  }
+
+  // ============ DAILY DATA ============
+  if (yPos > 200) {
     doc.addPage();
     yPos = 20;
   }
 
-  // Activities Table
-  doc.setFontSize(14);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Activity Log', 14, yPos);
-  yPos += 10;
+  setFont('bold', 12);
+  doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+  doc.text('ข้อมูลรายวัน', 14, yPos);
+  doc.setTextColor(0, 0, 0);
+  yPos += 8;
 
-  const activityData = data.activities.slice(0, 20).map((activity) => [
-    activity.date,
-    activity.time,
-    getActivityTypeLabel(activity.type),
-    activity.value,
+  const dailyData = data.chartData.slice(-14).map((point) => [
+    point.day || point.date,
+    point.systolic ? `${point.systolic}/${point.diastolic}` : '-',
+    point.pulse?.toString() || '-',
+    point.medsPercent !== undefined ? `${point.medsPercent}%` : '-',
+    point.sleepHours?.toFixed(1) || '-',
   ]);
 
   autoTable(doc, {
     startY: yPos,
-    head: [['Date', 'Time', 'Type', 'Detail']],
-    body: activityData,
+    head: [['วันที่', 'ความดัน', 'ชีพจร', 'กินยา', 'นอน (ชม.)']],
+    body: dailyData,
     theme: 'striped',
-    headStyles: { fillColor: [30, 123, 156] },
+    headStyles: { fillColor: primaryColor, ...(hasThaiFont && { font: 'Sarabun' }) },
+    bodyStyles: { ...(hasThaiFont && { font: 'Sarabun' }) },
     margin: { left: 14, right: 14 },
-    styles: { fontSize: 9 },
+    styles: { fontSize: 9, ...(hasThaiFont && { font: 'Sarabun' }) },
   });
 
-  // Footer
+  yPos = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
+
+  // ============ DOCTOR QUESTIONS ============
+  const doctorQuestions = options?.doctorQuestions || [];
+  if (doctorQuestions.length > 0) {
+    if (yPos > 230) {
+      doc.addPage();
+      yPos = 20;
+    }
+
+    setFont('bold', 12);
+    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.text('คำถามถึงหมอ', 14, yPos);
+    doc.setTextColor(0, 0, 0);
+    yPos += 8;
+
+    const questionsData = doctorQuestions.map((q, idx) => [
+      (idx + 1).toString(),
+      q,
+    ]);
+
+    autoTable(doc, {
+      startY: yPos,
+      head: [['#', 'คำถาม']],
+      body: questionsData,
+      theme: 'striped',
+      headStyles: { fillColor: [99, 102, 241], ...(hasThaiFont && { font: 'Sarabun' }) },
+      bodyStyles: { ...(hasThaiFont && { font: 'Sarabun' }) },
+      margin: { left: 14, right: 14 },
+      styles: { fontSize: 10, ...(hasThaiFont && { font: 'Sarabun' }) },
+      columnStyles: {
+        0: { cellWidth: 15 },
+        1: { cellWidth: 'auto' },
+      },
+    });
+
+    yPos = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
+  }
+
+  // ============ FOOTER ============
   const pageCount = doc.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
-    doc.setFontSize(8);
-    doc.setFont('helvetica', 'italic');
+    setFont('normal', 8);
+    doc.setTextColor(128, 128, 128);
     doc.text(
-      `Generated by OONJAI - ${format(new Date(), 'yyyy-MM-dd HH:mm')} - Page ${i} of ${pageCount}`,
+      `สร้างโดย OONJAI | ${format(new Date(), 'yyyy-MM-dd HH:mm')} | หน้า ${i}/${pageCount}`,
       pageWidth / 2,
       doc.internal.pageSize.getHeight() - 10,
+      { align: 'center' }
+    );
+
+    // Disclaimer
+    doc.setTextColor(180, 180, 180);
+    setFont('normal', 7);
+    doc.text(
+      'ข้อมูลนี้เป็นข้อมูลที่ผู้ใช้บันทึกเอง ไม่ใช่การวินิจฉัยทางการแพทย์',
+      pageWidth / 2,
+      doc.internal.pageSize.getHeight() - 5,
       { align: 'center' }
     );
   }
 
   // Download
-  doc.save(`health-report-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+  doc.save(`รายงานสุขภาพ-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
 }
 
 // Mock Data Generator

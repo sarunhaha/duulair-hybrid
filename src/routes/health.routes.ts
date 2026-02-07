@@ -134,7 +134,7 @@ router.delete('/vitals/:id', async (req: Request, res: Response) => {
  * Record water intake
  */
 router.post('/water', async (req: Request, res: Response) => {
-  const { patient_id, glasses, amount_ml, note } = req.body;
+  const { patient_id, glasses, amount_ml, note, logged_at } = req.body;
 
   if (!patient_id) {
     return res.status(400).json({ error: 'Patient ID is required' });
@@ -144,29 +144,31 @@ router.post('/water', async (req: Request, res: Response) => {
   const calculatedGlasses = glasses || (amount_ml ? Math.round(amount_ml / 250) : 0);
 
   try {
-    const today = new Date().toISOString().split('T')[0];
+    // Use provided logged_at or default to now
+    const loggedAtTimestamp = logged_at ? new Date(logged_at) : new Date();
+    const logDate = loggedAtTimestamp.toISOString().split('T')[0];
 
     const { data, error } = await supabase
       .from('water_logs')
       .insert({
         patient_id,
-        log_date: today,
+        log_date: logDate,
         glasses: calculatedGlasses,
         amount_ml: calculatedMl,
         note: note || null,
-        logged_at: new Date().toISOString(),
+        logged_at: loggedAtTimestamp.toISOString(),
       })
       .select()
       .single();
 
     if (error) throw error;
 
-    // Get today's total
+    // Get total for the logged date
     const { data: todayLogs } = await supabase
       .from('water_logs')
       .select('glasses, amount_ml')
       .eq('patient_id', patient_id)
-      .eq('log_date', today);
+      .eq('log_date', logDate);
 
     const totalGlasses = todayLogs?.reduce((sum, log) => sum + (log.glasses || 0), 0) || 0;
     const totalMl = todayLogs?.reduce((sum, log) => sum + (log.amount_ml || 0), 0) || 0;
@@ -182,6 +184,66 @@ router.post('/water', async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error('Record water error:', error);
     return res.status(500).json({ error: error.message || 'Failed to record water intake' });
+  }
+});
+
+/**
+ * PUT /api/health/water/:id
+ * Update water log record
+ */
+router.put('/water/:id', async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { glasses, amount_ml, note, log_date } = req.body;
+
+  try {
+    const calculatedMl = amount_ml || (glasses ? glasses * 250 : null);
+    const calculatedGlasses = glasses || (amount_ml ? Math.round(amount_ml / 250) : null);
+
+    const updateData: Record<string, unknown> = {
+      glasses: calculatedGlasses,
+      amount_ml: calculatedMl,
+      note: note ?? null,
+    };
+
+    if (log_date) {
+      updateData.log_date = log_date;
+    }
+
+    const { data, error } = await supabase
+      .from('water_logs')
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return res.json({ success: true, data });
+  } catch (error: any) {
+    console.error('Update water log error:', error);
+    return res.status(500).json({ error: error.message || 'Failed to update water log' });
+  }
+});
+
+/**
+ * DELETE /api/health/water/:id
+ * Delete a water log record
+ */
+router.delete('/water/:id', async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  try {
+    const { error } = await supabase
+      .from('water_logs')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+
+    return res.json({ success: true });
+  } catch (error: any) {
+    console.error('Delete water log error:', error);
+    return res.status(500).json({ error: error.message || 'Failed to delete water log' });
   }
 });
 
@@ -206,6 +268,19 @@ router.post('/medications', async (req: Request, res: Response) => {
   }
 
   try {
+    // Convert scheduled_time from "HH:mm" format to full timestamp if provided
+    let scheduledTimestamp = null;
+    if (scheduled_time) {
+      // If it's already an ISO timestamp, use it directly
+      if (scheduled_time.includes('T') || scheduled_time.length > 10) {
+        scheduledTimestamp = scheduled_time;
+      } else {
+        // Convert time-only format (e.g., "08:00") to today's timestamp in Bangkok timezone
+        const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' });
+        scheduledTimestamp = `${today}T${scheduled_time}:00+07:00`;
+      }
+    }
+
     const { data, error } = await supabase
       .from('medication_logs')
       .insert({
@@ -213,7 +288,7 @@ router.post('/medications', async (req: Request, res: Response) => {
         medication_id: medication_id || null,
         medication_name: medication_name || null,
         dosage: dosage || null,
-        scheduled_time: scheduled_time || null,
+        scheduled_time: scheduledTimestamp,
         taken_at: new Date().toISOString(),
         status: skipped ? 'skipped' : 'taken',
         note: note || null,
@@ -278,6 +353,67 @@ router.post('/symptoms', async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error('Record symptom error:', error);
     return res.status(500).json({ error: error.message || 'Failed to record symptom' });
+  }
+});
+
+/**
+ * PUT /api/health/symptoms/:id
+ * Update symptom record
+ */
+router.put('/symptoms/:id', async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const {
+    symptom_name,
+    severity_1to5,
+    body_location,
+    duration_text,
+    notes,
+  } = req.body;
+
+  try {
+    const updateData: Record<string, unknown> = {
+      symptom_name: symptom_name ?? null,
+      severity_1to5: severity_1to5 ?? null,
+      body_location: body_location ?? null,
+      duration_text: duration_text ?? null,
+      notes: notes ?? null,
+    };
+
+    const { data, error } = await supabase
+      .from('symptoms')
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return res.json({ success: true, data });
+  } catch (error: any) {
+    console.error('Update symptom error:', error);
+    return res.status(500).json({ error: error.message || 'Failed to update symptom' });
+  }
+});
+
+/**
+ * DELETE /api/health/symptoms/:id
+ * Delete a symptom record
+ */
+router.delete('/symptoms/:id', async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  try {
+    const { error } = await supabase
+      .from('symptoms')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+
+    return res.json({ success: true });
+  } catch (error: any) {
+    console.error('Delete symptom error:', error);
+    return res.status(500).json({ error: error.message || 'Failed to delete symptom' });
   }
 });
 
@@ -449,6 +585,74 @@ router.post('/exercise', async (req: Request, res: Response) => {
 });
 
 /**
+ * PUT /api/health/exercise/:id
+ * Update exercise record
+ */
+router.put('/exercise/:id', async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const {
+    exercise_type,
+    duration_minutes,
+    intensity,
+    distance_meters,
+    calories_burned,
+    exercise_date,
+    notes,
+  } = req.body;
+
+  try {
+    const updateData: Record<string, unknown> = {
+      exercise_type: exercise_type ?? null,
+      duration_minutes: duration_minutes ?? null,
+      intensity: intensity ?? null,
+      distance_meters: distance_meters ?? null,
+      calories_burned: calories_burned ?? null,
+      notes: notes ?? null,
+    };
+
+    if (exercise_date) {
+      updateData.exercise_date = exercise_date;
+    }
+
+    const { data, error } = await supabase
+      .from('exercise_logs')
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return res.json({ success: true, data });
+  } catch (error: any) {
+    console.error('Update exercise error:', error);
+    return res.status(500).json({ error: error.message || 'Failed to update exercise' });
+  }
+});
+
+/**
+ * DELETE /api/health/exercise/:id
+ * Delete an exercise record
+ */
+router.delete('/exercise/:id', async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  try {
+    const { error } = await supabase
+      .from('exercise_logs')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+
+    return res.json({ success: true });
+  } catch (error: any) {
+    console.error('Delete exercise error:', error);
+    return res.status(500).json({ error: error.message || 'Failed to delete exercise' });
+  }
+});
+
+/**
  * POST /api/health/mood
  * Record mood data
  */
@@ -495,6 +699,69 @@ router.post('/mood', async (req: Request, res: Response) => {
 });
 
 /**
+ * PUT /api/health/mood/:id
+ * Update mood record
+ */
+router.put('/mood/:id', async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const {
+    mood,
+    mood_score,
+    stress_level,
+    stress_cause,
+    energy_level,
+    note,
+  } = req.body;
+
+  try {
+    const updateData: Record<string, unknown> = {
+      mood: mood ?? null,
+      mood_score: mood_score ?? null,
+      stress_level: stress_level ?? null,
+      stress_cause: stress_cause ?? null,
+      energy_level: energy_level ?? null,
+      note: note ?? null,
+    };
+
+    const { data, error } = await supabase
+      .from('mood_logs')
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return res.json({ success: true, data });
+  } catch (error: any) {
+    console.error('Update mood error:', error);
+    return res.status(500).json({ error: error.message || 'Failed to update mood' });
+  }
+});
+
+/**
+ * DELETE /api/health/mood/:id
+ * Delete a mood record
+ */
+router.delete('/mood/:id', async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  try {
+    const { error } = await supabase
+      .from('mood_logs')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+
+    return res.json({ success: true });
+  } catch (error: any) {
+    console.error('Delete mood error:', error);
+    return res.status(500).json({ error: error.message || 'Failed to delete mood' });
+  }
+});
+
+/**
  * POST /api/health/medical-notes
  * Record medical history notes
  */
@@ -532,6 +799,152 @@ router.post('/medical-notes', async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error('Record medical note error:', error);
     return res.status(500).json({ error: error.message || 'Failed to record medical note' });
+  }
+});
+
+/**
+ * PUT /api/health/medical-notes/:id
+ * Update medical note record
+ */
+router.put('/medical-notes/:id', async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const {
+    event_date,
+    event_type,
+    description,
+    hospital_name,
+    doctor_name,
+  } = req.body;
+
+  try {
+    const updateData: Record<string, unknown> = {
+      event_type: event_type ?? null,
+      description: description ?? null,
+      hospital_name: hospital_name ?? null,
+      doctor_name: doctor_name ?? null,
+    };
+
+    if (event_date) {
+      updateData.event_date = event_date;
+    }
+
+    const { data, error } = await supabase
+      .from('medical_history')
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return res.json({ success: true, data });
+  } catch (error: any) {
+    console.error('Update medical note error:', error);
+    return res.status(500).json({ error: error.message || 'Failed to update medical note' });
+  }
+});
+
+/**
+ * DELETE /api/health/medical-notes/:id
+ * Delete a medical note record
+ */
+router.delete('/medical-notes/:id', async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  try {
+    const { error } = await supabase
+      .from('medical_history')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+
+    return res.json({ success: true });
+  } catch (error: any) {
+    console.error('Delete medical note error:', error);
+    return res.status(500).json({ error: error.message || 'Failed to delete medical note' });
+  }
+});
+
+/**
+ * PUT /api/health/medications/:id
+ * Update medication log record
+ */
+router.put('/medications/:id', async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const {
+    medication_name,
+    dosage,
+    scheduled_time,
+    taken_at,
+    note,
+    status,
+    skipped_reason,
+  } = req.body;
+
+  try {
+    // Convert scheduled_time from "HH:mm" format to full timestamp if provided
+    let scheduledTimestamp = scheduled_time ?? null;
+    if (scheduled_time) {
+      // If it's already an ISO timestamp, use it directly
+      if (scheduled_time.includes('T') || scheduled_time.length > 10) {
+        scheduledTimestamp = scheduled_time;
+      } else {
+        // Convert time-only format (e.g., "08:00") to today's timestamp in Bangkok timezone
+        const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' });
+        scheduledTimestamp = `${today}T${scheduled_time}:00+07:00`;
+      }
+    }
+
+    const updateData: Record<string, unknown> = {
+      medication_name: medication_name ?? null,
+      dosage: dosage ?? null,
+      scheduled_time: scheduledTimestamp,
+      note: note ?? null,
+      status: status ?? null,
+      skipped_reason: skipped_reason ?? null,
+    };
+
+    // Only update taken_at if explicitly provided
+    if (taken_at !== undefined) {
+      updateData.taken_at = taken_at;
+    }
+
+    const { data, error } = await supabase
+      .from('medication_logs')
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return res.json({ success: true, data });
+  } catch (error: any) {
+    console.error('Update medication log error:', error);
+    return res.status(500).json({ error: error.message || 'Failed to update medication log' });
+  }
+});
+
+/**
+ * DELETE /api/health/medications/:id
+ * Delete a medication log record
+ */
+router.delete('/medications/:id', async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  try {
+    const { error } = await supabase
+      .from('medication_logs')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+
+    return res.json({ success: true });
+  } catch (error: any) {
+    console.error('Delete medication log error:', error);
+    return res.status(500).json({ error: error.message || 'Failed to delete medication log' });
   }
 });
 
@@ -795,5 +1208,131 @@ async function updateDailySummary(patientId: string) {
     console.error('Update daily summary error:', error);
   }
 }
+
+/**
+ * GET /api/health/doctor-questions/:patientId
+ * Get all doctor questions for a patient
+ */
+router.get('/doctor-questions/:patientId', async (req: Request, res: Response) => {
+  const { patientId } = req.params;
+
+  if (!patientId) {
+    return res.status(400).json({ error: 'Patient ID is required' });
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('doctor_questions')
+      .select('*')
+      .eq('patient_id', patientId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    return res.json({ success: true, questions: data || [] });
+  } catch (error: any) {
+    console.error('Get doctor questions error:', error);
+    return res.status(500).json({ error: error.message || 'Failed to get doctor questions' });
+  }
+});
+
+/**
+ * POST /api/health/doctor-questions
+ * Add a new doctor question
+ */
+router.post('/doctor-questions', async (req: Request, res: Response) => {
+  const { patient_id, question } = req.body;
+
+  if (!patient_id || !question) {
+    return res.status(400).json({ error: 'Patient ID and question are required' });
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('doctor_questions')
+      .insert({
+        patient_id,
+        question,
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return res.json({ success: true, data });
+  } catch (error: any) {
+    console.error('Add doctor question error:', error);
+    return res.status(500).json({ error: error.message || 'Failed to add doctor question' });
+  }
+});
+
+/**
+ * PUT /api/health/doctor-questions/:id
+ * Update a doctor question
+ */
+router.put('/doctor-questions/:id', async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { question, answered, answer } = req.body;
+
+  try {
+    const updateData: Record<string, unknown> = {
+      updated_at: new Date().toISOString(),
+    };
+
+    if (question !== undefined) {
+      updateData.question = question;
+    }
+
+    if (answered !== undefined) {
+      updateData.answered = answered;
+      if (answered) {
+        updateData.answered_at = new Date().toISOString();
+      } else {
+        updateData.answered_at = null;
+        updateData.answer = null;
+      }
+    }
+
+    if (answer !== undefined) {
+      updateData.answer = answer;
+    }
+
+    const { data, error } = await supabase
+      .from('doctor_questions')
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return res.json({ success: true, data });
+  } catch (error: any) {
+    console.error('Update doctor question error:', error);
+    return res.status(500).json({ error: error.message || 'Failed to update doctor question' });
+  }
+});
+
+/**
+ * DELETE /api/health/doctor-questions/:id
+ * Delete a doctor question
+ */
+router.delete('/doctor-questions/:id', async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  try {
+    const { error } = await supabase
+      .from('doctor_questions')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+
+    return res.json({ success: true });
+  } catch (error: any) {
+    console.error('Delete doctor question error:', error);
+    return res.status(500).json({ error: error.message || 'Failed to delete doctor question' });
+  }
+});
 
 export default router;

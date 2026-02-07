@@ -23,6 +23,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import { TimeInput } from '@/components/ui/time-picker';
 import {
   Select,
   SelectContent,
@@ -249,17 +250,6 @@ export default function RemindersPage() {
       </header>
 
       <main className="max-w-md mx-auto px-4 py-6 space-y-4">
-        {/* Debug Info - ลบออกหลังจาก debug เสร็จ */}
-        <div className="p-3 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg text-xs space-y-1 border border-yellow-300">
-          <p className="font-bold text-yellow-800 dark:text-yellow-200">🔍 Debug Info:</p>
-          <p>patientId: <span className="font-mono">{patientId || 'NULL'}</span></p>
-          <p>role: <span className="font-mono">{auth.role || 'NULL'}</span></p>
-          <p>isRegistered: <span className="font-mono">{String(auth.isRegistered)}</span></p>
-          <p>isLoading: <span className="font-mono">{String(auth.isLoading)}</span></p>
-          <p>error: <span className="font-mono">{auth.error || 'none'}</span></p>
-          <p>reminders count: <span className="font-mono">{reminders?.length ?? 'loading...'}</span></p>
-        </div>
-
         {/* Summary */}
         <Card className="border-none shadow-lg bg-gradient-to-br from-teal-500 to-teal-600 text-white overflow-hidden">
           <CardContent className="p-6 relative">
@@ -456,12 +446,11 @@ export default function RemindersPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="reminder_time">เวลาเตือน *</Label>
-              <Input
-                id="reminder_time"
-                type="time"
+              <Label>เวลาเตือน *</Label>
+              <TimeInput
                 value={formData.time}
-                onChange={(e) => setFormData((p) => ({ ...p, time: e.target.value }))}
+                onChange={(value) => setFormData((p) => ({ ...p, time: value }))}
+                placeholder="เลือกเวลา"
               />
             </div>
 
