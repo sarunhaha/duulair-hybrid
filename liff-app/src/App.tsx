@@ -2,9 +2,10 @@ import { lazy, Suspense, type ReactNode } from 'react';
 import { Route, Switch, Router } from 'wouter';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
-// Base path for the app (must match vite.config.ts base)
-// In dev mode, base is '/', in production it's '/liff-v2'
-const BASE_PATH = import.meta.env.DEV ? '' : '/liff-v2';
+// Base path for wouter Router - derived from Vite's base config
+// Vite sets BASE_URL to '/' in dev and '/liff-v2/' in production
+// wouter expects base WITHOUT trailing slash
+const BASE_PATH = (import.meta.env.BASE_URL || '/').replace(/\/$/, '');
 import { LiffProvider } from '@/lib/liff/provider';
 import { AuthGuard } from '@/components/auth/auth-guard';
 import { Toaster } from '@/components/ui/toaster';
