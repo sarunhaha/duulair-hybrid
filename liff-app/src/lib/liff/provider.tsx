@@ -26,8 +26,15 @@ interface LiffProviderProps {
 }
 
 // Module-level singleton to prevent double init
-let liffInitPromise: Promise<void> | null = null;
 let liffInitDone = false;
+
+// Extend Window for pre-init promise from index.html
+declare global {
+  interface Window {
+    __liffInitPromise?: Promise<void>;
+    __liffDebugLines?: string[];
+  }
+}
 
 // === TEMPORARY DEBUG: visible on-screen log for mobile debugging ===
 const debugLines: string[] = [];
@@ -37,7 +44,9 @@ function debugLog(msg: string) {
   if (debugLines.length > 30) debugLines.shift();
   const el = document.getElementById('liff-debug');
   if (el) {
-    el.textContent = debugLines.join('\n');
+    // Merge pre-React debug lines from index.html
+    const preLines = window.__liffDebugLines || [];
+    el.textContent = [...preLines, ...debugLines].join('\n');
   }
   console.log(`[LIFF] ${msg}`);
 }
@@ -71,20 +80,24 @@ export function LiffProvider({ children, liffId = LIFF_ID }: LiffProviderProps) 
 
     const initLiff = async () => {
       try {
-        debugLog(`liff.init() starting (CDN v2.27.3)...`);
+        debugLog(`awaiting pre-init promise from index.html...`);
 
         if (typeof window.liff === 'undefined') {
           throw new Error('LIFF SDK not loaded — CDN script may have failed');
         }
 
-        // Init with timeout — liff.init() can hang indefinitely on some WebViews
-        if (!liffInitPromise) {
+        // Await the init promise created in index.html (runs before React mount)
+        // This has retry logic + cache-busting built in
+        if (window.__liffInitPromise) {
           const timeout = new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error('liff.init() timed out after 10s')), 10000)
+            setTimeout(() => reject(new Error('liff.init() timed out after 15s')), 15000)
           );
-          liffInitPromise = Promise.race([window.liff.init({ liffId }), timeout]);
+          await Promise.race([window.__liffInitPromise, timeout]);
+        } else {
+          // Fallback: init here if pre-init script didn't run
+          debugLog('no pre-init promise, calling liff.init() directly...');
+          await window.liff.init({ liffId });
         }
-        await liffInitPromise;
         debugLog('liff.init() succeeded!');
 
         const isInClient = window.liff.isInClient();

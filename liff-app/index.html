@@ -14,10 +14,66 @@
     <!-- Kanit Font -->
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
 
-    <!-- LIFF SDK CDN: required for native bridge in LINE WebView.
-         The npm @line/liff package handles API calls but needs this
-         script for native client features (getProfile, isInClient, etc.) -->
+    <!-- Fix: Override fetch to bust LINE WebView stale cache for LIFF SDK resources -->
+    <script>
+      (function() {
+        var origFetch = window.fetch;
+        window.fetch = function(url, opts) {
+          var s = (typeof url === 'string') ? url : (url && url.url ? url.url : '');
+          if (s.indexOf('line-scdn.net') !== -1) {
+            var bust = '_cb=' + Date.now();
+            s += (s.indexOf('?') === -1 ? '?' : '&') + bust;
+            if (typeof url === 'string') url = s;
+          }
+          return origFetch.call(this, url, opts);
+        };
+      })();
+    </script>
+
+    <!-- LIFF SDK CDN: required for native bridge in LINE WebView (pinned v2.27.3) -->
     <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/versions/2.27.3/sdk.js"></script>
+
+    <!-- Init LIFF BEFORE React mounts — prevents SPA router from stripping URL tokens -->
+    <script>
+      (function() {
+        var LIFF_ID = '2008278683-5k69jxNq';
+        var MAX_RETRIES = 3;
+        var RETRY_DELAY = 1500;
+
+        function dbg(msg) {
+          console.log('[LIFF-pre] ' + msg);
+          // Will be picked up by debug overlay once React mounts
+          window.__liffDebugLines = window.__liffDebugLines || [];
+          var ts = new Date().toLocaleTimeString('th-TH', { hour12: false });
+          window.__liffDebugLines.push('[' + ts + '] [pre] ' + msg);
+        }
+
+        function tryInit(attempt) {
+          dbg('attempt #' + attempt + ' liff.init() starting...');
+          return window.liff.init({ liffId: LIFF_ID }).then(function() {
+            dbg('liff.init() SUCCESS on attempt #' + attempt);
+          }).catch(function(err) {
+            var msg = err && err.message ? err.message : String(err);
+            dbg('attempt #' + attempt + ' FAILED: ' + msg);
+            if (attempt < MAX_RETRIES && msg.indexOf('Unable to load client features') !== -1) {
+              dbg('retrying in ' + RETRY_DELAY + 'ms...');
+              return new Promise(function(resolve) {
+                setTimeout(function() { resolve(tryInit(attempt + 1)); }, RETRY_DELAY);
+              });
+            }
+            throw err;
+          });
+        }
+
+        if (window.liff) {
+          dbg('LIFF SDK loaded, starting init (before React)');
+          window.__liffInitPromise = tryInit(1);
+        } else {
+          dbg('ERROR: LIFF SDK not found on window');
+          window.__liffInitPromise = Promise.reject(new Error('LIFF SDK not loaded'));
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
