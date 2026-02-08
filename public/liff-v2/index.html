@@ -33,7 +33,17 @@
     <!-- LIFF SDK CDN: required for native bridge in LINE WebView (pinned v2.27.3) -->
     <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/versions/2.27.3/sdk.js"></script>
 
-    <!-- Init LIFF BEFORE React mounts — prevents SPA router from stripping URL tokens -->
+    <script type="module" crossorigin src="/liff-v2/assets/index-DZmEwcU0.js"></script>
+    <link rel="modulepreload" crossorigin href="/liff-v2/assets/vendor-react-qkC6yhPU.js">
+    <link rel="modulepreload" crossorigin href="/liff-v2/assets/vendor-query-OvJu5Khy.js">
+    <link rel="modulepreload" crossorigin href="/liff-v2/assets/vendor-ui-CYcp45lG.js">
+    <link rel="stylesheet" crossorigin href="/liff-v2/assets/index-BINJkx7p.css">
+  </head>
+  <body>
+    <div id="root"></div>
+
+    <!-- Init LIFF after body exists but BEFORE React mounts
+         LIFF SDK needs document.body to inject extension script -->
     <script>
       (function() {
         var LIFF_ID = '2008278683-5k69jxNq';
@@ -42,7 +52,6 @@
 
         function dbg(msg) {
           console.log('[LIFF-pre] ' + msg);
-          // Will be picked up by debug overlay once React mounts
           window.__liffDebugLines = window.__liffDebugLines || [];
           var ts = new Date().toLocaleTimeString('th-TH', { hour12: false });
           window.__liffDebugLines.push('[' + ts + '] [pre] ' + msg);
@@ -74,13 +83,6 @@
         }
       })();
     </script>
-    <script type="module" crossorigin src="/liff-v2/assets/index-DZmEwcU0.js"></script>
-    <link rel="modulepreload" crossorigin href="/liff-v2/assets/vendor-react-qkC6yhPU.js">
-    <link rel="modulepreload" crossorigin href="/liff-v2/assets/vendor-query-OvJu5Khy.js">
-    <link rel="modulepreload" crossorigin href="/liff-v2/assets/vendor-ui-CYcp45lG.js">
-    <link rel="stylesheet" crossorigin href="/liff-v2/assets/index-BINJkx7p.css">
-  </head>
-  <body>
-    <div id="root"></div>
+
   </body>
 </html>
