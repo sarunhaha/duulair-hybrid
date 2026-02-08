@@ -23,7 +23,7 @@ interface LiffProviderProps {
 
 // Module-level singleton to prevent double init (StrictMode / re-mount protection)
 let liffInitPromise: Promise<void> | null = null;
-let liffInitDone = false; // Track if init completed successfully
+let liffInitDone = false;
 
 // === TEMPORARY DEBUG: visible on-screen log for mobile debugging ===
 const debugLines: string[] = [];
@@ -38,7 +38,6 @@ function debugLog(msg: string) {
   console.log(`[LIFF] ${msg}`);
 }
 
-// Inject debug overlay into DOM immediately
 if (typeof document !== 'undefined') {
   const existing = document.getElementById('liff-debug');
   if (!existing) {
@@ -51,6 +50,32 @@ if (typeof document !== 'undefined') {
 let renderCount = 0;
 // === END DEBUG ===
 
+// Retry liff.init() with fresh promise for "Unable to load client features" error
+async function initWithRetry(liffId: string, maxAttempts: number): Promise<void> {
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      debugLog(`liff.init() attempt ${attempt}/${maxAttempts}...`);
+      // Each retry must create a fresh promise — the SDK rejects the old one
+      liffInitPromise = window.liff.init({ liffId });
+      await liffInitPromise;
+      debugLog(`liff.init() succeeded on attempt ${attempt}`);
+      return;
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      debugLog(`attempt ${attempt} failed: ${msg}`);
+      if (attempt < maxAttempts && msg.includes('Unable to load client features')) {
+        // Wait before retrying — give the WebView time to settle
+        const delay = attempt * 1500;
+        debugLog(`retrying in ${delay}ms...`);
+        liffInitPromise = null; // Reset so next attempt creates fresh promise
+        await new Promise(r => setTimeout(r, delay));
+      } else {
+        throw error;
+      }
+    }
+  }
+}
+
 export function LiffProvider({ children, liffId = LIFF_ID }: LiffProviderProps) {
   const [state, setState] = useState<LiffState>(initialState);
 
@@ -59,7 +84,6 @@ export function LiffProvider({ children, liffId = LIFF_ID }: LiffProviderProps) 
   useEffect(() => {
     debugLog(`useEffect fired, liffInitDone=${liffInitDone}`);
 
-    // If init already completed, skip re-running
     if (liffInitDone) {
       debugLog('skipping — already done');
       return;
@@ -73,13 +97,8 @@ export function LiffProvider({ children, liffId = LIFF_ID }: LiffProviderProps) 
           throw new Error('LIFF SDK not loaded');
         }
 
-        debugLog('calling liff.init()...');
-        // Call liff.init() exactly once — SDK warns against multiple calls
-        if (!liffInitPromise) {
-          liffInitPromise = window.liff.init({ liffId });
-        }
-        await liffInitPromise;
-        debugLog('liff.init() done');
+        // Retry up to 3 times for "Unable to load client features" (common on mobile)
+        await initWithRetry(liffId, 3);
 
         const isInClient = window.liff.isInClient();
         const isLoggedIn = window.liff.isLoggedIn();
@@ -89,7 +108,6 @@ export function LiffProvider({ children, liffId = LIFF_ID }: LiffProviderProps) 
           if (isInClient) {
             debugLog('in-client but not logged in — skipping liff.login(), proceeding');
           } else {
-            // External browser — handle login redirect
             const params = new URLSearchParams(window.location.search);
             const hasCode = params.has('code');
             const loginAttempted = sessionStorage.getItem('liff_login_attempted');
@@ -119,7 +137,6 @@ export function LiffProvider({ children, liffId = LIFF_ID }: LiffProviderProps) 
           }
         }
 
-        // Login successful (or inside LINE client)
         sessionStorage.removeItem('liff_login_attempted');
 
         debugLog('calling getProfile()...');
@@ -143,7 +160,7 @@ export function LiffProvider({ children, liffId = LIFF_ID }: LiffProviderProps) 
         }
       } catch (error) {
         const errMsg = error instanceof Error ? error.message : String(error);
-        debugLog(`INIT ERROR: ${errMsg}`);
+        debugLog(`INIT ERROR (final): ${errMsg}`);
         console.error('[LiffProvider] Init error:', error);
         if (isMounted) {
           liffInitDone = true;
