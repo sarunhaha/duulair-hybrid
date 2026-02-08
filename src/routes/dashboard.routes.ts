@@ -246,19 +246,39 @@ router.get('/summary/:patientId', async (req: Request, res: Response) => {
       }
 
       // Priority 2: Match by medication name (fallback for chat-based logs)
+      // Only match if the reminder time has already passed (don't mark future doses as taken)
       if (!matchedLogId) {
-        for (const log of medLogs) {
-          if (matchedLogIds.has(log.id)) continue;
+        const reminderTime = reminder.time?.slice(0, 5); // "HH:mm"
+        const nowBangkok = new Date().toLocaleTimeString('en-GB', { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit', hour12: false });
 
-          const reminderTitle = (reminder.title || '').toLowerCase().trim();
-          const logMedName = (log.medication_name || '').toLowerCase().trim();
+        // Skip name-based matching if the reminder time hasn't passed yet
+        const reminderTimePassed = !reminderTime || reminderTime <= nowBangkok;
 
-          if (reminderTitle && logMedName) {
-            if (reminderTitle === logMedName ||
-                reminderTitle.includes(logMedName) ||
-                logMedName.includes(reminderTitle)) {
-              matchedLogId = log.id;
-              break;
+        if (reminderTimePassed) {
+          for (const log of medLogs) {
+            if (matchedLogIds.has(log.id)) continue;
+
+            const reminderTitle = (reminder.title || '').toLowerCase().trim();
+            const logMedName = (log.medication_name || '').toLowerCase().trim();
+
+            if (reminderTitle && logMedName) {
+              if (reminderTitle === logMedName ||
+                  reminderTitle.includes(logMedName) ||
+                  logMedName.includes(reminderTitle)) {
+                // For name-based matching, prefer logs closest to this reminder's time
+                // Check that log was created around this reminder's time window
+                if (reminderTime && log.taken_at) {
+                  const logTimeBangkok = new Date(log.taken_at)
+                    .toLocaleTimeString('en-GB', { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit', hour12: false });
+                  // Only match if the log time is within ±3 hours of the reminder time
+                  const reminderMinutes = parseInt(reminderTime.split(':')[0]) * 60 + parseInt(reminderTime.split(':')[1]);
+                  const logMinutes = parseInt(logTimeBangkok.split(':')[0]) * 60 + parseInt(logTimeBangkok.split(':')[1]);
+                  const diffMinutes = Math.abs(reminderMinutes - logMinutes);
+                  if (diffMinutes > 180) continue; // Skip if >3 hours apart
+                }
+                matchedLogId = log.id;
+                break;
+              }
             }
           }
         }
@@ -641,19 +661,36 @@ async function getPatientDashboardSummary(patientId: string): Promise<DashboardS
     }
 
     // Priority 2: Match by medication name (fallback for chat-based logs)
+    // Only match if the reminder time has already passed (don't mark future doses as taken)
     if (!matchedLogId) {
-      for (const log of medLogs) {
-        if (matchedLogIds.has((log as any).id)) continue;
+      const reminderTime = (reminder as any).time?.slice(0, 5); // "HH:mm"
+      const nowBangkok = new Date().toLocaleTimeString('en-GB', { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit', hour12: false });
 
-        const reminderTitle = ((reminder as any).title || '').toLowerCase().trim();
-        const logMedName = ((log as any).medication_name || '').toLowerCase().trim();
+      const reminderTimePassed = !reminderTime || reminderTime <= nowBangkok;
 
-        if (reminderTitle && logMedName) {
-          if (reminderTitle === logMedName ||
-              reminderTitle.includes(logMedName) ||
-              logMedName.includes(reminderTitle)) {
-            matchedLogId = (log as any).id;
-            break;
+      if (reminderTimePassed) {
+        for (const log of medLogs) {
+          if (matchedLogIds.has((log as any).id)) continue;
+
+          const reminderTitle = ((reminder as any).title || '').toLowerCase().trim();
+          const logMedName = ((log as any).medication_name || '').toLowerCase().trim();
+
+          if (reminderTitle && logMedName) {
+            if (reminderTitle === logMedName ||
+                reminderTitle.includes(logMedName) ||
+                logMedName.includes(reminderTitle)) {
+              // For name-based matching, check log time is within ±3 hours of reminder time
+              if (reminderTime && (log as any).taken_at) {
+                const logTimeBangkok = new Date((log as any).taken_at)
+                  .toLocaleTimeString('en-GB', { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit', hour12: false });
+                const reminderMinutes = parseInt(reminderTime.split(':')[0]) * 60 + parseInt(reminderTime.split(':')[1]);
+                const logMinutes = parseInt(logTimeBangkok.split(':')[0]) * 60 + parseInt(logTimeBangkok.split(':')[1]);
+                const diffMinutes = Math.abs(reminderMinutes - logMinutes);
+                if (diffMinutes > 180) continue;
+              }
+              matchedLogId = (log as any).id;
+              break;
+            }
           }
         }
       }
