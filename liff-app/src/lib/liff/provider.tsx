@@ -25,47 +25,54 @@ export function LiffProvider({ children, liffId = LIFF_ID }: LiffProviderProps) 
   const [state, setState] = useState<LiffState>(initialState);
 
   useEffect(() => {
-    // Prevent double initialization
     let isMounted = true;
 
     const initLiff = async () => {
-      console.log('[LiffProvider] Starting LIFF init with ID:', liffId);
-      console.log('[LiffProvider] Current URL:', window.location.href);
-
       try {
-        // Check if liff is available (loaded from script tag)
         if (typeof window.liff === 'undefined') {
           throw new Error('LIFF SDK not loaded');
         }
 
-        // LIFF.init() handles auth callback automatically
-        // It will process code/state params and set login state
         await window.liff.init({ liffId });
 
         const isInClient = window.liff.isInClient();
         const isLoggedIn = window.liff.isLoggedIn();
-        console.log('[LiffProvider] LIFF initialized:', { isInClient, isLoggedIn });
 
-        // After init, check login status
         if (!isLoggedIn) {
-          // Not logged in - redirect to LINE login
-          // LIFF will handle the callback when user returns
-          console.log('[LiffProvider] Not logged in, redirecting to LINE login');
-          window.liff.login();
-          return; // Stop here, page will redirect
+          // Guard against login redirect loop:
+          // If we already attempted login (have code/state params or session flag), don't redirect again
+          const params = new URLSearchParams(window.location.search);
+          const hasAuthParams = params.has('code') || params.has('liff.state');
+          const loginAttempted = sessionStorage.getItem('liff_login_attempted');
+
+          if (hasAuthParams || loginAttempted) {
+            // Auth callback failed or token exchange failed — don't loop
+            console.error('[LiffProvider] Login failed after redirect, not retrying');
+            if (isMounted) {
+              setState({
+                isInitialized: true,
+                isLoggedIn: false,
+                isInClient,
+                profile: null,
+                context: null,
+                error: new Error('LINE login failed. Please close and reopen.'),
+                isLoading: false,
+              });
+            }
+            return;
+          }
+
+          // First login attempt — mark it and redirect
+          sessionStorage.setItem('liff_login_attempted', '1');
+          window.liff.login({ redirectUri: window.location.href });
+          return;
         }
 
-        // User is logged in, fetch profile
-        console.log('[LiffProvider] Fetching profile...');
+        // Login successful — clear the attempt flag
+        sessionStorage.removeItem('liff_login_attempted');
+
         const profile = await window.liff.getProfile() as LiffProfile;
         const context = window.liff.getContext() as LiffContext | null;
-
-        console.log('[LiffProvider] Profile fetched:', {
-          userId: profile?.userId,
-          displayName: profile?.displayName,
-          contextType: context?.type,
-          isInClient
-        });
 
         if (isMounted) {
           setState({
@@ -79,13 +86,17 @@ export function LiffProvider({ children, liffId = LIFF_ID }: LiffProviderProps) 
           });
         }
       } catch (error) {
-        console.error('[LiffProvider] LIFF initialization error:', error);
+        console.error('[LiffProvider] Init error:', error);
         if (isMounted) {
-          setState(prev => ({
-            ...prev,
+          setState({
+            isInitialized: true,
+            isLoggedIn: false,
+            isInClient: false,
+            profile: null,
+            context: null,
             error: error as Error,
             isLoading: false,
-          }));
+          });
         }
       }
     };
