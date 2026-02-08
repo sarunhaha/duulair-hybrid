@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
+import liff from '@line/liff';
 import type { LiffState, LiffContextValue, LiffProfile, LiffContext } from '@/types/liff';
 
 // LIFF ID from environment or fallback
@@ -21,7 +22,7 @@ interface LiffProviderProps {
   liffId?: string;
 }
 
-// Module-level singleton to prevent double init (StrictMode / re-mount protection)
+// Module-level singleton to prevent double init
 let liffInitPromise: Promise<void> | null = null;
 let liffInitDone = false;
 
@@ -50,19 +51,6 @@ if (typeof document !== 'undefined') {
 let renderCount = 0;
 // === END DEBUG ===
 
-// Session key to track reload attempts for "Unable to load client features"
-const RELOAD_KEY = 'liff_init_reload_count';
-
-function getReloadCount(): number {
-  try { return parseInt(sessionStorage.getItem(RELOAD_KEY) || '0', 10); } catch { return 0; }
-}
-function setReloadCount(n: number): void {
-  try { sessionStorage.setItem(RELOAD_KEY, String(n)); } catch { /* ignore */ }
-}
-function clearReloadCount(): void {
-  try { sessionStorage.removeItem(RELOAD_KEY); } catch { /* ignore */ }
-}
-
 export function LiffProvider({ children, liffId = LIFF_ID }: LiffProviderProps) {
   const [state, setState] = useState<LiffState>(initialState);
 
@@ -80,25 +68,17 @@ export function LiffProvider({ children, liffId = LIFF_ID }: LiffProviderProps) 
 
     const initLiff = async () => {
       try {
-        if (typeof window.liff === 'undefined') {
-          throw new Error('LIFF SDK not loaded');
-        }
+        debugLog(`liff.init() starting (npm @line/liff)...`);
 
-        const reloadCount = getReloadCount();
-        debugLog(`liff.init() starting... (reload #${reloadCount})`);
-
-        // Single attempt — if it fails, we reload the page instead of retry in JS
+        // Single init via npm package — no CDN race condition
         if (!liffInitPromise) {
-          liffInitPromise = window.liff.init({ liffId });
+          liffInitPromise = liff.init({ liffId });
         }
         await liffInitPromise;
         debugLog('liff.init() succeeded!');
 
-        // Success — clear any reload counter
-        clearReloadCount();
-
-        const isInClient = window.liff.isInClient();
-        const isLoggedIn = window.liff.isLoggedIn();
+        const isInClient = liff.isInClient();
+        const isLoggedIn = liff.isLoggedIn();
         debugLog(`isInClient=${isInClient} isLoggedIn=${isLoggedIn}`);
 
         if (!isLoggedIn) {
@@ -129,7 +109,7 @@ export function LiffProvider({ children, liffId = LIFF_ID }: LiffProviderProps) 
 
             debugLog('redirecting to liff.login()...');
             sessionStorage.setItem('liff_login_attempted', '1');
-            window.liff.login({ redirectUri: window.location.href });
+            liff.login({ redirectUri: window.location.href });
             return;
           }
         }
@@ -137,9 +117,9 @@ export function LiffProvider({ children, liffId = LIFF_ID }: LiffProviderProps) 
         sessionStorage.removeItem('liff_login_attempted');
 
         debugLog('calling getProfile()...');
-        const profile = await window.liff.getProfile() as LiffProfile;
+        const profile = await liff.getProfile() as LiffProfile;
         debugLog(`profile: ${profile?.userId} ${profile?.displayName}`);
-        const context = window.liff.getContext() as LiffContext | null;
+        const context = liff.getContext() as LiffContext | null;
         debugLog(`context: ${JSON.stringify(context)}`);
 
         if (isMounted) {
@@ -159,21 +139,6 @@ export function LiffProvider({ children, liffId = LIFF_ID }: LiffProviderProps) 
         const errMsg = error instanceof Error ? error.message : String(error);
         debugLog(`INIT ERROR: ${errMsg}`);
         console.error('[LiffProvider] Init error:', error);
-
-        // For "Unable to load client features" — full page reload is the only
-        // reliable fix because the LIFF SDK corrupts its internal state on failure.
-        // In-JS retry doesn't work because the SDK won't re-initialize properly.
-        if (errMsg.includes('Unable to load client features')) {
-          const reloadCount = getReloadCount();
-          if (reloadCount < 3) {
-            setReloadCount(reloadCount + 1);
-            debugLog(`Reloading page (attempt ${reloadCount + 1}/3)...`);
-            // Small delay to let the debug log render before reload
-            setTimeout(() => window.location.reload(), 500);
-            return;
-          }
-          debugLog('Max reloads reached — showing error');
-        }
 
         if (isMounted) {
           liffInitDone = true;
@@ -200,19 +165,18 @@ export function LiffProvider({ children, liffId = LIFF_ID }: LiffProviderProps) 
 
   // Send message to current chat
   const sendMessage = useCallback(async (message: string) => {
-    if (!window.liff || !state.isInClient) return;
+    if (!state.isInClient) return;
     try {
-      await window.liff.sendMessages([{ type: 'text', text: message }]);
+      await liff.sendMessages([{ type: 'text', text: message }]);
     } catch (error) {
       throw error;
     }
   }, [state.isInClient]);
 
   const shareMessage = useCallback(async (message: string) => {
-    if (!window.liff) return false;
     try {
-      if (window.liff.isApiAvailable('shareTargetPicker')) {
-        await window.liff.shareTargetPicker([{ type: 'text', text: message }]);
+      if (liff.isApiAvailable('shareTargetPicker')) {
+        await liff.shareTargetPicker([{ type: 'text', text: message }]);
         return true;
       }
       return false;
@@ -222,10 +186,9 @@ export function LiffProvider({ children, liffId = LIFF_ID }: LiffProviderProps) 
   }, []);
 
   const shareTargetPicker = useCallback(async (messages: Array<{ type: 'text'; text: string }>) => {
-    if (!window.liff) return false;
     try {
-      if (window.liff.isApiAvailable('shareTargetPicker')) {
-        await window.liff.shareTargetPicker(messages);
+      if (liff.isApiAvailable('shareTargetPicker')) {
+        await liff.shareTargetPicker(messages);
         return true;
       }
       return false;
@@ -235,16 +198,16 @@ export function LiffProvider({ children, liffId = LIFF_ID }: LiffProviderProps) 
   }, []);
 
   const closeWindow = useCallback(() => {
-    if (window.liff && state.isInClient) {
-      window.liff.closeWindow();
+    if (state.isInClient) {
+      liff.closeWindow();
     } else {
       window.close();
     }
   }, [state.isInClient]);
 
   const openUrl = useCallback((url: string, external = false) => {
-    if (window.liff && state.isInClient) {
-      window.liff.openWindow({ url, external });
+    if (state.isInClient) {
+      liff.openWindow({ url, external });
     } else {
       window.open(url, external ? '_blank' : '_self');
     }
