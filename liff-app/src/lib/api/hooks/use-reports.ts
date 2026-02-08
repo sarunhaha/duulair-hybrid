@@ -620,8 +620,33 @@ export async function exportToPDF(
     );
   }
 
-  // Download
-  doc.save(`รายงานสุขภาพ-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+  // Download — LINE WebView doesn't support <a download>, so use blob URL
+  const isInLineWebView = typeof window !== 'undefined' &&
+    (window.liff?.isInClient?.() || /Line/i.test(navigator.userAgent));
+
+  if (isInLineWebView) {
+    // Open PDF as blob URL in external browser (works on LINE iOS/Android)
+    const blob = doc.output('blob');
+    const blobUrl = URL.createObjectURL(blob);
+
+    // Try liff.openWindow first, fall back to window.open
+    try {
+      if (window.liff?.isApiAvailable?.('openWindow')) {
+        // Cannot open blob: URLs with liff.openWindow — use data URI for small PDFs
+        // or open in same window
+        window.open(blobUrl, '_blank');
+      } else {
+        window.open(blobUrl, '_blank');
+      }
+    } catch {
+      window.open(blobUrl, '_blank');
+    }
+
+    // Clean up blob URL after delay
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+  } else {
+    doc.save(`รายงานสุขภาพ-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+  }
 }
 
 // Mock Data Generator
