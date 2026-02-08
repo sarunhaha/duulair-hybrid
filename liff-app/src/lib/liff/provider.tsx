@@ -68,11 +68,14 @@ export function LiffProvider({ children, liffId = LIFF_ID }: LiffProviderProps) 
 
     const initLiff = async () => {
       try {
-        debugLog(`liff.init() starting (npm @line/liff)...`);
+        debugLog(`liff.init() starting (npm @line/liff + CDN bridge)...`);
 
-        // Single init via npm package — no CDN race condition
+        // Init with timeout — liff.init() can hang indefinitely on some WebViews
         if (!liffInitPromise) {
-          liffInitPromise = liff.init({ liffId });
+          const timeout = new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('liff.init() timed out after 10s')), 10000)
+          );
+          liffInitPromise = Promise.race([liff.init({ liffId }), timeout]);
         }
         await liffInitPromise;
         debugLog('liff.init() succeeded!');
