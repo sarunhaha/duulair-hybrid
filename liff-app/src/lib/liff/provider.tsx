@@ -23,11 +23,48 @@ interface LiffProviderProps {
 
 // Module-level singleton to prevent double init (StrictMode / re-mount protection)
 let liffInitPromise: Promise<void> | null = null;
+let liffInitDone = false; // Track if init completed successfully
+
+// === TEMPORARY DEBUG: visible on-screen log for mobile debugging ===
+const debugLines: string[] = [];
+function debugLog(msg: string) {
+  const ts = new Date().toLocaleTimeString('th-TH', { hour12: false });
+  debugLines.push(`[${ts}] ${msg}`);
+  if (debugLines.length > 30) debugLines.shift();
+  const el = document.getElementById('liff-debug');
+  if (el) {
+    el.textContent = debugLines.join('\n');
+  }
+  console.log(`[LIFF] ${msg}`);
+}
+
+// Inject debug overlay into DOM immediately
+if (typeof document !== 'undefined') {
+  const existing = document.getElementById('liff-debug');
+  if (!existing) {
+    const div = document.createElement('div');
+    div.id = 'liff-debug';
+    div.style.cssText = 'position:fixed;bottom:0;left:0;right:0;max-height:40vh;overflow-y:auto;background:rgba(0,0,0,0.85);color:#0f0;font-size:10px;font-family:monospace;padding:8px;z-index:99999;white-space:pre-wrap;pointer-events:auto;';
+    document.body?.appendChild(div);
+  }
+}
+let renderCount = 0;
+// === END DEBUG ===
 
 export function LiffProvider({ children, liffId = LIFF_ID }: LiffProviderProps) {
   const [state, setState] = useState<LiffState>(initialState);
 
+  debugLog(`LiffProvider render #${++renderCount} state=${JSON.stringify({init: state.isInitialized, login: state.isLoggedIn, loading: state.isLoading, err: state.error?.message || null})}`);
+
   useEffect(() => {
+    debugLog(`useEffect fired, liffInitDone=${liffInitDone}`);
+
+    // If init already completed, skip re-running
+    if (liffInitDone) {
+      debugLog('skipping — already done');
+      return;
+    }
+
     let isMounted = true;
 
     const initLiff = async () => {
@@ -36,25 +73,28 @@ export function LiffProvider({ children, liffId = LIFF_ID }: LiffProviderProps) 
           throw new Error('LIFF SDK not loaded');
         }
 
+        debugLog('calling liff.init()...');
         // Call liff.init() exactly once — SDK warns against multiple calls
         if (!liffInitPromise) {
           liffInitPromise = window.liff.init({ liffId });
         }
         await liffInitPromise;
+        debugLog('liff.init() done');
 
         const isInClient = window.liff.isInClient();
         const isLoggedIn = window.liff.isLoggedIn();
+        debugLog(`isInClient=${isInClient} isLoggedIn=${isLoggedIn}`);
 
         if (!isLoggedIn) {
           if (isInClient) {
-            // Inside LINE app — user is always authenticated by LINE itself.
-            // isLoggedIn() can briefly return false due to SDK timing; treat as logged in.
-            // getProfile() will work because LINE provides the access token.
+            debugLog('in-client but not logged in — skipping liff.login(), proceeding');
           } else {
             // External browser — handle login redirect
             const params = new URLSearchParams(window.location.search);
             const hasCode = params.has('code');
             const loginAttempted = sessionStorage.getItem('liff_login_attempted');
+
+            debugLog(`external browser: hasCode=${hasCode} loginAttempted=${loginAttempted}`);
 
             if (hasCode || loginAttempted) {
               if (isMounted) {
@@ -67,10 +107,12 @@ export function LiffProvider({ children, liffId = LIFF_ID }: LiffProviderProps) 
                   error: new Error('LINE login failed. Please close and reopen.'),
                   isLoading: false,
                 });
+                liffInitDone = true;
               }
               return;
             }
 
+            debugLog('redirecting to liff.login()...');
             sessionStorage.setItem('liff_login_attempted', '1');
             window.liff.login({ redirectUri: window.location.href });
             return;
@@ -80,10 +122,15 @@ export function LiffProvider({ children, liffId = LIFF_ID }: LiffProviderProps) 
         // Login successful (or inside LINE client)
         sessionStorage.removeItem('liff_login_attempted');
 
+        debugLog('calling getProfile()...');
         const profile = await window.liff.getProfile() as LiffProfile;
+        debugLog(`profile: ${profile?.userId} ${profile?.displayName}`);
         const context = window.liff.getContext() as LiffContext | null;
+        debugLog(`context: ${JSON.stringify(context)}`);
 
         if (isMounted) {
+          liffInitDone = true;
+          debugLog('setState → initialized, loggedIn');
           setState({
             isInitialized: true,
             isLoggedIn: true,
@@ -95,8 +142,11 @@ export function LiffProvider({ children, liffId = LIFF_ID }: LiffProviderProps) 
           });
         }
       } catch (error) {
+        const errMsg = error instanceof Error ? error.message : String(error);
+        debugLog(`INIT ERROR: ${errMsg}`);
         console.error('[LiffProvider] Init error:', error);
         if (isMounted) {
+          liffInitDone = true;
           setState({
             isInitialized: true,
             isLoggedIn: false,
@@ -114,6 +164,7 @@ export function LiffProvider({ children, liffId = LIFF_ID }: LiffProviderProps) 
 
     return () => {
       isMounted = false;
+      debugLog('useEffect cleanup (unmounted)');
     };
   }, [liffId]);
 
