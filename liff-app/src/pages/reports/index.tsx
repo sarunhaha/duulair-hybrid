@@ -215,7 +215,15 @@ export default function ReportsPage() {
   const [isExporting, setIsExporting] = useState(false);
 
   const handleExportPDF = async () => {
-    if (!reportData || isExporting) return;
+    // Debug: show what's blocking (TEMPORARY — remove after fix confirmed)
+    if (!reportData) {
+      alert('PDF: reportData is null/undefined — data not loaded yet');
+      return;
+    }
+    if (isExporting) {
+      alert('PDF: already exporting');
+      return;
+    }
     setIsExporting(true);
     try {
       await exportToPDF(reportData, patientName, dateRangeText, {
@@ -232,7 +240,9 @@ export default function ReportsPage() {
         })),
         doctorQuestions: questions.map(q => q.question),
       });
+      alert('PDF: export completed successfully');
     } catch (error) {
+      alert('PDF export error: ' + (error instanceof Error ? error.message : String(error)));
       console.error('PDF export failed:', error);
     } finally {
       setIsExporting(false);
