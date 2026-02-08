@@ -46,32 +46,38 @@ export function LiffProvider({ children, liffId = LIFF_ID }: LiffProviderProps) 
         const isLoggedIn = window.liff.isLoggedIn();
 
         if (!isLoggedIn) {
-          // External browser — handle login
-          const params = new URLSearchParams(window.location.search);
-          const hasCode = params.has('code');
-          const loginAttempted = sessionStorage.getItem('liff_login_attempted');
+          if (isInClient) {
+            // Inside LINE app — user is always authenticated by LINE itself.
+            // isLoggedIn() can briefly return false due to SDK timing; treat as logged in.
+            // getProfile() will work because LINE provides the access token.
+          } else {
+            // External browser — handle login redirect
+            const params = new URLSearchParams(window.location.search);
+            const hasCode = params.has('code');
+            const loginAttempted = sessionStorage.getItem('liff_login_attempted');
 
-          if (hasCode || loginAttempted) {
-            if (isMounted) {
-              setState({
-                isInitialized: true,
-                isLoggedIn: false,
-                isInClient,
-                profile: null,
-                context: null,
-                error: new Error('LINE login failed. Please close and reopen.'),
-                isLoading: false,
-              });
+            if (hasCode || loginAttempted) {
+              if (isMounted) {
+                setState({
+                  isInitialized: true,
+                  isLoggedIn: false,
+                  isInClient,
+                  profile: null,
+                  context: null,
+                  error: new Error('LINE login failed. Please close and reopen.'),
+                  isLoading: false,
+                });
+              }
+              return;
             }
+
+            sessionStorage.setItem('liff_login_attempted', '1');
+            window.liff.login({ redirectUri: window.location.href });
             return;
           }
-
-          sessionStorage.setItem('liff_login_attempted', '1');
-          window.liff.login({ redirectUri: window.location.href });
-          return;
         }
 
-        // Login successful
+        // Login successful (or inside LINE client)
         sessionStorage.removeItem('liff_login_attempted');
 
         const profile = await window.liff.getProfile() as LiffProfile;
