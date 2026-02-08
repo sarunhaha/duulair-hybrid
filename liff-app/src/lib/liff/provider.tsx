@@ -50,30 +50,17 @@ if (typeof document !== 'undefined') {
 let renderCount = 0;
 // === END DEBUG ===
 
-// Retry liff.init() with fresh promise for "Unable to load client features" error
-async function initWithRetry(liffId: string, maxAttempts: number): Promise<void> {
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    try {
-      debugLog(`liff.init() attempt ${attempt}/${maxAttempts}...`);
-      // Each retry must create a fresh promise — the SDK rejects the old one
-      liffInitPromise = window.liff.init({ liffId });
-      await liffInitPromise;
-      debugLog(`liff.init() succeeded on attempt ${attempt}`);
-      return;
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : String(error);
-      debugLog(`attempt ${attempt} failed: ${msg}`);
-      if (attempt < maxAttempts && msg.includes('Unable to load client features')) {
-        // Wait before retrying — give the WebView time to settle
-        const delay = attempt * 1500;
-        debugLog(`retrying in ${delay}ms...`);
-        liffInitPromise = null; // Reset so next attempt creates fresh promise
-        await new Promise(r => setTimeout(r, delay));
-      } else {
-        throw error;
-      }
-    }
-  }
+// Session key to track reload attempts for "Unable to load client features"
+const RELOAD_KEY = 'liff_init_reload_count';
+
+function getReloadCount(): number {
+  try { return parseInt(sessionStorage.getItem(RELOAD_KEY) || '0', 10); } catch { return 0; }
+}
+function setReloadCount(n: number): void {
+  try { sessionStorage.setItem(RELOAD_KEY, String(n)); } catch { /* ignore */ }
+}
+function clearReloadCount(): void {
+  try { sessionStorage.removeItem(RELOAD_KEY); } catch { /* ignore */ }
 }
 
 export function LiffProvider({ children, liffId = LIFF_ID }: LiffProviderProps) {
@@ -97,8 +84,18 @@ export function LiffProvider({ children, liffId = LIFF_ID }: LiffProviderProps) 
           throw new Error('LIFF SDK not loaded');
         }
 
-        // Retry up to 3 times for "Unable to load client features" (common on mobile)
-        await initWithRetry(liffId, 3);
+        const reloadCount = getReloadCount();
+        debugLog(`liff.init() starting... (reload #${reloadCount})`);
+
+        // Single attempt — if it fails, we reload the page instead of retry in JS
+        if (!liffInitPromise) {
+          liffInitPromise = window.liff.init({ liffId });
+        }
+        await liffInitPromise;
+        debugLog('liff.init() succeeded!');
+
+        // Success — clear any reload counter
+        clearReloadCount();
 
         const isInClient = window.liff.isInClient();
         const isLoggedIn = window.liff.isLoggedIn();
@@ -160,8 +157,24 @@ export function LiffProvider({ children, liffId = LIFF_ID }: LiffProviderProps) 
         }
       } catch (error) {
         const errMsg = error instanceof Error ? error.message : String(error);
-        debugLog(`INIT ERROR (final): ${errMsg}`);
+        debugLog(`INIT ERROR: ${errMsg}`);
         console.error('[LiffProvider] Init error:', error);
+
+        // For "Unable to load client features" — full page reload is the only
+        // reliable fix because the LIFF SDK corrupts its internal state on failure.
+        // In-JS retry doesn't work because the SDK won't re-initialize properly.
+        if (errMsg.includes('Unable to load client features')) {
+          const reloadCount = getReloadCount();
+          if (reloadCount < 3) {
+            setReloadCount(reloadCount + 1);
+            debugLog(`Reloading page (attempt ${reloadCount + 1}/3)...`);
+            // Small delay to let the debug log render before reload
+            setTimeout(() => window.location.reload(), 500);
+            return;
+          }
+          debugLog('Max reloads reached — showing error');
+        }
+
         if (isMounted) {
           liffInitDone = true;
           setState({
