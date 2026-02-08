@@ -741,7 +741,7 @@ export default function ReportsPage() {
 
           <Button
             onClick={handleExportPDF}
-            className="w-full h-12 rounded-2xl bg-primary text-primary-foreground font-bold shadow-xl shadow-primary/20"
+            className="w-full h-12 rounded-2xl bg-primary text-primary-foreground font-bold shadow-xl shadow-primary/20 relative z-[60]"
             disabled={isReportLoading || !reportData || isExporting}
           >
             {isReportLoading || isExporting ? (
