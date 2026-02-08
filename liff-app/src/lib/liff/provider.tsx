@@ -1,6 +1,9 @@
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
-import liff from '@line/liff';
 import type { LiffState, LiffContextValue, LiffProfile, LiffContext } from '@/types/liff';
+
+// Use window.liff from CDN script tag (pinned v2.27.3 in index.html)
+// Do NOT use npm @line/liff — CDN and npm are mutually exclusive per LINE docs
+// and using both causes conflicts. CDN is required for native LINE WebView bridge.
 
 // LIFF ID from environment or fallback
 const LIFF_ID = import.meta.env.VITE_LIFF_ID || '2008278683-5k69jxNq';
@@ -68,20 +71,24 @@ export function LiffProvider({ children, liffId = LIFF_ID }: LiffProviderProps) 
 
     const initLiff = async () => {
       try {
-        debugLog(`liff.init() starting (npm @line/liff + CDN bridge)...`);
+        debugLog(`liff.init() starting (CDN v2.27.3)...`);
+
+        if (typeof window.liff === 'undefined') {
+          throw new Error('LIFF SDK not loaded — CDN script may have failed');
+        }
 
         // Init with timeout — liff.init() can hang indefinitely on some WebViews
         if (!liffInitPromise) {
           const timeout = new Promise<never>((_, reject) =>
             setTimeout(() => reject(new Error('liff.init() timed out after 10s')), 10000)
           );
-          liffInitPromise = Promise.race([liff.init({ liffId }), timeout]);
+          liffInitPromise = Promise.race([window.liff.init({ liffId }), timeout]);
         }
         await liffInitPromise;
         debugLog('liff.init() succeeded!');
 
-        const isInClient = liff.isInClient();
-        const isLoggedIn = liff.isLoggedIn();
+        const isInClient = window.liff.isInClient();
+        const isLoggedIn = window.liff.isLoggedIn();
         debugLog(`isInClient=${isInClient} isLoggedIn=${isLoggedIn}`);
 
         if (!isLoggedIn) {
@@ -112,7 +119,7 @@ export function LiffProvider({ children, liffId = LIFF_ID }: LiffProviderProps) 
 
             debugLog('redirecting to liff.login()...');
             sessionStorage.setItem('liff_login_attempted', '1');
-            liff.login({ redirectUri: window.location.href });
+            window.liff.login({ redirectUri: window.location.href });
             return;
           }
         }
@@ -120,9 +127,9 @@ export function LiffProvider({ children, liffId = LIFF_ID }: LiffProviderProps) 
         sessionStorage.removeItem('liff_login_attempted');
 
         debugLog('calling getProfile()...');
-        const profile = await liff.getProfile() as LiffProfile;
+        const profile = await window.liff.getProfile() as LiffProfile;
         debugLog(`profile: ${profile?.userId} ${profile?.displayName}`);
-        const context = liff.getContext() as LiffContext | null;
+        const context = window.liff.getContext() as LiffContext | null;
         debugLog(`context: ${JSON.stringify(context)}`);
 
         if (isMounted) {
@@ -170,7 +177,7 @@ export function LiffProvider({ children, liffId = LIFF_ID }: LiffProviderProps) 
   const sendMessage = useCallback(async (message: string) => {
     if (!state.isInClient) return;
     try {
-      await liff.sendMessages([{ type: 'text', text: message }]);
+      await window.liff.sendMessages([{ type: 'text', text: message }]);
     } catch (error) {
       throw error;
     }
@@ -178,8 +185,8 @@ export function LiffProvider({ children, liffId = LIFF_ID }: LiffProviderProps) 
 
   const shareMessage = useCallback(async (message: string) => {
     try {
-      if (liff.isApiAvailable('shareTargetPicker')) {
-        await liff.shareTargetPicker([{ type: 'text', text: message }]);
+      if (window.liff.isApiAvailable('shareTargetPicker')) {
+        await window.liff.shareTargetPicker([{ type: 'text', text: message }]);
         return true;
       }
       return false;
@@ -190,8 +197,8 @@ export function LiffProvider({ children, liffId = LIFF_ID }: LiffProviderProps) 
 
   const shareTargetPicker = useCallback(async (messages: Array<{ type: 'text'; text: string }>) => {
     try {
-      if (liff.isApiAvailable('shareTargetPicker')) {
-        await liff.shareTargetPicker(messages);
+      if (window.liff.isApiAvailable('shareTargetPicker')) {
+        await window.liff.shareTargetPicker(messages);
         return true;
       }
       return false;
@@ -202,7 +209,7 @@ export function LiffProvider({ children, liffId = LIFF_ID }: LiffProviderProps) 
 
   const closeWindow = useCallback(() => {
     if (state.isInClient) {
-      liff.closeWindow();
+      window.liff.closeWindow();
     } else {
       window.close();
     }
@@ -210,7 +217,7 @@ export function LiffProvider({ children, liffId = LIFF_ID }: LiffProviderProps) 
 
   const openUrl = useCallback((url: string, external = false) => {
     if (state.isInClient) {
-      liff.openWindow({ url, external });
+      window.liff.openWindow({ url, external });
     } else {
       window.open(url, external ? '_blank' : '_self');
     }
