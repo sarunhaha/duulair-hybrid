@@ -21,6 +21,31 @@ interface LiffProviderProps {
   liffId?: string;
 }
 
+// === TEMPORARY DEBUG: visible on-screen log for mobile debugging ===
+const debugLines: string[] = [];
+function debugLog(msg: string) {
+  const ts = new Date().toLocaleTimeString('th-TH', { hour12: false });
+  debugLines.push(`[${ts}] ${msg}`);
+  // Keep max 20 lines
+  if (debugLines.length > 20) debugLines.shift();
+  // Write to a DOM element if it exists
+  const el = document.getElementById('liff-debug');
+  if (el) {
+    el.textContent = debugLines.join('\n');
+  }
+}
+// Inject debug overlay into DOM immediately
+if (typeof document !== 'undefined') {
+  const existing = document.getElementById('liff-debug');
+  if (!existing) {
+    const div = document.createElement('div');
+    div.id = 'liff-debug';
+    div.style.cssText = 'position:fixed;bottom:0;left:0;right:0;max-height:40vh;overflow-y:auto;background:rgba(0,0,0,0.85);color:#0f0;font-size:10px;font-family:monospace;padding:8px;z-index:99999;white-space:pre-wrap;pointer-events:auto;';
+    document.body?.appendChild(div);
+  }
+}
+// === END DEBUG ===
+
 export function LiffProvider({ children, liffId = LIFF_ID }: LiffProviderProps) {
   const [state, setState] = useState<LiffState>(initialState);
 
@@ -28,26 +53,33 @@ export function LiffProvider({ children, liffId = LIFF_ID }: LiffProviderProps) 
     let isMounted = true;
 
     const initLiff = async () => {
+      debugLog(`START init, liffId=${liffId}`);
+      debugLog(`URL: ${window.location.href}`);
+      debugLog(`UA: ${navigator.userAgent.substring(0, 80)}`);
+
       try {
         if (typeof window.liff === 'undefined') {
-          throw new Error('LIFF SDK not loaded');
+          throw new Error('LIFF SDK not loaded - window.liff is undefined');
         }
+        debugLog('liff SDK found, calling init...');
 
         await window.liff.init({ liffId });
+        debugLog('liff.init() SUCCESS');
 
         const isInClient = window.liff.isInClient();
         const isLoggedIn = window.liff.isLoggedIn();
+        debugLog(`isInClient=${isInClient}, isLoggedIn=${isLoggedIn}`);
 
         if (!isLoggedIn) {
-          // Guard against login redirect loop:
-          // If we already attempted login (have code/state params or session flag), don't redirect again
+          debugLog('NOT logged in, checking guard...');
           const params = new URLSearchParams(window.location.search);
-          const hasAuthParams = params.has('code') || params.has('liff.state');
+          const hasCode = params.has('code');
+          const hasLiffState = params.has('liff.state');
           const loginAttempted = sessionStorage.getItem('liff_login_attempted');
+          debugLog(`hasCode=${hasCode}, hasLiffState=${hasLiffState}, loginAttempted=${loginAttempted}`);
 
-          if (hasAuthParams || loginAttempted) {
-            // Auth callback failed or token exchange failed — don't loop
-            console.error('[LiffProvider] Login failed after redirect, not retrying');
+          if (hasCode || loginAttempted) {
+            debugLog('BLOCKED: auth callback failed or already attempted');
             if (isMounted) {
               setState({
                 isInitialized: true,
@@ -62,19 +94,24 @@ export function LiffProvider({ children, liffId = LIFF_ID }: LiffProviderProps) 
             return;
           }
 
-          // First login attempt — mark it and redirect
+          debugLog('First login attempt, redirecting...');
           sessionStorage.setItem('liff_login_attempted', '1');
           window.liff.login({ redirectUri: window.location.href });
           return;
         }
 
-        // Login successful — clear the attempt flag
+        // Login successful
         sessionStorage.removeItem('liff_login_attempted');
+        debugLog('Fetching profile...');
 
         const profile = await window.liff.getProfile() as LiffProfile;
+        debugLog(`Profile: ${profile?.userId}, ${profile?.displayName}`);
+
         const context = window.liff.getContext() as LiffContext | null;
+        debugLog(`Context: type=${context?.type}`);
 
         if (isMounted) {
+          debugLog('Setting state: initialized=true');
           setState({
             isInitialized: true,
             isLoggedIn: true,
@@ -84,9 +121,12 @@ export function LiffProvider({ children, liffId = LIFF_ID }: LiffProviderProps) 
             error: null,
             isLoading: false,
           });
+        } else {
+          debugLog('WARN: component unmounted before setState');
         }
       } catch (error) {
-        console.error('[LiffProvider] Init error:', error);
+        const errMsg = error instanceof Error ? error.message : String(error);
+        debugLog(`ERROR: ${errMsg}`);
         if (isMounted) {
           setState({
             isInitialized: true,
@@ -111,40 +151,25 @@ export function LiffProvider({ children, liffId = LIFF_ID }: LiffProviderProps) 
   // Send message to current chat
   const sendMessage = useCallback(async (message: string) => {
     if (!window.liff || !state.isInClient) {
-      console.warn('sendMessage only works in LINE app');
       return;
     }
-
     try {
-      await window.liff.sendMessages([
-        {
-          type: 'text',
-          text: message,
-        },
-      ]);
+      await window.liff.sendMessages([{ type: 'text', text: message }]);
     } catch (error) {
-      console.error('Failed to send message:', error);
       throw error;
     }
   }, [state.isInClient]);
 
-  // Share message via target picker (simple string message)
+  // Share message via target picker
   const shareMessage = useCallback(async (message: string) => {
     if (!window.liff) return false;
-
     try {
       if (window.liff.isApiAvailable('shareTargetPicker')) {
-        await window.liff.shareTargetPicker([
-          {
-            type: 'text',
-            text: message,
-          },
-        ]);
+        await window.liff.shareTargetPicker([{ type: 'text', text: message }]);
         return true;
       }
       return false;
-    } catch (error) {
-      console.error('Failed to share message:', error);
+    } catch {
       return false;
     }
   }, []);
@@ -152,15 +177,13 @@ export function LiffProvider({ children, liffId = LIFF_ID }: LiffProviderProps) 
   // Share via target picker with custom message objects
   const shareTargetPicker = useCallback(async (messages: Array<{ type: 'text'; text: string }>) => {
     if (!window.liff) return false;
-
     try {
       if (window.liff.isApiAvailable('shareTargetPicker')) {
         await window.liff.shareTargetPicker(messages);
         return true;
       }
       return false;
-    } catch (error) {
-      console.error('Failed to share via target picker:', error);
+    } catch {
       return false;
     }
   }, []);
