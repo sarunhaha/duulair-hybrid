@@ -18,27 +18,10 @@ export default function HomePage() {
   const { isGroup } = useLiffContext();
   const hasNavigated = useRef(false);
 
-  // Debug: track how many times this component renders
-  const renderRef = useRef(0);
-  renderRef.current++;
-
   useEffect(() => {
-    const dbg = (msg: string) => {
-      const el = document.getElementById('liff-debug');
-      if (el) {
-        const ts = new Date().toLocaleTimeString('th-TH', { hour12: false });
-        el.textContent += `\n[${ts}] [Home] ${msg}`;
-      }
-      console.log(`[Home] ${msg}`);
-    };
-
-    dbg(`render#${renderRef.current} loc=${location} hasNav=${hasNavigated.current} init=${isInitialized} loading=${isLoading} isGroup=${isGroup}`);
 
     // Prevent double navigation
-    if (hasNavigated.current) {
-      dbg('skipping — already navigated');
-      return;
-    }
+    if (hasNavigated.current) return;
 
     // Handle liff.state deep link — LIFF sends path via query param
     // e.g. /liff-v2/?liff.state=%2Frecords → navigate to /records
@@ -47,7 +30,6 @@ export default function HomePage() {
     if (liffState) {
       hasNavigated.current = true;
       const targetPath = liffState.startsWith('/') ? liffState : '/' + liffState;
-      dbg(`deep link → ${targetPath}`);
 
       // Clean URL to prevent re-trigger
       params.delete('liff.state');
@@ -60,15 +42,10 @@ export default function HomePage() {
     }
 
     // Wait for LIFF to fully initialize before redirecting
-    if (!isInitialized || isLoading) {
-      dbg('waiting for LIFF init...');
-      return;
-    }
+    if (!isInitialized || isLoading) return;
 
     hasNavigated.current = true;
-    const target = isGroup ? '/dashboard/group' : '/dashboard';
-    dbg(`navigating → ${target}`);
-    setLocation(target);
+    setLocation(isGroup ? '/dashboard/group' : '/dashboard');
   }, [isInitialized, isLoading, isGroup, setLocation, location]);
 
   return (

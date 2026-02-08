@@ -36,22 +36,26 @@ declare global {
   }
 }
 
-// === TEMPORARY DEBUG: visible on-screen log for mobile debugging ===
+// === DEBUG: on-screen log for mobile debugging ===
+// Set to true to show debug overlay on screen (keep false for production)
+const LIFF_DEBUG = false;
+
 const debugLines: string[] = [];
 function debugLog(msg: string) {
   const ts = new Date().toLocaleTimeString('th-TH', { hour12: false });
   debugLines.push(`[${ts}] ${msg}`);
   if (debugLines.length > 30) debugLines.shift();
-  const el = document.getElementById('liff-debug');
-  if (el) {
-    // Merge pre-React debug lines from index.html
-    const preLines = window.__liffDebugLines || [];
-    el.textContent = [...preLines, ...debugLines].join('\n');
+  if (LIFF_DEBUG) {
+    const el = document.getElementById('liff-debug');
+    if (el) {
+      const preLines = window.__liffDebugLines || [];
+      el.textContent = [...preLines, ...debugLines].join('\n');
+    }
   }
   console.log(`[LIFF] ${msg}`);
 }
 
-if (typeof document !== 'undefined') {
+if (LIFF_DEBUG && typeof document !== 'undefined') {
   const existing = document.getElementById('liff-debug');
   if (!existing) {
     const div = document.createElement('div');
