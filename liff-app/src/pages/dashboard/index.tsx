@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { TrendingUp, ArrowDownRight, ArrowUpRight, Flame, Moon, Sun, Droplets, Loader2, PlusCircle, FileText } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -33,35 +32,9 @@ export default function DashboardPage() {
   // Get patientId directly from useAuth hook (more reliable than Zustand store)
   const patientId = auth.patientId;
 
-  console.log('[Dashboard] patientId:', patientId, 'auth:', { isLoading: auth.isLoading, isRegistered: auth.isRegistered });
-
   // Fetch dashboard data
-  const { data: summary, isLoading, refetch } = useDashboardSummary(patientId);
-
-  // Refetch when page becomes visible (user returns from another page)
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && patientId) {
-        console.log('[Dashboard] Page visible, refetching...');
-        refetch();
-      }
-    };
-
-    const handleFocus = () => {
-      if (patientId) {
-        console.log('[Dashboard] Window focus, refetching...');
-        refetch();
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('focus', handleFocus);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('focus', handleFocus);
-    };
-  }, [patientId, refetch]);
+  // React Query handles refetchOnWindowFocus globally — no manual listeners needed
+  const { data: summary, isLoading } = useDashboardSummary(patientId);
 
   // Use real data with proper empty states
   const vitals = summary?.latestVitals;

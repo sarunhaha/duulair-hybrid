@@ -21,18 +21,8 @@ interface LiffProviderProps {
   liffId?: string;
 }
 
-// Retry helper with delay
-async function retry<T>(fn: () => Promise<T>, maxAttempts: number, delayMs: number): Promise<T> {
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    try {
-      return await fn();
-    } catch (error) {
-      if (attempt === maxAttempts) throw error;
-      await new Promise(r => setTimeout(r, delayMs));
-    }
-  }
-  throw new Error('retry exhausted'); // unreachable
-}
+// Module-level singleton to prevent double init (StrictMode / re-mount protection)
+let liffInitPromise: Promise<void> | null = null;
 
 export function LiffProvider({ children, liffId = LIFF_ID }: LiffProviderProps) {
   const [state, setState] = useState<LiffState>(initialState);
@@ -46,9 +36,11 @@ export function LiffProvider({ children, liffId = LIFF_ID }: LiffProviderProps) 
           throw new Error('LIFF SDK not loaded');
         }
 
-        // liff.init() can fail with "Unable to load client features" on mobile
-        // Retry up to 3 times with 1s delay
-        await retry(() => window.liff.init({ liffId }), 3, 1000);
+        // Call liff.init() exactly once — SDK warns against multiple calls
+        if (!liffInitPromise) {
+          liffInitPromise = window.liff.init({ liffId });
+        }
+        await liffInitPromise;
 
         const isInClient = window.liff.isInClient();
         const isLoggedIn = window.liff.isLoggedIn();

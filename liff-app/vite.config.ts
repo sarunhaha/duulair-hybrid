@@ -31,13 +31,11 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          // Vendor chunks
+          // Vendor chunks — charts & pdf are lazy-loaded only on /reports and /trends
           'vendor-react': ['react', 'react-dom'],
           'vendor-query': ['@tanstack/react-query'],
-          'vendor-charts': ['recharts'],
           'vendor-ui': ['@radix-ui/react-dialog', '@radix-ui/react-select', '@radix-ui/react-tabs', '@radix-ui/react-toast'],
           'vendor-forms': ['react-hook-form', '@hookform/resolvers', 'zod'],
-          'vendor-pdf': ['jspdf', 'jspdf-autotable'],
         },
       },
     },

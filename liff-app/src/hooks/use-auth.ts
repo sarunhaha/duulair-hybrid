@@ -102,7 +102,7 @@ export function useAuth(): AuthData {
     staleTime: 5 * 60 * 1000, // Consider fresh for 5 minutes
     gcTime: 30 * 60 * 1000, // Keep in memory for 30 minutes
     retry: 2,
-    refetchOnMount: true, // Always refetch to ensure fresh data
+    refetchOnMount: 'stale', // Refetch only when stale (> 5 min), not on every mount
   });
 
   // Force fetch when lineUserId becomes available and no cache exists
