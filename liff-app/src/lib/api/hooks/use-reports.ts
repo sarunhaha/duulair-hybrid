@@ -620,30 +620,31 @@ export async function exportToPDF(
     );
   }
 
-  // Download — LINE WebView doesn't support <a download>, so use blob URL
+  // Download — LINE WebView blocks window.open and <a download>
+  // Use base64 data URI opened via location.href as fallback
   const isInLineWebView = typeof window !== 'undefined' &&
     (window.liff?.isInClient?.() || /Line/i.test(navigator.userAgent));
 
   if (isInLineWebView) {
-    // Open PDF as blob URL in external browser (works on LINE iOS/Android)
-    const blob = doc.output('blob');
-    const blobUrl = URL.createObjectURL(blob);
+    // Convert PDF to base64 data URI and open directly
+    // This bypasses popup blockers and download attribute limitations
+    const pdfBase64 = doc.output('datauristring');
 
-    // Try liff.openWindow first, fall back to window.open
-    try {
-      if (window.liff?.isApiAvailable?.('openWindow')) {
-        // Cannot open blob: URLs with liff.openWindow — use data URI for small PDFs
-        // or open in same window
-        window.open(blobUrl, '_blank');
-      } else {
-        window.open(blobUrl, '_blank');
-      }
-    } catch {
-      window.open(blobUrl, '_blank');
-    }
+    // Method 1: Open data URI in a new iframe overlay for viewing
+    const iframe = document.createElement('iframe');
+    iframe.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:99999;border:none;background:white;';
+    iframe.src = pdfBase64;
+    document.body.appendChild(iframe);
 
-    // Clean up blob URL after delay
-    setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+    // Add close button
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = '✕ ปิด';
+    closeBtn.style.cssText = 'position:fixed;top:12px;right:12px;z-index:100000;background:#1E7B9C;color:white;border:none;border-radius:20px;padding:8px 20px;font-size:16px;font-family:Kanit,sans-serif;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.3);';
+    closeBtn.onclick = () => {
+      iframe.remove();
+      closeBtn.remove();
+    };
+    document.body.appendChild(closeBtn);
   } else {
     doc.save(`รายงานสุขภาพ-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
   }
