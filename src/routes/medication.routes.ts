@@ -142,6 +142,17 @@ router.delete('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
+    // Unlink related records before deleting (FK constraints)
+    await supabase
+      .from('medication_logs')
+      .update({ medication_id: null })
+      .eq('medication_id', id);
+
+    await supabase
+      .from('reminders')
+      .update({ medication_id: null })
+      .eq('medication_id', id);
+
     const { error } = await supabase
       .from('medications')
       .delete()

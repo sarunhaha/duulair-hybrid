@@ -28,9 +28,7 @@ router.post('/vitals', async (req: Request, res: Response) => {
   }
 
   try {
-    const { data, error } = await supabase
-      .from('vitals_logs')
-      .insert({
+    const insertData: Record<string, unknown> = {
         patient_id,
         bp_systolic: bp_systolic || null,
         bp_diastolic: bp_diastolic || null,
@@ -39,12 +37,17 @@ router.post('/vitals', async (req: Request, res: Response) => {
         temperature: temperature || null,
         spo2: spo2 || null,
         glucose: glucose || null,
-        meal_context: meal_context || null,
-        food_notes: food_notes || null,
         notes: notes || null,
         measured_at: measured_at || new Date().toISOString(),
         source: 'manual',
-      })
+      };
+    // Only include meal_context/food_notes if provided (columns may not exist yet)
+    if (meal_context) insertData.meal_context = meal_context;
+    if (food_notes) insertData.food_notes = food_notes;
+
+    const { data, error } = await supabase
+      .from('vitals_logs')
+      .insert(insertData)
       .select()
       .single();
 
@@ -89,10 +92,11 @@ router.put('/vitals/:id', async (req: Request, res: Response) => {
       temperature: temperature ?? null,
       spo2: spo2 ?? null,
       glucose: glucose ?? null,
-      meal_context: meal_context ?? null,
-      food_notes: food_notes ?? null,
       notes: notes ?? null,
     };
+    // Only include meal_context/food_notes if provided (columns may not exist yet)
+    if (meal_context !== undefined) updateData.meal_context = meal_context || null;
+    if (food_notes !== undefined) updateData.food_notes = food_notes || null;
 
     // Allow updating measured_at if provided
     if (measured_at) {

@@ -68,7 +68,7 @@ router.get('/summary/:patientId', async (req: Request, res: Response) => {
       // Previous vitals (second most recent)
       supabase
         .from('vitals_logs')
-        .select('bp_systolic, bp_diastolic, weight')
+        .select('bp_systolic, bp_diastolic, weight, glucose')
         .eq('patient_id', patientId)
         .order('measured_at', { ascending: false })
         .range(1, 1)

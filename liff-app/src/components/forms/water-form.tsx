@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Droplet, Plus, Clock, Trash2, Target, Settings, Zap, Pencil, Check, X } from 'lucide-react';
+import { TimeInput } from '@/components/ui/time-picker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -317,21 +318,28 @@ export function WaterForm({ onSuccess, onCancel }: WaterFormProps) {
                 <div className="space-y-0.5 flex-1">
                   {editingLogId === log.id ? (
                     <div className="flex items-center gap-2">
-                      <Input
-                        type="time"
+                      <TimeInput
                         value={editingTime}
-                        onChange={(e) => setEditingTime(e.target.value)}
-                        className="w-24 h-8 text-sm"
-                        autoFocus
+                        onChange={(val) => {
+                          setEditingTime(val);
+                          // Auto-save after picker confirms
+                          const newLogs = todayLogs.map((l) => {
+                            if (l.id === log.id) {
+                              const [hours, mins] = val.split(':').map(Number);
+                              const newDate = new Date();
+                              newDate.setHours(hours, mins, 0, 0);
+                              return { ...l, time: val, timestamp: newDate.toISOString() };
+                            }
+                            return l;
+                          });
+                          setTodayLogs(newLogs);
+                          saveData(totalToday, newLogs, dailyGoal);
+                          setEditingLogId(null);
+                          setEditingTime('');
+                          toast({ description: 'อัพเดทเวลาเรียบร้อยแล้ว' });
+                        }}
+                        className="w-28 h-8 text-sm"
                       />
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
-                        onClick={() => saveEditedTime(log.id)}
-                      >
-                        <Check className="w-4 h-4" />
-                      </Button>
                       <Button
                         variant="ghost"
                         size="sm"

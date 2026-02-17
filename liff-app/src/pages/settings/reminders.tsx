@@ -370,7 +370,7 @@ export default function RemindersPage() {
                 key={tab.value}
                 onClick={() => setActiveCategory(tab.value)}
                 className={cn(
-                  'flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all border',
+                  'flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all border shrink-0',
                   isActive
                     ? 'bg-primary text-primary-foreground border-primary shadow-md shadow-primary/20'
                     : 'bg-card text-muted-foreground border-border'
