@@ -13,9 +13,6 @@ import {
   AlertCircle,
   Star,
   CheckCircle2,
-  Eye,
-  ChevronUp,
-  ChevronDown,
   MessageSquare,
   Trash2,
   Plus,
@@ -23,6 +20,7 @@ import {
   Loader2,
   Moon,
   X,
+  Info,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -40,9 +38,12 @@ import {
   Line,
   BarChart,
   Bar,
+  XAxis,
+  YAxis,
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  ReferenceLine,
   Cell,
 } from 'recharts';
 import { cn } from '@/lib/utils';
@@ -54,6 +55,7 @@ import {
   useReportData,
   exportToPDF,
   type DateRange,
+  type ChartDataPoint,
 } from '@/lib/api/hooks/use-reports';
 import {
   useDoctorQuestions,
@@ -119,9 +121,11 @@ export default function ReportsPage() {
   const patientId = context.patientId || (user.role === 'patient' ? user.profileId : null);
 
   const [range, setRange] = useState<RangeKey>('30d');
-  const [showA4Preview, setShowA4Preview] = useState(false);
   const [onlySignificant, setOnlySignificant] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+
+  // Selected chart point for detail panel (same as trends page)
+  const [selectedChartPoint, setSelectedChartPoint] = useState<ChartDataPoint | null>(null);
 
   // Custom date range state (same pattern as trends page)
   const [customRange, setCustomRange] = useState({ startDate: getLocalDateString(90), endDate: getLocalDateString(0) });
@@ -237,6 +241,12 @@ export default function ReportsPage() {
     if (!summary?.sleep) return 'ไม่มีข้อมูล';
     return `${summary.sleep.avgHours.toFixed(1)} ชม.`;
   }, [summary]);
+
+  const handleChartClick = (e: any) => {
+    if (e && e.activePayload && e.activePayload[0]) {
+      setSelectedChartPoint(e.activePayload[0].payload);
+    }
+  };
 
   const [isExporting, setIsExporting] = useState(false);
 
@@ -450,9 +460,14 @@ export default function ReportsPage() {
 
         {/* Summary Charts */}
         <div className="space-y-3">
-          <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest pl-1">
-            กราฟสรุป
-          </h3>
+          <div className="flex justify-between items-center">
+            <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest pl-1">
+              กราฟสรุป
+            </h3>
+            <p className="text-[10px] text-muted-foreground flex items-center gap-1 pr-1">
+              <Info className="w-3 h-3" /> แตะจุดบนกราฟเพื่อดูรายละเอียด
+            </p>
+          </div>
           <Card className="border-none shadow-sm bg-card p-4 space-y-6">
             {isReportLoading ? (
               <div className="flex items-center justify-center py-12">
@@ -468,15 +483,18 @@ export default function ReportsPage() {
                     </p>
                     <p className="text-[10px] text-muted-foreground">เฉลี่ย {bpAvgDisplay}</p>
                   </div>
-                  <div className="h-[100px] w-full">
+                  <div className="h-[180px] w-full">
                     {chartDataSliced.length > 0 ? (
                       <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={chartDataSliced}>
-                          <Line type="monotone" dataKey="systolic" stroke="#0E8A9A" strokeWidth={2} dot={{ r: 2 }} />
-                          <Line type="monotone" dataKey="diastolic" stroke="#0E8A9A" strokeOpacity={0.5} strokeWidth={2} dot={{ r: 2 }} />
-                          <Line type="monotone" dataKey="pulse" stroke="#F2994A" strokeWidth={2} dot={false} />
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                          <Tooltip contentStyle={{ fontSize: '10px' }} />
+                        <LineChart data={chartDataSliced} onClick={handleChartClick}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" strokeOpacity={0.5} />
+                          <XAxis dataKey="day" tick={{ fontSize: 9 }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
+                          <YAxis tick={{ fontSize: 9 }} tickLine={false} axisLine={false} width={30} domain={['auto', 'auto']} />
+                          <ReferenceLine y={135} stroke="#EF4444" strokeDasharray="6 3" strokeOpacity={0.4} />
+                          <Line type="monotone" dataKey="systolic" stroke="#EF4444" strokeWidth={2} dot={{ r: 2.5 }} activeDot={{ r: 5 }} connectNulls name="SYS" />
+                          <Line type="monotone" dataKey="diastolic" stroke="#3B82F6" strokeWidth={2} dot={{ r: 2.5 }} activeDot={{ r: 5 }} connectNulls name="DIA" />
+                          <Line type="monotone" dataKey="pulse" stroke="#F97316" strokeWidth={1.5} dot={false} activeDot={{ r: 4 }} connectNulls name="ชีพจร" strokeDasharray="4 2" />
+                          <Tooltip contentStyle={{ borderRadius: '12px', fontSize: '12px', border: '1px solid hsl(var(--border))' }} />
                         </LineChart>
                       </ResponsiveContainer>
                     ) : (
@@ -495,11 +513,15 @@ export default function ReportsPage() {
                     </p>
                     <p className="text-[10px] text-muted-foreground">ครบ {medsAdherenceDisplay}</p>
                   </div>
-                  <div className="h-[60px] w-full">
+                  <div className="h-[120px] w-full">
                     {chartDataSliced.length > 0 ? (
                       <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={chartDataSliced}>
-                          <Bar dataKey="medsPercent" radius={[4, 4, 0, 0]}>
+                        <BarChart data={chartDataSliced} onClick={handleChartClick}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" strokeOpacity={0.5} />
+                          <XAxis dataKey="day" tick={{ fontSize: 9 }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
+                          <YAxis tick={{ fontSize: 9 }} tickLine={false} axisLine={false} width={30} domain={[0, 100]} />
+                          <ReferenceLine y={100} stroke="#10b981" strokeDasharray="6 3" strokeOpacity={0.3} />
+                          <Bar dataKey="medsPercent" radius={[4, 4, 0, 0]} name="กินยา %">
                             {chartDataSliced.map((entry, index) => (
                               <Cell
                                 key={`cell-${index}`}
@@ -507,7 +529,7 @@ export default function ReportsPage() {
                               />
                             ))}
                           </Bar>
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                          <Tooltip contentStyle={{ borderRadius: '12px', fontSize: '12px', border: '1px solid hsl(var(--border))' }} />
                         </BarChart>
                       </ResponsiveContainer>
                     ) : (
@@ -526,12 +548,16 @@ export default function ReportsPage() {
                     </p>
                     <p className="text-[10px] text-muted-foreground">เฉลี่ย {sleepAvgDisplay}</p>
                   </div>
-                  <div className="h-[60px] w-full">
+                  <div className="h-[120px] w-full">
                     {chartDataSliced.some(d => d.sleepHours !== undefined) ? (
                       <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={chartDataSliced}>
-                          <Bar dataKey="sleepHours" radius={[4, 4, 0, 0]} fill="#8b5cf6" />
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                        <BarChart data={chartDataSliced} onClick={handleChartClick}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" strokeOpacity={0.5} />
+                          <XAxis dataKey="day" tick={{ fontSize: 9 }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
+                          <YAxis tick={{ fontSize: 9 }} tickLine={false} axisLine={false} width={30} domain={[0, 'auto']} />
+                          <ReferenceLine y={7} stroke="#8b5cf6" strokeDasharray="6 3" strokeOpacity={0.3} label={{ value: '7 ชม.', position: 'right', fontSize: 9, fill: '#8b5cf6' }} />
+                          <Bar dataKey="sleepHours" radius={[4, 4, 0, 0]} fill="#8b5cf6" name="นอน (ชม.)" />
+                          <Tooltip contentStyle={{ borderRadius: '12px', fontSize: '12px', border: '1px solid hsl(var(--border))' }} />
                         </BarChart>
                       </ResponsiveContainer>
                     ) : (
@@ -541,6 +567,78 @@ export default function ReportsPage() {
                     )}
                   </div>
                 </div>
+
+                {/* Selected Point Detail Panel */}
+                {selectedChartPoint && (
+                  <div className="bg-muted/30 rounded-2xl p-4 space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    <div className="flex justify-between items-center">
+                      <p className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                        <Calendar className="w-3.5 h-3.5 text-primary" />
+                        {selectedChartPoint.day}
+                      </p>
+                      <button onClick={() => setSelectedChartPoint(null)} className="text-muted-foreground hover:text-foreground">
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      {(selectedChartPoint.systolic || selectedChartPoint.diastolic) && (
+                        <div className="space-y-1">
+                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                            <Heart className="w-3 h-3 text-red-500" /> ความดัน
+                          </p>
+                          <p className="text-sm font-bold">
+                            {selectedChartPoint.systolic || '-'}/{selectedChartPoint.diastolic || '-'}
+                            <span className="text-[10px] text-muted-foreground font-normal ml-1">mmHg</span>
+                          </p>
+                        </div>
+                      )}
+                      {selectedChartPoint.pulse && (
+                        <div className="space-y-1">
+                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                            <Activity className="w-3 h-3 text-orange-500" /> ชีพจร
+                          </p>
+                          <p className="text-sm font-bold">
+                            {selectedChartPoint.pulse}
+                            <span className="text-[10px] text-muted-foreground font-normal ml-1">bpm</span>
+                          </p>
+                        </div>
+                      )}
+                      {selectedChartPoint.medsPercent !== undefined && (
+                        <div className="space-y-1">
+                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                            <Pill className="w-3 h-3 text-orange-500" /> กินยา
+                          </p>
+                          <p className={cn(
+                            'text-sm font-bold',
+                            selectedChartPoint.medsPercent === 100 ? 'text-emerald-600' : selectedChartPoint.medsPercent < 50 ? 'text-red-500' : 'text-orange-500'
+                          )}>
+                            {selectedChartPoint.medsPercent}%
+                          </p>
+                        </div>
+                      )}
+                      {selectedChartPoint.sleepHours !== undefined && (
+                        <div className="space-y-1">
+                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                            <Moon className="w-3 h-3 text-purple-500" /> การนอน
+                          </p>
+                          <p className="text-sm font-bold">
+                            {selectedChartPoint.sleepHours}
+                            <span className="text-[10px] text-muted-foreground font-normal ml-1">ชม.</span>
+                          </p>
+                        </div>
+                      )}
+                      {selectedChartPoint.waterMl !== undefined && (
+                        <div className="space-y-1">
+                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">น้ำดื่ม</p>
+                          <p className="text-sm font-bold">
+                            {selectedChartPoint.waterMl}
+                            <span className="text-[10px] text-muted-foreground font-normal ml-1">มล.</span>
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </>
             )}
           </Card>
@@ -736,64 +834,8 @@ export default function ReportsPage() {
           </div>
         </div>
 
-        {/* A4 Preview & Export */}
+        {/* Export */}
         <div className="space-y-4 pt-2">
-          {/* Collapsible Preview */}
-          <div className="border border-border rounded-2xl bg-muted/20 overflow-hidden">
-            <button
-              onClick={() => setShowA4Preview(!showA4Preview)}
-              className="w-full flex items-center justify-between p-4 bg-card/50 backdrop-blur-sm"
-            >
-              <div className="flex items-center gap-2 text-xs font-bold text-foreground">
-                <Eye className="w-4 h-4 text-primary" /> พรีวิวเอกสาร A4
-              </div>
-              {showA4Preview ? (
-                <ChevronUp className="w-4 h-4 text-muted-foreground" />
-              ) : (
-                <ChevronDown className="w-4 h-4 text-muted-foreground" />
-              )}
-            </button>
-
-            {showA4Preview && (
-              <div className="p-4 flex justify-center bg-muted/50">
-                <div className="w-full max-w-[300px] bg-card shadow-2xl p-4 text-[8px] leading-relaxed flex flex-col gap-2 text-foreground rounded-lg">
-                  {/* Fake A4 Content */}
-                  <div className="flex justify-between border-b pb-2 border-border">
-                    <h1 className="text-sm font-bold">รายงานสุขภาพ: {patientName}</h1>
-                  </div>
-                  <div className="text-[7px] text-muted-foreground">
-                    <p>ช่วงเวลา: {dateRangeText}</p>
-                    <p>สร้างเมื่อ: {format(new Date(), 'd MMM yyyy', { locale: th })}</p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 mt-2">
-                    <div className="border border-border p-2 rounded">
-                      <h2 className="font-bold mb-1">สรุปสำคัญ</h2>
-                      <ul className="list-disc pl-2 space-y-0.5">
-                        <li>ความดัน: {bpAvgDisplay}</li>
-                        <li>กินยาครบ: {medsAdherenceDisplay}</li>
-                        {activeEvents.length > 0 && (
-                          <li>เหตุการณ์สำคัญ: {activeEvents.length} รายการ</li>
-                        )}
-                      </ul>
-                    </div>
-                    <div className="border border-border p-2 rounded">
-                      <h2 className="font-bold mb-1">สถิติรวม</h2>
-                      <p>ความดันเฉลี่ย: {summary?.bp ? `${summary.bp.avgSystolic}/${summary.bp.avgDiastolic}` : '-'}</p>
-                      <p>ชีพจรเฉลี่ย: {summary?.bp?.avgHeartRate || '-'} bpm</p>
-                      <p>นอนเฉลี่ย: {sleepAvgDisplay}</p>
-                    </div>
-                  </div>
-                  <div className="h-16 border border-border bg-muted/30 flex items-center justify-center text-muted-foreground rounded mt-2">
-                    [กราฟสรุป]
-                  </div>
-                  <div className="mt-auto border-t border-border pt-1 text-center text-[6px] text-muted-foreground">
-                    ข้อมูลนี้เป็นข้อมูลที่ผู้ใช้บันทึกเอง
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
           <Button
             onClick={handleExportPDF}
             className="w-full h-12 rounded-2xl bg-primary text-primary-foreground font-bold shadow-xl shadow-primary/20 relative z-[60]"

@@ -5,7 +5,6 @@ import {
   Plus,
   Pill,
   Clock,
-  Calendar,
   Edit2,
   Trash2,
   Loader2,
@@ -275,130 +274,114 @@ export default function MedicationsPage() {
       </header>
 
       <main className="max-w-md mx-auto px-4 py-6 space-y-4">
-        {/* Summary */}
-        <Card className="border-none shadow-lg bg-gradient-to-br from-purple-500 to-purple-600 text-white overflow-hidden">
-          <CardContent className="p-6 relative">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
-            <div className="relative z-10">
-              <p className="text-sm text-white/80">รายการยาทั้งหมด</p>
-              <p className="text-4xl font-bold mt-1">
-                {medications?.length || 0} <span className="text-lg font-normal">รายการ</span>
-              </p>
+        <Card className="border-none shadow-sm">
+          <CardContent className="p-4 space-y-4">
+            {/* Section Header */}
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center text-accent">
+                <Pill className="w-5 h-5" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-bold">ยาของฉัน</p>
+                <p className="text-xs text-muted-foreground">จัดการรายการยาและเวลาเตือน</p>
+              </div>
+              {medications && medications.length > 0 && (
+                <span className="text-xs font-bold text-muted-foreground bg-muted/50 px-2 py-1 rounded-lg">
+                  {medications.length} รายการ
+                </span>
+              )}
             </div>
+
+            {/* Loading */}
+            {isLoading && (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin text-primary" />
+              </div>
+            )}
+
+            {/* Empty State */}
+            {!isLoading && (!medications || medications.length === 0) && (
+              <div className="flex flex-col items-center py-6 text-center">
+                <div className="w-12 h-12 mb-3 bg-muted/50 rounded-full flex items-center justify-center">
+                  <Pill className="w-6 h-6 text-muted-foreground" />
+                </div>
+                <p className="text-sm font-medium text-muted-foreground">ยังไม่มีรายการยา</p>
+                <p className="text-xs text-muted-foreground/70 mt-0.5">กดปุ่มด้านล่างเพื่อเพิ่มยา</p>
+              </div>
+            )}
+
+            {/* Medication List */}
+            {medications && medications.length > 0 && (
+              <div className="space-y-2">
+                {medications.map((med) => (
+                  <div
+                    key={med.id}
+                    className="bg-muted/20 p-3 rounded-xl space-y-2"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-bold text-foreground truncate">{med.name}</p>
+                          {med.reminder_enabled && (
+                            <Bell className="w-3 h-3 text-green-500 shrink-0" />
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <p className="text-xs text-muted-foreground">{formatDosage(med)}</p>
+                          {med.times && med.times.length > 0 && (
+                            <>
+                              <span className="text-muted-foreground/30">·</span>
+                              <p className="text-xs text-muted-foreground">
+                                {med.times.map(t => TIME_LABELS[t] || t).join(', ')}
+                              </p>
+                            </>
+                          )}
+                        </div>
+                        {med.instructions && (
+                          <p className="text-[11px] text-muted-foreground/70 mt-0.5">
+                            <Clock className="w-3 h-3 inline mr-0.5 -mt-0.5" />
+                            {med.instructions}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0 ml-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-primary"
+                          onClick={() => handleOpenEdit(med)}
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-red-500"
+                          onClick={() => handleDelete(med.id)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    {med.note && (
+                      <div className="text-[11px] text-muted-foreground bg-accent/5 border-l-2 border-accent/30 px-2 py-1 rounded">
+                        {med.note}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Add Button */}
+            <Button
+              className="w-full h-11 rounded-xl text-sm font-bold bg-accent/10 text-accent hover:bg-accent/20 border border-accent/20"
+              onClick={handleOpenAdd}
+            >
+              <Plus className="w-4 h-4 mr-2" /> เพิ่มยาของคุณ
+            </Button>
           </CardContent>
         </Card>
-
-        {/* Add Button */}
-        <Button className="w-full gap-2" size="lg" onClick={handleOpenAdd}>
-          <Plus className="w-5 h-5" />
-          เพิ่มรายการยา
-        </Button>
-
-        {/* Loading */}
-        {isLoading && (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin text-primary" />
-          </div>
-        )}
-
-        {/* Empty State */}
-        {!isLoading && (!medications || medications.length === 0) && (
-          <Card className="border-none shadow-sm bg-card">
-            <CardContent className="p-8 text-center">
-              <div className="w-16 h-16 mx-auto mb-4 bg-muted rounded-full flex items-center justify-center">
-                <Pill className="w-8 h-8 text-muted-foreground" />
-              </div>
-              <p className="font-bold text-foreground">ยังไม่มีรายการยา</p>
-              <p className="text-sm text-muted-foreground mt-1">กดปุ่มด้านบนเพื่อเพิ่มยา</p>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Medication List */}
-        {medications && medications.length > 0 && (
-          <div className="space-y-3">
-            {medications.map((med) => (
-              <Card key={med.id} className="border-none shadow-sm bg-card overflow-hidden">
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between mb-3">
-                    <div>
-                      <h3 className="font-bold text-foreground">{med.name}</h3>
-                      <p className="text-sm text-muted-foreground">{formatDosage(med)}</p>
-                    </div>
-                    <div className={cn(
-                      'p-1.5 rounded-full',
-                      med.reminder_enabled ? 'bg-green-100 dark:bg-green-950/30' : 'bg-muted'
-                    )}>
-                      {med.reminder_enabled ? (
-                        <Bell className="w-4 h-4 text-green-600 dark:text-green-400" />
-                      ) : (
-                        <BellOff className="w-4 h-4 text-muted-foreground" />
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
-                    <Calendar className="w-4 h-4" />
-                    <span>
-                      {med.frequency === 'daily'
-                        ? 'ทุกวัน'
-                        : med.frequency === 'as_needed'
-                          ? 'เมื่อจำเป็น'
-                          : med.days_of_week?.join(', ') || 'ตามแพทย์สั่ง'}
-                    </span>
-                  </div>
-
-                  {med.times && med.times.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mb-3">
-                      {med.times.map((time) => (
-                        <span
-                          key={time}
-                          className="px-2 py-1 bg-muted rounded-md text-xs font-medium text-muted-foreground"
-                        >
-                          {TIME_LABELS[time] || time}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-
-                  {med.instructions && (
-                    <p className="text-xs text-muted-foreground mb-3">
-                      <Clock className="w-3 h-3 inline mr-1" />
-                      {med.instructions}
-                    </p>
-                  )}
-
-                  {med.note && (
-                    <div className="p-2 bg-accent/10 border-l-2 border-accent rounded text-xs text-muted-foreground mb-3">
-                      {med.note}
-                    </div>
-                  )}
-
-                  <div className="flex gap-2">
-                    <Button
-                      variant="default"
-                      size="sm"
-                      className="flex-1 gap-1"
-                      onClick={() => handleOpenEdit(med)}
-                    >
-                      <Edit2 className="w-4 h-4" />
-                      แก้ไข
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      className="flex-1 gap-1"
-                      onClick={() => handleDelete(med.id)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                      ลบ
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
       </main>
 
       {/* Add/Edit Drawer */}
