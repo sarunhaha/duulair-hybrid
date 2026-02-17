@@ -149,16 +149,27 @@ serve(async (req) => {
         }
       }
 
-      // Check if already sent today (use Bangkok timezone for date comparison)
-      const todayBangkok = `${today}T00:00:00+07:00`
-      const tomorrowBangkok = `${today}T23:59:59+07:00`
+      // Check if already sent for THIS scheduled time today.
+      // Uses a ±30min window around the reminder's time so that if the user
+      // changes the reminder time (e.g. 21:00→23:10), the old log at 21:00
+      // won't block the new 23:10 trigger.
+      const [rH, rM] = reminder.time.split(':').map(Number)
+      const windowStart = new Date(bangkokTime)
+      windowStart.setHours(rH, rM - 30, 0, 0)
+      const windowEnd = new Date(bangkokTime)
+      windowEnd.setHours(rH, rM + 30, 0, 0)
+
+      // Convert window to UTC ISO for Supabase query
+      const offsetMs = bangkokTime.getTime() - now.getTime()
+      const windowStartUTC = new Date(windowStart.getTime() - offsetMs).toISOString()
+      const windowEndUTC = new Date(windowEnd.getTime() - offsetMs).toISOString()
 
       const { data: existingLog } = await supabase
         .from('reminder_logs')
         .select('id')
         .eq('reminder_id', reminder.id)
-        .gte('sent_at', todayBangkok)
-        .lte('sent_at', tomorrowBangkok)
+        .gte('sent_at', windowStartUTC)
+        .lte('sent_at', windowEndUTC)
         .limit(1)
 
       if (existingLog && existingLog.length > 0) {
@@ -734,7 +745,7 @@ function createMedicationFlexMessage(medication: Medication, timePeriod: string)
           contents: [
             colorDot('#FFFFFF', '10px'),
             { type: 'text', text: 'อุ่นใจ', size: 'xs', color: '#FFFFFF', margin: 'sm', weight: 'bold', flex: 0 },
-            { type: 'text', text: `แจ้งเตือนกินยา · ${periodLabel}`, size: 'xs', color: 'rgba(255,255,255,0.7)', margin: 'md' },
+            { type: 'text', text: `แจ้งเตือนกินยา · ${periodLabel}`, size: 'xs', color: '#FFFFFFB3', margin: 'md' },
           ],
           alignItems: 'center',
         },
@@ -823,7 +834,7 @@ function createReminderFlexMessage(reminder: Reminder): { contents: any, altText
           contents: [
             colorDot('#FFFFFF', '10px'),
             { type: 'text', text: 'อุ่นใจ', size: 'xs', color: '#FFFFFF', margin: 'sm', weight: 'bold', flex: 0 },
-            { type: 'text', text: `แจ้งเตือน${typeConf.label}`, size: 'xs', color: 'rgba(255,255,255,0.7)', margin: 'md' },
+            { type: 'text', text: `แจ้งเตือน${typeConf.label}`, size: 'xs', color: '#FFFFFFB3', margin: 'md' },
           ],
           alignItems: 'center',
         },
@@ -832,7 +843,7 @@ function createReminderFlexMessage(reminder: Reminder): { contents: any, altText
           layout: 'horizontal',
           contents: [
             { type: 'text', text: timeDisplay, size: '3xl', weight: 'bold', color: '#FFFFFF', flex: 0 },
-            { type: 'text', text: 'น.', size: 'sm', color: 'rgba(255,255,255,0.7)', margin: 'sm', gravity: 'bottom', offsetBottom: '4px' },
+            { type: 'text', text: 'น.', size: 'sm', color: '#FFFFFFB3', margin: 'sm', gravity: 'bottom', offsetBottom: '4px' },
           ],
           margin: 'md',
           alignItems: 'baseline',

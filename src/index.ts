@@ -276,6 +276,65 @@ async function findPatientByNameInGroup(groupId: string, patientName: string): P
   }
 }
 
+// ============================================
+// OONJAI DESIGN SYSTEM — Shared Theme Constants
+// Matches send-reminders & LIFF app theme
+// ============================================
+const OJ = {
+  primary: '#0FA968',
+  text: '#3B4C63',
+  textMuted: '#7B8DA0',
+  card: '#FFFFFF',
+  border: '#E2E8F0',
+  bg: '#F5F7FA',
+  danger: '#EF4444',
+};
+
+function ojDot(color: string, size = '10px') {
+  return {
+    type: 'box' as const,
+    layout: 'vertical' as const,
+    contents: [] as any[],
+    width: size,
+    height: size,
+    backgroundColor: color,
+    cornerRadius: '50px',
+    flex: 0,
+  };
+}
+
+function onjaiHeader(title: string, subtitle?: string) {
+  const brandingRow = {
+    type: 'box' as const,
+    layout: 'horizontal' as const,
+    contents: [
+      ojDot('#FFFFFF'),
+      { type: 'text' as const, text: 'อุ่นใจ', size: 'xs' as const, color: '#FFFFFF', margin: 'sm' as const, weight: 'bold' as const, flex: 0 },
+      ...(subtitle ? [{ type: 'text' as const, text: subtitle, size: 'xs' as const, color: '#FFFFFFB3', margin: 'md' as const }] : []),
+    ],
+    alignItems: 'center' as const,
+  };
+
+  return {
+    type: 'box' as const,
+    layout: 'vertical' as const,
+    contents: [
+      brandingRow,
+      {
+        type: 'text' as const,
+        text: title,
+        weight: 'bold' as const,
+        size: 'xl' as const,
+        color: '#FFFFFF',
+        margin: 'md' as const,
+      },
+    ],
+    backgroundColor: OJ.primary,
+    paddingAll: 'xl' as const,
+    paddingBottom: 'lg' as const,
+  };
+}
+
 // Create Flex Message for registration
 function createRegistrationFlexMessage(): FlexMessage {
   return {
@@ -283,23 +342,21 @@ function createRegistrationFlexMessage(): FlexMessage {
     altText: 'ลงทะเบียนใช้งาน OONJAI',
     contents: {
       type: 'bubble',
-      hero: {
-        type: 'image',
-        url: 'https://scdn.line-apps.com/n/channel_devcenter/img/fx/01_1_cafe.png',
-        size: 'full',
-        aspectRatio: '20:13',
-        aspectMode: 'cover'
-      },
+      header: onjaiHeader('ลงทะเบียนใช้งาน', 'ระบบดูแลสุขภาพผู้สูงอายุ'),
       body: {
         type: 'box',
         layout: 'vertical',
         contents: [
           {
             type: 'text',
-            text: 'ลงทะเบียนใช้งาน',
-            weight: 'bold',
-            size: 'xl',
-            color: '#4CAF50'
+            text: 'ยินดีต้อนรับสู่ OONJAI',
+            size: 'md',
+            color: OJ.text,
+            wrap: true
+          },
+          {
+            type: 'separator',
+            margin: 'lg'
           },
           {
             type: 'box',
@@ -309,57 +366,31 @@ function createRegistrationFlexMessage(): FlexMessage {
             contents: [
               {
                 type: 'text',
-                text: 'ยินดีต้อนรับสู่ OONJAI',
-                size: 'md',
-                color: '#555555',
+                text: 'เลือกบทบาทของคุณ:',
+                size: 'sm',
+                color: OJ.text,
+                weight: 'bold'
+              },
+              {
+                type: 'text',
+                text: '• สมาชิก - บันทึกข้อมูลสุขภาพตัวเอง',
+                size: 'xs',
+                color: OJ.textMuted,
+                margin: 'sm',
                 wrap: true
               },
               {
                 type: 'text',
-                text: 'ระบบดูแลสุขภาพผู้สูงอายุ',
-                size: 'sm',
-                color: '#999999',
-                margin: 'md',
+                text: '• ผู้ดูแล - ติดตามดูแลคนในครอบครัว',
+                size: 'xs',
+                color: OJ.textMuted,
+                margin: 'xs',
                 wrap: true
-              },
-              {
-                type: 'separator',
-                margin: 'lg'
-              },
-              {
-                type: 'box',
-                layout: 'vertical',
-                margin: 'lg',
-                spacing: 'sm',
-                contents: [
-                  {
-                    type: 'text',
-                    text: 'เลือกบทบาทของคุณ:',
-                    size: 'sm',
-                    color: '#555555',
-                    weight: 'bold'
-                  },
-                  {
-                    type: 'text',
-                    text: '• สมาชิก - บันทึกข้อมูลสุขภาพตัวเอง',
-                    size: 'xs',
-                    color: '#666666',
-                    margin: 'sm',
-                    wrap: true
-                  },
-                  {
-                    type: 'text',
-                    text: '• ผู้ดูแล - ติดตามดูแลคนในครอบครัว',
-                    size: 'xs',
-                    color: '#666666',
-                    margin: 'xs',
-                    wrap: true
-                  }
-                ]
               }
             ]
           }
-        ]
+        ],
+        paddingAll: 'xl'
       },
       footer: {
         type: 'box',
@@ -369,7 +400,7 @@ function createRegistrationFlexMessage(): FlexMessage {
           {
             type: 'button',
             style: 'primary',
-            color: '#4CAF50',
+            color: OJ.primary,
             action: {
               type: 'uri',
               label: 'เริ่มลงทะเบียน',
@@ -389,36 +420,24 @@ function createPackageFlexMessage(): FlexMessage {
     altText: 'แพ็กเกจบริการ OONJAI',
     contents: {
       type: 'bubble',
-      header: {
-        type: 'box',
-        layout: 'vertical',
-        contents: [
-          {
-            type: 'text',
-            text: 'แพ็กเกจบริการ',
-            weight: 'bold',
-            size: 'xl',
-            color: '#4CAF50'
-          }
-        ]
-      },
+      header: onjaiHeader('แพ็กเกจบริการ'),
       body: {
         type: 'box',
         layout: 'vertical',
         contents: [
           {
             type: 'text',
-            text: '✨ Free Plan (ฟรี)',
+            text: 'Free Plan (ฟรี)',
             weight: 'bold',
             size: 'lg',
-            color: '#4CAF50'
+            color: OJ.primary
           },
           {
             type: 'text',
             text: '• บันทึกข้อมูลสุขภาพ\n• รายงานประจำวัน\n• เชื่อมต่อผู้ดูแล 1 คน',
             wrap: true,
             size: 'sm',
-            color: '#666666',
+            color: OJ.textMuted,
             margin: 'md'
           },
           {
@@ -427,7 +446,7 @@ function createPackageFlexMessage(): FlexMessage {
           },
           {
             type: 'text',
-            text: '🌟 Premium Plan (เร็วๆ นี้)',
+            text: 'Premium Plan (เร็วๆ นี้)',
             weight: 'bold',
             size: 'lg',
             color: '#FF9800',
@@ -438,10 +457,11 @@ function createPackageFlexMessage(): FlexMessage {
             text: '• ทุกอย่างใน Free\n• แจ้งเตือนอัจฉริยะ\n• วิเคราะห์ข้อมูลขั้นสูง\n• เชื่อมต่อผู้ดูแลไม่จำกัด',
             wrap: true,
             size: 'sm',
-            color: '#666666',
+            color: OJ.textMuted,
             margin: 'md'
           }
-        ]
+        ],
+        paddingAll: 'xl'
       }
     }
   };
@@ -454,35 +474,24 @@ function createHelpFlexMessage(): FlexMessage {
     altText: 'ช่วยเหลือ - วิธีใช้งาน',
     contents: {
       type: 'bubble',
-      header: {
-        type: 'box',
-        layout: 'vertical',
-        contents: [
-          {
-            type: 'text',
-            text: 'วิธีใช้งาน OONJAI',
-            weight: 'bold',
-            size: 'xl',
-            color: '#4CAF50'
-          }
-        ]
-      },
+      header: onjaiHeader('วิธีใช้งาน', 'คู่มือการใช้งาน OONJAI'),
       body: {
         type: 'box',
         layout: 'vertical',
         contents: [
           {
             type: 'text',
-            text: '📝 การเริ่มต้น',
+            text: 'การเริ่มต้น',
             weight: 'bold',
-            size: 'md'
+            size: 'md',
+            color: OJ.text
           },
           {
             type: 'text',
             text: '1. ลงทะเบียน (สมาชิก/ผู้ดูแล)\n2. กรอกข้อมูลสุขภาพ\n3. เริ่มบันทึกข้อมูล',
             wrap: true,
             size: 'sm',
-            color: '#666666',
+            color: OJ.textMuted,
             margin: 'sm'
           },
           {
@@ -491,9 +500,10 @@ function createHelpFlexMessage(): FlexMessage {
           },
           {
             type: 'text',
-            text: '💊 การบันทึกข้อมูล',
+            text: 'การบันทึกข้อมูล',
             weight: 'bold',
             size: 'md',
+            color: OJ.text,
             margin: 'lg'
           },
           {
@@ -501,7 +511,7 @@ function createHelpFlexMessage(): FlexMessage {
             text: '• พิมพ์ "กินยาแล้ว"\n• พิมพ์ "วัดความดัน 120/80"\n• พิมพ์ "ดื่มน้ำ 500 ml"\n• พิมพ์ "เดินแล้ว 30 นาที"',
             wrap: true,
             size: 'sm',
-            color: '#666666',
+            color: OJ.textMuted,
             margin: 'sm'
           },
           {
@@ -510,9 +520,10 @@ function createHelpFlexMessage(): FlexMessage {
           },
           {
             type: 'text',
-            text: '🆘 กรณีฉุกเฉิน',
+            text: 'กรณีฉุกเฉิน',
             weight: 'bold',
             size: 'md',
+            color: OJ.text,
             margin: 'lg'
           },
           {
@@ -520,10 +531,11 @@ function createHelpFlexMessage(): FlexMessage {
             text: 'พิมพ์ "ฉุกเฉิน" ระบบจะแจ้งผู้ดูแลทันที',
             wrap: true,
             size: 'sm',
-            color: '#F44336',
+            color: OJ.danger,
             margin: 'sm'
           }
-        ]
+        ],
+        paddingAll: 'xl'
       },
       footer: {
         type: 'box',
@@ -537,7 +549,7 @@ function createHelpFlexMessage(): FlexMessage {
               text: 'ลงทะเบียน'
             },
             style: 'primary',
-            color: '#4CAF50'
+            color: OJ.primary
           }
         ]
       }
@@ -552,28 +564,7 @@ function createReportMenuFlexMessage(): FlexMessage {
     altText: '📊 ดูรายงานการดูแล',
     contents: {
       type: 'bubble',
-      header: {
-        type: 'box',
-        layout: 'vertical',
-        contents: [
-          {
-            type: 'text',
-            text: '📊 รายงานการดูแล',
-            weight: 'bold',
-            size: 'xl',
-            color: '#FFFFFF'
-          },
-          {
-            type: 'text',
-            text: 'สรุปกิจกรรมด้านสุขภาพ',
-            size: 'sm',
-            color: '#FFFFFF',
-            margin: 'sm'
-          }
-        ],
-        backgroundColor: '#7EE081',
-        paddingAll: 'lg'
-      },
+      header: onjaiHeader('รายงานการดูแล', 'สรุปกิจกรรมด้านสุขภาพ'),
       body: {
         type: 'box',
         layout: 'vertical',
@@ -584,7 +575,7 @@ function createReportMenuFlexMessage(): FlexMessage {
             text: 'เลือกช่วงเวลาที่ต้องการดูรายงาน',
             wrap: true,
             size: 'sm',
-            color: '#666666'
+            color: OJ.textMuted
           },
           {
             type: 'separator',
@@ -598,41 +589,41 @@ function createReportMenuFlexMessage(): FlexMessage {
             contents: [
               {
                 type: 'text',
-                text: '📊 รายงานจะประกอบด้วย:',
+                text: 'รายงานจะประกอบด้วย:',
                 size: 'sm',
                 weight: 'bold',
-                color: '#333333'
+                color: OJ.text
               },
               {
                 type: 'text',
-                text: '• 💊 การรับประทานยา',
+                text: '• การรับประทานยา',
                 size: 'sm',
-                color: '#666666',
+                color: OJ.textMuted,
                 margin: 'sm'
               },
               {
                 type: 'text',
-                text: '• ❤️ การตรวจวัดสัญญาณชีพ',
+                text: '• การตรวจวัดสัญญาณชีพ',
                 size: 'sm',
-                color: '#666666'
+                color: OJ.textMuted
               },
               {
                 type: 'text',
-                text: '• 💧 การดื่มน้ำ',
+                text: '• การดื่มน้ำ',
                 size: 'sm',
-                color: '#666666'
+                color: OJ.textMuted
               },
               {
                 type: 'text',
-                text: '• 🏃 การออกกำลังกาย',
+                text: '• การออกกำลังกาย',
                 size: 'sm',
-                color: '#666666'
+                color: OJ.textMuted
               },
               {
                 type: 'text',
-                text: '• 🍽️ การรับประทานอาหาร',
+                text: '• การรับประทานอาหาร',
                 size: 'sm',
-                color: '#666666'
+                color: OJ.textMuted
               }
             ]
           }
@@ -648,29 +639,29 @@ function createReportMenuFlexMessage(): FlexMessage {
             type: 'button',
             action: {
               type: 'message',
-              label: '📅 รายงานวันนี้',
+              label: 'รายงานวันนี้',
               text: 'รายงานวันนี้'
             },
             style: 'primary',
-            color: '#7EE081',
+            color: OJ.primary,
             height: 'sm'
           },
           {
             type: 'button',
             action: {
               type: 'message',
-              label: '📆 รายงานสัปดาห์นี้',
+              label: 'รายงานสัปดาห์นี้',
               text: 'รายงานสัปดาห์'
             },
             style: 'primary',
-            color: '#62A87C',
+            color: OJ.primary,
             height: 'sm'
           },
           {
             type: 'button',
             action: {
               type: 'message',
-              label: '🗓️ รายงานเดือนนี้',
+              label: 'รายงานเดือนนี้',
               text: 'รายงานเดือน'
             },
             style: 'secondary',
@@ -718,7 +709,7 @@ function createMedicationResponseFlexMessage(
       layout: 'horizontal' as const,
       contents: [
         { type: 'text' as const, text: '💊', flex: 0 },
-        { type: 'text' as const, text: medicationName, color: '#555555', margin: 'sm' as const, wrap: true }
+        { type: 'text' as const, text: medicationName, color: OJ.text, margin: 'sm' as const, wrap: true }
       ]
     });
   }
@@ -729,7 +720,7 @@ function createMedicationResponseFlexMessage(
       layout: 'horizontal' as const,
       contents: [
         { type: 'text' as const, text: '👤', flex: 0 },
-        { type: 'text' as const, text: patientName, color: '#555555', margin: 'sm' as const }
+        { type: 'text' as const, text: patientName, color: OJ.text, margin: 'sm' as const }
       ]
     });
   }
@@ -741,7 +732,7 @@ function createMedicationResponseFlexMessage(
         type: 'button' as const,
         action: { type: 'message' as const, label: '✅ กินยาแล้ว', text: 'กินยาแล้ว' },
         style: 'primary' as const,
-        color: '#9333EA',
+        color: OJ.primary,
         height: 'sm' as const
       }];
 
@@ -760,14 +751,29 @@ function createMedicationResponseFlexMessage(
       size: 'kilo',
       header: {
         type: 'box',
-        layout: 'horizontal',
+        layout: 'vertical',
         backgroundColor: c.color,
         paddingAll: 'lg',
         contents: [
-          { type: 'text', text: '💊', size: 'xl', flex: 0 },
-          { type: 'text', text: c.title, weight: 'bold', size: 'lg', color: '#FFFFFF', margin: 'sm' }
+          {
+            type: 'box',
+            layout: 'horizontal',
+            contents: [
+              ojDot('#FFFFFF'),
+              { type: 'text', text: 'อุ่นใจ', size: 'xs', color: '#FFFFFF', margin: 'sm', weight: 'bold', flex: 0 },
+              { type: 'text', text: c.statusText, size: 'xs', color: '#FFFFFFB3', margin: 'md' },
+            ],
+            alignItems: 'center',
+          },
+          {
+            type: 'text',
+            text: c.title,
+            weight: 'bold',
+            size: 'lg',
+            color: '#FFFFFF',
+            margin: 'md'
+          }
         ],
-        alignItems: 'center'
       },
       body: {
         type: 'box',
@@ -795,12 +801,13 @@ function createMedicationResponseFlexMessage(
             type: 'box',
             layout: 'horizontal',
             contents: [
-              { type: 'text', text: '🕐', flex: 0 },
-              { type: 'text', text: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Bangkok' }) + ' น.', color: '#888888', margin: 'sm', size: 'sm' }
-            ]
+              ojDot(OJ.textMuted, '8px'),
+              { type: 'text', text: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Bangkok' }) + ' น.', color: OJ.textMuted, margin: 'sm', size: 'sm' }
+            ],
+            alignItems: 'center'
           },
           // Response text from AI
-          { type: 'text', text: responseText, wrap: true, color: '#333333', margin: 'lg', size: 'sm' }
+          { type: 'text', text: responseText, wrap: true, color: OJ.text, margin: 'lg', size: 'sm' }
         ]
       },
       footer: {
@@ -822,29 +829,7 @@ function createHealthLogMenuFlexMessage(): FlexMessage {
     contents: {
       type: 'bubble',
       size: 'mega',
-      header: {
-        type: 'box',
-        layout: 'vertical',
-        backgroundColor: '#E74C3C',
-        paddingAll: 'xl',
-        contents: [
-          {
-            type: 'text',
-            text: '🩺 บันทึกสุขภาพวันนี้',
-            weight: 'bold',
-            size: 'xl',
-            color: '#ffffff'
-          },
-          {
-            type: 'text',
-            text: 'เลือกสิ่งที่ต้องการบันทึก หรือพิมพ์บอกได้เลย',
-            size: 'sm',
-            color: '#ffffff',
-            margin: 'sm',
-            wrap: true
-          }
-        ]
-      },
+      header: onjaiHeader('บันทึกสุขภาพวันนี้', 'เลือกสิ่งที่ต้องการบันทึก'),
       body: {
         type: 'box',
         layout: 'vertical',
@@ -1124,9 +1109,9 @@ function createHealthLogMenuFlexMessage(): FlexMessage {
         contents: [
           {
             type: 'text',
-            text: '💡 หรือพิมพ์ตรงๆ ได้เลย เช่น "ความดัน 120/80"',
+            text: 'หรือพิมพ์ตรงๆ ได้เลย เช่น "ความดัน 120/80"',
             size: 'xs',
-            color: '#9CA3AF',
+            color: OJ.textMuted,
             align: 'center',
             wrap: true
           }
@@ -2785,29 +2770,16 @@ async function handleFollow(event: any) {
       altText: 'ยินดีต้อนรับสู่ OONJAI - กรุณาลงทะเบียน',
       contents: {
         type: 'bubble',
+        header: onjaiHeader('สวัสดีค่ะ!', 'ยินดีต้อนรับสู่ OONJAI'),
         body: {
           type: 'box',
           layout: 'vertical',
           contents: [
             {
               type: 'text',
-              text: '👋 สวัสดีค่ะ!',
-              weight: 'bold',
-              size: 'xl',
-              color: '#2E7D32'
-            },
-            {
-              type: 'text',
-              text: 'ยินดีต้อนรับสู่ OONJAI',
-              size: 'lg',
-              color: '#424242',
-              margin: 'md'
-            },
-            {
-              type: 'text',
               text: 'ระบบดูแลสุขภาพผู้สูงอายุ',
               size: 'sm',
-              color: '#757575',
+              color: OJ.textMuted,
               wrap: true
             },
             {
@@ -2822,22 +2794,23 @@ async function handleFollow(event: any) {
               contents: [
                 {
                   type: 'text',
-                  text: '📋 กรุณาลงทะเบียนก่อนใช้งาน',
-                  color: '#424242',
+                  text: 'กรุณาลงทะเบียนก่อนใช้งาน',
+                  color: OJ.text,
                   size: 'md',
                   weight: 'bold'
                 },
                 {
                   type: 'text',
                   text: 'กรอกข้อมูลเพียง 1 ครั้ง:\n• ข้อมูลผู้ดูแล (คุณ)\n• ข้อมูลสมาชิก (ผู้ที่คุณดูแล)',
-                  color: '#757575',
+                  color: OJ.textMuted,
                   size: 'sm',
                   wrap: true,
                   margin: 'md'
                 }
               ]
             }
-          ]
+          ],
+          paddingAll: 'xl'
         },
         footer: {
           type: 'box',
@@ -2848,10 +2821,10 @@ async function handleFollow(event: any) {
               type: 'button',
               style: 'primary',
               height: 'sm',
-              color: '#4CAF50',
+              color: OJ.primary,
               action: {
                 type: 'uri',
-                label: '📝 ลงทะเบียนเลย',
+                label: 'ลงทะเบียนเลย',
                 uri: registrationUrl
               }
             },
@@ -2862,8 +2835,8 @@ async function handleFollow(event: any) {
               contents: [
                 {
                   type: 'text',
-                  text: '⏱️ ใช้เวลาไม่ถึง 2 นาที',
-                  color: '#999999',
+                  text: 'ใช้เวลาไม่ถึง 2 นาที',
+                  color: OJ.textMuted,
                   size: 'xs',
                   flex: 0
                 }

@@ -360,35 +360,37 @@ export default function RemindersPage() {
       </header>
 
       <main className="max-w-md mx-auto px-4 py-6 space-y-4">
-        {/* Category Tabs — scrollable pills (no "ทั้งหมด") */}
-        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-          {CATEGORY_TABS.map((tab) => {
-            const isActive = activeCategory === tab.value;
-            const count = categoryCounts[tab.value];
-            return (
-              <button
-                key={tab.value}
-                onClick={() => setActiveCategory(tab.value)}
-                className={cn(
-                  'flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all border shrink-0',
-                  isActive
-                    ? 'bg-primary text-primary-foreground border-primary shadow-md shadow-primary/20'
-                    : 'bg-card text-muted-foreground border-border'
-                )}
-              >
-                <tab.icon className="w-3.5 h-3.5" />
-                {tab.label}
-                {count && count.total > 0 && (
-                  <span className={cn(
-                    'ml-0.5 text-[10px] font-bold rounded-full px-1.5 py-0.5 leading-none',
-                    isActive ? 'bg-white/20' : 'bg-muted'
-                  )}>
-                    {count.total}
-                  </span>
-                )}
-              </button>
-            );
-          })}
+        {/* Category Tabs — scrollable pills */}
+        <div className="overflow-x-auto scrollbar-hide -mx-4 px-4">
+          <div className="flex gap-2 w-max">
+            {CATEGORY_TABS.map((tab) => {
+              const isActive = activeCategory === tab.value;
+              const count = categoryCounts[tab.value];
+              return (
+                <button
+                  key={tab.value}
+                  onClick={() => setActiveCategory(tab.value)}
+                  className={cn(
+                    'shrink-0 py-2 px-4 text-xs font-semibold rounded-full transition-all flex items-center gap-1.5 whitespace-nowrap',
+                    isActive
+                      ? 'bg-primary/10 text-primary shadow-sm border border-primary/30'
+                      : 'bg-muted/50 text-muted-foreground'
+                  )}
+                >
+                  <tab.icon className="w-3.5 h-3.5" />
+                  {tab.label}
+                  {count && count.total > 0 && (
+                    <span className={cn(
+                      'text-[10px] font-bold rounded-full px-1 leading-none',
+                      isActive ? 'text-primary' : 'text-muted-foreground/60'
+                    )}>
+                      {count.total}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* Main Card */}

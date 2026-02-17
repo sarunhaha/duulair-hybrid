@@ -115,10 +115,11 @@ class SchedulerService {
           }
         }
 
-        // Check if already sent today (prevent duplicates)
-        const alreadySent = await this.checkIfAlreadySentToday(reminder.id, today);
+        // Check if already sent for this time window (±30min around reminder time).
+        // This allows re-sending if user changes the reminder time after it was sent.
+        const alreadySent = await this.checkIfAlreadySentForTime(reminder.id, reminder.time, today);
         if (alreadySent) {
-          console.log(`⏭️ Reminder ${reminder.id} already sent today, skipping`);
+          console.log(`⏭️ Reminder ${reminder.id} already sent for time ${reminder.time}, skipping`);
           continue;
         }
 
@@ -131,20 +132,28 @@ class SchedulerService {
   }
 
   /**
-   * Check if reminder was already sent today
+   * Check if reminder was already sent within ±30min of its scheduled time today.
+   * This prevents duplicates while allowing re-sends when the user changes the time.
    */
-  private async checkIfAlreadySentToday(reminderId: string, today: string): Promise<boolean> {
+  private async checkIfAlreadySentForTime(reminderId: string, reminderTime: string, today: string): Promise<boolean> {
     try {
+      const [h, m] = reminderTime.split(':').map(Number);
+
+      // Build ±30min window in Bangkok time then format as ISO for query
+      const windowStart = new Date(`${today}T00:00:00+07:00`);
+      windowStart.setHours(h, m - 30, 0, 0);
+      const windowEnd = new Date(`${today}T00:00:00+07:00`);
+      windowEnd.setHours(h, m + 30, 0, 0);
+
       const { data, error } = await supabase
         .from('reminder_logs')
         .select('id')
         .eq('reminder_id', reminderId)
-        .gte('sent_at', `${today}T00:00:00`)
-        .lte('sent_at', `${today}T23:59:59`)
+        .gte('sent_at', windowStart.toISOString())
+        .lte('sent_at', windowEnd.toISOString())
         .limit(1);
 
       if (error) {
-        // If table doesn't exist, allow sending
         return false;
       }
 
@@ -267,11 +276,16 @@ class SchedulerService {
     const patientId = patient?.id || '';
     const showPatientName = options.includePatientName;
 
+    // OONJAI theme constants
+    const OJ_PRIMARY = '#0FA968';
+    const OJ_TEXT = '#3B4C63';
+    const OJ_TEXT_MUTED = '#7B8DA0';
+
     const typeConfig: Record<string, { emoji: string; name: string; color: string; confirmText: string; declineText: string }> = {
       medication: {
         emoji: '💊',
         name: 'กินยา',
-        color: '#9333EA',
+        color: '#A855F7',
         confirmText: 'กินยาแล้ว',
         declineText: 'ยังไม่ได้กินยา'
       },
@@ -308,7 +322,7 @@ class SchedulerService {
     const config = typeConfig[reminder.type] || {
       emoji: '🔔',
       name: reminder.type,
-      color: '#1E7B9C',
+      color: OJ_PRIMARY,
       confirmText: 'ทำแล้ว',
       declineText: 'ยังไม่ได้ทำ'
     };
@@ -336,25 +350,33 @@ class SchedulerService {
             layout: 'horizontal',
             contents: [
               {
-                type: 'text',
-                text: config.emoji,
-                size: 'xl',
+                type: 'box',
+                layout: 'vertical',
+                contents: [],
+                width: '10px',
+                height: '10px',
+                backgroundColor: '#FFFFFF',
+                cornerRadius: '50px',
                 flex: 0
               },
-              {
-                type: 'text',
-                text: `แจ้งเตือน${config.name}`,
-                weight: 'bold',
-                size: 'lg',
-                color: '#FFFFFF',
-                margin: 'sm'
-              }
+              { type: 'text', text: 'อุ่นใจ', size: 'xs', color: '#FFFFFF', margin: 'sm', weight: 'bold', flex: 0 },
+              { type: 'text', text: `แจ้งเตือน${config.name}`, size: 'xs', color: '#FFFFFFB3', margin: 'md' },
             ],
             alignItems: 'center'
+          },
+          {
+            type: 'text',
+            text: medicationName,
+            weight: 'bold',
+            size: 'xl',
+            color: '#FFFFFF',
+            margin: 'md',
+            wrap: true
           }
         ],
         backgroundColor: config.color,
-        paddingAll: 'lg'
+        paddingAll: 'xl',
+        paddingBottom: 'lg'
       },
       body: {
         type: 'box',
@@ -366,77 +388,80 @@ class SchedulerService {
             layout: 'horizontal',
             contents: [
               {
-                type: 'text',
-                text: '👤',
+                type: 'box',
+                layout: 'vertical',
+                contents: [],
+                width: '12px',
+                height: '12px',
+                backgroundColor: config.color,
+                cornerRadius: '50px',
                 flex: 0
               },
-              {
-                type: 'text',
-                text: `คุณ${patientName}`,
-                color: '#555555',
-                margin: 'sm',
-                weight: 'bold'
-              }
-            ]
+              { type: 'text', text: 'สมาชิก', size: 'xs', color: OJ_TEXT_MUTED, flex: 0, margin: 'md' },
+              { type: 'text', text: patientName, size: 'sm', color: OJ_TEXT, weight: 'bold', margin: 'md', wrap: true }
+            ],
+            alignItems: 'center'
           }] : []),
           {
             type: 'box',
             layout: 'horizontal',
             contents: [
               {
-                type: 'text',
-                text: '🕐',
+                type: 'box',
+                layout: 'vertical',
+                contents: [],
+                width: '12px',
+                height: '12px',
+                backgroundColor: OJ_TEXT_MUTED,
+                cornerRadius: '50px',
                 flex: 0
               },
-              {
-                type: 'text',
-                text: `เวลา: ${timeDisplay} น.`,
-                color: '#555555',
-                margin: 'sm'
-              }
+              { type: 'text', text: 'เวลา', size: 'xs', color: OJ_TEXT_MUTED, flex: 0, margin: 'md' },
+              { type: 'text', text: `${timeDisplay} น.`, size: 'sm', color: OJ_TEXT, margin: 'md' }
             ],
-            margin: showPatientName ? 'md' : 'none'
+            alignItems: 'center',
+            margin: showPatientName ? 'lg' : 'none'
           },
-          // Show medication name (from linked medication or title)
-          ...((linkedMedication || reminder.title) ? [{
+          // Show dosage info
+          ...((dosageInfo) ? [{
             type: 'box',
             layout: 'horizontal',
             contents: [
               {
-                type: 'text',
-                text: '📝',
+                type: 'box',
+                layout: 'vertical',
+                contents: [],
+                width: '12px',
+                height: '12px',
+                backgroundColor: OJ_TEXT_MUTED,
+                cornerRadius: '50px',
                 flex: 0
               },
-              {
-                type: 'text',
-                text: medicationName + (dosageInfo ? ` (${dosageInfo})` : ''),
-                color: '#555555',
-                margin: 'sm',
-                wrap: true,
-                weight: 'bold'
-              }
+              { type: 'text', text: 'ขนาด', size: 'xs', color: OJ_TEXT_MUTED, flex: 0, margin: 'md' },
+              { type: 'text', text: dosageInfo, size: 'sm', color: OJ_TEXT, margin: 'md', wrap: true }
             ],
-            margin: 'md'
+            alignItems: 'center',
+            margin: 'lg'
           }] : []),
           ...(reminder.note ? [{
             type: 'box',
             layout: 'horizontal',
             contents: [
               {
-                type: 'text',
-                text: '💬',
+                type: 'box',
+                layout: 'vertical',
+                contents: [],
+                width: '12px',
+                height: '12px',
+                backgroundColor: OJ_TEXT_MUTED,
+                cornerRadius: '50px',
                 flex: 0
               },
-              {
-                type: 'text',
-                text: reminder.note,
-                color: '#888888',
-                margin: 'sm',
-                wrap: true,
-                size: 'sm'
-              }
+              { type: 'text', text: 'หมายเหตุ', size: 'xs', color: OJ_TEXT_MUTED, flex: 0, margin: 'md' },
+              { type: 'text', text: reminder.note, size: 'sm', color: OJ_TEXT, margin: 'md', wrap: true }
             ],
-            margin: 'md'
+            alignItems: 'center',
+            margin: 'lg'
           }] : [])
         ],
         paddingAll: 'lg'
@@ -449,12 +474,12 @@ class SchedulerService {
             type: 'button',
             action: {
               type: 'postback',
-              label: `✅ ${config.name}แล้ว`,
+              label: `${config.name}แล้ว ✓`,
               data: confirmPostbackData,
               displayText: `${config.confirmText} (${medicationName})`
             },
             style: 'primary',
-            color: config.color,
+            color: OJ_PRIMARY,
             height: 'sm'
           },
           {

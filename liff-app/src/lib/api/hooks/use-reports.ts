@@ -140,6 +140,7 @@ export interface ChartDataPoint {
   waterMl?: number;
   sleepHours?: number;
   glucose?: number;
+  glucoseReadings?: { glucose: number; mealContext: string | null; time: string }[];
 }
 
 export interface ReportData {
@@ -682,6 +683,19 @@ function getMockReportData(startDate: Date, endDate: Date): ReportData {
       medsPercent,
       waterMl: Math.random() > 0.15 ? waterMl : undefined,
       glucose: Math.random() > 0.3 ? 85 + Math.floor(Math.random() * 55) : undefined,
+      glucoseReadings: Math.random() > 0.3
+        ? Array.from({ length: 1 + Math.floor(Math.random() * 2) }, () => {
+            const contexts = ['fasting', 'post_meal_1h', 'post_meal_2h', 'before_bed'];
+            const ctx = contexts[Math.floor(Math.random() * contexts.length)];
+            const h = 6 + Math.floor(Math.random() * 14);
+            const m = Math.floor(Math.random() * 60);
+            return {
+              glucose: 85 + Math.floor(Math.random() * 55),
+              mealContext: ctx,
+              time: `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`,
+            };
+          })
+        : undefined,
     };
   });
 

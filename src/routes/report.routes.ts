@@ -250,10 +250,22 @@ function buildChartData(startDate: Date, endDate: Date, vitals: any[], meds: any
     const daySleep = sleep.find(s => s.sleep_date === dateStr);
     const sleepHours = daySleep?.sleep_hours || undefined;
 
-    // Get glucose for this day
+    // Get glucose for this day — include individual readings for scatter chart
     const dayGlucose = vitals.filter(v => v.measured_at?.startsWith(dateStr) && v.glucose != null);
     const glucose = dayGlucose.length > 0
       ? Math.round(dayGlucose.reduce((sum, v) => sum + v.glucose, 0) / dayGlucose.length)
+      : undefined;
+    const glucoseReadings = dayGlucose.length > 0
+      ? dayGlucose.map(v => {
+          const d = new Date(v.measured_at);
+          const hh = String(d.getHours()).padStart(2, '0');
+          const mm = String(d.getMinutes()).padStart(2, '0');
+          return {
+            glucose: v.glucose as number,
+            mealContext: (v.meal_context as string) || null,
+            time: `${hh}:${mm}`,
+          };
+        })
       : undefined;
 
     days.push({
@@ -266,6 +278,7 @@ function buildChartData(startDate: Date, endDate: Date, vitals: any[], meds: any
       waterMl,
       sleepHours,
       glucose,
+      glucoseReadings,
     });
 
     currentDate.setDate(currentDate.getDate() + 1);

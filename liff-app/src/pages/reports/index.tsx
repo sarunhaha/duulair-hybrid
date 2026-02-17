@@ -39,6 +39,9 @@ import {
   Line,
   BarChart,
   Bar,
+  ScatterChart,
+  Scatter,
+  ZAxis,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -582,7 +585,7 @@ export default function ReportsPage() {
                   </div>
                 </div>
 
-                {/* Glucose Chart */}
+                {/* Glucose ScatterChart (same style as trends page) */}
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
                     <p className="text-xs font-bold flex items-center gap-1.5">
@@ -592,30 +595,145 @@ export default function ReportsPage() {
                       เฉลี่ย {summary?.glucose ? `${summary.glucose.avgGlucose} mg/dL` : 'ไม่มีข้อมูล'}
                     </p>
                   </div>
-                  <div className="h-[120px] w-full">
-                    {chartDataSliced.some(d => d.glucose !== undefined) ? (
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={chartDataSliced} onClick={handleChartClick}>
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" strokeOpacity={0.5} />
-                          <XAxis dataKey="day" tick={{ fontSize: 9 }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
-                          <YAxis tick={{ fontSize: 9 }} tickLine={false} axisLine={false} width={30} domain={[0, 'auto']} />
-                          <ReferenceLine y={100} stroke="#f59e0b" strokeDasharray="6 3" strokeOpacity={0.3} label={{ value: 'เสี่ยง 100', position: 'insideTopLeft', fontSize: 8, fill: '#f59e0b' }} />
-                          <ReferenceLine y={126} stroke="#ef4444" strokeDasharray="6 3" strokeOpacity={0.3} label={{ value: 'สูง 126', position: 'insideTopLeft', fontSize: 8, fill: '#ef4444' }} />
-                          <Bar dataKey="glucose" radius={[4, 4, 0, 0]} name="ระดับน้ำตาล (mg/dL)">
-                            {chartDataSliced.map((entry, index) => (
-                              <Cell
-                                key={`cell-glucose-${index}`}
-                                fill={
-                                  (entry.glucose || 0) >= 126 ? '#ef4444'
-                                    : (entry.glucose || 0) >= 100 ? '#f59e0b'
-                                    : '#ec4899'
-                                }
+                  {/* Meal context legend */}
+                  <div className="flex flex-wrap gap-2 text-[9px] font-bold uppercase tracking-wider">
+                    <div className="flex items-center gap-1">
+                      <div className="w-2 h-2 rounded-full bg-[#6366f1]" />
+                      <span className="text-muted-foreground">ตื่นนอน</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="w-2 h-2 rounded-full bg-[#f97316]" />
+                      <span className="text-muted-foreground">หลังอาหาร 1 ชม.</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="w-2 h-2 rounded-full bg-[#f59e0b]" />
+                      <span className="text-muted-foreground">หลังอาหาร 2 ชม.</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="w-2 h-2 rounded-full bg-[#8b5cf6]" />
+                      <span className="text-muted-foreground">ก่อนนอน</span>
+                    </div>
+                  </div>
+                  <div className="h-[160px] w-full">
+                    {chartDataSliced.some(d => d.glucose !== undefined || (d.glucoseReadings && d.glucoseReadings.length > 0)) ? (
+                      (() => {
+                        const mealColorMap: Record<string, string> = {
+                          fasting: '#6366f1',
+                          post_meal_1h: '#f97316',
+                          post_meal_2h: '#f59e0b',
+                          before_bed: '#8b5cf6',
+                        };
+                        const mealLabelMap: Record<string, string> = {
+                          fasting: 'ตื่นนอน',
+                          post_meal_1h: 'หลังอาหาร 1 ชม.',
+                          post_meal_2h: 'หลังอาหาร 2 ชม.',
+                          before_bed: 'ก่อนนอน',
+                        };
+
+                        // Flatten glucose readings into scatter points
+                        const scatterPoints: { dayIndex: number; glucose: number; mealContext: string; time: string; day: string; date: string }[] = [];
+                        chartDataSliced.forEach((d, i) => {
+                          if (d.glucoseReadings && d.glucoseReadings.length > 0) {
+                            d.glucoseReadings.forEach((r, ri) => {
+                              const offset = d.glucoseReadings!.length > 1
+                                ? (ri - (d.glucoseReadings!.length - 1) / 2) * 0.15
+                                : 0;
+                              scatterPoints.push({
+                                dayIndex: i + offset,
+                                glucose: r.glucose,
+                                mealContext: r.mealContext || 'fasting',
+                                time: r.time,
+                                day: d.day,
+                                date: d.date,
+                              });
+                            });
+                          } else if (d.glucose !== undefined) {
+                            // Fallback: single point from average
+                            scatterPoints.push({
+                              dayIndex: i,
+                              glucose: d.glucose,
+                              mealContext: 'fasting',
+                              time: '',
+                              day: d.day,
+                              date: d.date,
+                            });
+                          }
+                        });
+
+                        // Group by meal context
+                        const groups: Record<string, typeof scatterPoints> = {};
+                        scatterPoints.forEach(p => {
+                          if (!groups[p.mealContext]) groups[p.mealContext] = [];
+                          groups[p.mealContext].push(p);
+                        });
+
+                        const dayLabels = chartDataSliced.map(d => d.day);
+
+                        return (
+                          <ResponsiveContainer width="100%" height="100%">
+                            <ScatterChart margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" strokeOpacity={0.5} />
+                              <XAxis
+                                type="number"
+                                dataKey="dayIndex"
+                                domain={[-0.5, chartDataSliced.length - 0.5]}
+                                ticks={chartDataSliced.map((_, i) => i)}
+                                tickFormatter={(val: number) => dayLabels[Math.round(val)] || ''}
+                                axisLine={false}
+                                tickLine={false}
+                                tick={{ fontSize: 8 }}
+                                interval="preserveStartEnd"
                               />
-                            ))}
-                          </Bar>
-                          <Tooltip contentStyle={{ borderRadius: '12px', fontSize: '12px', border: '1px solid hsl(var(--border))' }} />
-                        </BarChart>
-                      </ResponsiveContainer>
+                              <YAxis
+                                type="number"
+                                dataKey="glucose"
+                                axisLine={false}
+                                tickLine={false}
+                                tick={{ fontSize: 9 }}
+                                width={30}
+                                domain={[50, 250]}
+                              />
+                              <ZAxis range={[60, 60]} />
+                              <ReferenceLine y={100} stroke="#f59e0b" strokeDasharray="6 3" strokeOpacity={0.4} label={{ value: 'เสี่ยง 100', position: 'insideTopLeft', fontSize: 8, fill: '#f59e0b' }} />
+                              <ReferenceLine y={126} stroke="#ef4444" strokeDasharray="6 3" strokeOpacity={0.4} label={{ value: 'สูง 126', position: 'insideTopLeft', fontSize: 8, fill: '#ef4444' }} />
+                              <Tooltip
+                                content={({ payload }) => {
+                                  if (!payload || !payload[0]) return null;
+                                  const p = payload[0].payload;
+                                  return (
+                                    <div className="bg-card border border-border rounded-xl px-3 py-2 shadow-md text-xs space-y-0.5">
+                                      <p className="font-bold">{p.day} ({p.date})</p>
+                                      <p className="font-bold text-base" style={{ color: mealColorMap[p.mealContext] || '#ec4899' }}>
+                                        {p.glucose} mg/dL
+                                      </p>
+                                      <p className="text-muted-foreground">
+                                        {mealLabelMap[p.mealContext] || p.mealContext}{p.time ? ` · ${p.time}` : ''}
+                                      </p>
+                                    </div>
+                                  );
+                                }}
+                              />
+                              {Object.entries(groups).map(([ctx, points]) => (
+                                <Scatter
+                                  key={ctx}
+                                  name={mealLabelMap[ctx] || ctx}
+                                  data={points}
+                                  fill={mealColorMap[ctx] || '#ec4899'}
+                                  stroke="white"
+                                  strokeWidth={1.5}
+                                  onClick={(data: any) => {
+                                    if (data && data.date) {
+                                      const dayData = chartDataSliced.find(d => d.date === data.date);
+                                      if (dayData) setSelectedChartPoint(dayData);
+                                    }
+                                  }}
+                                  cursor="pointer"
+                                />
+                              ))}
+                            </ScatterChart>
+                          </ResponsiveContainer>
+                        );
+                      })()
                     ) : (
                       <div className="h-full flex items-center justify-center text-xs text-muted-foreground">
                         ไม่มีข้อมูล
@@ -692,18 +810,41 @@ export default function ReportsPage() {
                           </p>
                         </div>
                       )}
-                      {selectedChartPoint.glucose !== undefined && (
-                        <div className="space-y-1">
+                      {(selectedChartPoint.glucose !== undefined || (selectedChartPoint.glucoseReadings && selectedChartPoint.glucoseReadings.length > 0)) && (
+                        <div className="space-y-1 col-span-2">
                           <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
                             <Droplet className="w-3 h-3 text-pink-500" /> ระดับน้ำตาล
                           </p>
-                          <p className={cn(
-                            'text-sm font-bold',
-                            (selectedChartPoint.glucose || 0) >= 126 ? 'text-red-500' : (selectedChartPoint.glucose || 0) >= 100 ? 'text-amber-500' : 'text-pink-500'
-                          )}>
-                            {selectedChartPoint.glucose}
-                            <span className="text-[10px] text-muted-foreground font-normal ml-1">mg/dL</span>
-                          </p>
+                          {selectedChartPoint.glucoseReadings && selectedChartPoint.glucoseReadings.length > 0 ? (
+                            <div className="space-y-1">
+                              <p className="text-[10px] text-muted-foreground">
+                                วัด {selectedChartPoint.glucoseReadings.length} ครั้ง · เฉลี่ย {selectedChartPoint.glucose} mg/dL
+                              </p>
+                              {selectedChartPoint.glucoseReadings.map((r, ri) => {
+                                const mealLabel: Record<string, string> = { fasting: 'ตื่นนอน', post_meal_1h: 'หลังอาหาร 1 ชม.', post_meal_2h: 'หลังอาหาร 2 ชม.', before_bed: 'ก่อนนอน' };
+                                const mealColor: Record<string, string> = { fasting: '#6366f1', post_meal_1h: '#f97316', post_meal_2h: '#f59e0b', before_bed: '#8b5cf6' };
+                                return (
+                                  <div key={ri} className="flex items-center gap-2">
+                                    <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: mealColor[r.mealContext || ''] || '#ec4899' }} />
+                                    <span className="text-sm font-bold" style={{ color: mealColor[r.mealContext || ''] || '#ec4899' }}>
+                                      {r.glucose}
+                                    </span>
+                                    <span className="text-[10px] text-muted-foreground">
+                                      {mealLabel[r.mealContext || ''] || r.mealContext} · {r.time}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            <p className={cn(
+                              'text-sm font-bold',
+                              (selectedChartPoint.glucose || 0) >= 126 ? 'text-red-500' : (selectedChartPoint.glucose || 0) >= 100 ? 'text-amber-500' : 'text-pink-500'
+                            )}>
+                              {selectedChartPoint.glucose}
+                              <span className="text-[10px] text-muted-foreground font-normal ml-1">mg/dL</span>
+                            </p>
+                          )}
                         </div>
                       )}
                     </div>

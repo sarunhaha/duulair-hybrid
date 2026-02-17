@@ -417,37 +417,52 @@ export class GroupWebhookService {
         altText: `เพิ่ม ${patientName} เข้ากลุ่ม?`,
         contents: {
           type: 'bubble',
+          header: {
+            type: 'box',
+            layout: 'vertical',
+            contents: [
+              {
+                type: 'box',
+                layout: 'horizontal',
+                contents: [
+                  { type: 'box', layout: 'vertical', contents: [], width: '10px', height: '10px', backgroundColor: '#FFFFFF', cornerRadius: '50px', flex: 0 },
+                  { type: 'text', text: 'อุ่นใจ', size: 'xs', color: '#FFFFFF', margin: 'sm', weight: 'bold', flex: 0 },
+                  { type: 'text', text: 'สมาชิกใหม่', size: 'xs', color: '#FFFFFFB3', margin: 'md' },
+                ],
+                alignItems: 'center'
+              },
+              {
+                type: 'text',
+                text: `${patientName}`,
+                weight: 'bold',
+                size: 'xl',
+                color: '#FFFFFF',
+                margin: 'md'
+              }
+            ],
+            backgroundColor: '#0FA968',
+            paddingAll: 'xl',
+            paddingBottom: 'lg'
+          },
           body: {
             type: 'box',
             layout: 'vertical',
             contents: [
               {
                 type: 'text',
-                text: '👋 สมาชิกใหม่!',
-                weight: 'bold',
-                size: 'xl'
-              },
-              {
-                type: 'text',
-                text: `พบว่ามีสมาชิกที่ดูแลอยู่`,
-                margin: 'md',
+                text: 'พบว่ามีสมาชิกที่ดูแลอยู่',
+                color: '#3B4C63',
                 wrap: true
-              },
-              {
-                type: 'text',
-                text: `"${patientName}"`,
-                weight: 'bold',
-                size: 'lg',
-                color: '#4CAF50',
-                margin: 'md'
               },
               {
                 type: 'text',
                 text: 'ต้องการเพิ่มเข้ากลุ่มนี้ไหมคะ?',
                 margin: 'md',
+                color: '#7B8DA0',
                 wrap: true
               }
-            ]
+            ],
+            paddingAll: 'xl'
           },
           footer: {
             type: 'box',
@@ -458,19 +473,20 @@ export class GroupWebhookService {
                 type: 'button',
                 action: {
                   type: 'postback',
-                  label: '✅ เพิ่ม',
+                  label: 'เพิ่ม ✓',
                   data: `action=add_patient&group_id=${internalGroupId}&patient_id=${patientId}`
                 },
                 style: 'primary',
-                color: '#4CAF50'
+                color: '#0FA968'
               },
               {
                 type: 'button',
                 action: {
                   type: 'postback',
-                  label: '❌ ไม่เพิ่ม',
+                  label: 'ไม่เพิ่ม',
                   data: 'action=skip_add_patient'
-                }
+                },
+                style: 'secondary'
               }
             ]
           }
