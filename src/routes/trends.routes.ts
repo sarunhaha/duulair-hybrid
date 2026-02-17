@@ -11,6 +11,13 @@ interface TrendDataPoint {
   systolic?: number | null;
   diastolic?: number | null;
   pulse?: number | null;
+  // Vitals AM/PM
+  sys_am?: number | null;
+  dia_am?: number | null;
+  pulse_am?: number | null;
+  sys_pm?: number | null;
+  dia_pm?: number | null;
+  pulse_pm?: number | null;
   // Sleep
   hours?: number | null;
   // Meds
@@ -159,24 +166,44 @@ router.get('/vitals/:patientId', async (req: Request, res: Response) => {
 
     if (error) throw error;
 
-    // Group by date (take latest reading per day)
-    const byDate: Record<string, { systolic: number; diastolic: number; pulse: number }> = {};
+    // Group by date with AM/PM split
+    interface VitalReading { systolic: number; diastolic: number; pulse: number }
+    const byDate: Record<string, {
+      latest: VitalReading;
+      am: VitalReading | null;
+      pm: VitalReading | null;
+    }> = {};
+
     (vitals || []).forEach((v) => {
+      if (!v.bp_systolic || !v.bp_diastolic) return;
       const dateKey = formatISODate(parseISODate(v.measured_at));
-      if (v.bp_systolic && v.bp_diastolic) {
-        byDate[dateKey] = {
-          systolic: v.bp_systolic,
-          diastolic: v.bp_diastolic,
-          pulse: v.heart_rate || 0,
-        };
+      const bangkokHour = new Date(new Date(v.measured_at).toLocaleString('en-US', { timeZone: 'Asia/Bangkok' })).getHours();
+      const isAM = bangkokHour < 12;
+
+      const reading: VitalReading = {
+        systolic: v.bp_systolic,
+        diastolic: v.bp_diastolic,
+        pulse: v.heart_rate || 0,
+      };
+
+      if (!byDate[dateKey]) {
+        byDate[dateKey] = { latest: reading, am: null, pm: null };
+      }
+      // Always update latest (data is ascending, so last = latest)
+      byDate[dateKey].latest = reading;
+      // Update AM or PM slot (latest per period)
+      if (isAM) {
+        byDate[dateKey].am = reading;
+      } else {
+        byDate[dateKey].pm = reading;
       }
     });
 
     // Build data array
     const data: TrendDataPoint[] = dates.map((date, i) => {
-      const reading = byDate[date];
-      const sys = reading?.systolic || null;
-      const dia = reading?.diastolic || null;
+      const entry = byDate[date];
+      const sys = entry?.latest.systolic || null;
+      const dia = entry?.latest.diastolic || null;
       const isHigh = sys !== null && dia !== null && (sys >= 140 || dia >= 90);
 
       return {
@@ -184,7 +211,13 @@ router.get('/vitals/:patientId', async (req: Request, res: Response) => {
         date,
         systolic: sys,
         diastolic: dia,
-        pulse: reading?.pulse || null,
+        pulse: entry?.latest.pulse || null,
+        sys_am: entry?.am?.systolic || null,
+        dia_am: entry?.am?.diastolic || null,
+        pulse_am: entry?.am?.pulse || null,
+        sys_pm: entry?.pm?.systolic || null,
+        dia_pm: entry?.pm?.diastolic || null,
+        pulse_pm: entry?.pm?.pulse || null,
         event: isHigh ? 'สูง' : undefined,
         note: isHigh ? 'ความดันสูงกว่าปกติ' : undefined,
       };

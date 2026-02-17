@@ -22,16 +22,19 @@ import {
   FileText,
   Loader2,
   Moon,
+  X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
   Drawer,
+  DrawerClose,
   DrawerContent,
   DrawerHeader,
   DrawerTitle,
   DrawerDescription,
 } from '@/components/ui/drawer';
+import { DateInput } from '@/components/ui/date-picker';
 import {
   LineChart,
   Line,
@@ -61,6 +64,13 @@ import { BottomNav } from '@/components/layout/bottom-nav';
 
 // Calculate dates for today reference
 const today = new Date();
+
+// Helper to get local date string
+const getLocalDateString = (daysAgo = 0) => {
+  const d = new Date();
+  d.setDate(d.getDate() - daysAgo);
+  return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}`;
+};
 
 const REPORT_HISTORY = [
   {
@@ -113,6 +123,12 @@ export default function ReportsPage() {
   const [onlySignificant, setOnlySignificant] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
 
+  // Custom date range state (same pattern as trends page)
+  const [customRange, setCustomRange] = useState({ startDate: getLocalDateString(90), endDate: getLocalDateString(0) });
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [tempStartDate, setTempStartDate] = useState(customRange.startDate);
+  const [tempEndDate, setTempEndDate] = useState(customRange.endDate);
+
   const { data: profile } = usePatientProfile(patientId);
   const { data: medications } = usePatientMedicationsAll(patientId);
   const { data: reportData, isLoading: isReportLoading } = useReportData(patientId, mapRangeToDateRange(range));
@@ -136,6 +152,16 @@ export default function ReportsPage() {
 
   // Dynamic Date Range Text
   const { daysToSubtract, dateRangeText } = useMemo(() => {
+    if (range === 'custom') {
+      const start = new Date(customRange.startDate);
+      const end = new Date(customRange.endDate);
+      const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      return {
+        daysToSubtract: days,
+        dateRangeText: `${format(start, 'd MMM', { locale: th })} - ${format(end, 'd MMM yyyy', { locale: th })}`,
+      };
+    }
+
     let days = 30;
     if (range === '30d') days = 30;
     else if (range === '60d') days = 60;
@@ -147,7 +173,7 @@ export default function ReportsPage() {
       daysToSubtract: days,
       dateRangeText: `${format(startDate, 'd MMM', { locale: th })} - ${format(today, 'd MMM yyyy', { locale: th })}`,
     };
-  }, [range]);
+  }, [range, customRange]);
 
   // Get summary data from API or fallback
   const summary = reportData?.summary;
@@ -260,33 +286,62 @@ export default function ReportsPage() {
       </header>
 
       <main className="max-w-md mx-auto px-4 py-6 space-y-6 animate-in fade-in duration-500">
-        {/* Report Range Selection */}
-        <div className="space-y-3">
-          <div className="overflow-x-auto pb-2 -mx-4 px-4 no-scrollbar">
-            <div className="flex bg-muted/50 p-1 rounded-xl w-max">
-              {['30 วัน', '60 วัน', '90 วัน', '180 วัน', 'กำหนดเอง'].map((label, i) => {
-                const val = ['30d', '60d', '90d', '180d', 'custom'][i] as RangeKey;
-                const isActive = range === val;
-                return (
-                  <button
-                    key={val}
-                    onClick={() => setRange(val)}
-                    className={cn(
-                      'px-4 py-2 text-xs font-semibold rounded-lg transition-all whitespace-nowrap',
-                      isActive ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground'
-                    )}
-                  >
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+        {/* Report Range Selection (same style as trends page) */}
+        <div className="flex bg-muted/50 p-1 rounded-xl gap-1">
+          {(['30d', '60d', '90d', '180d', 'custom'] as const).map((val, i) => {
+            const labels = ['30 วัน', '60 วัน', '90 วัน', '180 วัน', 'กำหนดเอง'];
+            const isActive = range === val;
+            return (
+              <button
+                key={val}
+                onClick={() => {
+                  setRange(val);
+                  if (val === 'custom') {
+                    setTempStartDate(customRange.startDate);
+                    setTempEndDate(customRange.endDate);
+                    setShowDatePicker(true);
+                  }
+                }}
+                className={cn(
+                  'flex-1 py-2 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1',
+                  isActive
+                    ? 'bg-primary/10 text-primary shadow-sm border border-primary/30'
+                    : 'text-muted-foreground'
+                )}
+              >
+                {val === 'custom' && <Calendar className="w-3 h-3" />}
+                {labels[i]}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Show selected custom date range */}
+        {range === 'custom' && (
+          <button
+            onClick={() => {
+              setTempStartDate(customRange.startDate);
+              setTempEndDate(customRange.endDate);
+              setShowDatePicker(true);
+            }}
+            className="flex items-center justify-center gap-2 text-xs text-primary bg-primary/5 px-3 py-2 rounded-lg border border-primary/20"
+          >
+            <Calendar className="w-3.5 h-3.5" />
+            <span>
+              {new Date(customRange.startDate).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })}
+              {' - '}
+              {new Date(customRange.endDate).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })}
+            </span>
+          </button>
+        )}
+
+        {/* Date range text for non-custom */}
+        {range !== 'custom' && (
           <div className="flex items-center gap-2 text-muted-foreground pl-1">
             <Calendar className="w-3.5 h-3.5" />
             <p className="text-xs font-bold uppercase tracking-wider">{dateRangeText}</p>
           </div>
-        </div>
+        )}
 
         {/* Patient Header */}
         <div className="space-y-3">
@@ -753,6 +808,90 @@ export default function ReportsPage() {
           </Button>
         </div>
       </main>
+
+      {/* Custom Date Range Picker Drawer (same as trends page) */}
+      <Drawer open={showDatePicker} onOpenChange={setShowDatePicker}>
+        <DrawerContent className="max-h-[85vh]">
+          <DrawerHeader className="flex items-center justify-between px-6">
+            <DrawerTitle className="text-xl font-bold">เลือกช่วงวันที่</DrawerTitle>
+            <DrawerClose asChild>
+              <Button variant="ghost" size="icon" className="rounded-full h-10 w-10">
+                <X className="w-5 h-5" />
+              </Button>
+            </DrawerClose>
+          </DrawerHeader>
+
+          <div className="px-6 pb-8 space-y-6">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-muted-foreground">วันเริ่มต้น</label>
+                <DateInput
+                  value={tempStartDate}
+                  onChange={setTempStartDate}
+                  maxDate={tempEndDate}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-muted-foreground">วันสิ้นสุด</label>
+                <DateInput
+                  value={tempEndDate}
+                  onChange={setTempEndDate}
+                  minDate={tempStartDate}
+                  maxDate={getLocalDateString(0)}
+                />
+              </div>
+            </div>
+
+            {/* Quick select buttons */}
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground">เลือกด่วน</p>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { label: '30 วันที่แล้ว', days: 30 },
+                  { label: '60 วันที่แล้ว', days: 60 },
+                  { label: '90 วันที่แล้ว', days: 90 },
+                  { label: '180 วันที่แล้ว', days: 180 },
+                  { label: '1 ปี', days: 365 },
+                ].map((opt) => (
+                  <button
+                    key={opt.days}
+                    onClick={() => {
+                      setTempStartDate(getLocalDateString(opt.days - 1));
+                      setTempEndDate(getLocalDateString(0));
+                    }}
+                    className="px-3 py-1.5 text-xs font-medium rounded-full bg-muted hover:bg-muted/80 text-muted-foreground transition-colors"
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex gap-3 pt-4">
+              <Button
+                variant="ghost"
+                className="flex-1 h-12 rounded-xl"
+                onClick={() => setShowDatePicker(false)}
+              >
+                ยกเลิก
+              </Button>
+              <Button
+                className="flex-1 h-12 rounded-xl bg-primary text-primary-foreground"
+                onClick={() => {
+                  setCustomRange({
+                    startDate: tempStartDate,
+                    endDate: tempEndDate,
+                  });
+                  setShowDatePicker(false);
+                }}
+              >
+                ยืนยัน
+              </Button>
+            </div>
+          </div>
+        </DrawerContent>
+      </Drawer>
 
       {/* Report History Drawer */}
       <Drawer open={showHistory} onOpenChange={setShowHistory}>

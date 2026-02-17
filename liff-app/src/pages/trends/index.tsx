@@ -34,7 +34,7 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  ReferenceDot,
+  ReferenceLine,
   Cell,
 } from 'recharts';
 import { cn } from '@/lib/utils';
@@ -56,13 +56,13 @@ import {
 // Mock data for fallback (with required 'date' field for TrendDataPoint)
 const MOCK_VITALS_DATA: TrendData = {
   data: [
-    { day: 'จ', date: '2026-01-06', systolic: 122, diastolic: 80, pulse: 72 },
-    { day: 'อ', date: '2026-01-07', systolic: 125, diastolic: 82, pulse: 75, event: 'สูงนิดหน่อย' },
-    { day: 'พ', date: '2026-01-08', systolic: 118, diastolic: 78, pulse: 70 },
-    { day: 'พฤ', date: '2026-01-09', systolic: 120, diastolic: 79, pulse: 73 },
-    { day: 'ศ', date: '2026-01-10', systolic: 123, diastolic: 81, pulse: 74, note: 'ตื่นมาเหนื่อย' },
-    { day: 'ส', date: '2026-01-11', systolic: 119, diastolic: 77, pulse: 71 },
-    { day: 'อา', date: '2026-01-12', systolic: 121, diastolic: 80, pulse: 72 },
+    { day: 'จ', date: '2026-01-06', systolic: 122, diastolic: 80, pulse: 72, sys_am: 118, dia_am: 76, pulse_am: 68, sys_pm: 122, dia_pm: 80, pulse_pm: 72 },
+    { day: 'อ', date: '2026-01-07', systolic: 125, diastolic: 82, pulse: 75, sys_am: 120, dia_am: 78, pulse_am: 70, sys_pm: 125, dia_pm: 82, pulse_pm: 75, event: 'สูงนิดหน่อย' },
+    { day: 'พ', date: '2026-01-08', systolic: 118, diastolic: 78, pulse: 70, sys_am: 115, dia_am: 74, pulse_am: 66, sys_pm: 118, dia_pm: 78, pulse_pm: 70 },
+    { day: 'พฤ', date: '2026-01-09', systolic: 120, diastolic: 79, pulse: 73, sys_am: 117, dia_am: 75, pulse_am: 69, sys_pm: 120, dia_pm: 79, pulse_pm: 73 },
+    { day: 'ศ', date: '2026-01-10', systolic: 123, diastolic: 81, pulse: 74, sys_am: 119, dia_am: 77, pulse_am: 70, sys_pm: 123, dia_pm: 81, pulse_pm: 74, note: 'ตื่นมาเหนื่อย' },
+    { day: 'ส', date: '2026-01-11', systolic: 119, diastolic: 77, pulse: 71, sys_am: 116, dia_am: 73, pulse_am: 67, sys_pm: 119, dia_pm: 77, pulse_pm: 71 },
+    { day: 'อา', date: '2026-01-12', systolic: 121, diastolic: 80, pulse: 72, sys_am: 118, dia_am: 76, pulse_am: 68, sys_pm: 121, dia_pm: 80, pulse_pm: 72 },
   ],
   summary: {
     avg: '121/79',
@@ -314,88 +314,120 @@ export default function TrendsPage() {
 
             {/* Chart */}
             <Card className="border-none shadow-sm bg-card p-6 relative">
-              {/* Chart Legend for Heart */}
+              {/* Heart: 3 separate AM/PM charts */}
               {category === 'heart' && (
-                <div className="flex flex-wrap gap-4 mb-6 text-[10px] font-bold uppercase tracking-wider">
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-3 h-1 bg-[#0E8A9A] rounded" />
-                    <span className="text-muted-foreground">SYS</span>
+                <div className="space-y-6">
+                  {/* Morning BP Chart */}
+                  <div>
+                    <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                      <div className="w-2 h-2 rounded-full bg-[#EF4444]" />
+                      ความดันช่วงเช้า (AM)
+                    </h3>
+                    <div className="flex flex-wrap gap-3 mb-2 text-[10px] font-bold uppercase tracking-wider">
+                      <div className="flex items-center gap-1">
+                        <div className="w-3 h-1 bg-[#EF4444] rounded" />
+                        <span className="text-muted-foreground">SYS</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <div className="w-3 h-1 bg-[#3B82F6] rounded" />
+                        <span className="text-muted-foreground">DIA</span>
+                      </div>
+                    </div>
+                    <div className="h-[180px] w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart
+                          data={activeData.data}
+                          margin={{ top: 10, right: 10, left: -25, bottom: 0 }}
+                          onClick={handleChartClick}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--muted))" />
+                          <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} dy={10} />
+                          <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} domain={[50, 180]} />
+                          <Tooltip contentStyle={{ borderRadius: '12px', fontSize: '12px', border: '1px solid hsl(var(--border))' }} />
+                          <ReferenceLine y={135} stroke="#EF4444" strokeDasharray="6 4" strokeOpacity={0.4} />
+                          <Line type="monotone" dataKey="sys_am" name="SYS เช้า" stroke="#EF4444" strokeWidth={2.5} dot={{ r: 3, fill: 'white', strokeWidth: 2, stroke: '#EF4444' }} activeDot={{ r: 5, strokeWidth: 0, fill: '#EF4444' }} connectNulls />
+                          <Line type="monotone" dataKey="dia_am" name="DIA เช้า" stroke="#3B82F6" strokeWidth={2} dot={{ r: 3, fill: 'white', strokeWidth: 2, stroke: '#3B82F6' }} activeDot={{ r: 5, strokeWidth: 0, fill: '#3B82F6' }} connectNulls />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-3 h-1 border-t-2 border-dashed border-[#0E8A9A]" />
-                    <span className="text-muted-foreground">DIA</span>
+
+                  {/* Evening BP Chart */}
+                  <div>
+                    <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                      <div className="w-2 h-2 rounded-full bg-[#991B1B]" />
+                      ความดันช่วงเย็น (PM)
+                    </h3>
+                    <div className="flex flex-wrap gap-3 mb-2 text-[10px] font-bold uppercase tracking-wider">
+                      <div className="flex items-center gap-1">
+                        <div className="w-3 h-1 bg-[#991B1B] rounded" />
+                        <span className="text-muted-foreground">SYS</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <div className="w-3 h-1 bg-[#1E3A8A] rounded" />
+                        <span className="text-muted-foreground">DIA</span>
+                      </div>
+                    </div>
+                    <div className="h-[180px] w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart
+                          data={activeData.data}
+                          margin={{ top: 10, right: 10, left: -25, bottom: 0 }}
+                          onClick={handleChartClick}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--muted))" />
+                          <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} dy={10} />
+                          <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} domain={[50, 180]} />
+                          <Tooltip contentStyle={{ borderRadius: '12px', fontSize: '12px', border: '1px solid hsl(var(--border))' }} />
+                          <ReferenceLine y={135} stroke="#991B1B" strokeDasharray="6 4" strokeOpacity={0.4} />
+                          <Line type="monotone" dataKey="sys_pm" name="SYS เย็น" stroke="#991B1B" strokeWidth={2.5} dot={{ r: 3, fill: 'white', strokeWidth: 2, stroke: '#991B1B' }} activeDot={{ r: 5, strokeWidth: 0, fill: '#991B1B' }} connectNulls />
+                          <Line type="monotone" dataKey="dia_pm" name="DIA เย็น" stroke="#1E3A8A" strokeWidth={2} dot={{ r: 3, fill: 'white', strokeWidth: 2, stroke: '#1E3A8A' }} activeDot={{ r: 5, strokeWidth: 0, fill: '#1E3A8A' }} connectNulls />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-3 h-1 bg-[#F2994A] rounded" />
-                    <span className="text-muted-foreground">HR</span>
+
+                  {/* Heart Rate Chart */}
+                  <div>
+                    <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                      <div className="w-2 h-2 rounded-full bg-[#F59E0B]" />
+                      ชีพจร (Heart Rate)
+                    </h3>
+                    <div className="flex flex-wrap gap-3 mb-2 text-[10px] font-bold uppercase tracking-wider">
+                      <div className="flex items-center gap-1">
+                        <div className="w-3 h-1 border-t-2 border-dashed border-[#F59E0B]" />
+                        <span className="text-muted-foreground">เช้า</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <div className="w-3 h-1 bg-[#F97316] rounded" />
+                        <span className="text-muted-foreground">เย็น</span>
+                      </div>
+                    </div>
+                    <div className="h-[150px] w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart
+                          data={activeData.data}
+                          margin={{ top: 10, right: 10, left: -25, bottom: 0 }}
+                          onClick={handleChartClick}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--muted))" />
+                          <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} dy={10} />
+                          <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} domain={[40, 120]} />
+                          <Tooltip contentStyle={{ borderRadius: '12px', fontSize: '12px', border: '1px solid hsl(var(--border))' }} />
+                          <Line type="monotone" dataKey="pulse_am" name="HR เช้า" stroke="#F59E0B" strokeWidth={2} strokeDasharray="5 5" dot={{ r: 3, fill: 'white', strokeWidth: 2, stroke: '#F59E0B' }} activeDot={{ r: 5, strokeWidth: 0, fill: '#F59E0B' }} connectNulls />
+                          <Line type="monotone" dataKey="pulse_pm" name="HR เย็น" stroke="#F97316" strokeWidth={2.5} dot={{ r: 3, fill: 'white', strokeWidth: 2, stroke: '#F97316' }} activeDot={{ r: 5, strokeWidth: 0, fill: '#F97316' }} connectNulls />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
                   </div>
                 </div>
               )}
 
+              {/* Non-heart charts */}
+              {category !== 'heart' && (
               <div className="h-[240px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  {category === 'heart' ? (
-                    <LineChart
-                      data={activeData.data}
-                      margin={{ top: 10, right: 10, left: -25, bottom: 0 }}
-                      onClick={handleChartClick}
-                    >
-                      <CartesianGrid
-                        strokeDasharray="3 3"
-                        vertical={false}
-                        stroke="hsl(var(--muted))"
-                      />
-                      <XAxis
-                        dataKey="day"
-                        axisLine={false}
-                        tickLine={false}
-                        tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
-                        dy={10}
-                      />
-                      <YAxis
-                        axisLine={false}
-                        tickLine={false}
-                        tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
-                      />
-                      <Tooltip cursor={{ stroke: '#0E8A9A', strokeWidth: 1, strokeDasharray: '4 4' }} content={() => null} />
-                      <Line
-                        type="monotone"
-                        dataKey="systolic"
-                        stroke="#0E8A9A"
-                        strokeWidth={3}
-                        dot={{ r: 4, fill: 'white', strokeWidth: 2, stroke: '#0E8A9A' }}
-                        activeDot={{ r: 6, strokeWidth: 0, fill: '#0E8A9A' }}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="diastolic"
-                        stroke="rgba(14, 138, 154, 0.5)"
-                        strokeWidth={2}
-                        strokeDasharray="5 5"
-                        dot={{ r: 3, fill: 'white', strokeWidth: 2, stroke: 'rgba(14, 138, 154, 0.5)' }}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="pulse"
-                        stroke="#F2994A"
-                        strokeWidth={2}
-                        dot={{ r: 3, fill: 'white', strokeWidth: 2, stroke: '#F2994A' }}
-                      />
-                      {activeData.data.map((entry, index) =>
-                        entry.event ? (
-                          <ReferenceDot
-                            key={index}
-                            x={entry.day}
-                            y={entry.systolic as number}
-                            r={6}
-                            fill="hsl(var(--destructive) / 0.2)"
-                            stroke="hsl(var(--destructive))"
-                            strokeWidth={1}
-                          />
-                        ) : null
-                      )}
-                    </LineChart>
-                  ) : category === 'meds' ? (
+                  {category === 'meds' ? (
                     <BarChart
                       data={activeData.data}
                       margin={{ top: 10, right: 10, left: -25, bottom: 0 }}
@@ -419,7 +451,7 @@ export default function TrendsPage() {
                         tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
                         domain={[0, 100]}
                       />
-                      <Tooltip cursor={{ fill: 'transparent' }} content={() => null} />
+                      <Tooltip cursor={{ fill: 'rgba(0,0,0,0.05)' }} contentStyle={{ borderRadius: '12px', fontSize: '12px', border: '1px solid hsl(var(--border))' }} />
                       <Bar dataKey="percent" radius={[6, 6, 0, 0]}>
                         {activeData.data.map((entry, index) => (
                           <Cell
@@ -459,7 +491,7 @@ export default function TrendsPage() {
                         tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
                         domain={[0, 10]}
                       />
-                      <Tooltip cursor={{ fill: 'transparent' }} content={() => null} />
+                      <Tooltip cursor={{ fill: 'rgba(0,0,0,0.05)' }} contentStyle={{ borderRadius: '12px', fontSize: '12px', border: '1px solid hsl(var(--border))' }} />
                       <Bar dataKey="hours" radius={[6, 6, 0, 0]}>
                         {activeData.data.map((entry, index) => (
                           <Cell
@@ -493,7 +525,7 @@ export default function TrendsPage() {
                         tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
                         domain={[0, 60]}
                       />
-                      <Tooltip cursor={{ fill: 'transparent' }} content={() => null} />
+                      <Tooltip cursor={{ fill: 'rgba(0,0,0,0.05)' }} contentStyle={{ borderRadius: '12px', fontSize: '12px', border: '1px solid hsl(var(--border))' }} />
                       <Bar dataKey="duration" radius={[6, 6, 0, 0]}>
                         {activeData.data.map((entry, index) => (
                           <Cell
@@ -527,7 +559,7 @@ export default function TrendsPage() {
                         tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
                         domain={[0, 5]}
                       />
-                      <Tooltip cursor={{ fill: 'transparent' }} content={() => null} />
+                      <Tooltip cursor={{ fill: 'rgba(0,0,0,0.05)' }} contentStyle={{ borderRadius: '12px', fontSize: '12px', border: '1px solid hsl(var(--border))' }} />
                       <Bar dataKey="moodScore" radius={[6, 6, 0, 0]}>
                         {activeData.data.map((entry, index) => (
                           <Cell
@@ -570,7 +602,7 @@ export default function TrendsPage() {
                         tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
                         domain={[0, 12]}
                       />
-                      <Tooltip cursor={{ fill: 'transparent' }} content={() => null} />
+                      <Tooltip cursor={{ fill: 'rgba(0,0,0,0.05)' }} contentStyle={{ borderRadius: '12px', fontSize: '12px', border: '1px solid hsl(var(--border))' }} />
                       <Bar dataKey="glasses" radius={[6, 6, 0, 0]}>
                         {activeData.data.map((entry, index) => (
                           <Cell
@@ -589,6 +621,7 @@ export default function TrendsPage() {
                   )}
                 </ResponsiveContainer>
               </div>
+              )}
 
               <div className="mt-4 flex justify-center">
                 <p className="text-[10px] text-muted-foreground font-medium bg-muted/30 px-3 py-1 rounded-full flex items-center gap-1.5">
@@ -603,15 +636,35 @@ export default function TrendsPage() {
                     <div>
                       <p className="text-xs font-bold text-muted-foreground">{selectedPoint.day}</p>
                       {category === 'heart' && (
-                        <div className="flex items-baseline gap-2 mt-1">
-                          <p className="text-xl font-bold text-primary">
-                            {selectedPoint.systolic}/{selectedPoint.diastolic}{' '}
-                            <span className="text-xs font-normal text-muted-foreground">mmHg</span>
-                          </p>
-                          <p className="text-base font-bold text-orange-500">
-                            {selectedPoint.pulse}{' '}
-                            <span className="text-xs font-normal text-muted-foreground">bpm</span>
-                          </p>
+                        <div className="space-y-2 mt-1">
+                          {/* AM reading */}
+                          {(selectedPoint.sys_am || selectedPoint.pulse_am) && (
+                            <div className="flex items-baseline gap-2">
+                              <span className="text-[10px] font-bold text-muted-foreground w-8">เช้า</span>
+                              <p className="text-base font-bold text-[#EF4444]">
+                                {selectedPoint.sys_am}/{selectedPoint.dia_am}{' '}
+                                <span className="text-[10px] font-normal text-muted-foreground">mmHg</span>
+                              </p>
+                              <p className="text-sm font-bold text-[#F59E0B]">
+                                {selectedPoint.pulse_am}{' '}
+                                <span className="text-[10px] font-normal text-muted-foreground">bpm</span>
+                              </p>
+                            </div>
+                          )}
+                          {/* PM reading */}
+                          {(selectedPoint.sys_pm || selectedPoint.pulse_pm) && (
+                            <div className="flex items-baseline gap-2">
+                              <span className="text-[10px] font-bold text-muted-foreground w-8">เย็น</span>
+                              <p className="text-base font-bold text-[#991B1B]">
+                                {selectedPoint.sys_pm}/{selectedPoint.dia_pm}{' '}
+                                <span className="text-[10px] font-normal text-muted-foreground">mmHg</span>
+                              </p>
+                              <p className="text-sm font-bold text-[#F97316]">
+                                {selectedPoint.pulse_pm}{' '}
+                                <span className="text-[10px] font-normal text-muted-foreground">bpm</span>
+                              </p>
+                            </div>
+                          )}
                         </div>
                       )}
                       {category === 'meds' && (

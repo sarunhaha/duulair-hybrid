@@ -11,6 +11,13 @@ export interface TrendDataPoint {
   systolic?: number | null;
   diastolic?: number | null;
   pulse?: number | null;
+  // Vitals AM/PM
+  sys_am?: number | null;
+  dia_am?: number | null;
+  pulse_am?: number | null;
+  sys_pm?: number | null;
+  dia_pm?: number | null;
+  pulse_pm?: number | null;
   // Sleep
   hours?: number | null;
   // Meds
@@ -223,9 +230,16 @@ function getMockVitalsData(range: TimeRange, customRange?: CustomDateRange): Tre
   }
 
   const data: TrendDataPoint[] = labels.map((day, i) => {
-    const sys = 120 + Math.floor(Math.random() * 25);
-    const dia = 75 + Math.floor(Math.random() * 15);
-    const hr = 70 + Math.floor(Math.random() * 20);
+    const sys_am = 118 + Math.floor(Math.random() * 25);
+    const dia_am = 73 + Math.floor(Math.random() * 15);
+    const pulse_am = 68 + Math.floor(Math.random() * 18);
+    const sys_pm = 122 + Math.floor(Math.random() * 25);
+    const dia_pm = 76 + Math.floor(Math.random() * 15);
+    const pulse_pm = 72 + Math.floor(Math.random() * 20);
+    // Overall = latest (PM if available, else AM)
+    const sys = sys_pm;
+    const dia = dia_pm;
+    const hr = pulse_pm;
     const isHigh = sys >= 140 || dia >= 90;
 
     return {
@@ -234,6 +248,8 @@ function getMockVitalsData(range: TimeRange, customRange?: CustomDateRange): Tre
       systolic: sys,
       diastolic: dia,
       pulse: hr,
+      sys_am, dia_am, pulse_am,
+      sys_pm, dia_pm, pulse_pm,
       event: isHigh ? 'สูง' : undefined,
       note: isHigh && Math.random() > 0.5 ? 'ความดันสูงกว่าปกติ' : undefined,
     };

@@ -1082,11 +1082,12 @@ export function useHealthHistory(
         };
         (data.exercise || []).forEach(e => {
           const typeTh = exerciseLabels[e.exercise_type || ''] || e.exercise_type || 'ออกกำลังกาย';
+          const notesStr = e.notes ? ` - ${e.notes}` : '';
           items.push({
             id: e.id,
             type: 'exercise',
             title: 'ออกกำลังกาย',
-            detail: `${typeTh}${e.duration_minutes ? ` ${e.duration_minutes} นาที` : ''}`,
+            detail: `${typeTh}${e.duration_minutes ? ` ${e.duration_minutes} นาที` : ''}${notesStr}`,
             time: new Date(e.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.',
             date: e.created_at.split('T')[0] === today ? 'วันนี้' : formatDate(e.created_at),
             raw: e,

@@ -434,6 +434,9 @@ export function ExerciseForm({ onSuccess, onCancel, initialEditData }: ExerciseF
                         </span>
                       )}
                     </p>
+                    {exercise.notes && (
+                      <p className="text-xs text-muted-foreground truncate">{exercise.notes}</p>
+                    )}
                   </div>
                   {isDeleting ? (
                     <div className="flex items-center gap-1 shrink-0">
