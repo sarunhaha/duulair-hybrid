@@ -1,5 +1,5 @@
 import { useLocation } from 'wouter';
-import { LayoutDashboard, FileText, TrendingUp, Settings } from 'lucide-react';
+import { LayoutDashboard, FileText, TrendingUp, PieChart, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export function BottomNav() {
@@ -9,6 +9,7 @@ export function BottomNav() {
     { icon: LayoutDashboard, label: 'สุขภาพวันนี้', path: '/dashboard' },
     { icon: FileText, label: 'บันทึก', path: '/records' },
     { icon: TrendingUp, label: 'แนวโน้ม', path: '/trends' },
+    { icon: PieChart, label: 'รายงาน', path: '/reports' },
     { icon: Settings, label: 'ตั้งค่า', path: '/settings' },
   ];
 

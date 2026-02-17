@@ -41,16 +41,16 @@ export function TimeInput({ value, onChange, placeholder = 'เลือกเ�
         type="button"
         onClick={() => setOpen(true)}
         className={cn(
-          'w-full h-11 px-3 rounded-md border border-input bg-background text-left text-sm',
-          'flex items-center justify-between',
-          'hover:bg-accent hover:text-accent-foreground',
-          'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
+          'w-full h-11 px-3 rounded-xl border border-input bg-muted/20 text-left text-sm',
+          'flex items-center justify-between whitespace-nowrap',
+          'hover:bg-muted/40 transition-colors',
+          'focus:outline-none focus:ring-2 focus:ring-primary/30 focus:ring-offset-2',
           !value && 'text-muted-foreground',
           className
         )}
       >
-        <span>{displayValue}</span>
-        <Clock className="w-4 h-4 text-muted-foreground" />
+        <span className="truncate">{displayValue}</span>
+        <Clock className="w-4 h-4 text-primary/60 shrink-0 ml-1.5" />
       </button>
       <TimePicker
         value={value || '00:00'}
@@ -106,13 +106,13 @@ export function TimePicker({ value, onChange, open, onOpenChange }: TimePickerPr
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerContent className="max-h-[70vh]">
-        <DrawerHeader className="flex items-center justify-between px-4 border-b">
+        <DrawerHeader className="flex items-center justify-between px-4 border-b border-border">
           <DrawerClose asChild>
-            <Button variant="ghost" size="icon" className="rounded-full">
+            <Button variant="ghost" size="icon" className="rounded-full text-muted-foreground">
               <X className="w-5 h-5" />
             </Button>
           </DrawerClose>
-          <DrawerTitle className="flex items-center gap-2">
+          <DrawerTitle className="flex items-center gap-2 text-foreground">
             <Clock className="w-5 h-5 text-primary" />
             เลือกเวลา
           </DrawerTitle>
@@ -139,7 +139,7 @@ export function TimePicker({ value, onChange, open, onOpenChange }: TimePickerPr
           <div className="flex items-center justify-center gap-4">
             {/* Hour picker */}
             <div className="relative">
-              <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-12 bg-primary/10 rounded-xl pointer-events-none z-0" />
+              <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-12 bg-primary/10 rounded-2xl pointer-events-none z-0 border border-primary/10" />
               <div
                 ref={hourRef}
                 className="h-[192px] overflow-y-auto scrollbar-hide snap-y snap-mandatory relative z-10"
@@ -153,8 +153,8 @@ export function TimePicker({ value, onChange, open, onOpenChange }: TimePickerPr
                     className={cn(
                       'w-20 h-12 flex items-center justify-center text-2xl font-mono snap-center transition-all',
                       tempHour === h
-                        ? 'text-primary font-bold'
-                        : 'text-muted-foreground/50'
+                        ? 'text-primary font-bold scale-110'
+                        : 'text-muted-foreground/40'
                     )}
                   >
                     {h}
@@ -166,11 +166,11 @@ export function TimePicker({ value, onChange, open, onOpenChange }: TimePickerPr
             </div>
 
             {/* Separator */}
-            <span className="text-4xl font-bold text-muted-foreground/30 mb-6">:</span>
+            <span className="text-4xl font-bold text-primary/30 mb-6">:</span>
 
             {/* Minute picker */}
             <div className="relative">
-              <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-12 bg-primary/10 rounded-xl pointer-events-none z-0" />
+              <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-12 bg-primary/10 rounded-2xl pointer-events-none z-0 border border-primary/10" />
               <div
                 ref={minuteRef}
                 className="h-[192px] overflow-y-auto scrollbar-hide snap-y snap-mandatory relative z-10"
@@ -184,8 +184,8 @@ export function TimePicker({ value, onChange, open, onOpenChange }: TimePickerPr
                     className={cn(
                       'w-20 h-12 flex items-center justify-center text-2xl font-mono snap-center transition-all',
                       tempMinute === m
-                        ? 'text-primary font-bold'
-                        : 'text-muted-foreground/50'
+                        ? 'text-primary font-bold scale-110'
+                        : 'text-muted-foreground/40'
                     )}
                   >
                     {m}
@@ -215,7 +215,7 @@ export function TimePicker({ value, onChange, open, onOpenChange }: TimePickerPr
                 key={item.label}
                 variant="outline"
                 size="sm"
-                className="rounded-full text-xs"
+                className="rounded-full text-xs border-primary/20 text-primary hover:bg-primary/5"
                 onClick={item.action}
               >
                 {item.label}
@@ -225,7 +225,7 @@ export function TimePicker({ value, onChange, open, onOpenChange }: TimePickerPr
         </div>
 
         {/* Confirm button */}
-        <div className="p-4 border-t">
+        <div className="p-4 border-t border-border">
           <Button
             className="w-full h-12 rounded-xl font-bold"
             onClick={handleConfirm}

@@ -656,6 +656,57 @@ function formatMedicationMessage(medication: Medication, timePeriod: string): st
   return message
 }
 
+// ============================================
+// OONJAI DESIGN SYSTEM — Flex Message Theme
+// Matches LIFF app: Emerald primary, clean cards, Kanit-style
+// ============================================
+const OONJAI = {
+  primary: '#0FA968',       // Emerald green (LIFF --primary)
+  primaryDark: '#0D8F58',
+  bg: '#F5F7FA',            // Soft blue-grey (LIFF --background)
+  card: '#FFFFFF',
+  text: '#3B4C63',          // Dark blue-grey (LIFF --foreground)
+  textMuted: '#7B8DA0',     // (LIFF --muted-foreground)
+  border: '#E2E8F0',        // (LIFF --border)
+  // Type-specific accent colors (matching LIFF REMINDER_TYPES)
+  types: {
+    medication: { accent: '#A855F7', bg: '#F3E8FF', label: 'กินยา' },
+    vitals:     { accent: '#EF4444', bg: '#FEF2F2', label: 'วัดความดัน' },
+    water:      { accent: '#3B82F6', bg: '#EFF6FF', label: 'ดื่มน้ำ' },
+    exercise:   { accent: '#22C55E', bg: '#F0FDF4', label: 'ออกกำลังกาย' },
+    food:       { accent: '#F97316', bg: '#FFF7ED', label: 'ทานอาหาร' },
+  } as Record<string, { accent: string, bg: string, label: string }>,
+}
+
+// Colored circle indicator (replaces emoji icons)
+function colorDot(color: string, size = '12px') {
+  return {
+    type: 'box',
+    layout: 'vertical',
+    contents: [],
+    width: size,
+    height: size,
+    backgroundColor: color,
+    cornerRadius: '50px',
+    flex: 0,
+  }
+}
+
+// Info row: colored dot + label + value
+function infoRow(dotColor: string, label: string, value: string, bold = false) {
+  return {
+    type: 'box',
+    layout: 'horizontal',
+    contents: [
+      colorDot(dotColor),
+      { type: 'text', text: label, size: 'xs', color: OONJAI.textMuted, flex: 0, margin: 'md' },
+      { type: 'text', text: value, size: 'sm', color: OONJAI.text, weight: bold ? 'bold' : 'regular', margin: 'md', wrap: true },
+    ],
+    alignItems: 'center',
+    margin: 'lg',
+  }
+}
+
 // Create Flex Message for medication reminder
 function createMedicationFlexMessage(medication: Medication, timePeriod: string): { contents: any, altText: string } {
   const patient = medication.patient_profiles
@@ -668,6 +719,7 @@ function createMedicationFlexMessage(medication: Medication, timePeriod: string)
     night: 'ก่อนนอน'
   }
   const periodLabel = periodLabels[timePeriod] || timePeriod
+  const typeConf = OONJAI.types.medication
 
   const contents = {
     type: 'bubble',
@@ -680,83 +732,73 @@ function createMedicationFlexMessage(medication: Medication, timePeriod: string)
           type: 'box',
           layout: 'horizontal',
           contents: [
-            { type: 'text', text: '💊', size: 'xl', flex: 0 },
-            { type: 'text', text: `แจ้งเตือนกินยา (${periodLabel})`, weight: 'bold', size: 'md', color: '#FFFFFF', margin: 'sm', wrap: true }
+            colorDot('#FFFFFF', '10px'),
+            { type: 'text', text: 'อุ่นใจ', size: 'xs', color: '#FFFFFF', margin: 'sm', weight: 'bold', flex: 0 },
+            { type: 'text', text: `แจ้งเตือนกินยา · ${periodLabel}`, size: 'xs', color: 'rgba(255,255,255,0.7)', margin: 'md' },
           ],
-          alignItems: 'center'
-        }
+          alignItems: 'center',
+        },
+        {
+          type: 'text',
+          text: medication.name,
+          weight: 'bold',
+          size: 'xl',
+          color: '#FFFFFF',
+          margin: 'md',
+          wrap: true,
+        },
       ],
-      backgroundColor: '#9333EA',
-      paddingAll: 'lg'
+      backgroundColor: typeConf.accent,
+      paddingAll: 'xl',
+      paddingBottom: 'lg',
     },
     body: {
       type: 'box',
       layout: 'vertical',
       contents: [
-        {
-          type: 'box',
-          layout: 'horizontal',
-          contents: [
-            { type: 'text', text: '👤', flex: 0 },
-            { type: 'text', text: patientName, color: '#555555', margin: 'sm', weight: 'bold' }
-          ]
-        },
-        {
-          type: 'box',
-          layout: 'horizontal',
-          contents: [
-            { type: 'text', text: '💊', flex: 0 },
-            { type: 'text', text: medication.name, color: '#555555', margin: 'sm', weight: 'bold' }
-          ],
-          margin: 'md'
-        },
-        ...(medication.dosage_amount && medication.dosage_unit ? [{
-          type: 'box',
-          layout: 'horizontal',
-          contents: [
-            { type: 'text', text: '📏', flex: 0 },
-            { type: 'text', text: `${medication.dosage_amount} ${medication.dosage_unit}`, color: '#888888', margin: 'sm', size: 'sm' }
-          ],
-          margin: 'md'
-        }] : []),
-        ...(medication.instructions ? [{
-          type: 'box',
-          layout: 'horizontal',
-          contents: [
-            { type: 'text', text: '📝', flex: 0 },
-            { type: 'text', text: medication.instructions, color: '#888888', margin: 'sm', size: 'sm', wrap: true }
-          ],
-          margin: 'md'
-        }] : [])
+        infoRow(typeConf.accent, 'สมาชิก', patientName, true),
+        ...(medication.dosage_amount && medication.dosage_unit ? [
+          infoRow(typeConf.accent, 'ขนาด', `${medication.dosage_amount} ${medication.dosage_unit}`),
+        ] : []),
+        ...(medication.instructions ? [
+          infoRow(OONJAI.textMuted, 'คำแนะนำ', medication.instructions),
+        ] : []),
       ],
-      paddingAll: 'lg'
+      paddingAll: 'xl',
+      backgroundColor: OONJAI.card,
     },
     footer: {
       type: 'box',
-      layout: 'vertical',
+      layout: 'horizontal',
       contents: [
         {
           type: 'button',
-          action: { type: 'message', label: '✅ กินยาแล้ว', text: 'กินยาแล้ว' },
+          action: { type: 'message', label: 'กินยาแล้ว ✓', text: 'กินยาแล้ว' },
           style: 'primary',
-          color: '#9333EA',
-          height: 'sm'
+          color: OONJAI.primary,
+          height: 'sm',
+          flex: 2,
         },
         {
           type: 'button',
-          action: { type: 'message', label: '⏰ ยังไม่ได้กิน', text: 'ยังไม่ได้กินยา' },
+          action: { type: 'message', label: 'ยังไม่ได้กิน', text: 'ยังไม่ได้กินยา' },
           style: 'secondary',
           height: 'sm',
-          margin: 'sm'
+          flex: 1,
+          margin: 'sm',
         }
       ],
-      paddingAll: 'lg'
-    }
+      paddingAll: 'lg',
+      backgroundColor: OONJAI.card,
+    },
+    styles: {
+      footer: { separator: true, separatorColor: OONJAI.border },
+    },
   }
 
   return {
     contents,
-    altText: `💊 แจ้งเตือนกินยา${periodLabel} - ${patientName}: ${medication.name}`
+    altText: `แจ้งเตือนกินยา${periodLabel} — ${patientName}: ${medication.name}`,
   }
 }
 
@@ -765,15 +807,7 @@ function createReminderFlexMessage(reminder: Reminder): { contents: any, altText
   const patient = reminder.patient_profiles
   const patientName = patient?.first_name || 'สมาชิก'
 
-  const typeConfig: Record<string, { emoji: string, name: string, color: string }> = {
-    medication: { emoji: '💊', name: 'กินยา', color: '#9333EA' },
-    vitals: { emoji: '🩺', name: 'วัดความดัน', color: '#EF4444' },
-    water: { emoji: '💧', name: 'ดื่มน้ำ', color: '#3B82F6' },
-    exercise: { emoji: '🏃', name: 'ออกกำลังกาย', color: '#22C55E' },
-    food: { emoji: '🍽️', name: 'ทานอาหาร', color: '#F97316' }
-  }
-
-  const config = typeConfig[reminder.type] || { emoji: '🔔', name: reminder.type, color: '#1E7B9C' }
+  const typeConf = OONJAI.types[reminder.type] || { accent: OONJAI.primary, bg: '#F0FDF4', label: reminder.type }
   const timeDisplay = reminder.time?.substring(0, 5) || '00:00'
 
   const contents = {
@@ -787,92 +821,83 @@ function createReminderFlexMessage(reminder: Reminder): { contents: any, altText
           type: 'box',
           layout: 'horizontal',
           contents: [
-            { type: 'text', text: config.emoji, size: 'xl', flex: 0 },
-            { type: 'text', text: `แจ้งเตือน${config.name}`, weight: 'bold', size: 'lg', color: '#FFFFFF', margin: 'sm' }
+            colorDot('#FFFFFF', '10px'),
+            { type: 'text', text: 'อุ่นใจ', size: 'xs', color: '#FFFFFF', margin: 'sm', weight: 'bold', flex: 0 },
+            { type: 'text', text: `แจ้งเตือน${typeConf.label}`, size: 'xs', color: 'rgba(255,255,255,0.7)', margin: 'md' },
           ],
-          alignItems: 'center'
-        }
+          alignItems: 'center',
+        },
+        {
+          type: 'box',
+          layout: 'horizontal',
+          contents: [
+            { type: 'text', text: timeDisplay, size: '3xl', weight: 'bold', color: '#FFFFFF', flex: 0 },
+            { type: 'text', text: 'น.', size: 'sm', color: 'rgba(255,255,255,0.7)', margin: 'sm', gravity: 'bottom', offsetBottom: '4px' },
+          ],
+          margin: 'md',
+          alignItems: 'baseline',
+        },
       ],
-      backgroundColor: config.color,
-      paddingAll: 'lg'
+      backgroundColor: typeConf.accent,
+      paddingAll: 'xl',
+      paddingBottom: 'lg',
     },
     body: {
       type: 'box',
       layout: 'vertical',
       contents: [
-        {
-          type: 'box',
-          layout: 'horizontal',
-          contents: [
-            { type: 'text', text: '👤', flex: 0 },
-            { type: 'text', text: `สมาชิก: ${patientName}`, color: '#555555', margin: 'sm', weight: 'bold' }
-          ]
-        },
-        {
-          type: 'box',
-          layout: 'horizontal',
-          contents: [
-            { type: 'text', text: '🕐', flex: 0 },
-            { type: 'text', text: `เวลา: ${timeDisplay} น.`, color: '#555555', margin: 'sm' }
-          ],
-          margin: 'md'
-        },
-        ...(reminder.title ? [{
-          type: 'box',
-          layout: 'horizontal',
-          contents: [
-            { type: 'text', text: '📝', flex: 0 },
-            { type: 'text', text: reminder.title, color: '#555555', margin: 'sm', wrap: true }
-          ],
-          margin: 'md'
-        }] : []),
-        ...(reminder.description ? [{
-          type: 'box',
-          layout: 'horizontal',
-          contents: [
-            { type: 'text', text: '💬', flex: 0 },
-            { type: 'text', text: reminder.description, color: '#888888', margin: 'sm', wrap: true, size: 'sm' }
-          ],
-          margin: 'md'
-        }] : [])
+        infoRow(typeConf.accent, 'สมาชิก', patientName, true),
+        ...(reminder.title ? [
+          infoRow(typeConf.accent, typeConf.label, reminder.title),
+        ] : []),
+        ...(reminder.description ? [
+          infoRow(OONJAI.textMuted, 'รายละเอียด', reminder.description),
+        ] : []),
       ],
-      paddingAll: 'lg'
+      paddingAll: 'xl',
+      backgroundColor: OONJAI.card,
     },
     footer: {
       type: 'box',
-      layout: 'vertical',
+      layout: 'horizontal',
       contents: [
         {
           type: 'button',
           action: {
             type: 'postback',
-            label: `✅ ${config.name}แล้ว`,
-            data: `a=rc&t=${reminder.type}&r=${reminder.id}&p=${reminder.patient_id}&st=${timeDisplay}&tt=${encodeURIComponent(reminder.title || config.name)}`,
-            displayText: `${config.name}แล้ว ${patientName}`
+            label: `${typeConf.label}แล้ว ✓`,
+            data: `a=rc&t=${reminder.type}&r=${reminder.id}&p=${reminder.patient_id}&st=${timeDisplay}&tt=${encodeURIComponent(reminder.title || typeConf.label)}`,
+            displayText: `${typeConf.label}แล้ว ${patientName}`,
           },
           style: 'primary',
-          color: config.color,
-          height: 'sm'
+          color: OONJAI.primary,
+          height: 'sm',
+          flex: 2,
         },
         {
           type: 'button',
           action: {
             type: 'postback',
-            label: '⏰ ยังไม่ได้ทำ',
-            data: `a=rs&t=${reminder.type}&r=${reminder.id}&p=${reminder.patient_id}&st=${timeDisplay}&tt=${encodeURIComponent(reminder.title || config.name)}`,
-            displayText: `ยัง${config.name} ${patientName}`
+            label: 'ยังไม่ได้ทำ',
+            data: `a=rs&t=${reminder.type}&r=${reminder.id}&p=${reminder.patient_id}&st=${timeDisplay}&tt=${encodeURIComponent(reminder.title || typeConf.label)}`,
+            displayText: `ยัง${typeConf.label} ${patientName}`,
           },
           style: 'secondary',
           height: 'sm',
-          margin: 'sm'
+          flex: 1,
+          margin: 'sm',
         }
       ],
-      paddingAll: 'lg'
-    }
+      paddingAll: 'lg',
+      backgroundColor: OONJAI.card,
+    },
+    styles: {
+      footer: { separator: true, separatorColor: OONJAI.border },
+    },
   }
 
   return {
     contents,
-    altText: `${config.emoji} แจ้งเตือน${config.name} - ${patientName} เวลา ${timeDisplay} น.`
+    altText: `แจ้งเตือน${typeConf.label} — ${patientName} เวลา ${timeDisplay} น.`,
   }
 }

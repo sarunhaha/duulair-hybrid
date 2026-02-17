@@ -60,3 +60,7 @@ pids/
 *.pid
 *.seed
 *.pid.lock
+
+# Claude Code (claude-mem auto-generated files)
+**/CLAUDE.md
+!CLAUDE.md

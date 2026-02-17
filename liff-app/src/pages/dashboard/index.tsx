@@ -60,8 +60,8 @@ export default function DashboardPage() {
 
       <main className="max-w-md mx-auto px-4 py-6 space-y-6">
         {/* Hero Section: Greeting & Insight */}
-        <Card className="bg-card border-none shadow-sm overflow-hidden relative group">
-          <div className="absolute -right-12 -top-12 w-48 h-48 bg-accent/10 rounded-full blur-3xl group-hover:bg-accent/20 transition-all duration-700" />
+        <Card className="bg-gradient-to-br from-white to-primary/5 dark:from-card dark:to-primary/10 border-none shadow-sm overflow-hidden relative group">
+          <div className="absolute -right-12 -top-12 w-48 h-48 bg-primary/10 rounded-full blur-3xl group-hover:bg-primary/20 transition-all duration-700" />
           <CardContent className="p-6 relative z-10 space-y-6">
             <div className="space-y-2">
               <h2 className="text-3xl font-bold text-foreground">สวัสดี, {displayName}</h2>
@@ -69,12 +69,12 @@ export default function DashboardPage() {
             </div>
 
             {/* OONJAI Recommendation */}
-            <div className="bg-accent/10 p-5 rounded-2xl flex items-start gap-4 border border-accent/20">
-              <div className="bg-accent text-white p-2.5 rounded-xl shrink-0 shadow-sm">
+            <div className="bg-primary/5 dark:bg-primary/10 p-5 rounded-2xl flex items-start gap-4 border border-primary/10 dark:border-primary/20">
+              <div className="bg-primary text-white p-2.5 rounded-xl shrink-0 shadow-sm">
                 {iconMap[insight.icon] || <Sun className="w-6 h-6" />}
               </div>
               <div className="space-y-1">
-                <h4 className="font-bold text-lg text-accent">{insight.title}</h4>
+                <h4 className="font-bold text-lg text-primary">{insight.title}</h4>
                 <p className="text-base text-foreground/80 leading-relaxed">{insight.message}</p>
               </div>
             </div>

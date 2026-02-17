@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useLocation } from 'wouter';
 import {
   ArrowLeft,
@@ -14,8 +14,8 @@ import {
   Heart,
   Utensils,
   Footprints,
-  BellOff,
-  Calendar,
+  Clock,
+  ChevronDown,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -40,6 +40,7 @@ import {
 } from '@/components/ui/drawer';
 import {
   usePatientReminders,
+  usePatientMedicationsAll,
   useAddReminder,
   useUpdateReminder,
   useDeleteReminder,
@@ -51,12 +52,15 @@ import { useAuth } from '@/hooks/use-auth';
 import { useEnsurePatient } from '@/hooks/use-ensure-patient';
 
 const REMINDER_TYPES = [
-  { value: 'medication', label: 'กินยา', icon: Pill, color: 'bg-purple-500/10 text-purple-500', gradient: 'from-purple-500 to-purple-600' },
-  { value: 'water', label: 'ดื่มน้ำ', icon: Droplet, color: 'bg-blue-500/10 text-blue-500', gradient: 'from-blue-500 to-blue-600' },
-  { value: 'vitals', label: 'วัดความดัน', icon: Heart, color: 'bg-red-500/10 text-red-500', gradient: 'from-red-500 to-red-600' },
-  { value: 'food', label: 'ทานอาหาร', icon: Utensils, color: 'bg-orange-500/10 text-orange-500', gradient: 'from-orange-500 to-orange-600' },
-  { value: 'exercise', label: 'ออกกำลังกาย', icon: Footprints, color: 'bg-green-500/10 text-green-500', gradient: 'from-green-500 to-green-600' },
+  { value: 'medication', label: 'กินยา', icon: Pill, color: 'bg-purple-500/10 text-purple-500' },
+  { value: 'water', label: 'ดื่มน้ำ', icon: Droplet, color: 'bg-blue-500/10 text-blue-500' },
+  { value: 'vitals', label: 'วัดความดัน', icon: Heart, color: 'bg-red-500/10 text-red-500' },
+  { value: 'food', label: 'ทานอาหาร', icon: Utensils, color: 'bg-orange-500/10 text-orange-500' },
+  { value: 'exercise', label: 'ออกกำลังกาย', icon: Footprints, color: 'bg-green-500/10 text-green-500' },
 ];
+
+// Category tabs — no "ทั้งหมด", start from first category
+const CATEGORY_TABS = REMINDER_TYPES.map(t => ({ value: t.value, label: t.label, icon: t.icon }));
 
 const DAY_OPTIONS = [
   { value: 'monday', label: 'จ', fullLabel: 'จันทร์' },
@@ -66,6 +70,14 @@ const DAY_OPTIONS = [
   { value: 'friday', label: 'ศ', fullLabel: 'ศุกร์' },
   { value: 'saturday', label: 'ส', fullLabel: 'เสาร์' },
   { value: 'sunday', label: 'อา', fullLabel: 'อาทิตย์' },
+];
+
+// Preset time slots
+const TIME_PRESETS = [
+  { label: 'เช้า', time: '08:00' },
+  { label: 'กลางวัน', time: '12:00' },
+  { label: 'เย็น', time: '18:00' },
+  { label: 'ก่อนนอน', time: '21:00' },
 ];
 
 interface ReminderForm {
@@ -88,37 +100,141 @@ const defaultFormData: ReminderForm = {
   is_active: true,
 };
 
+// Dynamic placeholder per category
+const getPlaceholder = (cat: string) => {
+  switch (cat) {
+    case 'medication': return 'พิมพ์ชื่อยาอื่นๆ...';
+    case 'water': return 'เช่น ดื่มน้ำ 1 แก้ว';
+    case 'vitals': return 'เช่น วัดความดันเช้า';
+    case 'food': return 'เช่น ทานอาหารเช้า';
+    case 'exercise': return 'เช่น เดินออกกำลังกาย';
+    default: return 'ชื่อกิจกรรม';
+  }
+};
+
+// Category-specific empty state message
+const getEmptyMessage = (cat: string) => {
+  switch (cat) {
+    case 'medication': return 'ยังไม่มีเตือนกินยา';
+    case 'water': return 'ยังไม่มีเตือนดื่มน้ำ';
+    case 'vitals': return 'ยังไม่มีเตือนวัดความดัน';
+    case 'food': return 'ยังไม่มีเตือนทานอาหาร';
+    case 'exercise': return 'ยังไม่มีเตือนออกกำลังกาย';
+    default: return 'ยังไม่มีการเตือน';
+  }
+};
+
 export default function RemindersPage() {
   const [, navigate] = useLocation();
   const auth = useAuth();
   const { toast } = useToast();
   const ensurePatient = useEnsurePatient();
 
-  // Use patientId from ensurePatient hook (auto-creates if needed)
   const patientId = ensurePatient.patientId;
 
   // Auto-ensure patient on mount
   const [hasEnsured, setHasEnsured] = useState(false);
-
-  // Trigger auto-create when auth is ready but no patientId
   if (!auth.isLoading && !ensurePatient.isLoading && !patientId && !hasEnsured) {
     setHasEnsured(true);
     ensurePatient.ensurePatient();
   }
 
   const { data: reminders, isLoading } = usePatientReminders(patientId);
+  const { data: medications } = usePatientMedicationsAll(patientId);
   const addReminder = useAddReminder();
   const updateReminder = useUpdateReminder();
   const deleteReminder = useDeleteReminder();
 
+  // Category tab state — default to first category (medication)
+  const [activeCategory, setActiveCategory] = useState<string>('medication');
+
+  // Inline add form state
+  const [addTitle, setAddTitle] = useState('');
+  const [addTimes, setAddTimes] = useState<string[]>(['08:00']);
+  const [selectedMedId, setSelectedMedId] = useState<string>(''); // for medication picker
+  const [showMedPicker, setShowMedPicker] = useState(false);
+
+  // Edit drawer state
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<ReminderForm>(defaultFormData);
 
-  const handleOpenAdd = () => {
-    setEditingId(null);
-    setFormData(defaultFormData);
-    setDrawerOpen(true);
+  // Filtered reminders by active category
+  const filteredReminders = useMemo(() => {
+    if (!reminders) return [];
+    return reminders.filter(r => r.type === activeCategory);
+  }, [reminders, activeCategory]);
+
+  // Count per category for badge
+  const categoryCounts = useMemo(() => {
+    if (!reminders) return {};
+    const counts: Record<string, { active: number; total: number }> = {};
+    for (const r of reminders) {
+      if (!counts[r.type]) counts[r.type] = { active: 0, total: 0 };
+      counts[r.type].total++;
+      if (r.is_active) counts[r.type].active++;
+    }
+    return counts;
+  }, [reminders]);
+
+  // Active medications list for the picker
+  const activeMeds = useMemo(() => {
+    if (!medications) return [];
+    return medications.filter(m => m.active);
+  }, [medications]);
+
+  // Add time slot
+  const handleAddTimeSlot = () => {
+    // Add next logical time
+    const lastTime = addTimes[addTimes.length - 1];
+    const [h] = lastTime.split(':').map(Number);
+    const nextHour = Math.min(h + 4, 23);
+    const nextTime = `${nextHour.toString().padStart(2, '0')}:00`;
+    if (!addTimes.includes(nextTime)) {
+      setAddTimes([...addTimes, nextTime]);
+    }
+  };
+
+  // Remove time slot
+  const handleRemoveTimeSlot = (index: number) => {
+    if (addTimes.length <= 1) return;
+    setAddTimes(addTimes.filter((_, i) => i !== index));
+  };
+
+  // Select medication from list
+  const handleSelectMed = (medName: string) => {
+    setAddTitle(medName);
+    setSelectedMedId('');
+    setShowMedPicker(false);
+  };
+
+  // Inline add handler — creates one reminder per time slot
+  const handleInlineAdd = async () => {
+    if (!patientId || !addTitle.trim() || addTimes.length === 0) return;
+    try {
+      // Create one reminder for each time slot
+      for (const time of addTimes) {
+        await addReminder.mutateAsync({
+          type: activeCategory,
+          title: addTitle.trim(),
+          time: time,
+          custom_time: time,
+          patient_id: patientId,
+          is_active: true,
+          frequency: 'daily',
+        });
+      }
+      setAddTitle('');
+      setAddTimes(['08:00']);
+      setSelectedMedId('');
+      toast({
+        title: addTimes.length > 1
+          ? `เพิ่ม ${addTimes.length} การเตือนเรียบร้อยแล้ว`
+          : 'เพิ่มการเตือนเรียบร้อยแล้ว',
+      });
+    } catch {
+      toast({ title: 'ไม่สามารถเพิ่มการเตือนได้', variant: 'destructive' });
+    }
   };
 
   const handleOpenEdit = (reminder: Reminder) => {
@@ -190,14 +306,6 @@ export default function RemindersPage() {
           },
         });
         toast({ title: 'แก้ไขการเตือนเรียบร้อยแล้ว' });
-      } else {
-        await addReminder.mutateAsync({
-          ...formData,
-          custom_time: formData.time,
-          days_of_week: formData.frequency === 'specific_days' ? formData.days_of_week : undefined,
-          patient_id: patientId,
-        });
-        toast({ title: 'เพิ่มการเตือนเรียบร้อยแล้ว' });
       }
       setDrawerOpen(false);
     } catch {
@@ -239,6 +347,8 @@ export default function RemindersPage() {
     );
   }
 
+  const activeTypeConfig = getTypeConfig(activeCategory);
+
   return (
     <div className="min-h-screen pb-8 font-sans bg-background">
       {/* Header */}
@@ -250,164 +360,342 @@ export default function RemindersPage() {
       </header>
 
       <main className="max-w-md mx-auto px-4 py-6 space-y-4">
-        {/* Summary */}
-        <Card className="border-none shadow-lg bg-gradient-to-br from-teal-500 to-teal-600 text-white overflow-hidden">
-          <CardContent className="p-6 relative">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
-            <div className="relative z-10">
-              <p className="text-sm text-white/80">การเตือนทั้งหมด</p>
-              <p className="text-4xl font-bold mt-1">
-                {reminders?.length || 0} <span className="text-lg font-normal">รายการ</span>
-              </p>
-              <p className="text-sm text-white/80 mt-1">
-                เปิดใช้งาน {reminders?.filter(r => r.is_active).length || 0} รายการ
-              </p>
+        {/* Category Tabs — scrollable pills (no "ทั้งหมด") */}
+        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+          {CATEGORY_TABS.map((tab) => {
+            const isActive = activeCategory === tab.value;
+            const count = categoryCounts[tab.value];
+            return (
+              <button
+                key={tab.value}
+                onClick={() => setActiveCategory(tab.value)}
+                className={cn(
+                  'flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all border',
+                  isActive
+                    ? 'bg-primary text-primary-foreground border-primary shadow-md shadow-primary/20'
+                    : 'bg-card text-muted-foreground border-border'
+                )}
+              >
+                <tab.icon className="w-3.5 h-3.5" />
+                {tab.label}
+                {count && count.total > 0 && (
+                  <span className={cn(
+                    'ml-0.5 text-[10px] font-bold rounded-full px-1.5 py-0.5 leading-none',
+                    isActive ? 'bg-white/20' : 'bg-muted'
+                  )}>
+                    {count.total}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Main Card */}
+        <Card className="border-none shadow-sm">
+          <CardContent className="p-4 space-y-4">
+            {/* Section Header */}
+            <div className="flex items-center gap-3">
+              <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center', activeTypeConfig.color)}>
+                <activeTypeConfig.icon className="w-5 h-5" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-bold">เตือน{activeTypeConfig.label}</p>
+                <p className="text-xs text-muted-foreground">
+                  {activeCategory === 'medication' && 'ตั้งเตือนเวลากินยา'}
+                  {activeCategory === 'water' && 'ตั้งเตือนดื่มน้ำระหว่างวัน'}
+                  {activeCategory === 'vitals' && 'ตั้งเตือนวัดความดัน ชีพจร'}
+                  {activeCategory === 'food' && 'ตั้งเตือนเวลาทานอาหาร'}
+                  {activeCategory === 'exercise' && 'ตั้งเตือนเวลาออกกำลังกาย'}
+                </p>
+              </div>
+              {filteredReminders.length > 0 && (
+                <span className="text-xs font-bold text-muted-foreground bg-muted/50 px-2 py-1 rounded-lg">
+                  {filteredReminders.filter(r => r.is_active).length}/{filteredReminders.length}
+                </span>
+              )}
+            </div>
+
+            {/* Loading */}
+            {isLoading && (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin text-primary" />
+              </div>
+            )}
+
+            {/* Empty State */}
+            {!isLoading && filteredReminders.length === 0 && (
+              <div className="flex flex-col items-center py-6 text-center">
+                <div className="w-12 h-12 mb-3 bg-muted/50 rounded-full flex items-center justify-center">
+                  <activeTypeConfig.icon className="w-6 h-6 text-muted-foreground" />
+                </div>
+                <p className="text-sm font-medium text-muted-foreground">{getEmptyMessage(activeCategory)}</p>
+                <p className="text-xs text-muted-foreground/70 mt-0.5">เพิ่มการเตือนด้านล่างได้เลย</p>
+              </div>
+            )}
+
+            {/* Reminder List */}
+            {filteredReminders.length > 0 && (
+              <div className="space-y-2">
+                {filteredReminders.map((reminder) => {
+                  const typeConfig = getTypeConfig(reminder.type);
+                  const Icon = typeConfig.icon;
+                  const displayTime = reminder.custom_time || reminder.time;
+                  const freqText = reminder.frequency === 'daily'
+                    ? 'ทุกวัน'
+                    : reminder.frequency === 'specific_days' && reminder.days_of_week
+                      ? reminder.days_of_week.map(d => DAY_OPTIONS.find(opt => opt.value === d)?.label).join(' ')
+                      : 'ตามกำหนด';
+
+                  return (
+                    <div
+                      key={reminder.id}
+                      className={cn(
+                        'bg-muted/20 p-3 rounded-xl space-y-2 transition-opacity',
+                        !reminder.is_active && 'opacity-50'
+                      )}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={cn('p-1.5 rounded-lg shrink-0', typeConfig.color)}>
+                          <Icon className="w-4 h-4" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold text-foreground truncate">{reminder.title}</p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-xs font-semibold text-primary">{displayTime} น.</span>
+                            <span className="text-muted-foreground/30">·</span>
+                            <span className="text-xs text-muted-foreground">{freqText}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <Switch
+                            checked={reminder.is_active}
+                            onCheckedChange={() => handleToggleActive(reminder)}
+                            className="scale-75"
+                          />
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-muted-foreground hover:text-primary"
+                            onClick={() => handleOpenEdit(reminder)}
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-muted-foreground hover:text-red-500"
+                            onClick={() => handleDelete(reminder.id)}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                      {reminder.note && (
+                        <div className="text-[11px] text-muted-foreground bg-accent/5 border-l-2 border-accent/30 px-2 py-1 rounded ml-9">
+                          {reminder.note}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* ── Inline Add Form ── */}
+            <div className="border-t border-border pt-4 space-y-3">
+
+              {/* Medication picker — only for กินยา tab */}
+              {activeCategory === 'medication' && (
+                <div className="space-y-2">
+                  {/* Medication selector from patient's list */}
+                  {activeMeds.length > 0 && (
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setShowMedPicker(!showMedPicker)}
+                        className={cn(
+                          'w-full h-10 px-3 rounded-xl border border-input bg-muted/20 text-left text-sm',
+                          'flex items-center justify-between',
+                          'hover:bg-muted/40 transition-colors',
+                          !addTitle && 'text-muted-foreground'
+                        )}
+                      >
+                        <div className="flex items-center gap-2">
+                          <Pill className="w-4 h-4 text-purple-500" />
+                          <span>{addTitle || 'เลือกยาจากรายการ...'}</span>
+                        </div>
+                        <ChevronDown className={cn('w-4 h-4 text-muted-foreground transition-transform', showMedPicker && 'rotate-180')} />
+                      </button>
+
+                      {/* Dropdown */}
+                      {showMedPicker && (
+                        <div className="absolute z-10 mt-1 w-full bg-card border border-border rounded-xl shadow-lg overflow-hidden">
+                          <div className="max-h-[180px] overflow-y-auto">
+                            {activeMeds.map((med) => (
+                              <button
+                                key={med.id}
+                                type="button"
+                                onClick={() => handleSelectMed(med.name)}
+                                className={cn(
+                                  'w-full px-3 py-2.5 text-left text-sm hover:bg-muted/40 transition-colors flex items-center gap-2',
+                                  addTitle === med.name && 'bg-primary/5 text-primary font-bold'
+                                )}
+                              >
+                                <Pill className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                  <span className="truncate">{med.name}</span>
+                                  {med.dosage && (
+                                    <span className="text-[11px] text-muted-foreground ml-1.5">{med.dosage}</span>
+                                  )}
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                          {/* "อื่นๆ" option to type custom */}
+                          <div className="border-t border-border">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setAddTitle('');
+                                setShowMedPicker(false);
+                              }}
+                              className="w-full px-3 py-2.5 text-left text-sm text-muted-foreground hover:bg-muted/40 transition-colors flex items-center gap-2"
+                            >
+                              <Edit2 className="w-3.5 h-3.5 shrink-0" />
+                              พิมพ์ชื่อยาอื่นๆ...
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Free-text input for medication — shown when no meds list or after selecting "อื่นๆ" */}
+                  {(activeMeds.length === 0 || (!showMedPicker && !addTitle)) && (
+                    <Input
+                      value={addTitle}
+                      onChange={(e) => setAddTitle(e.target.value)}
+                      placeholder={getPlaceholder(activeCategory)}
+                      className="h-10 rounded-xl text-sm"
+                    />
+                  )}
+                </div>
+              )}
+
+              {/* Title input — for non-medication categories */}
+              {activeCategory !== 'medication' && (
+                <Input
+                  value={addTitle}
+                  onChange={(e) => setAddTitle(e.target.value)}
+                  placeholder={getPlaceholder(activeCategory)}
+                  className="h-10 rounded-xl text-sm"
+                />
+              )}
+
+              {/* Time slots section */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs font-bold text-muted-foreground flex items-center gap-1.5 whitespace-nowrap">
+                    <Clock className="w-3.5 h-3.5 shrink-0" />
+                    เวลาเตือน ({addTimes.length} รอบ/วัน)
+                  </p>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs text-primary hover:text-primary/80 px-2 shrink-0 whitespace-nowrap"
+                    onClick={handleAddTimeSlot}
+                  >
+                    <Plus className="w-3 h-3 mr-1" />
+                    เพิ่มรอบ
+                  </Button>
+                </div>
+
+                {/* Time slot list */}
+                <div className="flex flex-wrap gap-2">
+                  {addTimes.map((time, index) => (
+                    <div key={index} className="flex items-center bg-muted/30 rounded-xl pr-1.5">
+                      <TimeInput
+                        value={time}
+                        onChange={(newTime) => {
+                          const updated = [...addTimes];
+                          updated[index] = newTime;
+                          setAddTimes(updated);
+                        }}
+                        className="w-auto min-w-0 h-9 text-xs border-none bg-transparent px-2.5"
+                      />
+                      {addTimes.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveTimeSlot(index)}
+                          className="w-5 h-5 rounded-full flex items-center justify-center text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-colors shrink-0"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Quick preset buttons */}
+                <div className="flex gap-1.5">
+                  {TIME_PRESETS.map((preset) => {
+                    const isIncluded = addTimes.includes(preset.time);
+                    return (
+                      <button
+                        key={preset.time}
+                        type="button"
+                        onClick={() => {
+                          if (isIncluded) {
+                            if (addTimes.length > 1) {
+                              setAddTimes(addTimes.filter(t => t !== preset.time));
+                            }
+                          } else {
+                            setAddTimes([...addTimes, preset.time].sort());
+                          }
+                        }}
+                        className={cn(
+                          'flex-1 py-1.5 rounded-lg text-[11px] font-bold transition-all border',
+                          isIncluded
+                            ? 'bg-primary/10 text-primary border-primary/20'
+                            : 'text-muted-foreground border-transparent hover:bg-muted/40'
+                        )}
+                      >
+                        {preset.label}
+                        <span className="block text-[10px] font-normal opacity-70">{preset.time}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Add button */}
+              <Button
+                className="w-full h-11 rounded-xl text-sm font-bold gap-2"
+                onClick={handleInlineAdd}
+                disabled={!addTitle.trim() || addTimes.length === 0 || addReminder.isPending}
+              >
+                {addReminder.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Plus className="w-4 h-4" />
+                )}
+                เพิ่มเตือน{activeTypeConfig.label}
+                {addTimes.length > 1 && ` (${addTimes.length} รอบ)`}
+              </Button>
             </div>
           </CardContent>
         </Card>
-
-        {/* Add Button */}
-        <Button className="w-full gap-2" size="lg" onClick={handleOpenAdd}>
-          <Plus className="w-5 h-5" />
-          เพิ่มการเตือน
-        </Button>
-
-        {/* Loading */}
-        {isLoading && (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin text-primary" />
-          </div>
-        )}
-
-        {/* Empty State */}
-        {!isLoading && (!reminders || reminders.length === 0) && (
-          <Card className="border-none shadow-sm bg-card">
-            <CardContent className="p-8 text-center">
-              <div className="w-16 h-16 mx-auto mb-4 bg-muted rounded-full flex items-center justify-center">
-                <Bell className="w-8 h-8 text-muted-foreground" />
-              </div>
-              <p className="font-bold text-foreground">ยังไม่มีการเตือน</p>
-              <p className="text-sm text-muted-foreground mt-1">กดปุ่มด้านบนเพื่อเพิ่มการเตือน</p>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Reminder List */}
-        {reminders && reminders.length > 0 && (
-          <div className="space-y-3">
-            {reminders.map((reminder) => {
-              const typeConfig = getTypeConfig(reminder.type);
-              const Icon = typeConfig.icon;
-
-              return (
-                <Card key={reminder.id} className="border-none shadow-sm bg-card overflow-hidden">
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center gap-3">
-                        <div className={cn('p-2 rounded-xl', typeConfig.color)}>
-                          <Icon className="w-5 h-5" />
-                        </div>
-                        <div>
-                          <h3 className="font-bold text-foreground">{reminder.title}</h3>
-                          <p className="text-sm text-muted-foreground">{typeConfig.label}</p>
-                        </div>
-                      </div>
-                      <div className={cn(
-                        'p-1.5 rounded-full',
-                        reminder.is_active ? 'bg-green-100 dark:bg-green-950/30' : 'bg-muted'
-                      )}>
-                        {reminder.is_active ? (
-                          <Bell className="w-4 h-4 text-green-600 dark:text-green-400" />
-                        ) : (
-                          <BellOff className="w-4 h-4 text-muted-foreground" />
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Time Display */}
-                    <div className="flex items-center gap-2 mb-3">
-                      <p className="text-2xl font-bold text-primary">
-                        {reminder.custom_time || reminder.time}
-                      </p>
-                      <Switch
-                        checked={reminder.is_active}
-                        onCheckedChange={() => handleToggleActive(reminder)}
-                      />
-                    </div>
-
-                    {/* Frequency */}
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
-                      <Calendar className="w-4 h-4" />
-                      <span>
-                        {reminder.frequency === 'daily'
-                          ? 'ทุกวัน'
-                          : reminder.days_of_week
-                              ?.map((d) => DAY_OPTIONS.find((opt) => opt.value === d)?.fullLabel)
-                              .join(', ') || 'ตามกำหนด'}
-                      </span>
-                    </div>
-
-                    {/* Day badges for specific days */}
-                    {reminder.frequency === 'specific_days' && reminder.days_of_week && (
-                      <div className="flex gap-1 mb-3">
-                        {DAY_OPTIONS.map((day) => (
-                          <span
-                            key={day.value}
-                            className={cn(
-                              'w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold',
-                              reminder.days_of_week?.includes(day.value)
-                                ? 'bg-primary text-white'
-                                : 'bg-muted text-muted-foreground'
-                            )}
-                          >
-                            {day.label}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-
-                    {reminder.note && (
-                      <div className="p-2 bg-accent/10 border-l-2 border-accent rounded text-xs text-muted-foreground mb-3">
-                        {reminder.note}
-                      </div>
-                    )}
-
-                    <div className="flex gap-2">
-                      <Button
-                        variant="default"
-                        size="sm"
-                        className="flex-1 gap-1"
-                        onClick={() => handleOpenEdit(reminder)}
-                      >
-                        <Edit2 className="w-4 h-4" />
-                        แก้ไข
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        className="flex-1 gap-1"
-                        onClick={() => handleDelete(reminder.id)}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                        ลบ
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        )}
       </main>
 
-      {/* Add/Edit Drawer */}
+      {/* Edit Drawer */}
       <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
         <DrawerContent className="max-h-[90vh]">
           <DrawerHeader className="border-b border-border">
             <div className="flex items-center justify-between">
               <DrawerTitle className="flex items-center gap-2">
                 <Bell className="w-5 h-5 text-primary" />
-                {editingId ? 'แก้ไขการเตือน' : 'เพิ่มการเตือน'}
+                แก้ไขการเตือน
               </DrawerTitle>
               <Button variant="ghost" size="icon" onClick={() => setDrawerOpen(false)}>
                 <X className="w-5 h-5" />
@@ -437,12 +725,39 @@ export default function RemindersPage() {
 
             <div className="space-y-2">
               <Label htmlFor="reminder_title">ชื่อเตือน *</Label>
-              <Input
-                id="reminder_title"
-                value={formData.title}
-                onChange={(e) => setFormData((p) => ({ ...p, title: e.target.value }))}
-                placeholder="เช่น กินยาความดัน"
-              />
+              {formData.type === 'medication' && activeMeds.length > 0 && (
+                <Select
+                  value={activeMeds.some(m => m.name === formData.title) ? formData.title : '__custom__'}
+                  onValueChange={(v) => {
+                    if (v === '__custom__') {
+                      setFormData((p) => ({ ...p, title: '' }));
+                    } else {
+                      setFormData((p) => ({ ...p, title: v }));
+                    }
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="เลือกยา" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {activeMeds.map((med) => (
+                      <SelectItem key={med.id} value={med.name}>
+                        {med.name} {med.dosage ? `(${med.dosage})` : ''}
+                      </SelectItem>
+                    ))}
+                    <SelectItem value="__custom__">อื่นๆ (พิมพ์เอง)</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+              {/* Text input: shown for non-medication, no meds list, or when "อื่นๆ" is selected */}
+              {(formData.type !== 'medication' || activeMeds.length === 0 || !activeMeds.some(m => m.name === formData.title)) && (
+                <Input
+                  id="reminder_title"
+                  value={formData.title}
+                  onChange={(e) => setFormData((p) => ({ ...p, title: e.target.value }))}
+                  placeholder={formData.type === 'medication' ? 'พิมพ์ชื่อยา' : 'เช่น กินยาความดัน'}
+                />
+              )}
             </div>
 
             <div className="space-y-2">
@@ -518,9 +833,9 @@ export default function RemindersPage() {
               <Button
                 className="flex-1 gap-2"
                 onClick={handleSubmit}
-                disabled={addReminder.isPending || updateReminder.isPending}
+                disabled={updateReminder.isPending}
               >
-                {(addReminder.isPending || updateReminder.isPending) && (
+                {updateReminder.isPending && (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 )}
                 <Save className="w-4 h-4" />

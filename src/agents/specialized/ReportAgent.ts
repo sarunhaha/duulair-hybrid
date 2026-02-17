@@ -365,8 +365,21 @@ Example format:
     };
   }
 
+  // OONJAI Design System colors (matching LIFF theme)
+  private static OONJAI = {
+    primary: '#0FA968',
+    text: '#3B4C63',
+    textMuted: '#7B8DA0',
+    border: '#E2E8F0',
+    card: '#FFFFFF',
+    medAccent: '#A855F7',
+    waterAccent: '#3B82F6',
+    vitalsAccent: '#EF4444',
+    successText: '#0FA968',
+  };
+
   private formatFlexMessage(report: any) {
-    // Create LINE Flex Message format for caregiver group
+    const O = ReportAgent.OONJAI;
     const isWeekly = report.weekRange !== undefined;
 
     // Build medication section
@@ -376,23 +389,25 @@ Example format:
       const total = report.medicationStatus.length;
 
       medicationContents.push({
-        type: 'text',
-        text: `💊 ยา (${done}/${total})`,
-        weight: 'bold',
-        size: 'sm',
-        color: '#333333'
+        type: 'box',
+        layout: 'horizontal',
+        contents: [
+          { type: 'box', layout: 'vertical', contents: [], width: '10px', height: '10px', backgroundColor: O.medAccent, cornerRadius: '50px', flex: 0 },
+          { type: 'text', text: `ยา (${done}/${total})`, weight: 'bold', size: 'sm', color: O.text, margin: 'md' },
+        ],
+        alignItems: 'center',
       });
 
-      for (const med of report.medicationStatus.slice(0, 5)) { // Limit to 5 items
+      for (const med of report.medicationStatus.slice(0, 5)) {
         medicationContents.push({
           type: 'text',
           text: med.done
-            ? `✅ ${med.name} ${med.dosage || ''} - ${med.takenAt}`
-            : `⏳ ${med.name} ${med.dosage || ''} (${med.time})`,
+            ? `✓ ${med.name} ${med.dosage || ''} — ${med.takenAt}`
+            : `· ${med.name} ${med.dosage || ''} (${med.time})`,
           size: 'xs',
-          color: med.done ? '#28a745' : '#6c757d',
+          color: med.done ? O.successText : O.textMuted,
           margin: 'sm',
-          wrap: true
+          wrap: true,
         });
       }
     }
@@ -401,22 +416,24 @@ Example format:
     const waterContents: any[] = [];
     if (report.waterStatus) {
       waterContents.push({
-        type: 'text',
-        text: `💧 น้ำ (${report.waterStatus.current}/${report.waterStatus.target} ml)`,
-        weight: 'bold',
-        size: 'sm',
-        color: '#333333',
-        margin: 'lg'
+        type: 'box',
+        layout: 'horizontal',
+        contents: [
+          { type: 'box', layout: 'vertical', contents: [], width: '10px', height: '10px', backgroundColor: O.waterAccent, cornerRadius: '50px', flex: 0 },
+          { type: 'text', text: `น้ำ (${report.waterStatus.current}/${report.waterStatus.target} ml)`, weight: 'bold', size: 'sm', color: O.text, margin: 'md' },
+        ],
+        alignItems: 'center',
+        margin: 'xl',
       });
 
       if (report.waterStatus.details && report.waterStatus.details.length > 0) {
-        for (const log of report.waterStatus.details.slice(0, 3)) { // Limit to 3 items
+        for (const log of report.waterStatus.details.slice(0, 3)) {
           waterContents.push({
             type: 'text',
-            text: `✅ ${log.amount}ml - ${log.time}`,
+            text: `✓ ${log.amount}ml — ${log.time}`,
             size: 'xs',
-            color: '#28a745',
-            margin: 'sm'
+            color: O.successText,
+            margin: 'sm',
           });
         }
       }
@@ -424,10 +441,10 @@ Example format:
       if (report.waterStatus.remaining > 0) {
         waterContents.push({
           type: 'text',
-          text: `⏳ เหลืออีก ${report.waterStatus.remaining}ml`,
+          text: `· เหลืออีก ${report.waterStatus.remaining}ml`,
           size: 'xs',
-          color: '#6c757d',
-          margin: 'sm'
+          color: O.textMuted,
+          margin: 'sm',
         });
       }
     }
@@ -436,21 +453,23 @@ Example format:
     const vitalsContents: any[] = [];
     if (report.vitalsStatus && report.vitalsStatus.length > 0) {
       vitalsContents.push({
-        type: 'text',
-        text: `🩺 วัดค่าสุขภาพ (${report.vitalsStatus.length})`,
-        weight: 'bold',
-        size: 'sm',
-        color: '#333333',
-        margin: 'lg'
+        type: 'box',
+        layout: 'horizontal',
+        contents: [
+          { type: 'box', layout: 'vertical', contents: [], width: '10px', height: '10px', backgroundColor: O.vitalsAccent, cornerRadius: '50px', flex: 0 },
+          { type: 'text', text: `วัดค่าสุขภาพ (${report.vitalsStatus.length})`, weight: 'bold', size: 'sm', color: O.text, margin: 'md' },
+        ],
+        alignItems: 'center',
+        margin: 'xl',
       });
 
-      for (const vital of report.vitalsStatus.slice(0, 3)) { // Limit to 3 items
+      for (const vital of report.vitalsStatus.slice(0, 3)) {
         vitalsContents.push({
           type: 'text',
-          text: `✅ ${vital.type} ${vital.value} - ${vital.time}`,
+          text: `✓ ${vital.type} ${vital.value} — ${vital.time}`,
           size: 'xs',
-          color: '#28a745',
-          margin: 'sm'
+          color: O.successText,
+          margin: 'sm',
         });
       }
     }
@@ -461,355 +480,135 @@ Example format:
       header: {
         type: 'box',
         layout: 'vertical',
-        backgroundColor: '#667eea',
-        paddingAll: 'lg',
+        backgroundColor: O.primary,
+        paddingAll: 'xl',
         contents: [
           {
-            type: 'text',
-            text: isWeekly ? '📊 รายงานสัปดาห์' : '📊 รายงานประจำวัน',
-            weight: 'bold',
-            size: 'xl',
-            color: '#ffffff'
+            type: 'box',
+            layout: 'horizontal',
+            contents: [
+              { type: 'box', layout: 'vertical', contents: [], width: '10px', height: '10px', backgroundColor: '#FFFFFF', cornerRadius: '50px', flex: 0 },
+              { type: 'text', text: 'อุ่นใจ', size: 'xs', color: '#FFFFFF', margin: 'sm', weight: 'bold', flex: 0 },
+              { type: 'text', text: isWeekly ? 'รายงานสัปดาห์' : 'รายงานประจำวัน', size: 'xs', color: 'rgba(255,255,255,0.7)', margin: 'md' },
+            ],
+            alignItems: 'center',
           },
           {
             type: 'text',
             text: isWeekly ? report.weekRange : report.date,
-            size: 'sm',
+            size: 'lg',
+            weight: 'bold',
             color: '#ffffff',
-            margin: 'sm'
+            margin: 'md',
           },
           {
             type: 'box',
             layout: 'horizontal',
             margin: 'md',
             contents: [
-              {
-                type: 'text',
-                text: '✅ ความสำเร็จ',
-                size: 'sm',
-                color: '#ffffff'
-              },
-              {
-                type: 'text',
-                text: `${report.completionRate}%`,
-                size: 'lg',
-                weight: 'bold',
-                color: '#ffffff',
-                align: 'end'
-              }
-            ]
-          }
-        ]
+              { type: 'text', text: 'ความสำเร็จ', size: 'sm', color: 'rgba(255,255,255,0.7)' },
+              { type: 'text', text: `${report.completionRate}%`, size: 'xl', weight: 'bold', color: '#ffffff', align: 'end' },
+            ],
+          },
+        ],
       },
       body: {
         type: 'box',
         layout: 'vertical',
-        paddingAll: 'lg',
+        paddingAll: 'xl',
+        backgroundColor: O.card,
         contents: [
           ...medicationContents,
           ...waterContents,
           ...vitalsContents,
-          {
-            type: 'separator',
-            margin: 'lg'
-          },
+          { type: 'separator', margin: 'xl', color: O.border },
           {
             type: 'text',
             text: report.summary || report.analysis || '',
             wrap: true,
             size: 'xs',
             margin: 'lg',
-            color: '#666666'
-          }
-        ]
-      }
+            color: O.textMuted,
+          },
+        ],
+      },
     };
   }
 
   private createReportMenuFlexMessage() {
+    const O = ReportAgent.OONJAI;
+
+    // Reusable menu row
+    const menuRow = (dotColor: string, title: string, subtitle: string, action: any) => ({
+      type: 'box',
+      layout: 'vertical',
+      backgroundColor: '#F5F7FA',
+      cornerRadius: 'lg',
+      paddingAll: 'lg',
+      action,
+      contents: [{
+        type: 'box',
+        layout: 'horizontal',
+        contents: [
+          { type: 'box', layout: 'vertical', contents: [], width: '10px', height: '10px', backgroundColor: dotColor, cornerRadius: '50px', flex: 0 },
+          {
+            type: 'box', layout: 'vertical', margin: 'lg', flex: 1,
+            contents: [
+              { type: 'text', text: title, weight: 'bold', size: 'md', color: O.text },
+              { type: 'text', text: subtitle, size: 'xs', color: O.textMuted, margin: 'xs' },
+            ],
+          },
+          { type: 'text', text: '›', size: 'xl', color: O.border, flex: 0, gravity: 'center' },
+        ],
+        alignItems: 'center',
+      }],
+    });
+
     return {
       type: 'bubble',
       size: 'mega',
       header: {
         type: 'box',
         layout: 'vertical',
-        backgroundColor: '#10b981',  // Modern green
+        backgroundColor: O.primary,
         paddingAll: 'xl',
         contents: [
           {
-            type: 'text',
-            text: '📊 เลือกประเภทรายงาน',
-            weight: 'bold',
-            size: 'xl',
-            color: '#ffffff'
+            type: 'box',
+            layout: 'horizontal',
+            contents: [
+              { type: 'box', layout: 'vertical', contents: [], width: '10px', height: '10px', backgroundColor: '#FFFFFF', cornerRadius: '50px', flex: 0 },
+              { type: 'text', text: 'อุ่นใจ', size: 'xs', color: '#FFFFFF', margin: 'sm', weight: 'bold', flex: 0 },
+            ],
+            alignItems: 'center',
           },
-          {
-            type: 'text',
-            text: 'เลือกรายงานที่คุณต้องการดู',
-            size: 'sm',
-            color: '#ffffff',
-            margin: 'sm'
-          }
-        ]
+          { type: 'text', text: 'เลือกประเภทรายงาน', weight: 'bold', size: 'xl', color: '#ffffff', margin: 'md' },
+          { type: 'text', text: 'ดูสรุปกิจกรรมสุขภาพของคุณ', size: 'sm', color: 'rgba(255,255,255,0.7)', margin: 'xs' },
+        ],
       },
       body: {
         type: 'box',
         layout: 'vertical',
         paddingAll: 'lg',
         spacing: 'md',
+        backgroundColor: O.card,
         contents: [
-          // Daily Report Button
-          {
-            type: 'box',
-            layout: 'vertical',
-            backgroundColor: '#f3f4f6',
-            cornerRadius: 'lg',
-            paddingAll: 'lg',
-            action: {
-              type: 'message',
-              label: 'รายงานวันนี้',
-              text: 'รายงานวันนี้'
-            },
-            contents: [
-              {
-                type: 'box',
-                layout: 'horizontal',
-                contents: [
-                  {
-                    type: 'text',
-                    text: '📅',
-                    size: 'xl',
-                    flex: 0
-                  },
-                  {
-                    type: 'box',
-                    layout: 'vertical',
-                    margin: 'md',
-                    flex: 1,
-                    contents: [
-                      {
-                        type: 'text',
-                        text: 'รายงานวันนี้',
-                        weight: 'bold',
-                        size: 'md',
-                        color: '#111827'
-                      },
-                      {
-                        type: 'text',
-                        text: 'ดูสรุปกิจกรรมประจำวันนี้',
-                        size: 'xs',
-                        color: '#6b7280',
-                        margin: 'xs'
-                      }
-                    ]
-                  },
-                  {
-                    type: 'text',
-                    text: '>',
-                    size: 'lg',
-                    color: '#9ca3af',
-                    flex: 0,
-                    gravity: 'center'
-                  }
-                ]
-              }
-            ]
-          },
-          // Weekly Report Button
-          {
-            type: 'box',
-            layout: 'vertical',
-            backgroundColor: '#f3f4f6',
-            cornerRadius: 'lg',
-            paddingAll: 'lg',
-            action: {
-              type: 'message',
-              label: 'รายงานสัปดาห์',
-              text: 'รายงานสัปดาห์'
-            },
-            contents: [
-              {
-                type: 'box',
-                layout: 'horizontal',
-                contents: [
-                  {
-                    type: 'text',
-                    text: '📈',
-                    size: 'xl',
-                    flex: 0
-                  },
-                  {
-                    type: 'box',
-                    layout: 'vertical',
-                    margin: 'md',
-                    flex: 1,
-                    contents: [
-                      {
-                        type: 'text',
-                        text: 'รายงานสัปดาห์',
-                        weight: 'bold',
-                        size: 'md',
-                        color: '#111827'
-                      },
-                      {
-                        type: 'text',
-                        text: 'ดูสรุปกิจกรรม 7 วันย้อนหลัง',
-                        size: 'xs',
-                        color: '#6b7280',
-                        margin: 'xs'
-                      }
-                    ]
-                  },
-                  {
-                    type: 'text',
-                    text: '>',
-                    size: 'lg',
-                    color: '#9ca3af',
-                    flex: 0,
-                    gravity: 'center'
-                  }
-                ]
-              }
-            ]
-          },
-          // Monthly Report Button
-          {
-            type: 'box',
-            layout: 'vertical',
-            backgroundColor: '#f3f4f6',
-            cornerRadius: 'lg',
-            paddingAll: 'lg',
-            action: {
-              type: 'message',
-              label: 'รายงานเดือน',
-              text: 'รายงานเดือน'
-            },
-            contents: [
-              {
-                type: 'box',
-                layout: 'horizontal',
-                contents: [
-                  {
-                    type: 'text',
-                    text: '📊',
-                    size: 'xl',
-                    flex: 0
-                  },
-                  {
-                    type: 'box',
-                    layout: 'vertical',
-                    margin: 'md',
-                    flex: 1,
-                    contents: [
-                      {
-                        type: 'text',
-                        text: 'รายงานเดือน',
-                        weight: 'bold',
-                        size: 'md',
-                        color: '#111827'
-                      },
-                      {
-                        type: 'text',
-                        text: 'ดูสรุปกิจกรรม 30 วันย้อนหลัง',
-                        size: 'xs',
-                        color: '#6b7280',
-                        margin: 'xs'
-                      }
-                    ]
-                  },
-                  {
-                    type: 'text',
-                    text: '>',
-                    size: 'lg',
-                    color: '#9ca3af',
-                    flex: 0,
-                    gravity: 'center'
-                  }
-                ]
-              }
-            ]
-          },
-          // Separator
-          {
-            type: 'separator',
-            margin: 'lg'
-          },
-          // LIFF Dashboard Button (Charts & Export)
-          {
-            type: 'box',
-            layout: 'vertical',
-            backgroundColor: '#dbeafe',
-            cornerRadius: 'lg',
-            paddingAll: 'lg',
-            margin: 'md',
-            action: {
-              type: 'uri',
-              label: 'รายงานพร้อมกราฟ',
-              uri: `https://liff.line.me/${LIFF_ID}/reports`
-            },
-            contents: [
-              {
-                type: 'box',
-                layout: 'horizontal',
-                contents: [
-                  {
-                    type: 'text',
-                    text: '📈',
-                    size: 'xl',
-                    flex: 0
-                  },
-                  {
-                    type: 'box',
-                    layout: 'vertical',
-                    margin: 'md',
-                    flex: 1,
-                    contents: [
-                      {
-                        type: 'text',
-                        text: 'รายงานพร้อมกราฟ',
-                        weight: 'bold',
-                        size: 'md',
-                        color: '#1e40af'
-                      },
-                      {
-                        type: 'text',
-                        text: 'ดูกราฟ เลือกช่วงเวลา และส่งออก CSV/PDF',
-                        size: 'xs',
-                        color: '#3b82f6',
-                        margin: 'xs'
-                      }
-                    ]
-                  },
-                  {
-                    type: 'text',
-                    text: '→',
-                    size: 'lg',
-                    color: '#3b82f6',
-                    flex: 0,
-                    gravity: 'center'
-                  }
-                ]
-              }
-            ]
-          }
-        ]
+          menuRow(O.primary, 'รายงานวันนี้', 'ดูสรุปกิจกรรมประจำวันนี้', { type: 'message', label: 'รายงานวันนี้', text: 'รายงานวันนี้' }),
+          menuRow(O.primary, 'รายงานสัปดาห์', 'ดูสรุปกิจกรรม 7 วันย้อนหลัง', { type: 'message', label: 'รายงานสัปดาห์', text: 'รายงานสัปดาห์' }),
+          menuRow(O.primary, 'รายงานเดือน', 'ดูสรุปกิจกรรม 30 วันย้อนหลัง', { type: 'message', label: 'รายงานเดือน', text: 'รายงานเดือน' }),
+          { type: 'separator', margin: 'md', color: O.border },
+          menuRow('#3B82F6', 'รายงานพร้อมกราฟ', 'ดูกราฟ เลือกช่วงเวลา และส่งออก', { type: 'uri', label: 'รายงานพร้อมกราฟ', uri: `https://liff.line.me/${LIFF_ID}/reports` }),
+        ],
       },
       footer: {
         type: 'box',
         layout: 'vertical',
-        backgroundColor: '#f9fafb',
+        backgroundColor: '#F5F7FA',
         paddingAll: 'md',
         contents: [
-          {
-            type: 'text',
-            text: 'เลือกรายงานแบบข้อความ หรือ เปิดรายงานพร้อมกราฟ',
-            size: 'xxs',
-            color: '#6b7280',
-            align: 'center',
-            wrap: true
-          }
-        ]
-      }
+          { type: 'text', text: 'เลือกรายงานแบบข้อความ หรือ เปิดรายงานพร้อมกราฟ', size: 'xxs', color: O.textMuted, align: 'center', wrap: true },
+        ],
+      },
     };
   }
 

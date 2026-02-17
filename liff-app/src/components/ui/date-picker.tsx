@@ -146,13 +146,13 @@ export function DatePicker({ value, onChange, open, onOpenChange, minDate, maxDa
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerContent className="max-h-[85vh]">
-        <DrawerHeader className="flex items-center justify-between px-4 border-b">
+        <DrawerHeader className="flex items-center justify-between px-4 border-b border-border">
           <DrawerClose asChild>
-            <Button variant="ghost" size="icon" className="rounded-full">
+            <Button variant="ghost" size="icon" className="rounded-full text-muted-foreground">
               <X className="w-5 h-5" />
             </Button>
           </DrawerClose>
-          <DrawerTitle className="flex items-center gap-2">
+          <DrawerTitle className="flex items-center gap-2 text-foreground">
             <Calendar className="w-5 h-5 text-primary" />
             เลือกวันที่
           </DrawerTitle>
@@ -179,7 +179,7 @@ export function DatePicker({ value, onChange, open, onOpenChange, minDate, maxDa
             <Button
               variant="outline"
               size="sm"
-              className="rounded-full text-xs"
+              className="rounded-full text-xs border-primary/20 text-primary hover:bg-primary/5"
               onClick={handleToday}
             >
               วันนี้
@@ -187,7 +187,7 @@ export function DatePicker({ value, onChange, open, onOpenChange, minDate, maxDa
             <Button
               variant="outline"
               size="sm"
-              className="rounded-full text-xs"
+              className="rounded-full text-xs border-primary/20 text-primary hover:bg-primary/5"
               onClick={handleYesterday}
             >
               เมื่อวาน
@@ -204,7 +204,7 @@ export function DatePicker({ value, onChange, open, onOpenChange, minDate, maxDa
             >
               <ChevronLeft className="w-5 h-5" />
             </Button>
-            <span className="text-lg font-semibold">
+            <span className="text-lg font-semibold text-foreground">
               {THAI_MONTHS[viewMonth]} {viewYear + 543}
             </span>
             <Button
@@ -250,16 +250,16 @@ export function DatePicker({ value, onChange, open, onOpenChange, minDate, maxDa
                   onClick={() => selectable && handleSelectDate(day)}
                   disabled={!selectable}
                   className={cn(
-                    'aspect-square rounded-full flex items-center justify-center text-sm font-medium transition-all',
+                    'aspect-square rounded-xl flex items-center justify-center text-sm font-medium transition-all',
                     'active:scale-95',
                     selected
-                      ? 'bg-primary text-primary-foreground'
+                      ? 'bg-primary text-primary-foreground shadow-sm'
                       : todayDate
-                        ? 'bg-primary/20 text-primary font-bold'
+                        ? 'bg-primary/10 text-primary font-bold ring-1 ring-primary/30'
                         : selectable
                           ? isSunday
-                            ? 'text-red-500 hover:bg-muted'
-                            : 'text-foreground hover:bg-muted'
+                            ? 'text-red-500 hover:bg-muted/50'
+                            : 'text-foreground hover:bg-muted/50'
                           : 'text-muted-foreground/30 cursor-not-allowed'
                   )}
                 >
@@ -271,7 +271,7 @@ export function DatePicker({ value, onChange, open, onOpenChange, minDate, maxDa
         </div>
 
         {/* Confirm button */}
-        <div className="p-4 border-t">
+        <div className="p-4 border-t border-border">
           <Button
             className="w-full h-12 rounded-xl font-bold"
             onClick={handleConfirm}
@@ -307,16 +307,16 @@ export function DateInput({ value, onChange, label, placeholder = 'เลือ�
         type="button"
         onClick={() => setOpen(true)}
         className={cn(
-          'w-full h-11 px-3 rounded-md border border-input bg-background text-left text-sm',
+          'w-full h-11 px-3 rounded-xl border border-input bg-muted/20 text-left text-sm',
           'flex items-center justify-between',
-          'hover:bg-accent hover:text-accent-foreground',
-          'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
+          'hover:bg-muted/40 transition-colors',
+          'focus:outline-none focus:ring-2 focus:ring-primary/30 focus:ring-offset-2',
           !value && 'text-muted-foreground',
           className
         )}
       >
         <span>{displayValue}</span>
-        <Calendar className="w-4 h-4 text-muted-foreground" />
+        <Calendar className="w-4 h-4 text-primary/60" />
       </button>
       <DatePicker
         value={value}

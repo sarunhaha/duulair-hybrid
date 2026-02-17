@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -65,20 +66,20 @@
   --popover: 0 0% 100%;
   --popover-foreground: 215 25% 27%;
 
-  /* Primary: A calming Teal/Blue */
-  --primary: 190 85% 35%;
+  /* Primary: Emerald Green */
+  --primary: 160 84% 39%;
   --primary-foreground: 0 0% 100%;
 
-  /* Secondary: Softer blue for secondary actions */
-  --secondary: 190 30% 92%;
-  --secondary-foreground: 190 85% 35%;
+  /* Secondary: Soft Green */
+  --secondary: 160 30% 96%;
+  --secondary-foreground: 160 84% 39%;
 
   /* Muted: For subtext */
   --muted: 210 20% 96%;
   --muted-foreground: 215 15% 55%;
 
-  /* Accent: Warm Orange for "Oonjai" interactions */
-  --accent: 25 90% 60%;
+  /* Accent: Emerald (unified with primary) */
+  --accent: 160 84% 39%;
   --accent-foreground: 0 0% 100%;
 
   --destructive: 0 84% 60%;
@@ -89,11 +90,11 @@
   --ring: 190 85% 35%;
 
   /* Chart Colors */
-  --chart-1: 190 85% 40%;
-  --chart-2: 25 90% 60%;
-  --chart-3: 160 60% 45%;
-  --chart-4: 280 65% 60%;
-  --chart-5: 340 75% 55%;
+  --chart-1: 160 84% 39%;
+  --chart-2: 142 70% 45%;
+  --chart-3: 35 90% 55%;
+  --chart-4: 200 80% 45%;
+  --chart-5: 0 84% 60%;
 }
 
 .dark {
@@ -134,14 +135,14 @@
 
 @layer base {
   html {
-    font-size: 16px;
+    font-size: 18px;
     scroll-behavior: smooth;
   }
   * {
     @apply border-border;
   }
   body {
-    @apply font-sans antialiased bg-background text-foreground;
+    @apply font-sans antialiased bg-background text-foreground text-[15px] leading-relaxed;
   }
 
   /* Reduced motion for users who prefer it */
