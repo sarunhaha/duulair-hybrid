@@ -93,9 +93,12 @@ function formatThaiShort(date: Date): string {
   return `${date.getDate()} ${THAI_MONTHS[date.getMonth()]}`;
 }
 
-// Helper: Format date as ISO date (e.g., "2025-01-05")
+// Helper: Format date as ISO date in local timezone (e.g., "2025-01-05")
 function formatISODate(date: Date): string {
-  return date.toISOString().split('T')[0];
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
 }
 
 // Helper: Parse ISO date string to Date object
@@ -860,50 +863,54 @@ router.get('/glucose/:patientId', async (req: Request, res: Response) => {
 
     if (error) throw error;
 
-    // Group by date (take latest reading per day)
-    const byDate: Record<string, { glucose: number; mealContext: string | null }> = {};
+    // Group all readings by date (multiple readings per day)
+    const byDate: Record<string, { glucose: number; mealContext: string | null; time: string }[]> = {};
     (glucoseLogs || []).forEach((log) => {
       if (!log.glucose) return;
-      const dateKey = formatISODate(parseISODate(log.measured_at));
-      byDate[dateKey] = {
+      const d = parseISODate(log.measured_at);
+      const dateKey = formatISODate(d);
+      if (!byDate[dateKey]) byDate[dateKey] = [];
+      const hh = String(d.getHours()).padStart(2, '0');
+      const mm = String(d.getMinutes()).padStart(2, '0');
+      byDate[dateKey].push({
         glucose: log.glucose,
         mealContext: log.meal_context || null,
-      };
+        time: `${hh}:${mm}`,
+      });
     });
 
-    // Build data array
-    const data: TrendDataPoint[] = dates.map((date, i) => {
-      const entry = byDate[date];
-      const glucose = entry?.glucose || null;
-      const isFasting = entry?.mealContext === 'fasting' || entry?.mealContext === 'before_bed';
-      const isHigh = glucose !== null && (isFasting ? glucose >= 126 : glucose >= 200);
-      const isPreDiabetic = glucose !== null && !isHigh && (isFasting ? glucose >= 100 : glucose >= 140);
+    // Build data array with all readings per day
+    const data = dates.map((date, i) => {
+      const readings = byDate[date] || [];
+      const avg = readings.length > 0
+        ? Math.round(readings.reduce((s, r) => s + r.glucose, 0) / readings.length)
+        : null;
 
       return {
         day: labels[i],
         date,
-        glucose,
-        mealContext: entry?.mealContext || null,
-        event: isHigh ? 'สูง' : isPreDiabetic ? 'เสี่ยง' : undefined,
-        note: isHigh ? 'น้ำตาลสูงกว่าปกติ' : isPreDiabetic ? 'น้ำตาลสูงกว่าเกณฑ์เล็กน้อย' : undefined,
+        glucose: avg,
+        mealContext: readings.length > 0 ? readings[readings.length - 1].mealContext : null,
+        glucoseReadings: readings.length > 0 ? readings : undefined,
       };
     });
 
-    // Calculate summary
-    const recorded = data.filter((d) => d.glucose !== null);
-    const avgGlucose = recorded.length > 0
-      ? Math.round(recorded.reduce((sum, d) => sum + (d.glucose || 0), 0) / recorded.length)
+    // Calculate summary from all individual readings
+    const allReadings = Object.values(byDate).flat();
+    const recordedDays = Object.keys(byDate).length;
+    const avgGlucose = allReadings.length > 0
+      ? Math.round(allReadings.reduce((sum, r) => sum + r.glucose, 0) / allReadings.length)
       : 0;
 
     const summary: TrendSummary = {
-      avg: recorded.length > 0 ? `${avgGlucose} mg/dL` : '-',
+      avg: allReadings.length > 0 ? `${avgGlucose} mg/dL` : '-',
       label1: 'ค่าเฉลี่ย',
-      count: `วัดแล้ว ${recorded.length}/${days} วัน`,
-      label2: 'วันที่มีการวัด',
+      count: `วัดแล้ว ${recordedDays}/${days} วัน (${allReadings.length} ครั้ง)`,
+      label2: 'จำนวนการวัด',
     };
 
     // Generate insight
-    const insight = getGlucoseInsight(avgGlucose, recorded.length);
+    const insight = getGlucoseInsight(avgGlucose, recordedDays);
 
     return res.json({ data, summary, insight });
   } catch (error: any) {

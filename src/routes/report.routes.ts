@@ -129,6 +129,13 @@ router.get('/:patientId', async (req: Request, res: Response) => {
       ? Math.round(sleepData.reduce((sum, s) => sum + (s.sleep_hours || 0), 0) / sleepData.length * 10) / 10
       : 0;
 
+    // Calculate glucose average
+    const glucoseData = vitals.data?.filter(v => v.glucose != null) || [];
+    const avgGlucose = glucoseData.length > 0
+      ? Math.round(glucoseData.reduce((sum, v) => sum + v.glucose, 0) / glucoseData.length)
+      : 0;
+    const glucoseDaysRecorded = new Set(glucoseData.map(v => v.measured_at?.split('T')[0])).size;
+
     // Get BP status
     const bpStatus = getBpStatus(avgSystolic, avgDiastolic);
 
@@ -166,6 +173,13 @@ router.get('/:patientId', async (req: Request, res: Response) => {
           daysRecorded: sleepData.length,
           status: avgSleepHours >= 7 ? 'good' : avgSleepHours >= 5 ? 'fair' : 'poor',
         },
+        ...(glucoseData.length > 0 && {
+          glucose: {
+            avgGlucose,
+            daysRecorded: glucoseDaysRecorded,
+            status: avgGlucose >= 126 ? 'high' : avgGlucose >= 100 ? 'pre' : 'normal',
+          },
+        }),
         activities: {
           total: activities.length,
           byType: activities.reduce((acc, a) => {
@@ -236,6 +250,12 @@ function buildChartData(startDate: Date, endDate: Date, vitals: any[], meds: any
     const daySleep = sleep.find(s => s.sleep_date === dateStr);
     const sleepHours = daySleep?.sleep_hours || undefined;
 
+    // Get glucose for this day
+    const dayGlucose = vitals.filter(v => v.measured_at?.startsWith(dateStr) && v.glucose != null);
+    const glucose = dayGlucose.length > 0
+      ? Math.round(dayGlucose.reduce((sum, v) => sum + v.glucose, 0) / dayGlucose.length)
+      : undefined;
+
     days.push({
       date: dateStr,
       day: dayFormatted,
@@ -245,6 +265,7 @@ function buildChartData(startDate: Date, endDate: Date, vitals: any[], meds: any
       medsPercent,
       waterMl,
       sleepHours,
+      glucose,
     });
 
     currentDate.setDate(currentDate.getDate() + 1);

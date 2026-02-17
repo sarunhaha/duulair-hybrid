@@ -289,7 +289,7 @@ export function exportToCSV(data: ReportData, patientName: string, dateRange: st
 
   // Chart data
   rows.push(['ข้อมูลรายวัน']);
-  rows.push(['วันที่', 'Systolic', 'Diastolic', 'ยา (%)', 'น้ำ (มล.)']);
+  rows.push(['วันที่', 'Systolic', 'Diastolic', 'ยา (%)', 'น้ำ (มล.)', 'ระดับน้ำตาล (mg/dL)']);
   data.chartData.forEach((point) => {
     rows.push([
       point.date,
@@ -297,6 +297,7 @@ export function exportToCSV(data: ReportData, patientName: string, dateRange: st
       point.diastolic?.toString() || '-',
       point.medsPercent?.toString() || '-',
       point.waterMl?.toString() || '-',
+      point.glucose?.toString() || '-',
     ]);
   });
   rows.push([]);
@@ -486,6 +487,11 @@ export async function exportToPDF(
     summaryData.push(['การนอนเฉลี่ย', `${data.summary.sleep.avgHours.toFixed(1)} ชม.`, sleepStatus]);
   }
 
+  if (data.summary.glucose) {
+    const glucoseStatus = data.summary.glucose.status === 'high' ? 'สูง' : data.summary.glucose.status === 'pre' ? 'เสี่ยง' : 'ปกติ';
+    summaryData.push(['ระดับน้ำตาลเฉลี่ย', `${data.summary.glucose.avgGlucose} mg/dL`, glucoseStatus]);
+  }
+
   autoTable(doc, {
     startY: yPos,
     head: [['รายการ', 'ค่า', 'สถานะ']],
@@ -550,11 +556,12 @@ export async function exportToPDF(
     point.pulse?.toString() || '-',
     point.medsPercent !== undefined ? `${point.medsPercent}%` : '-',
     point.sleepHours?.toFixed(1) || '-',
+    point.glucose?.toString() || '-',
   ]);
 
   autoTable(doc, {
     startY: yPos,
-    head: [['วันที่', 'ความดัน', 'ชีพจร', 'กินยา', 'นอน (ชม.)']],
+    head: [['วันที่', 'ความดัน', 'ชีพจร', 'กินยา', 'นอน (ชม.)', 'ระดับน้ำตาล']],
     body: dailyData,
     theme: 'striped',
     headStyles: { fillColor: primaryColor, ...(hasThaiFont && { font: 'Sarabun' }) },
@@ -674,6 +681,7 @@ function getMockReportData(startDate: Date, endDate: Date): ReportData {
       diastolic: Math.random() > 0.1 ? dia : undefined,
       medsPercent,
       waterMl: Math.random() > 0.15 ? waterMl : undefined,
+      glucose: Math.random() > 0.3 ? 85 + Math.floor(Math.random() * 55) : undefined,
     };
   });
 

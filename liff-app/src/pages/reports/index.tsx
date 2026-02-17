@@ -454,6 +454,19 @@ export default function ReportsPage() {
                     </p>
                   </div>
                 )}
+                {summary?.glucose && (
+                  <div className="flex gap-3">
+                    <div className={cn(
+                      'w-1.5 h-1.5 rounded-full mt-1.5 shrink-0',
+                      summary.glucose.status === 'high' ? 'bg-red-500' : summary.glucose.status === 'pre' ? 'bg-amber-500' : 'bg-pink-500'
+                    )} />
+                    <p className="text-sm leading-relaxed">
+                      <span className="font-bold">ระดับน้ำตาลเฉลี่ย:</span> {summary.glucose.avgGlucose} mg/dL
+                      {summary.glucose.status === 'high' && ' (สูงกว่าปกติ)'}
+                      {summary.glucose.status === 'pre' && ' (เสี่ยง)'}
+                    </p>
+                  </div>
+                )}
               </div>
             )}
           </CardContent>
@@ -556,8 +569,50 @@ export default function ReportsPage() {
                           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" strokeOpacity={0.5} />
                           <XAxis dataKey="day" tick={{ fontSize: 9 }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
                           <YAxis tick={{ fontSize: 9 }} tickLine={false} axisLine={false} width={30} domain={[0, 'auto']} />
-                          <ReferenceLine y={7} stroke="#8b5cf6" strokeDasharray="6 3" strokeOpacity={0.3} label={{ value: '7 ชม.', position: 'right', fontSize: 9, fill: '#8b5cf6' }} />
+                          <ReferenceLine y={7} stroke="#8b5cf6" strokeDasharray="6 3" strokeOpacity={0.3} label={{ value: '7 ชม.', position: 'insideTopLeft', fontSize: 9, fill: '#8b5cf6' }} />
                           <Bar dataKey="sleepHours" radius={[4, 4, 0, 0]} fill="#8b5cf6" name="นอน (ชม.)" />
+                          <Tooltip contentStyle={{ borderRadius: '12px', fontSize: '12px', border: '1px solid hsl(var(--border))' }} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="h-full flex items-center justify-center text-xs text-muted-foreground">
+                        ไม่มีข้อมูล
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Glucose Chart */}
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <p className="text-xs font-bold flex items-center gap-1.5">
+                      <Droplet className="w-3 h-3 text-pink-500" /> ระดับน้ำตาล
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">
+                      เฉลี่ย {summary?.glucose ? `${summary.glucose.avgGlucose} mg/dL` : 'ไม่มีข้อมูล'}
+                    </p>
+                  </div>
+                  <div className="h-[120px] w-full">
+                    {chartDataSliced.some(d => d.glucose !== undefined) ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={chartDataSliced} onClick={handleChartClick}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" strokeOpacity={0.5} />
+                          <XAxis dataKey="day" tick={{ fontSize: 9 }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
+                          <YAxis tick={{ fontSize: 9 }} tickLine={false} axisLine={false} width={30} domain={[0, 'auto']} />
+                          <ReferenceLine y={100} stroke="#f59e0b" strokeDasharray="6 3" strokeOpacity={0.3} label={{ value: 'เสี่ยง 100', position: 'insideTopLeft', fontSize: 8, fill: '#f59e0b' }} />
+                          <ReferenceLine y={126} stroke="#ef4444" strokeDasharray="6 3" strokeOpacity={0.3} label={{ value: 'สูง 126', position: 'insideTopLeft', fontSize: 8, fill: '#ef4444' }} />
+                          <Bar dataKey="glucose" radius={[4, 4, 0, 0]} name="ระดับน้ำตาล (mg/dL)">
+                            {chartDataSliced.map((entry, index) => (
+                              <Cell
+                                key={`cell-glucose-${index}`}
+                                fill={
+                                  (entry.glucose || 0) >= 126 ? '#ef4444'
+                                    : (entry.glucose || 0) >= 100 ? '#f59e0b'
+                                    : '#ec4899'
+                                }
+                              />
+                            ))}
+                          </Bar>
                           <Tooltip contentStyle={{ borderRadius: '12px', fontSize: '12px', border: '1px solid hsl(var(--border))' }} />
                         </BarChart>
                       </ResponsiveContainer>
@@ -637,6 +692,20 @@ export default function ReportsPage() {
                           </p>
                         </div>
                       )}
+                      {selectedChartPoint.glucose !== undefined && (
+                        <div className="space-y-1">
+                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                            <Droplet className="w-3 h-3 text-pink-500" /> ระดับน้ำตาล
+                          </p>
+                          <p className={cn(
+                            'text-sm font-bold',
+                            (selectedChartPoint.glucose || 0) >= 126 ? 'text-red-500' : (selectedChartPoint.glucose || 0) >= 100 ? 'text-amber-500' : 'text-pink-500'
+                          )}>
+                            {selectedChartPoint.glucose}
+                            <span className="text-[10px] text-muted-foreground font-normal ml-1">mg/dL</span>
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -698,7 +767,7 @@ export default function ReportsPage() {
             {summary?.glucose && (
               <Card className="border-none shadow-sm bg-card p-4">
                 <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2">
-                  <Droplet className="w-3 h-3 text-pink-500" /> น้ำตาล
+                  <Droplet className="w-3 h-3 text-pink-500" /> ระดับน้ำตาล
                 </div>
                 <div className="space-y-1">
                   <p className="text-lg font-bold">

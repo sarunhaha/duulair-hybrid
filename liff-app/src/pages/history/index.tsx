@@ -377,7 +377,7 @@ export default function HistoryPage() {
           {[
             { id: 'symptoms', label: 'อาการ' },
             { id: 'health', label: 'ความดัน' },
-            { id: 'glucose', label: 'น้ำตาล' },
+            { id: 'glucose', label: 'ระดับน้ำตาล' },
             { id: 'meds', label: 'ยา' },
             { id: 'water', label: 'น้ำ' },
             { id: 'sleep', label: 'การนอน' },

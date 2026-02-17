@@ -37,6 +37,7 @@ export interface TrendDataPoint {
   // Glucose
   glucose?: number | null;
   mealContext?: string | null;
+  glucoseReadings?: { glucose: number; mealContext: string | null; time: string }[];
   // Common
   note?: string;
   event?: string;
@@ -737,34 +738,49 @@ function getMockGlucoseData(range: TimeRange, customRange?: CustomDateRange): Tr
   }
 
   const mealContexts = ['fasting', 'post_meal_1h', 'post_meal_2h', 'before_bed'];
+  const times = ['06:30', '08:00', '12:30', '13:30', '18:30', '21:00'];
+  let totalReadings = 0;
 
   const data: TrendDataPoint[] = labels.map((day, i) => {
-    const glucose = 85 + Math.floor(Math.random() * 55);
-    const mealContext = mealContexts[Math.floor(Math.random() * mealContexts.length)];
-    const isFasting = mealContext === 'fasting' || mealContext === 'before_bed';
-    const isHigh = isFasting ? glucose >= 126 : glucose >= 200;
-    const isPreDiabetic = !isHigh && (isFasting ? glucose >= 100 : glucose >= 140);
+    // Random 1-3 readings per day (some days 0)
+    const numReadings = Math.random() > 0.2 ? 1 + Math.floor(Math.random() * 3) : 0;
+    const readings: { glucose: number; mealContext: string | null; time: string }[] = [];
+
+    for (let r = 0; r < numReadings; r++) {
+      readings.push({
+        glucose: 85 + Math.floor(Math.random() * 55),
+        mealContext: mealContexts[r % mealContexts.length],
+        time: times[r * 2] || '12:00',
+      });
+    }
+
+    totalReadings += readings.length;
+    const avg = readings.length > 0
+      ? Math.round(readings.reduce((s, r) => s + r.glucose, 0) / readings.length)
+      : null;
 
     return {
       day,
       date: dates[i],
-      glucose,
-      mealContext,
-      event: isHigh ? 'สูง' : isPreDiabetic ? 'เสี่ยง' : undefined,
-      note: isHigh ? 'น้ำตาลสูงกว่าปกติ' : isPreDiabetic ? 'น้ำตาลสูงกว่าเกณฑ์เล็กน้อย' : undefined,
+      glucose: avg,
+      mealContext: readings.length > 0 ? readings[readings.length - 1].mealContext : null,
+      glucoseReadings: readings.length > 0 ? readings : undefined,
     };
   });
 
-  const avgGlucose = Math.round(data.reduce((sum, d) => sum + (d.glucose || 0), 0) / data.length);
-  const recordedDays = data.filter((d) => d.glucose !== null).length;
+  const allReadings = data.flatMap(d => d.glucoseReadings || []);
+  const avgGlucose = allReadings.length > 0
+    ? Math.round(allReadings.reduce((sum, r) => sum + r.glucose, 0) / allReadings.length)
+    : 0;
+  const recordedDays = data.filter(d => d.glucoseReadings && d.glucoseReadings.length > 0).length;
 
   return {
     data,
     summary: {
-      avg: `${avgGlucose} mg/dL`,
+      avg: allReadings.length > 0 ? `${avgGlucose} mg/dL` : '-',
       label1: 'ค่าเฉลี่ย',
-      count: `วัดแล้ว ${recordedDays}/${days} วัน`,
-      label2: 'วันที่มีการวัด',
+      count: `วัดแล้ว ${recordedDays}/${days} วัน (${allReadings.length} ครั้ง)`,
+      label2: 'จำนวนการวัด',
     },
     insight: getGlucoseInsight(avgGlucose, recordedDays),
   };

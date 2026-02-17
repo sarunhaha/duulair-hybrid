@@ -30,6 +30,9 @@ import {
   Line,
   BarChart,
   Bar,
+  ScatterChart,
+  Scatter,
+  ZAxis,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -202,7 +205,7 @@ export default function TrendsPage() {
     { id: 'exercise' as TrendCategory, label: 'ออกกำลัง', icon: Dumbbell },
     { id: 'mood' as TrendCategory, label: 'อารมณ์', icon: Smile },
     { id: 'water' as TrendCategory, label: 'น้ำ', icon: Droplets },
-    { id: 'glucose' as TrendCategory, label: 'น้ำตาล', icon: Droplet },
+    { id: 'glucose' as TrendCategory, label: 'ระดับน้ำตาล', icon: Droplet },
   ];
 
   const handleChartClick = (e: any) => {
@@ -431,6 +434,28 @@ export default function TrendsPage() {
                 </div>
               )}
 
+              {/* Glucose legend */}
+              {category === 'glucose' && (
+                <div className="flex flex-wrap gap-3 mb-2 text-[10px] font-bold uppercase tracking-wider">
+                  <div className="flex items-center gap-1">
+                    <div className="w-2.5 h-2.5 rounded-full bg-[#6366f1]" />
+                    <span className="text-muted-foreground">ตื่นนอน</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <div className="w-2.5 h-2.5 rounded-full bg-[#f97316]" />
+                    <span className="text-muted-foreground">หลังอาหาร 1 ชม.</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <div className="w-2.5 h-2.5 rounded-full bg-[#f59e0b]" />
+                    <span className="text-muted-foreground">หลังอาหาร 2 ชม.</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <div className="w-2.5 h-2.5 rounded-full bg-[#8b5cf6]" />
+                    <span className="text-muted-foreground">ก่อนนอน</span>
+                  </div>
+                </div>
+              )}
+
               {/* Non-heart charts */}
               {category !== 'heart' && (
               <div className="h-[240px] w-full">
@@ -586,47 +611,114 @@ export default function TrendsPage() {
                       </Bar>
                     </BarChart>
                   ) : category === 'glucose' ? (
-                    <BarChart
-                      data={activeData.data}
-                      margin={{ top: 10, right: 10, left: -25, bottom: 0 }}
-                      onClick={handleChartClick}
-                    >
-                      <CartesianGrid
-                        strokeDasharray="3 3"
-                        vertical={false}
-                        stroke="hsl(var(--muted))"
-                      />
-                      <XAxis
-                        dataKey="day"
-                        axisLine={false}
-                        tickLine={false}
-                        tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
-                        dy={10}
-                      />
-                      <YAxis
-                        axisLine={false}
-                        tickLine={false}
-                        tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
-                        domain={[0, 250]}
-                      />
-                      <Tooltip cursor={{ fill: 'rgba(0,0,0,0.05)' }} contentStyle={{ borderRadius: '12px', fontSize: '12px', border: '1px solid hsl(var(--border))' }} />
-                      <ReferenceLine y={100} stroke="#f59e0b" strokeDasharray="6 4" strokeOpacity={0.5} label={{ value: 'เสี่ยง', position: 'right', fontSize: 9, fill: '#f59e0b' }} />
-                      <ReferenceLine y={126} stroke="#ef4444" strokeDasharray="6 4" strokeOpacity={0.5} label={{ value: 'สูง', position: 'right', fontSize: 9, fill: '#ef4444' }} />
-                      <Bar dataKey="glucose" radius={[6, 6, 0, 0]}>
-                        {activeData.data.map((entry, index) => (
-                          <Cell
-                            key={`cell-${index}`}
-                            fill={
-                              (entry.glucose || 0) >= 126
-                                ? '#ef4444'
-                                : (entry.glucose || 0) >= 100
-                                  ? '#f59e0b'
-                                  : '#ec4899'
-                            }
+                    (() => {
+                      // Flatten all glucose readings into scatter points
+                      const mealColorMap: Record<string, string> = {
+                        fasting: '#6366f1',      // indigo — ตื่นนอน
+                        post_meal_1h: '#f97316',  // orange — หลังอาหาร 1 ชม.
+                        post_meal_2h: '#f59e0b',  // amber — หลังอาหาร 2 ชม.
+                        before_bed: '#8b5cf6',    // violet — ก่อนนอน
+                      };
+                      const mealLabelMap: Record<string, string> = {
+                        fasting: 'ตื่นนอน',
+                        post_meal_1h: 'หลังอาหาร 1 ชม.',
+                        post_meal_2h: 'หลังอาหาร 2 ชม.',
+                        before_bed: 'ก่อนนอน',
+                      };
+
+                      // Build scatter points: each reading becomes a dot
+                      const scatterPoints: { dayIndex: number; glucose: number; mealContext: string; time: string; day: string; date: string }[] = [];
+                      activeData.data.forEach((d, i) => {
+                        if (d.glucoseReadings) {
+                          d.glucoseReadings.forEach((r, ri) => {
+                            // Offset dots slightly so multiple readings don't overlap
+                            const offset = d.glucoseReadings!.length > 1
+                              ? (ri - (d.glucoseReadings!.length - 1) / 2) * 0.15
+                              : 0;
+                            scatterPoints.push({
+                              dayIndex: i + offset,
+                              glucose: r.glucose,
+                              mealContext: r.mealContext || 'fasting',
+                              time: r.time,
+                              day: d.day,
+                              date: d.date,
+                            });
+                          });
+                        }
+                      });
+
+                      // Group by meal context for separate Scatter series
+                      const groups: Record<string, typeof scatterPoints> = {};
+                      scatterPoints.forEach(p => {
+                        const key = p.mealContext;
+                        if (!groups[key]) groups[key] = [];
+                        groups[key].push(p);
+                      });
+
+                      const dayLabels = activeData.data.map(d => d.day);
+
+                      return (
+                        <ScatterChart margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--muted))" />
+                          <XAxis
+                            type="number"
+                            dataKey="dayIndex"
+                            domain={[-0.5, activeData.data.length - 0.5]}
+                            ticks={activeData.data.map((_, i) => i)}
+                            tickFormatter={(val: number) => dayLabels[Math.round(val)] || ''}
+                            axisLine={false}
+                            tickLine={false}
+                            tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                            dy={10}
                           />
-                        ))}
-                      </Bar>
-                    </BarChart>
+                          <YAxis
+                            type="number"
+                            dataKey="glucose"
+                            axisLine={false}
+                            tickLine={false}
+                            tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                            domain={[50, 250]}
+                          />
+                          <ZAxis range={[80, 80]} />
+                          <ReferenceLine y={100} stroke="#f59e0b" strokeDasharray="6 4" strokeOpacity={0.5} label={{ value: 'เสี่ยง 100', position: 'insideTopLeft', fontSize: 9, fill: '#f59e0b' }} />
+                          <ReferenceLine y={126} stroke="#ef4444" strokeDasharray="6 4" strokeOpacity={0.5} label={{ value: 'สูง 126', position: 'insideTopLeft', fontSize: 9, fill: '#ef4444' }} />
+                          <Tooltip
+                            content={({ payload }) => {
+                              if (!payload || !payload[0]) return null;
+                              const p = payload[0].payload;
+                              return (
+                                <div className="bg-card border border-border rounded-xl px-3 py-2 shadow-md text-xs space-y-0.5">
+                                  <p className="font-bold">{p.day} ({p.date})</p>
+                                  <p className="font-bold text-base" style={{ color: mealColorMap[p.mealContext] || '#ec4899' }}>
+                                    {p.glucose} mg/dL
+                                  </p>
+                                  <p className="text-muted-foreground">
+                                    {mealLabelMap[p.mealContext] || p.mealContext} · {p.time}
+                                  </p>
+                                </div>
+                              );
+                            }}
+                          />
+                          {Object.entries(groups).map(([ctx, points]) => (
+                            <Scatter
+                              key={ctx}
+                              name={mealLabelMap[ctx] || ctx}
+                              data={points}
+                              fill={mealColorMap[ctx] || '#ec4899'}
+                              stroke="white"
+                              strokeWidth={2}
+                              onClick={(data: any) => {
+                                if (data && data.date) {
+                                  const dayData = activeData.data.find(d => d.date === data.date);
+                                  if (dayData) setSelectedPoint(dayData);
+                                }
+                              }}
+                              cursor="pointer"
+                            />
+                          ))}
+                        </ScatterChart>
+                      );
+                    })()
                   ) : (
                     /* Water */
                     <BarChart
@@ -779,21 +871,31 @@ export default function TrendsPage() {
                         </div>
                       )}
                       {category === 'glucose' && (
-                        <div className="mt-1">
-                          <p className="text-xl font-bold text-pink-600">
-                            {selectedPoint.glucose !== null ? (
-                              <>
-                                {selectedPoint.glucose}{' '}
-                                <span className="text-xs font-normal text-muted-foreground">mg/dL</span>
-                              </>
-                            ) : (
-                              <span className="text-muted-foreground text-base">ไม่ได้วัด</span>
-                            )}
-                          </p>
-                          {selectedPoint.mealContext && (
-                            <p className="text-xs text-muted-foreground mt-0.5">
-                              {({ fasting: 'ตื่นนอน', post_meal_1h: 'หลังอาหาร 1 ชม.', post_meal_2h: 'หลังอาหาร 2 ชม.', before_bed: 'ก่อนนอน' } as Record<string, string>)[selectedPoint.mealContext] || selectedPoint.mealContext}
-                            </p>
+                        <div className="mt-1 space-y-2">
+                          {selectedPoint.glucoseReadings && selectedPoint.glucoseReadings.length > 0 ? (
+                            <>
+                              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                                วัด {selectedPoint.glucoseReadings.length} ครั้ง · เฉลี่ย {selectedPoint.glucose} mg/dL
+                              </p>
+                              {selectedPoint.glucoseReadings.map((r, ri) => {
+                                const mealLabel: Record<string, string> = { fasting: 'ตื่นนอน', post_meal_1h: 'หลังอาหาร 1 ชม.', post_meal_2h: 'หลังอาหาร 2 ชม.', before_bed: 'ก่อนนอน' };
+                                const mealColor: Record<string, string> = { fasting: '#6366f1', post_meal_1h: '#f97316', post_meal_2h: '#f59e0b', before_bed: '#8b5cf6' };
+                                return (
+                                  <div key={ri} className="flex items-center gap-2">
+                                    <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: mealColor[r.mealContext || ''] || '#ec4899' }} />
+                                    <span className="text-base font-bold" style={{ color: mealColor[r.mealContext || ''] || '#ec4899' }}>
+                                      {r.glucose}
+                                    </span>
+                                    <span className="text-[10px] text-muted-foreground">mg/dL</span>
+                                    <span className="text-[10px] text-muted-foreground">
+                                      {mealLabel[r.mealContext || ''] || r.mealContext} · {r.time}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </>
+                          ) : (
+                            <p className="text-muted-foreground text-base">ไม่ได้วัด</p>
                           )}
                         </div>
                       )}
