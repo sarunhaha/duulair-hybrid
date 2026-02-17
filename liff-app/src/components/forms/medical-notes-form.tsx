@@ -19,7 +19,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { DateInput } from '@/components/ui/date-picker';
 import {
   Drawer,
   DrawerClose,
@@ -31,6 +30,7 @@ import { useLogMedicalNote, useTodayMedicalNotes, useDeleteMedicalNote, useUpdat
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { useEnsurePatient } from '@/hooks/use-ensure-patient';
+import { TimeSelectorPill } from './time-selector-pill';
 
 interface MedicalNoteLog {
   id: string;
@@ -92,7 +92,6 @@ export function MedicalNotesForm({ onSuccess, onCancel, initialEditData }: Medic
   // Initialize form data - use initialEditData if provided (component is re-mounted via key prop)
   const [formData, setFormData] = useState<MedicalNotesFormData>(() => {
     if (initialEditData) {
-      console.log('[MedicalNotesForm] Initializing from initialEditData:', initialEditData);
       const isPreset = EVENT_TYPES.some(t => t.value === initialEditData.event_type);
       return {
         event_date: initialEditData.event_date || getLocalDateString(),
@@ -133,20 +132,6 @@ export function MedicalNotesForm({ onSuccess, onCancel, initialEditData }: Medic
     }, 1500);
   };
 
-  // Load log data into form for editing (used by initialEditData mode)
-  const handleEdit = (log: MedicalNoteLog) => {
-    setEditingLog(log);
-    const isPreset = EVENT_TYPES.some(t => t.value === log.event_type);
-    setFormData({
-      event_date: log.event_date || getLocalDateString(),
-      event_type: isPreset ? log.event_type : 'other',
-      custom_type: isPreset ? '' : log.event_type,
-      description: log.description || '',
-      hospital_name: log.hospital_name || '',
-      doctor_name: log.doctor_name || '',
-    });
-  };
-
   // Cancel editing
   const handleCancelEdit = () => {
     setEditingLog(null);
@@ -160,8 +145,7 @@ export function MedicalNotesForm({ onSuccess, onCancel, initialEditData }: Medic
       toast({ description: 'ลบข้อมูลเรียบร้อยแล้ว' });
       setDeleteConfirmId(null);
       refetchNotes();
-    } catch (error) {
-      console.error('Error deleting medical note:', error);
+    } catch {
       toast({ description: 'เกิดข้อผิดพลาดในการลบข้อมูล', variant: 'destructive' });
     }
   };
@@ -212,8 +196,7 @@ export function MedicalNotesForm({ onSuccess, onCancel, initialEditData }: Medic
       setFormData(defaultFormData);
       refetchNotes();
       onSuccess?.();
-    } catch (error) {
-      console.error('Error logging medical note:', error);
+    } catch {
       toast({ title: 'ไม่สามารถบันทึกได้', variant: 'destructive' });
     }
   };
@@ -229,6 +212,127 @@ export function MedicalNotesForm({ onSuccess, onCancel, initialEditData }: Medic
 
   return (
     <div className="space-y-6 pb-4">
+      {/* Edit Drawer */}
+      {editDrawerItem && (
+        <Drawer open={true} onOpenChange={(open) => !open && handleCloseEditDrawer()}>
+          <DrawerContent className="max-h-[90vh]">
+            <DrawerHeader className="flex items-center justify-between px-6">
+              <DrawerTitle className="text-xl font-bold">แก้ไขบันทึกแพทย์</DrawerTitle>
+              <DrawerClose asChild>
+                <Button variant="ghost" size="icon" className="rounded-full h-10 w-10">
+                  <X className="w-5 h-5" />
+                </Button>
+              </DrawerClose>
+            </DrawerHeader>
+
+            <div className="px-6 overflow-y-auto max-h-[calc(90vh-80px)]">
+              {editDrawerSuccess ? (
+                <div className="py-12 flex flex-col items-center text-center space-y-6 animate-in zoom-in-95 duration-300">
+                  <div className="w-20 h-20 bg-emerald-100 dark:bg-emerald-950/30 text-emerald-600 rounded-full flex items-center justify-center">
+                    <Check className="w-10 h-10 stroke-[3px]" />
+                  </div>
+                  <div className="space-y-2">
+                    <h2 className="text-2xl font-bold text-foreground">อัปเดตเรียบร้อย!</h2>
+                    <p className="text-muted-foreground text-sm leading-relaxed px-8">
+                      ข้อมูลบันทึกแพทย์ของคุณถูกอัปเดตแล้ว
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <MedicalNotesForm
+                  key={editDrawerItem.id}
+                  onSuccess={handleEditDrawerSuccess}
+                  onCancel={handleCloseEditDrawer}
+                  initialEditData={editDrawerItem}
+                />
+              )}
+            </div>
+          </DrawerContent>
+        </Drawer>
+      )}
+
+      {/* Time Selector Pill with Date */}
+      <TimeSelectorPill
+        time=""
+        onTimeChange={() => {}}
+        date={formData.event_date}
+        onDateChange={(value) => setFormData(prev => ({ ...prev, event_date: value }))}
+        showDate
+      />
+
+      {/* Event Type */}
+      <div className="space-y-3">
+        <Label className="text-base font-bold">ประเภท</Label>
+        <div className="grid grid-cols-3 gap-2">
+          {EVENT_TYPES.map((type) => {
+            const Icon = type.icon;
+            return (
+              <button
+                key={type.value}
+                type="button"
+                onClick={() => setFormData(prev => ({ ...prev, event_type: type.value }))}
+                className={cn(
+                  'p-3 rounded-2xl border-2 transition-all flex flex-col items-center gap-1.5',
+                  formData.event_type === type.value
+                    ? 'bg-blue-100 text-blue-600 border-blue-300 dark:bg-blue-950/50 dark:text-blue-400 dark:border-blue-700'
+                    : 'bg-white dark:bg-card border-muted shadow-sm hover:bg-muted/50'
+                )}
+              >
+                <Icon className="w-6 h-6" />
+                <span className="text-xs font-medium">{type.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Custom Type Input */}
+      {formData.event_type === 'other' && (
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">ระบุประเภท</Label>
+          <Input
+            value={formData.custom_type}
+            onChange={(e) => setFormData(prev => ({ ...prev, custom_type: e.target.value }))}
+            placeholder="เช่น กายภาพบำบัด, ทำฟัน"
+            className="h-12 rounded-2xl bg-muted/20 border border-muted"
+          />
+        </div>
+      )}
+
+      {/* Description */}
+      <div className="space-y-2">
+        <Label className="text-base font-bold">รายละเอียด *</Label>
+        <Textarea
+          value={formData.description}
+          onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+          placeholder="เช่น ตรวจเลือด ผลปกติ, พบแพทย์เรื่องปวดหลัง"
+          rows={3}
+          className="rounded-2xl bg-muted/20 border border-muted"
+        />
+      </div>
+
+      {/* Hospital Name */}
+      <div className="space-y-2">
+        <Label className="text-base font-bold">โรงพยาบาล (ถ้ามี)</Label>
+        <Input
+          value={formData.hospital_name}
+          onChange={(e) => setFormData(prev => ({ ...prev, hospital_name: e.target.value }))}
+          placeholder="เช่น รพ.ศิริราช"
+          className="h-12 rounded-2xl bg-muted/20 border border-muted"
+        />
+      </div>
+
+      {/* Doctor Name */}
+      <div className="space-y-2">
+        <Label className="text-base font-bold">แพทย์ (ถ้ามี)</Label>
+        <Input
+          value={formData.doctor_name}
+          onChange={(e) => setFormData(prev => ({ ...prev, doctor_name: e.target.value }))}
+          placeholder="เช่น นพ.สมชาย"
+          className="h-12 rounded-2xl bg-muted/20 border border-muted"
+        />
+      </div>
+
       {/* Today's Logged Notes */}
       {todayNotes && todayNotes.length > 0 && (
         <div className="space-y-2">
@@ -244,7 +348,7 @@ export function MedicalNotesForm({ onSuccess, onCancel, initialEditData }: Medic
               return (
                 <div
                   key={note.id}
-                  className="flex items-center gap-3 bg-muted/50 rounded-xl p-3 group cursor-pointer active:scale-[0.99] transition-transform"
+                  className="flex items-center gap-3 bg-white dark:bg-card border border-muted shadow-sm rounded-2xl p-3 group cursor-pointer active:scale-[0.99] transition-transform"
                   onClick={() => !isDeleting && handleEditDrawer(note)}
                 >
                   <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-950/50 flex items-center justify-center shrink-0">
@@ -310,142 +414,6 @@ export function MedicalNotesForm({ onSuccess, onCancel, initialEditData }: Medic
           </div>
         </div>
       )}
-
-      {/* Edit Drawer - like history tab */}
-      {editDrawerItem && (
-        <Drawer open={true} onOpenChange={(open) => !open && handleCloseEditDrawer()}>
-          <DrawerContent className="max-h-[90vh]">
-            <DrawerHeader className="flex items-center justify-between px-6">
-              <DrawerTitle className="text-xl font-bold">แก้ไขบันทึกแพทย์</DrawerTitle>
-              <DrawerClose asChild>
-                <Button variant="ghost" size="icon" className="rounded-full h-10 w-10">
-                  <X className="w-5 h-5" />
-                </Button>
-              </DrawerClose>
-            </DrawerHeader>
-
-            <div className="px-6 overflow-y-auto max-h-[calc(90vh-80px)]">
-              {editDrawerSuccess ? (
-                <div className="py-12 flex flex-col items-center text-center space-y-6 animate-in zoom-in-95 duration-300">
-                  <div className="w-20 h-20 bg-emerald-100 dark:bg-emerald-950/30 text-emerald-600 rounded-full flex items-center justify-center">
-                    <Check className="w-10 h-10 stroke-[3px]" />
-                  </div>
-                  <div className="space-y-2">
-                    <h2 className="text-2xl font-bold text-foreground">อัปเดตเรียบร้อย!</h2>
-                    <p className="text-muted-foreground text-sm leading-relaxed px-8">
-                      ข้อมูลบันทึกแพทย์ของคุณถูกอัปเดตแล้ว
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <MedicalNotesForm
-                  key={editDrawerItem.id}
-                  onSuccess={handleEditDrawerSuccess}
-                  onCancel={handleCloseEditDrawer}
-                  initialEditData={editDrawerItem}
-                />
-              )}
-            </div>
-          </DrawerContent>
-        </Drawer>
-      )}
-
-      {/* Summary Card */}
-      <div className="bg-gradient-to-br from-blue-500 to-cyan-600 rounded-2xl p-5 text-white text-center relative overflow-hidden">
-        <div className="absolute -right-10 -top-10 w-32 h-32 bg-white/10 rounded-full" />
-        <div className="relative z-10 flex items-center justify-center gap-4">
-          <FileText className="w-10 h-10" />
-          <div>
-            <p className="text-sm text-white/80">บันทึกแพทย์</p>
-            <p className="text-2xl font-bold">
-              {formData.event_type
-                ? EVENT_TYPES.find(e => e.value === formData.event_type)?.label || formData.custom_type
-                : 'เลือกประเภท'}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Event Date */}
-      <div className="space-y-2">
-        <Label className="text-base font-bold">วันที่</Label>
-        <DateInput
-          value={formData.event_date}
-          onChange={(value) => setFormData(prev => ({ ...prev, event_date: value }))}
-        />
-      </div>
-
-      {/* Event Type */}
-      <div className="space-y-3">
-        <Label className="text-base font-bold">ประเภท</Label>
-        <div className="grid grid-cols-3 gap-2">
-          {EVENT_TYPES.map((type) => {
-            const Icon = type.icon;
-            return (
-              <button
-                key={type.value}
-                type="button"
-                onClick={() => setFormData(prev => ({ ...prev, event_type: type.value }))}
-                className={cn(
-                  'p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1.5',
-                  formData.event_type === type.value
-                    ? 'bg-blue-100 text-blue-600 border-blue-300 dark:bg-blue-950/50 dark:text-blue-400 dark:border-blue-700'
-                    : 'bg-muted/50 border-transparent hover:bg-muted'
-                )}
-              >
-                <Icon className="w-6 h-6" />
-                <span className="text-xs font-medium">{type.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Custom Type Input */}
-      {formData.event_type === 'other' && (
-        <div className="space-y-2">
-          <Label className="text-sm font-medium">ระบุประเภท</Label>
-          <Input
-            value={formData.custom_type}
-            onChange={(e) => setFormData(prev => ({ ...prev, custom_type: e.target.value }))}
-            placeholder="เช่น กายภาพบำบัด, ทำฟัน"
-            className="h-12"
-          />
-        </div>
-      )}
-
-      {/* Description */}
-      <div className="space-y-2">
-        <Label className="text-base font-bold">รายละเอียด *</Label>
-        <Textarea
-          value={formData.description}
-          onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-          placeholder="เช่น ตรวจเลือด ผลปกติ, พบแพทย์เรื่องปวดหลัง"
-          rows={3}
-        />
-      </div>
-
-      {/* Hospital Name */}
-      <div className="space-y-2">
-        <Label className="text-base font-bold">โรงพยาบาล (ถ้ามี)</Label>
-        <Input
-          value={formData.hospital_name}
-          onChange={(e) => setFormData(prev => ({ ...prev, hospital_name: e.target.value }))}
-          placeholder="เช่น รพ.ศิริราช"
-          className="h-12"
-        />
-      </div>
-
-      {/* Doctor Name */}
-      <div className="space-y-2">
-        <Label className="text-base font-bold">แพทย์ (ถ้ามี)</Label>
-        <Input
-          value={formData.doctor_name}
-          onChange={(e) => setFormData(prev => ({ ...prev, doctor_name: e.target.value }))}
-          placeholder="เช่น นพ.สมชาย"
-          className="h-12"
-        />
-      </div>
 
       {/* Action Buttons */}
       <div className="flex gap-3 pt-2">

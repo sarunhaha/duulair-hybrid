@@ -2,11 +2,11 @@ import { useState, useEffect } from 'react';
 import { Droplet, Plus, Clock, Trash2, Target, Settings, Zap, Pencil, Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
-import { useAddWater, useDeleteWater, useTodayWater } from '@/lib/api/hooks/use-health';
+import { useAddWater, useTodayWater } from '@/lib/api/hooks/use-health';
+import { TimeSelectorPill } from './time-selector-pill';
 
 interface WaterLog {
   id: string;
@@ -27,25 +27,18 @@ interface WaterFormProps {
   initialEditData?: WaterLogDB;
 }
 
-export function WaterForm({ onSuccess, onCancel, initialEditData }: WaterFormProps) {
-  // Note: initialEditData is received but WaterForm uses localStorage
-  // Edit from history tab for water is not fully supported yet
-  if (initialEditData) {
-    console.log('[WaterForm] initialEditData received (not fully supported):', initialEditData);
-  }
+export function WaterForm({ onSuccess, onCancel }: WaterFormProps) {
   const { patientId } = useAuth();
   const { toast } = useToast();
 
   // API hooks
   const addWaterMutation = useAddWater();
-  const deleteWaterMutation = useDeleteWater();
-  const { data: todayWaterData, refetch: refetchTodayWater } = useTodayWater(patientId);
+  const { refetch: refetchTodayWater } = useTodayWater(patientId);
 
   const [totalToday, setTotalToday] = useState(0);
   const [dailyGoal, setDailyGoal] = useState(2000);
   const [todayLogs, setTodayLogs] = useState<WaterLog[]>([]);
   const [customAmount, setCustomAmount] = useState('');
-  const [customTime, setCustomTime] = useState('');
   const [showSettings, setShowSettings] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [editingLogId, setEditingLogId] = useState<string | null>(null);
@@ -101,26 +94,22 @@ export function WaterForm({ onSuccess, onCancel, initialEditData }: WaterFormPro
       // Calculate glasses (1 glass = 250ml)
       const glasses = Math.round(amount / 250);
 
-      console.log('[WaterForm] Saving water:', { patientId, glasses, amount });
-
       // Save to backend API
       if (patientId) {
-        console.log('[WaterForm] Calling API with patientId:', patientId, 'timestamp:', timestamp);
         try {
-          const result = await addWaterMutation.mutateAsync({
+          await addWaterMutation.mutateAsync({
             patientId,
             glasses: glasses || 1,
             amount_ml: amount,
-            logged_at: timestamp, // Send custom timestamp to backend
+            logged_at: timestamp,
           });
-          console.log('[WaterForm] API result:', result);
           // Refetch to get updated data from API
           refetchTodayWater();
-        } catch (apiError) {
-          console.error('[WaterForm] API error:', apiError);
+        } catch {
+          // API error - still save locally
         }
       } else {
-        console.warn('[WaterForm] No patientId, skipping API call');
+        // No patientId, skip API call
       }
 
       // Also save to localStorage for local display
@@ -139,9 +128,7 @@ export function WaterForm({ onSuccess, onCancel, initialEditData }: WaterFormPro
       saveData(newTotal, newLogs, dailyGoal);
 
       toast({ description: `เพิ่ม ${amount} ml เรียบร้อยแล้ว` });
-      setCustomTime(''); // Reset custom time after adding
-    } catch (error) {
-      console.error('Error adding water:', error);
+    } catch {
       toast({ description: 'เกิดข้อผิดพลาดในการบันทึก', variant: 'destructive' });
     } finally {
       setIsSaving(false);
@@ -154,7 +141,7 @@ export function WaterForm({ onSuccess, onCancel, initialEditData }: WaterFormPro
       toast({ description: 'กรุณาระบุปริมาณระหว่าง 1-5000 ml', variant: 'destructive' });
       return;
     }
-    addWater(amount, customTime || undefined);
+    addWater(amount, pillTime);
     setCustomAmount('');
   };
 
@@ -227,34 +214,42 @@ export function WaterForm({ onSuccess, onCancel, initialEditData }: WaterFormPro
     { amount: 750, label: '3 แก้ว' },
   ];
 
+  // Time state for custom logging
+  const [pillTime, setPillTime] = useState(() => {
+    const n = new Date();
+    return `${n.getHours().toString().padStart(2, '0')}:${n.getMinutes().toString().padStart(2, '0')}`;
+  });
+
   return (
     <div className="space-y-6 pb-4">
-      {/* Progress Section */}
-      <div className="bg-muted/50 rounded-2xl p-4 space-y-3">
-        <div className="flex justify-between items-center text-sm">
-          <span className="text-muted-foreground flex items-center gap-1.5">
-            <Target className="w-3.5 h-3.5" />
-            วันนี้
-          </span>
-          <span className="text-muted-foreground">เป้าหมาย: {dailyGoal} ml</span>
+      {/* Time Selector Pill */}
+      <TimeSelectorPill
+        time={pillTime}
+        onTimeChange={setPillTime}
+      />
+
+      {/* Water Summary Card - Clean style */}
+      <div className="bg-blue-50/50 dark:bg-blue-950/20 p-6 rounded-[32px] text-center space-y-3">
+        <div className="w-12 h-12 mx-auto rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+          <Droplet className="w-6 h-6 text-blue-600 dark:text-blue-400" />
         </div>
-        <Progress value={progress} className="h-3" />
-      </div>
+        <div className="text-5xl font-bold font-mono text-foreground">{totalToday}</div>
+        <div className="text-muted-foreground">มิลลิลิตร ({glassCount} แก้ว)</div>
 
-      {/* Water Summary Card */}
-      <div className="relative bg-gradient-to-br from-blue-500 to-blue-600 rounded-3xl p-6 text-white text-center overflow-hidden">
-        <div className="absolute -right-10 -top-10 w-32 h-32 bg-white/10 rounded-full" />
-        <div className="absolute -left-8 -bottom-8 w-24 h-24 bg-white/5 rounded-full" />
-
-        <div className="relative z-10 space-y-3">
-          <div className="w-12 h-12 mx-auto rounded-xl bg-white/20 flex items-center justify-center backdrop-blur-sm">
-            <Droplet className="w-6 h-6" />
+        {/* Progress */}
+        <div className="space-y-2 pt-2">
+          <div className="bg-blue-100 dark:bg-blue-900/30 rounded-full h-3 overflow-hidden">
+            <div
+              className="bg-blue-500 h-full rounded-full transition-all duration-500"
+              style={{ width: `${progress}%` }}
+            />
           </div>
-          <div className="text-5xl font-bold font-mono">{totalToday}</div>
-          <div className="text-white/90">มิลลิลิตร ({glassCount} แก้ว)</div>
-          <div className="flex items-center justify-center gap-1.5 text-sm text-white/80">
-            <Target className="w-4 h-4" />
-            <span>{remaining} ml เพื่อบรรลุเป้าหมาย</span>
+          <div className="flex justify-between items-center text-xs text-muted-foreground">
+            <span className="flex items-center gap-1">
+              <Target className="w-3.5 h-3.5" />
+              เป้าหมาย: {dailyGoal} ml
+            </span>
+            <span>{remaining} ml อีก</span>
           </div>
         </div>
       </div>
@@ -269,10 +264,10 @@ export function WaterForm({ onSuccess, onCancel, initialEditData }: WaterFormPro
           {quickAddOptions.map((opt) => (
             <button
               key={opt.amount}
-              onClick={() => addWater(opt.amount)}
+              onClick={() => addWater(opt.amount, pillTime)}
               disabled={isSaving}
               className={cn(
-                'bg-muted/50 border-2 border-transparent rounded-xl p-3 text-center transition-all',
+                'bg-white dark:bg-card border border-muted shadow-sm rounded-2xl p-3 text-center transition-all',
                 'hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950/30',
                 'active:scale-95'
               )}
@@ -292,28 +287,18 @@ export function WaterForm({ onSuccess, onCancel, initialEditData }: WaterFormPro
             max={5000}
             value={customAmount}
             onChange={(e) => setCustomAmount(e.target.value)}
-            className="flex-1"
-          />
-          <Input
-            type="time"
-            value={customTime}
-            onChange={(e) => setCustomTime(e.target.value)}
-            className="w-24"
-            placeholder="เวลา"
+            className="flex-1 rounded-2xl bg-muted/20 border border-muted"
           />
           <Button
             variant="default"
             onClick={addCustomWater}
             disabled={isSaving || !customAmount}
-            className="gap-1.5"
+            className="gap-1.5 rounded-2xl"
           >
             <Plus className="w-4 h-4" />
             เพิ่ม
           </Button>
         </div>
-        <p className="text-xs text-muted-foreground">
-          * ถ้าไม่ระบุเวลา จะใช้เวลาปัจจุบัน
-        </p>
       </div>
 
       {/* Today's Logs */}
@@ -327,7 +312,7 @@ export function WaterForm({ onSuccess, onCancel, initialEditData }: WaterFormPro
             {todayLogs.map((log) => (
               <div
                 key={log.id}
-                className="flex items-center justify-between bg-muted/50 rounded-xl p-3"
+                className="flex items-center justify-between bg-white dark:bg-card border border-muted shadow-sm rounded-2xl p-3"
               >
                 <div className="space-y-0.5 flex-1">
                   {editingLogId === log.id ? (

@@ -11,10 +11,8 @@ import {
   FileText,
   Plus,
   Settings,
-  Edit3,
   History,
   Trash2,
-  Calendar,
   X,
   ChevronRight,
 } from 'lucide-react';
@@ -22,8 +20,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { DateInput } from '@/components/ui/date-picker';
-import { TimePicker } from '@/components/ui/time-picker';
 import {
   Drawer,
   DrawerClose,
@@ -36,6 +32,7 @@ import { useEnsurePatient } from '@/hooks/use-ensure-patient';
 import { usePatientMedications, useTodayMedicationLogs, useLogMedication, useDeleteMedicationLog, useUpdateMedicationLog, type Medication } from '@/lib/api/hooks/use-health';
 import { useToast } from '@/hooks/use-toast';
 import { useLocation } from 'wouter';
+import { TimeSelectorPill } from './time-selector-pill';
 
 interface MedicationLogDB {
   id: string;
@@ -102,7 +99,6 @@ export function MedicationForm({ onSuccess, onCancel, initialEditData }: Medicat
   const { toast } = useToast();
   const [, navigate] = useLocation();
 
-  // Check if we are in edit mode
   const isEditMode = !!initialEditData;
 
   const { data: medications, isLoading: medsLoading } = usePatientMedications(patientId);
@@ -118,25 +114,20 @@ export function MedicationForm({ onSuccess, onCancel, initialEditData }: Medicat
   const [editDrawerItem, setEditDrawerItem] = useState<MedicationLogDB | null>(null);
   const [editDrawerSuccess, setEditDrawerSuccess] = useState(false);
 
-  // Open edit drawer
   const handleEditLog = (log: MedicationLogDB) => {
     setEditDrawerItem(log);
     setEditDrawerSuccess(false);
   };
 
-  // Close edit drawer
   const handleCloseEditDrawer = () => {
     setEditDrawerItem(null);
     setEditDrawerSuccess(false);
     refetchLogs();
   };
 
-  // Handle edit success
   const handleEditDrawerSuccess = () => {
     setEditDrawerSuccess(true);
-    setTimeout(() => {
-      handleCloseEditDrawer();
-    }, 1500);
+    setTimeout(() => handleCloseEditDrawer(), 1500);
   };
 
   const handleDeleteLog = async (id: string) => {
@@ -146,36 +137,30 @@ export function MedicationForm({ onSuccess, onCancel, initialEditData }: Medicat
       toast({ description: 'ลบข้อมูลเรียบร้อยแล้ว' });
       setDeleteConfirmId(null);
       refetchLogs();
-    } catch (error) {
-      console.error('Error deleting medication log:', error);
+    } catch {
       toast({ description: 'เกิดข้อผิดพลาดในการลบข้อมูล', variant: 'destructive' });
     }
   };
+
   const [selectedMeds, setSelectedMeds] = useState<Set<string>>(new Set());
   const [note, setNote] = useState(() => initialEditData?.notes || '');
   const [isSaving, setIsSaving] = useState(false);
-  const [showTimePicker, setShowTimePicker] = useState(false);
 
-  // Time state - initialized from edit data or current time
+  const now = new Date();
   const [selectedTime, setSelectedTime] = useState(() => {
     if (initialEditData?.taken_at) {
       const date = new Date(initialEditData.taken_at);
       return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
     }
-    if (initialEditData?.scheduled_time) {
-      return initialEditData.scheduled_time;
-    }
-    const now = new Date();
+    if (initialEditData?.scheduled_time) return initialEditData.scheduled_time;
     return `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
   });
   const [selectedDate, setSelectedDate] = useState(() => {
     if (initialEditData?.taken_at) {
       const d = new Date(initialEditData.taken_at);
-      // Use local date (Bangkok timezone)
       return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}`;
     }
-    const d = new Date();
-    return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}`;
+    return `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`;
   });
 
   // Edit mode specific state
@@ -207,35 +192,25 @@ export function MedicationForm({ onSuccess, onCancel, initialEditData }: Medicat
   }, [currentPeriod]);
 
   const toggleMed = (medId: string) => {
-    if (loggedMedIds.has(medId)) return; // Already logged
-
+    if (loggedMedIds.has(medId)) return;
     setSelectedMeds((prev) => {
       const next = new Set(prev);
-      if (next.has(medId)) {
-        next.delete(medId);
-      } else {
-        next.add(medId);
-      }
+      if (next.has(medId)) next.delete(medId);
+      else next.add(medId);
       return next;
     });
   };
 
-  // Handle edit mode submit
   const handleEditSubmit = async () => {
     if (!initialEditData) return;
-
     setIsSaving(true);
-
     try {
       const resolvedPatientId = await ensurePatient();
       if (!resolvedPatientId) {
         toast({ description: 'ไม่สามารถสร้างโปรไฟล์ได้ กรุณาลองใหม่อีกครั้ง', variant: 'destructive' });
         return;
       }
-
-      // Build full timestamp from selected date and time - send as Bangkok local time with +07:00 offset
       const takenAt = `${selectedDate}T${selectedTime}:00+07:00`;
-
       await updateMedicationLog.mutateAsync({
         id: initialEditData.id,
         patientId: resolvedPatientId,
@@ -245,12 +220,10 @@ export function MedicationForm({ onSuccess, onCancel, initialEditData }: Medicat
         taken_at: takenAt,
         note: note.trim() || undefined,
       });
-
       toast({ description: 'อัปเดตข้อมูลยาเรียบร้อยแล้ว' });
       refetchLogs();
       onSuccess?.();
-    } catch (error) {
-      console.error('Error updating medication log:', error);
+    } catch {
       toast({ description: 'เกิดข้อผิดพลาดในการอัปเดต', variant: 'destructive' });
     } finally {
       setIsSaving(false);
@@ -259,21 +232,14 @@ export function MedicationForm({ onSuccess, onCancel, initialEditData }: Medicat
 
   const handleSubmit = async () => {
     if (selectedMeds.size === 0) return;
-
     setIsSaving(true);
-
     try {
-      // Ensure patient profile exists (auto-create if needed)
       const resolvedPatientId = await ensurePatient();
       if (!resolvedPatientId) {
         toast({ description: 'ไม่สามารถสร้างโปรไฟล์ได้ กรุณาลองใหม่อีกครั้ง', variant: 'destructive' });
         return;
       }
-
-      // Build full timestamp from selected date and time - send as Bangkok local time with +07:00 offset
       const takenAt = `${selectedDate}T${selectedTime}:00+07:00`;
-
-      // Log each medication separately with selected date and time
       for (const medId of Array.from(selectedMeds)) {
         const med = (medications || []).find(m => m.id === medId);
         await logMedication.mutateAsync({
@@ -281,19 +247,17 @@ export function MedicationForm({ onSuccess, onCancel, initialEditData }: Medicat
           medication_id: medId,
           medication_name: med?.name,
           dosage: med?.dosage_amount ? `${med.dosage_amount} ${med.dosage_unit}` : undefined,
-          scheduled_time: selectedTime, // User-selected time
-          taken_at: takenAt, // Full timestamp with date
+          scheduled_time: selectedTime,
+          taken_at: takenAt,
           note: note.trim() || undefined,
         });
       }
-
       toast({ description: `บันทึกกินยา ${selectedMeds.size} รายการเรียบร้อย` });
       setSelectedMeds(new Set());
       setNote('');
       refetchLogs();
       onSuccess?.();
-    } catch (error) {
-      console.error('Error logging medication:', error);
+    } catch {
       toast({ description: 'เกิดข้อผิดพลาดในการบันทึก', variant: 'destructive' });
     } finally {
       setIsSaving(false);
@@ -307,7 +271,6 @@ export function MedicationForm({ onSuccess, onCancel, initialEditData }: Medicat
     night: 'ก่อนนอน',
   };
 
-  // Show loading state
   if (authLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-12 space-y-3">
@@ -317,65 +280,19 @@ export function MedicationForm({ onSuccess, onCancel, initialEditData }: Medicat
     );
   }
 
-  // Get today's logged medications for display
   const todayLogsList = todayLogs || [];
 
   // Edit mode UI
   if (isEditMode && initialEditData) {
     return (
       <div className="space-y-6 pb-4">
-        {/* Summary Card */}
-        <div className="bg-gradient-to-br from-orange-500 to-amber-600 rounded-2xl p-5 text-white text-center relative overflow-hidden">
-          <div className="absolute -right-10 -top-10 w-32 h-32 bg-white/10 rounded-full" />
-          <div className="relative z-10 flex items-center justify-center gap-4">
-            <Pill className="w-10 h-10" />
-            <div>
-              <p className="text-sm text-white/80">แก้ไขบันทึกยา</p>
-              <p className="text-2xl font-bold">
-                {editMedicationName || 'ยา'}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Date Selection */}
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-            <Calendar className="w-4 h-4" />
-            วันที่บันทึก
-          </div>
-          <DateInput
-            value={selectedDate}
-            onChange={setSelectedDate}
-          />
-        </div>
-
-        {/* Time Selection */}
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-            <Clock className="w-4 h-4" />
-            เวลาที่กินยา
-          </div>
-          <button
-            onClick={() => setShowTimePicker(true)}
-            className="w-full bg-gradient-to-br from-primary to-primary/80 rounded-2xl p-4 text-white hover:opacity-95 transition-opacity active:scale-[0.99]"
-          >
-            <div className="flex items-center justify-center gap-3">
-              <Clock className="w-6 h-6 opacity-90" />
-              <span className="text-3xl font-bold font-mono">{selectedTime}</span>
-              <span className="text-lg opacity-80">น.</span>
-              <Edit3 className="w-4 h-4 opacity-70 ml-1" />
-            </div>
-            <p className="text-center text-xs text-white/70 mt-2">แตะเพื่อเปลี่ยนเวลา</p>
-          </button>
-        </div>
-
-        {/* Time Picker Drawer */}
-        <TimePicker
-          value={selectedTime}
-          onChange={setSelectedTime}
-          open={showTimePicker}
-          onOpenChange={setShowTimePicker}
+        {/* Time Selector Pill */}
+        <TimeSelectorPill
+          time={selectedTime}
+          onTimeChange={setSelectedTime}
+          date={selectedDate}
+          onDateChange={setSelectedDate}
+          showDate
         />
 
         {/* Medication Name */}
@@ -385,7 +302,7 @@ export function MedicationForm({ onSuccess, onCancel, initialEditData }: Medicat
             value={editMedicationName}
             onChange={(e) => setEditMedicationName(e.target.value)}
             placeholder="ชื่อยา"
-            className="h-12"
+            className="h-12 rounded-2xl bg-muted/20 border border-muted"
           />
         </div>
 
@@ -396,7 +313,7 @@ export function MedicationForm({ onSuccess, onCancel, initialEditData }: Medicat
             value={editDosage}
             onChange={(e) => setEditDosage(e.target.value)}
             placeholder="เช่น 1 เม็ด, 5 ml"
-            className="h-12"
+            className="h-12 rounded-2xl bg-muted/20 border border-muted"
           />
         </div>
 
@@ -410,7 +327,7 @@ export function MedicationForm({ onSuccess, onCancel, initialEditData }: Medicat
             placeholder="เช่น ลืมกินยาตอนเช้า, กินยาช้ากว่าปกติ"
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            className="min-h-[80px] resize-none"
+            className="min-h-[80px] resize-none rounded-2xl bg-muted/20 border border-muted"
           />
         </div>
 
@@ -428,11 +345,7 @@ export function MedicationForm({ onSuccess, onCancel, initialEditData }: Medicat
             onClick={handleEditSubmit}
             disabled={isSaving}
           >
-            {isSaving ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            ) : (
-              <Check className="w-5 h-5" />
-            )}
+            {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
             บันทึก
           </Button>
         </div>
@@ -442,161 +355,14 @@ export function MedicationForm({ onSuccess, onCancel, initialEditData }: Medicat
 
   return (
     <div className="space-y-6 pb-4">
-      {/* Today's Logged Medications */}
-      {todayLogsList.length > 0 && (
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-            <History className="w-4 h-4 text-primary" />
-            บันทึกวันนี้ ({todayLogsList.length} รายการ)
-          </div>
-          <div className="space-y-2 max-h-32 overflow-y-auto">
-            {todayLogsList.map((log) => {
-              const periodInfo = TIME_PERIODS.find(p => p.id === log.time_period);
-              const PeriodIcon = periodInfo?.icon || Clock;
-              return (
-                <div
-                  key={log.id}
-                  className="flex items-center gap-3 bg-muted/50 rounded-xl p-3 group cursor-pointer active:scale-[0.99] transition-transform"
-                  onClick={() => deleteConfirmId !== log.id && handleEditLog(log)}
-                >
-                  <div className="w-10 h-10 rounded-xl bg-orange-100 dark:bg-orange-950/50 flex items-center justify-center shrink-0">
-                    <Pill className="w-5 h-5 text-orange-600 dark:text-orange-400" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <Clock className="w-3 h-3 text-muted-foreground" />
-                      <span className="text-xs text-muted-foreground">
-                        {new Date(log.taken_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น.
-                      </span>
-                      <span className="text-[10px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-                        {periodInfo?.label || log.time_period}
-                      </span>
-                    </div>
-                    <p className="text-sm font-medium text-foreground truncate">
-                      {log.medication_name || 'ยา'}
-                    </p>
-                  </div>
-                  {deleteConfirmId === log.id ? (
-                    <div className="flex items-center gap-1 shrink-0">
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        className="h-7 px-2 text-xs"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteLog(log.id);
-                        }}
-                        disabled={deleteMedicationLog.isPending}
-                      >
-                        {deleteMedicationLog.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : 'ลบ'}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 px-2 text-xs"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setDeleteConfirmId(null);
-                        }}
-                      >
-                        ยกเลิก
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-1 shrink-0">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive opacity-50 group-hover:opacity-100 transition-opacity"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setDeleteConfirmId(log.id);
-                        }}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                      <ChevronRight className="w-4 h-4 text-muted-foreground/40 group-hover:text-muted-foreground group-hover:translate-x-0.5 transition-all" />
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Edit Drawer - like history tab */}
-      {editDrawerItem && (
-        <Drawer open={true} onOpenChange={(open) => !open && handleCloseEditDrawer()}>
-          <DrawerContent className="max-h-[90vh]">
-            <DrawerHeader className="flex items-center justify-between px-6">
-              <DrawerTitle className="text-xl font-bold">แก้ไขบันทึกยา</DrawerTitle>
-              <DrawerClose asChild>
-                <Button variant="ghost" size="icon" className="rounded-full h-10 w-10">
-                  <X className="w-5 h-5" />
-                </Button>
-              </DrawerClose>
-            </DrawerHeader>
-
-            <div className="px-6 overflow-y-auto max-h-[calc(90vh-80px)]">
-              {editDrawerSuccess ? (
-                <div className="py-12 flex flex-col items-center text-center space-y-6 animate-in zoom-in-95 duration-300">
-                  <div className="w-20 h-20 bg-emerald-100 dark:bg-emerald-950/30 text-emerald-600 rounded-full flex items-center justify-center">
-                    <Check className="w-10 h-10 stroke-[3px]" />
-                  </div>
-                  <div className="space-y-2">
-                    <h2 className="text-2xl font-bold text-foreground">อัปเดตเรียบร้อย!</h2>
-                    <p className="text-muted-foreground text-sm leading-relaxed px-8">
-                      ข้อมูลยาของคุณถูกอัปเดตแล้ว
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <MedicationForm
-                  key={editDrawerItem.id}
-                  onSuccess={handleEditDrawerSuccess}
-                  onCancel={handleCloseEditDrawer}
-                  initialEditData={editDrawerItem}
-                />
-              )}
-            </div>
-          </DrawerContent>
-        </Drawer>
-      )}
-
-      {/* Time Selection Card */}
-      <button
-        onClick={() => setShowTimePicker(true)}
-        className="w-full bg-gradient-to-br from-primary to-primary/80 rounded-2xl p-4 text-white hover:opacity-95 transition-opacity active:scale-[0.99]"
-      >
-        <div className="flex items-center justify-center gap-3">
-          <Clock className="w-6 h-6 opacity-90" />
-          <span className="text-3xl font-bold font-mono">{selectedTime}</span>
-          <span className="text-lg opacity-80">น.</span>
-          <Edit3 className="w-4 h-4 opacity-70 ml-1" />
-        </div>
-        <p className="text-center text-xs text-white/70 mt-2">แตะเพื่อเปลี่ยนเวลา</p>
-      </button>
-
-      {/* Time Picker Drawer */}
-      <TimePicker
-        value={selectedTime}
-        onChange={setSelectedTime}
-        open={showTimePicker}
-        onOpenChange={setShowTimePicker}
+      {/* Time Selector Pill */}
+      <TimeSelectorPill
+        time={selectedTime}
+        onTimeChange={setSelectedTime}
+        date={selectedDate}
+        onDateChange={setSelectedDate}
+        showDate
       />
-
-      {/* Date Selection */}
-      <div className="space-y-2">
-        <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-          <Calendar className="w-4 h-4" />
-          วันที่บันทึก
-        </div>
-        <DateInput
-          value={selectedDate}
-          onChange={setSelectedDate}
-        />
-      </div>
 
       {/* Time Period Selector */}
       <div className="space-y-3">
@@ -610,10 +376,10 @@ export function MedicationForm({ onSuccess, onCancel, initialEditData }: Medicat
               key={period.id}
               onClick={() => setCurrentPeriod(period.id)}
               className={cn(
-                'flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl border-2 transition-all',
+                'flex flex-col items-center gap-1.5 py-3 px-2 rounded-2xl border-2 transition-all',
                 currentPeriod === period.id
                   ? 'border-primary bg-primary/10'
-                  : 'border-transparent bg-muted/50 hover:bg-muted'
+                  : 'border-transparent bg-white dark:bg-card shadow-sm hover:bg-muted/50'
               )}
             >
               <period.icon
@@ -647,18 +413,13 @@ export function MedicationForm({ onSuccess, onCancel, initialEditData }: Medicat
             <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
           </div>
         ) : medsForPeriod.length === 0 ? (
-          <div className="text-center py-8 bg-muted/50 rounded-xl space-y-4">
+          <div className="text-center py-8 border border-muted bg-white dark:bg-card rounded-2xl space-y-4">
             <Pill className="w-10 h-10 mx-auto text-muted-foreground/30" />
             <div>
               <p className="text-sm font-medium text-muted-foreground">ไม่มียาสำหรับช่วงเวลานี้</p>
               <p className="text-xs text-muted-foreground/70 mt-1">เพิ่มรายการยาเพื่อเริ่มบันทึก</p>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-2"
-              onClick={() => navigate('/settings/medications')}
-            >
+            <Button variant="outline" size="sm" className="gap-2" onClick={() => navigate('/settings/medications')}>
               <Plus className="w-4 h-4" />
               เพิ่มรายการยา
             </Button>
@@ -675,12 +436,12 @@ export function MedicationForm({ onSuccess, onCancel, initialEditData }: Medicat
                   onClick={() => toggleMed(med.id)}
                   disabled={isLogged}
                   className={cn(
-                    'w-full flex items-center gap-3 p-4 rounded-xl border-2 text-left transition-all',
+                    'w-full flex items-center gap-3 p-4 rounded-2xl border text-left transition-all',
                     isLogged
-                      ? 'bg-muted opacity-60 border-transparent cursor-not-allowed'
+                      ? 'bg-muted/50 opacity-60 border-muted cursor-not-allowed'
                       : isSelected
                         ? 'border-primary bg-primary/5'
-                        : 'border-transparent bg-card hover:border-border'
+                        : 'border-muted bg-white dark:bg-card shadow-sm hover:border-primary/30'
                   )}
                 >
                   <div
@@ -703,19 +464,18 @@ export function MedicationForm({ onSuccess, onCancel, initialEditData }: Medicat
 
                   <div
                     className={cn(
-                      'text-xs font-medium px-2.5 py-1 rounded',
+                      'text-xs font-medium px-2.5 py-1 rounded-xl',
                       isLogged
-                        ? 'bg-muted text-muted-foreground'
+                        ? 'bg-orange-500 text-white'
                         : 'bg-primary/10 text-primary'
                     )}
                   >
-                    {isLogged ? 'บันทึกแล้ว' : periodLabels[currentPeriod]}
+                    {isLogged ? 'กินยาครบ' : periodLabels[currentPeriod]}
                   </div>
                 </button>
               );
             })}
 
-            {/* Link to manage medications */}
             <button
               onClick={() => navigate('/settings/medications')}
               className="w-full flex items-center justify-center gap-2 py-3 text-sm text-primary hover:text-primary/80 transition-colors"
@@ -737,7 +497,7 @@ export function MedicationForm({ onSuccess, onCancel, initialEditData }: Medicat
           placeholder="เช่น ลืมกินยาตอนเช้า, กินยาช้ากว่าปกติ"
           value={note}
           onChange={(e) => setNote(e.target.value)}
-          className="min-h-[80px] resize-none"
+          className="min-h-[80px] resize-none rounded-2xl bg-muted/20 border border-muted"
         />
       </div>
 
@@ -746,28 +506,133 @@ export function MedicationForm({ onSuccess, onCancel, initialEditData }: Medicat
         เลือกแล้ว {selectedMeds.size} รายการ
       </p>
 
+      {/* Today's Logged Medications */}
+      {todayLogsList.length > 0 && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+            <History className="w-4 h-4 text-primary" />
+            บันทึกวันนี้ ({todayLogsList.length} รายการ)
+          </div>
+          <div className="space-y-2 max-h-32 overflow-y-auto">
+            {todayLogsList.map((log) => {
+              const periodInfo = TIME_PERIODS.find(p => p.id === log.time_period);
+              return (
+                <div
+                  key={log.id}
+                  className="flex items-center gap-3 bg-white dark:bg-card border border-muted shadow-sm rounded-2xl p-3 group cursor-pointer active:scale-[0.99] transition-transform"
+                  onClick={() => deleteConfirmId !== log.id && handleEditLog(log)}
+                >
+                  <div className="w-10 h-10 rounded-xl bg-orange-100 dark:bg-orange-950/50 flex items-center justify-center shrink-0">
+                    <Pill className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <Clock className="w-3 h-3 text-muted-foreground" />
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(log.taken_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น.
+                      </span>
+                      <span className="text-[10px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                        {periodInfo?.label || log.time_period}
+                      </span>
+                    </div>
+                    <p className="text-sm font-medium text-foreground truncate">
+                      {log.medication_name || 'ยา'}
+                    </p>
+                  </div>
+                  {deleteConfirmId === log.id ? (
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        className="h-7 px-2 text-xs"
+                        onClick={(e) => { e.stopPropagation(); handleDeleteLog(log.id); }}
+                        disabled={deleteMedicationLog.isPending}
+                      >
+                        {deleteMedicationLog.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : 'ลบ'}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-xs"
+                        onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(null); }}
+                      >
+                        ยกเลิก
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive opacity-50 group-hover:opacity-100 transition-opacity"
+                        onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(log.id); }}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                      <ChevronRight className="w-4 h-4 text-muted-foreground/40 group-hover:text-muted-foreground group-hover:translate-x-0.5 transition-all" />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Edit Drawer */}
+      {editDrawerItem && (
+        <Drawer open={true} onOpenChange={(open) => !open && handleCloseEditDrawer()}>
+          <DrawerContent className="max-h-[90vh]">
+            <DrawerHeader className="flex items-center justify-between px-6">
+              <DrawerTitle className="text-xl font-bold">แก้ไขบันทึกยา</DrawerTitle>
+              <DrawerClose asChild>
+                <Button variant="ghost" size="icon" className="rounded-full h-10 w-10">
+                  <X className="w-5 h-5" />
+                </Button>
+              </DrawerClose>
+            </DrawerHeader>
+            <div className="px-6 overflow-y-auto max-h-[calc(90vh-80px)]">
+              {editDrawerSuccess ? (
+                <div className="py-12 flex flex-col items-center text-center space-y-6 animate-in zoom-in-95 duration-300">
+                  <div className="w-20 h-20 bg-emerald-100 dark:bg-emerald-950/30 text-emerald-600 rounded-full flex items-center justify-center">
+                    <Check className="w-10 h-10 stroke-[3px]" />
+                  </div>
+                  <div className="space-y-2">
+                    <h2 className="text-2xl font-bold text-foreground">อัปเดตเรียบร้อย!</h2>
+                    <p className="text-muted-foreground text-sm leading-relaxed px-8">ข้อมูลยาของคุณถูกอัปเดตแล้ว</p>
+                  </div>
+                </div>
+              ) : (
+                <MedicationForm
+                  key={editDrawerItem.id}
+                  onSuccess={handleEditDrawerSuccess}
+                  onCancel={handleCloseEditDrawer}
+                  initialEditData={editDrawerItem}
+                />
+              )}
+            </div>
+          </DrawerContent>
+        </Drawer>
+      )}
+
       {/* Action Buttons */}
       <div className="flex gap-3 pt-2">
-          <Button
-            variant="ghost"
-            className="flex-1 h-14 rounded-2xl font-bold text-muted-foreground"
-            onClick={onCancel}
-          >
-            ยกเลิก
-          </Button>
-          <Button
-            className="flex-[2] h-14 rounded-2xl bg-primary text-primary-foreground font-bold text-lg shadow-xl shadow-primary/20 hover:scale-[1.02] transition-all gap-2"
-            onClick={handleSubmit}
-            disabled={isSaving || selectedMeds.size === 0}
-          >
-            {isSaving ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            ) : (
-              <Check className="w-5 h-5" />
-            )}
-            บันทึก
-          </Button>
-        </div>
+        <Button
+          variant="ghost"
+          className="flex-1 h-14 rounded-2xl font-bold text-muted-foreground"
+          onClick={onCancel}
+        >
+          ยกเลิก
+        </Button>
+        <Button
+          className="flex-[2] h-14 rounded-2xl bg-primary text-primary-foreground font-bold text-lg shadow-xl shadow-primary/20 hover:scale-[1.02] transition-all gap-2"
+          onClick={handleSubmit}
+          disabled={isSaving || selectedMeds.size === 0}
+        >
+          {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
+          บันทึก
+        </Button>
+      </div>
     </div>
   );
 }

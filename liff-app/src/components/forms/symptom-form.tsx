@@ -38,6 +38,7 @@ import { cn } from '@/lib/utils';
 import { useEnsurePatient } from '@/hooks/use-ensure-patient';
 import { useLogSymptom, useTodaySymptoms, useDeleteSymptom, useUpdateSymptom } from '@/lib/api/hooks/use-health';
 import { useToast } from '@/hooks/use-toast';
+import { TimeSelectorPill } from './time-selector-pill';
 
 interface SymptomLog {
   id: string;
@@ -95,10 +96,18 @@ export function SymptomForm({ onSuccess, onCancel, initialEditData }: SymptomFor
   const deleteSymptom = useDeleteSymptom();
   const { data: todaySymptoms, refetch: refetchSymptoms } = useTodaySymptoms(patientId);
 
+  const now = new Date();
+  const [selectedTime, setSelectedTime] = useState(() => {
+    if (initialEditData?.created_at) {
+      const d = new Date(initialEditData.created_at);
+      return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+    }
+    return `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+  });
+
   // Initialize state - use initialEditData if provided (component is re-mounted via key prop)
   const [selectedSymptoms, setSelectedSymptoms] = useState<Set<string>>(() => {
     if (initialEditData?.symptom_name) {
-      console.log('[SymptomForm] Initializing from initialEditData:', initialEditData);
       const preset = PRESET_SYMPTOMS.find(s => s.label === initialEditData.symptom_name);
       if (preset) {
         return new Set([preset.id]);
@@ -167,29 +176,6 @@ export function SymptomForm({ onSuccess, onCancel, initialEditData }: SymptomFor
     }, 1500);
   };
 
-  // Load log data into form for editing (used by initialEditData mode)
-  const handleEdit = (log: SymptomLog) => {
-    setEditingLog(log);
-    // Find if it's a preset symptom
-    const preset = PRESET_SYMPTOMS.find(s => s.label === log.symptom_name);
-    if (preset) {
-      setSelectedSymptoms(new Set([preset.id]));
-      setCustomSymptoms([]);
-    } else {
-      setSelectedSymptoms(new Set([`custom_${log.symptom_name}`]));
-      setCustomSymptoms([log.symptom_name]);
-    }
-    setSeverity(log.severity_1to5 ?? null);
-    setLocation(log.body_location ?? null);
-    setDuration(log.duration_text ?? null);
-    setNote(log.notes ?? '');
-    // Set date/time from created_at
-    if (log.created_at) {
-      setEditDate(new Date(log.created_at).toISOString().split('T')[0]);
-      setEditTime(new Date(log.created_at).toTimeString().slice(0, 5));
-    }
-  };
-
   // Cancel editing
   const handleCancelEdit = () => {
     setEditingLog(null);
@@ -210,8 +196,7 @@ export function SymptomForm({ onSuccess, onCancel, initialEditData }: SymptomFor
       toast({ description: 'ลบข้อมูลเรียบร้อยแล้ว' });
       setDeleteConfirmId(null);
       refetchSymptoms();
-    } catch (error) {
-      console.error('Error deleting symptom:', error);
+    } catch {
       toast({ description: 'เกิดข้อผิดพลาดในการลบข้อมูล', variant: 'destructive' });
     }
   };
@@ -276,12 +261,10 @@ export function SymptomForm({ onSuccess, onCancel, initialEditData }: SymptomFor
       }
 
       const symptomLabels = getSymptomLabels();
-      console.log('[SymptomForm] Saving symptoms:', { patientId: resolvedPatientId, symptoms: symptomLabels, severity });
 
       // If we're in edit mode, update the existing symptom
       if (editingLog) {
         const symptomName = symptomLabels[0] || editingLog.symptom_name;
-        console.log('[SymptomForm] Updating symptom:', editingLog.id);
 
         // Build created_at from date and time - send as Bangkok local time with +07:00 offset
         const createdAt = editDate && editTime
@@ -302,8 +285,7 @@ export function SymptomForm({ onSuccess, onCancel, initialEditData }: SymptomFor
       } else {
         // Log each symptom separately
         for (const symptomName of symptomLabels) {
-          console.log('[SymptomForm] Logging symptom:', symptomName);
-          const result = await logSymptom.mutateAsync({
+          await logSymptom.mutateAsync({
             patientId: resolvedPatientId,
             symptom_name: symptomName,
             severity_1to5: severity,
@@ -311,7 +293,6 @@ export function SymptomForm({ onSuccess, onCancel, initialEditData }: SymptomFor
             duration_text: duration || undefined,
             notes: note.trim() || undefined,
           });
-          console.log('[SymptomForm] Symptom logged:', result);
         }
 
         toast({ description: `บันทึก ${symptomLabels.length} อาการเรียบร้อย` });
@@ -330,10 +311,8 @@ export function SymptomForm({ onSuccess, onCancel, initialEditData }: SymptomFor
       // Refetch today's symptoms to show in the list
       refetchSymptoms();
       onSuccess?.();
-    } catch (error: any) {
-      console.error('[SymptomForm] Error logging symptoms:', error);
-      console.error('[SymptomForm] Error details:', error?.response || error?.message || error);
-      toast({ description: `เกิดข้อผิดพลาด: ${error?.message || 'ไม่สามารถบันทึกได้'}`, variant: 'destructive' });
+    } catch {
+      toast({ description: 'เกิดข้อผิดพลาดในการบันทึก', variant: 'destructive' });
     } finally {
       setIsSaving(false);
     }
@@ -354,96 +333,7 @@ export function SymptomForm({ onSuccess, onCancel, initialEditData }: SymptomFor
 
   return (
     <div className="space-y-6 pb-4">
-      {/* Today's Logged Symptoms */}
-      {todaySymptoms && todaySymptoms.length > 0 && (
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-            <History className="w-4 h-4 text-primary" />
-            บันทึกวันนี้ ({todaySymptoms.length} รายการ)
-          </div>
-          <div className="space-y-2 max-h-40 overflow-y-auto">
-            {todaySymptoms.map((symptom) => {
-              const isDeleting = deleteConfirmId === symptom.id;
-              return (
-                <div
-                  key={symptom.id}
-                  className="flex items-center gap-3 bg-muted/50 rounded-xl p-3 group cursor-pointer active:scale-[0.99] transition-transform"
-                  onClick={() => !isDeleting && handleEditDrawer(symptom)}
-                >
-                  <div className="w-10 h-10 rounded-xl bg-red-100 dark:bg-red-950/50 flex items-center justify-center shrink-0">
-                    <Activity className="w-5 h-5 text-red-600 dark:text-red-400" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <Clock className="w-3 h-3 text-muted-foreground" />
-                      <span className="text-xs text-muted-foreground">
-                        {new Date(symptom.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น.
-                      </span>
-                      {symptom.severity_1to5 && (
-                        <span className="text-[10px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-                          ระดับ {symptom.severity_1to5}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-sm font-medium text-foreground truncate">{symptom.symptom_name}</p>
-                  </div>
-                  {/* Edit/Delete Buttons */}
-                  <div className="flex items-center gap-1 shrink-0">
-                    {isDeleting ? (
-                      <>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDelete(symptom.id);
-                          }}
-                          disabled={deleteSymptom.isPending}
-                          className="h-7 px-2 text-xs"
-                        >
-                          {deleteSymptom.isPending ? (
-                            <Loader2 className="w-3 h-3 animate-spin" />
-                          ) : (
-                            'ยืนยัน'
-                          )}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setDeleteConfirmId(null);
-                          }}
-                          className="h-7 px-2 text-xs"
-                        >
-                          ยกเลิก
-                        </Button>
-                      </>
-                    ) : (
-                      <>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive opacity-50 group-hover:opacity-100 transition-opacity"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setDeleteConfirmId(symptom.id);
-                          }}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                        <ChevronRight className="w-4 h-4 text-muted-foreground/40 group-hover:text-muted-foreground group-hover:translate-x-0.5 transition-all" />
-                      </>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Edit Drawer - like history tab */}
+      {/* Edit Drawer */}
       {editDrawerItem && (
         <Drawer open={true} onOpenChange={(open) => !open && handleCloseEditDrawer()}>
           <DrawerContent className="max-h-[90vh]">
@@ -481,6 +371,12 @@ export function SymptomForm({ onSuccess, onCancel, initialEditData }: SymptomFor
           </DrawerContent>
         </Drawer>
       )}
+
+      {/* Time Selector Pill */}
+      <TimeSelectorPill
+        time={selectedTime}
+        onTimeChange={setSelectedTime}
+      />
 
       {/* Selected Symptoms Tags */}
       {allSelectedLabels.length > 0 && (
@@ -529,10 +425,10 @@ export function SymptomForm({ onSuccess, onCancel, initialEditData }: SymptomFor
                 key={symptom.id}
                 onClick={() => toggleSymptom(symptom.id)}
                 className={cn(
-                  'flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all',
+                  'flex flex-col items-center gap-2 p-3 rounded-2xl border-2 transition-all',
                   isSelected
                     ? 'border-primary bg-primary/10'
-                    : 'border-transparent bg-muted/50 hover:bg-muted'
+                    : 'bg-white dark:bg-card border-muted shadow-sm hover:bg-muted/50'
                 )}
               >
                 <div
@@ -593,10 +489,10 @@ export function SymptomForm({ onSuccess, onCancel, initialEditData }: SymptomFor
               key={level.level}
               onClick={() => setSeverity(level.level)}
               className={cn(
-                'flex flex-col items-center gap-1 py-3 px-2 rounded-xl border-2 transition-all',
+                'flex flex-col items-center gap-1 py-3 px-2 rounded-2xl border-2 transition-all',
                 severity === level.level
                   ? `border-primary ${level.color}`
-                  : 'border-transparent bg-muted/50 hover:bg-muted'
+                  : 'bg-white dark:bg-card border-muted shadow-sm hover:bg-muted/50'
               )}
             >
               <span className="text-2xl">{level.emoji}</span>
@@ -620,10 +516,10 @@ export function SymptomForm({ onSuccess, onCancel, initialEditData }: SymptomFor
               key={loc}
               onClick={() => setLocation(location === loc ? null : loc)}
               className={cn(
-                'px-3 py-1.5 rounded-full text-sm border-2 transition-all',
+                'px-3 py-1.5 rounded-2xl text-sm border-2 transition-all',
                 location === loc
                   ? 'border-primary bg-primary/10 text-primary font-medium'
-                  : 'border-transparent bg-muted/50 text-muted-foreground hover:bg-muted'
+                  : 'bg-white dark:bg-card border-muted shadow-sm text-muted-foreground hover:bg-muted/50'
               )}
             >
               {loc}
@@ -644,10 +540,10 @@ export function SymptomForm({ onSuccess, onCancel, initialEditData }: SymptomFor
               key={d.id}
               onClick={() => setDuration(duration === d.id ? null : d.id)}
               className={cn(
-                'px-3 py-1.5 rounded-full text-sm border-2 transition-all',
+                'px-3 py-1.5 rounded-2xl text-sm border-2 transition-all',
                 duration === d.id
                   ? 'border-primary bg-primary/10 text-primary font-medium'
-                  : 'border-transparent bg-muted/50 text-muted-foreground hover:bg-muted'
+                  : 'bg-white dark:bg-card border-muted shadow-sm text-muted-foreground hover:bg-muted/50'
               )}
             >
               {d.label}
@@ -666,9 +562,97 @@ export function SymptomForm({ onSuccess, onCancel, initialEditData }: SymptomFor
           placeholder="อธิบายอาการเพิ่มเติม..."
           value={note}
           onChange={(e) => setNote(e.target.value)}
-          className="min-h-[80px] resize-none"
+          className="min-h-[80px] resize-none rounded-2xl bg-muted/20 border border-muted"
         />
       </div>
+
+      {/* Today's Logged Symptoms */}
+      {todaySymptoms && todaySymptoms.length > 0 && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+            <History className="w-4 h-4 text-primary" />
+            บันทึกวันนี้ ({todaySymptoms.length} รายการ)
+          </div>
+          <div className="space-y-2 max-h-40 overflow-y-auto">
+            {todaySymptoms.map((symptom) => {
+              const isDeleting = deleteConfirmId === symptom.id;
+              return (
+                <div
+                  key={symptom.id}
+                  className="flex items-center gap-3 bg-white dark:bg-card border border-muted shadow-sm rounded-2xl p-3 group cursor-pointer active:scale-[0.99] transition-transform"
+                  onClick={() => !isDeleting && handleEditDrawer(symptom)}
+                >
+                  <div className="w-10 h-10 rounded-xl bg-red-100 dark:bg-red-950/50 flex items-center justify-center shrink-0">
+                    <Activity className="w-5 h-5 text-red-600 dark:text-red-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <Clock className="w-3 h-3 text-muted-foreground" />
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(symptom.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น.
+                      </span>
+                      {symptom.severity_1to5 && (
+                        <span className="text-[10px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                          ระดับ {symptom.severity_1to5}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm font-medium text-foreground truncate">{symptom.symptom_name}</p>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    {isDeleting ? (
+                      <>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(symptom.id);
+                          }}
+                          disabled={deleteSymptom.isPending}
+                          className="h-7 px-2 text-xs"
+                        >
+                          {deleteSymptom.isPending ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : (
+                            'ยืนยัน'
+                          )}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeleteConfirmId(null);
+                          }}
+                          className="h-7 px-2 text-xs"
+                        >
+                          ยกเลิก
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive opacity-50 group-hover:opacity-100 transition-opacity"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeleteConfirmId(symptom.id);
+                          }}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                        <ChevronRight className="w-4 h-4 text-muted-foreground/40 group-hover:text-muted-foreground group-hover:translate-x-0.5 transition-all" />
+                      </>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Date/Time editing - only shown when editing */}
       {editingLog && (

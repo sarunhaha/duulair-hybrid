@@ -1,3 +1,4 @@
+export { TimeSelectorPill } from './time-selector-pill';
 export { VitalsForm } from './vitals-form';
 export { WaterForm } from './water-form';
 export { MedicationForm } from './medication-form';

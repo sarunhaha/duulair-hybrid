@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import {
-  Smile,
   Loader2,
   History,
   Clock,
@@ -27,6 +26,7 @@ import { useLogMood, useTodayMood, useDeleteMood, useUpdateMood, type MoodLogEnt
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { useEnsurePatient } from '@/hooks/use-ensure-patient';
+import { TimeSelectorPill } from './time-selector-pill';
 
 const MOODS = [
   { value: 'happy', label: 'มีความสุข', emoji: '😊' },
@@ -86,10 +86,18 @@ export function MoodForm({ onSuccess, onCancel, initialEditData }: MoodFormProps
   const deleteMood = useDeleteMood();
   const { data: todayMood, refetch: refetchMood } = useTodayMood(patientId);
 
+  const now = new Date();
+  const [selectedTime, setSelectedTime] = useState(() => {
+    if (initialEditData?.timestamp) {
+      const d = new Date(initialEditData.timestamp);
+      return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+    }
+    return `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+  });
+
   // Initialize state - use initialEditData if provided (component is re-mounted via key prop)
   const [formData, setFormData] = useState<MoodFormData>(() => {
     if (initialEditData) {
-      console.log('[MoodForm] Initializing from initialEditData:', initialEditData);
       return {
         mood: initialEditData.mood || '',
         mood_score: initialEditData.mood_score,
@@ -145,21 +153,7 @@ export function MoodForm({ onSuccess, onCancel, initialEditData }: MoodFormProps
     }, 1500);
   };
 
-  const selectedMood = MOODS.find(m => m.value === formData.mood);
   const isSaving = logMood.isPending || updateMood.isPending;
-
-  // Load log data into form for editing (used by initialEditData mode)
-  const handleEdit = (log: MoodLogEntry) => {
-    setEditingLog(log);
-    setFormData({
-      mood: log.mood || '',
-      mood_score: log.mood_score,
-      stress_level: log.stress_level || '',
-      stress_cause: log.stress_cause || '',
-      energy_level: log.energy_level || '',
-      note: log.note || '',
-    });
-  };
 
   // Cancel editing
   const handleCancelEdit = () => {
@@ -174,8 +168,7 @@ export function MoodForm({ onSuccess, onCancel, initialEditData }: MoodFormProps
       toast({ description: 'ลบข้อมูลเรียบร้อยแล้ว' });
       setDeleteConfirmId(null);
       refetchMood();
-    } catch (error) {
-      console.error('Error deleting mood:', error);
+    } catch {
       toast({ description: 'เกิดข้อผิดพลาดในการลบข้อมูล', variant: 'destructive' });
     }
   };
@@ -230,8 +223,7 @@ export function MoodForm({ onSuccess, onCancel, initialEditData }: MoodFormProps
       setFormData(defaultFormData);
       refetchMood();
       onSuccess?.();
-    } catch (error) {
-      console.error('Error saving mood:', error);
+    } catch {
       toast({ description: 'เกิดข้อผิดพลาดในการบันทึก', variant: 'destructive' });
     }
   };
@@ -247,6 +239,163 @@ export function MoodForm({ onSuccess, onCancel, initialEditData }: MoodFormProps
 
   return (
     <div className="space-y-6 pb-4">
+      {/* Edit Drawer - like history tab */}
+      {editDrawerItem && (
+        <Drawer open={true} onOpenChange={(open) => !open && handleCloseEditDrawer()}>
+          <DrawerContent className="max-h-[90vh]">
+            <DrawerHeader className="flex items-center justify-between px-6">
+              <DrawerTitle className="text-xl font-bold">แก้ไขบันทึกอารมณ์</DrawerTitle>
+              <DrawerClose asChild>
+                <Button variant="ghost" size="icon" className="rounded-full h-10 w-10">
+                  <X className="w-5 h-5" />
+                </Button>
+              </DrawerClose>
+            </DrawerHeader>
+
+            <div className="px-6 overflow-y-auto max-h-[calc(90vh-80px)]">
+              {editDrawerSuccess ? (
+                <div className="py-12 flex flex-col items-center text-center space-y-6 animate-in zoom-in-95 duration-300">
+                  <div className="w-20 h-20 bg-emerald-100 dark:bg-emerald-950/30 text-emerald-600 rounded-full flex items-center justify-center">
+                    <Check className="w-10 h-10 stroke-[3px]" />
+                  </div>
+                  <div className="space-y-2">
+                    <h2 className="text-2xl font-bold text-foreground">อัปเดตเรียบร้อย!</h2>
+                    <p className="text-muted-foreground text-sm leading-relaxed px-8">
+                      ข้อมูลอารมณ์ของคุณถูกอัปเดตแล้ว
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <MoodForm
+                  key={editDrawerItem.id}
+                  onSuccess={handleEditDrawerSuccess}
+                  onCancel={handleCloseEditDrawer}
+                  initialEditData={editDrawerItem}
+                />
+              )}
+            </div>
+          </DrawerContent>
+        </Drawer>
+      )}
+
+      {/* Time Selector Pill */}
+      <TimeSelectorPill
+        time={selectedTime}
+        onTimeChange={setSelectedTime}
+      />
+
+      {/* Mood Selection */}
+      <div className="space-y-3">
+        <Label className="text-base font-bold">อารมณ์</Label>
+        <div className="grid grid-cols-3 gap-2">
+          {MOODS.map((mood) => (
+            <button
+              key={mood.value}
+              type="button"
+              onClick={() => setFormData(prev => ({ ...prev, mood: mood.value }))}
+              className={cn(
+                'p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1',
+                formData.mood === mood.value
+                  ? 'bg-yellow-100 text-yellow-700 border-yellow-300 dark:bg-yellow-950/50 dark:text-yellow-400 dark:border-yellow-700'
+                  : 'bg-muted/50 border-transparent hover:bg-muted'
+              )}
+            >
+              <span className="text-2xl">{mood.emoji}</span>
+              <span className="text-xs font-medium">{mood.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Mood Score */}
+      <div className="space-y-3">
+        <Label className="text-base font-bold">ระดับอารมณ์</Label>
+        <div className="grid grid-cols-5 gap-2">
+          {SCORE_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => setFormData(prev => ({ ...prev, mood_score: opt.value }))}
+              className={cn(
+                'p-2 rounded-xl border-2 transition-all flex flex-col items-center gap-1',
+                formData.mood_score === opt.value
+                  ? 'bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-950/50 dark:text-amber-400 dark:border-amber-700'
+                  : 'bg-muted/50 border-transparent hover:bg-muted'
+              )}
+            >
+              <span className="text-xl">{opt.emoji}</span>
+              <span className="text-[10px] font-medium leading-tight">{opt.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Stress Level */}
+      <div className="space-y-3">
+        <Label className="text-base font-bold">ระดับความเครียด</Label>
+        <div className="grid grid-cols-3 gap-2">
+          {LEVELS.map((level) => (
+            <button
+              key={level.value}
+              type="button"
+              onClick={() => setFormData(prev => ({ ...prev, stress_level: level.value }))}
+              className={cn(
+                'p-4 rounded-2xl border-2 transition-all text-center',
+                formData.stress_level === level.value
+                  ? level.color + ' border-current'
+                  : 'bg-white dark:bg-card border-muted shadow-sm hover:bg-muted/50'
+              )}
+            >
+              <span className="text-sm font-medium">{level.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Stress Cause */}
+      <div className="space-y-2">
+        <Label className="text-base font-bold">สาเหตุความเครียด (ถ้ามี)</Label>
+        <Input
+          value={formData.stress_cause}
+          onChange={(e) => setFormData(prev => ({ ...prev, stress_cause: e.target.value }))}
+          placeholder="เช่น งาน, สุขภาพ, ครอบครัว"
+          className="h-12"
+        />
+      </div>
+
+      {/* Energy Level */}
+      <div className="space-y-3">
+        <Label className="text-base font-bold">ระดับพลังงาน</Label>
+        <div className="grid grid-cols-3 gap-2">
+          {LEVELS.map((level) => (
+            <button
+              key={level.value}
+              type="button"
+              onClick={() => setFormData(prev => ({ ...prev, energy_level: level.value }))}
+              className={cn(
+                'p-4 rounded-2xl border-2 transition-all text-center',
+                formData.energy_level === level.value
+                  ? level.color + ' border-current'
+                  : 'bg-white dark:bg-card border-muted shadow-sm hover:bg-muted/50'
+              )}
+            >
+              <span className="text-sm font-medium">{level.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Notes */}
+      <div className="space-y-2">
+        <Label className="text-base font-bold">หมายเหตุ (ถ้ามี)</Label>
+        <Textarea
+          value={formData.note}
+          onChange={(e) => setFormData(prev => ({ ...prev, note: e.target.value }))}
+          placeholder="เช่น วันนี้อารมณ์ดีมาก, นอนหลับสบาย"
+          rows={2}
+        />
+      </div>
+
       {/* Today's Logged Mood */}
       {todayMood && todayMood.length > 0 && (
         <div className="space-y-2">
@@ -261,7 +410,7 @@ export function MoodForm({ onSuccess, onCancel, initialEditData }: MoodFormProps
               return (
                 <div
                   key={mood.id}
-                  className="flex items-center gap-3 bg-muted/50 rounded-xl p-3 group cursor-pointer active:scale-[0.99] transition-transform"
+                  className="flex items-center gap-3 bg-white dark:bg-card border border-muted shadow-sm rounded-2xl p-3 group cursor-pointer active:scale-[0.99] transition-transform"
                   onClick={() => !isDeleting && handleEditDrawer(mood)}
                 >
                   <div className="w-10 h-10 rounded-xl bg-yellow-100 dark:bg-yellow-950/50 flex items-center justify-center text-xl shrink-0">
@@ -334,171 +483,6 @@ export function MoodForm({ onSuccess, onCancel, initialEditData }: MoodFormProps
           </div>
         </div>
       )}
-
-      {/* Edit Drawer - like history tab */}
-      {editDrawerItem && (
-        <Drawer open={true} onOpenChange={(open) => !open && handleCloseEditDrawer()}>
-          <DrawerContent className="max-h-[90vh]">
-            <DrawerHeader className="flex items-center justify-between px-6">
-              <DrawerTitle className="text-xl font-bold">แก้ไขบันทึกอารมณ์</DrawerTitle>
-              <DrawerClose asChild>
-                <Button variant="ghost" size="icon" className="rounded-full h-10 w-10">
-                  <X className="w-5 h-5" />
-                </Button>
-              </DrawerClose>
-            </DrawerHeader>
-
-            <div className="px-6 overflow-y-auto max-h-[calc(90vh-80px)]">
-              {editDrawerSuccess ? (
-                <div className="py-12 flex flex-col items-center text-center space-y-6 animate-in zoom-in-95 duration-300">
-                  <div className="w-20 h-20 bg-emerald-100 dark:bg-emerald-950/30 text-emerald-600 rounded-full flex items-center justify-center">
-                    <Check className="w-10 h-10 stroke-[3px]" />
-                  </div>
-                  <div className="space-y-2">
-                    <h2 className="text-2xl font-bold text-foreground">อัปเดตเรียบร้อย!</h2>
-                    <p className="text-muted-foreground text-sm leading-relaxed px-8">
-                      ข้อมูลอารมณ์ของคุณถูกอัปเดตแล้ว
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <MoodForm
-                  key={editDrawerItem.id}
-                  onSuccess={handleEditDrawerSuccess}
-                  onCancel={handleCloseEditDrawer}
-                  initialEditData={editDrawerItem}
-                />
-              )}
-            </div>
-          </DrawerContent>
-        </Drawer>
-      )}
-
-      {/* Summary Card */}
-      <div className="bg-gradient-to-br from-yellow-400 to-amber-500 rounded-2xl p-5 text-white text-center relative overflow-hidden">
-        <div className="absolute -right-10 -top-10 w-32 h-32 bg-white/10 rounded-full" />
-        <div className="relative z-10 flex items-center justify-center gap-4">
-          <Smile className="w-10 h-10" />
-          <div>
-            <p className="text-sm text-white/80">อารมณ์วันนี้</p>
-            <p className="text-2xl font-bold">
-              {selectedMood ? `${selectedMood.emoji} ${selectedMood.label}` : 'เลือกอารมณ์'}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Mood Selection */}
-      <div className="space-y-3">
-        <Label className="text-base font-bold">อารมณ์</Label>
-        <div className="grid grid-cols-3 gap-2">
-          {MOODS.map((mood) => (
-            <button
-              key={mood.value}
-              type="button"
-              onClick={() => setFormData(prev => ({ ...prev, mood: mood.value }))}
-              className={cn(
-                'p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1',
-                formData.mood === mood.value
-                  ? 'bg-yellow-100 text-yellow-700 border-yellow-300 dark:bg-yellow-950/50 dark:text-yellow-400 dark:border-yellow-700'
-                  : 'bg-muted/50 border-transparent hover:bg-muted'
-              )}
-            >
-              <span className="text-2xl">{mood.emoji}</span>
-              <span className="text-xs font-medium">{mood.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Mood Score */}
-      <div className="space-y-3">
-        <Label className="text-base font-bold">ระดับอารมณ์</Label>
-        <div className="grid grid-cols-5 gap-2">
-          {SCORE_OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => setFormData(prev => ({ ...prev, mood_score: opt.value }))}
-              className={cn(
-                'p-2 rounded-xl border-2 transition-all flex flex-col items-center gap-1',
-                formData.mood_score === opt.value
-                  ? 'bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-950/50 dark:text-amber-400 dark:border-amber-700'
-                  : 'bg-muted/50 border-transparent hover:bg-muted'
-              )}
-            >
-              <span className="text-xl">{opt.emoji}</span>
-              <span className="text-[10px] font-medium leading-tight">{opt.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Stress Level */}
-      <div className="space-y-3">
-        <Label className="text-base font-bold">ระดับความเครียด</Label>
-        <div className="grid grid-cols-3 gap-2">
-          {LEVELS.map((level) => (
-            <button
-              key={level.value}
-              type="button"
-              onClick={() => setFormData(prev => ({ ...prev, stress_level: level.value }))}
-              className={cn(
-                'p-3 rounded-xl border-2 transition-all text-center',
-                formData.stress_level === level.value
-                  ? level.color + ' border-current'
-                  : 'bg-muted/50 border-transparent hover:bg-muted'
-              )}
-            >
-              <span className="text-sm font-medium">{level.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Stress Cause */}
-      <div className="space-y-2">
-        <Label className="text-base font-bold">สาเหตุความเครียด (ถ้ามี)</Label>
-        <Input
-          value={formData.stress_cause}
-          onChange={(e) => setFormData(prev => ({ ...prev, stress_cause: e.target.value }))}
-          placeholder="เช่น งาน, สุขภาพ, ครอบครัว"
-          className="h-12"
-        />
-      </div>
-
-      {/* Energy Level */}
-      <div className="space-y-3">
-        <Label className="text-base font-bold">ระดับพลังงาน</Label>
-        <div className="grid grid-cols-3 gap-2">
-          {LEVELS.map((level) => (
-            <button
-              key={level.value}
-              type="button"
-              onClick={() => setFormData(prev => ({ ...prev, energy_level: level.value }))}
-              className={cn(
-                'p-3 rounded-xl border-2 transition-all text-center',
-                formData.energy_level === level.value
-                  ? level.color + ' border-current'
-                  : 'bg-muted/50 border-transparent hover:bg-muted'
-              )}
-            >
-              <span className="text-sm font-medium">{level.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Notes */}
-      <div className="space-y-2">
-        <Label className="text-base font-bold">หมายเหตุ (ถ้ามี)</Label>
-        <Textarea
-          value={formData.note}
-          onChange={(e) => setFormData(prev => ({ ...prev, note: e.target.value }))}
-          placeholder="เช่น วันนี้อารมณ์ดีมาก, นอนหลับสบาย"
-          rows={2}
-        />
-      </div>
 
       {/* Date/Time editing - only shown when editing */}
       {editingLog && (

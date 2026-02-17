@@ -12,7 +12,6 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { DateInput } from '@/components/ui/date-picker';
@@ -82,7 +81,6 @@ export function SleepForm({ onSuccess, onCancel, initialEditData }: SleepFormPro
   // Initialize state - use initialEditData if provided (component is re-mounted via key prop)
   const [formData, setFormData] = useState<SleepFormData>(() => {
     if (initialEditData) {
-      console.log('[SleepForm] Initializing from initialEditData:', initialEditData);
       return {
         sleep_hours: initialEditData.sleep_hours,
         sleep_quality: initialEditData.sleep_quality || '',
@@ -124,23 +122,6 @@ export function SleepForm({ onSuccess, onCancel, initialEditData }: SleepFormPro
     }, 1500);
   };
 
-  // Load log data into form for editing (used by initialEditData mode)
-  const handleEdit = (log: SleepLog) => {
-    setEditingLog(log);
-    setFormData({
-      sleep_hours: log.sleep_hours,
-      sleep_quality: log.sleep_quality || '',
-      sleep_quality_score: log.sleep_quality_score,
-      sleep_time: log.sleep_time || '22:00',
-      wake_time: log.wake_time || '06:00',
-      notes: log.notes || '',
-    });
-    // Set the date for editing
-    const d = new Date();
-    const localDate = `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}`;
-    setEditDate(log.sleep_date || localDate);
-  };
-
   // Cancel editing
   const handleCancelEdit = () => {
     setEditingLog(null);
@@ -157,8 +138,7 @@ export function SleepForm({ onSuccess, onCancel, initialEditData }: SleepFormPro
       toast({ title: 'ลบข้อมูลเรียบร้อยแล้ว' });
       setDeleteConfirmId(null);
       refetch();
-    } catch (error) {
-      console.error('Error deleting sleep:', error);
+    } catch {
       toast({ title: 'เกิดข้อผิดพลาดในการลบข้อมูล', variant: 'destructive' });
     }
   };
@@ -247,8 +227,7 @@ export function SleepForm({ onSuccess, onCancel, initialEditData }: SleepFormPro
       setFormData(defaultFormData);
       refetch();
       onSuccess?.();
-    } catch (error) {
-      console.error('Error logging sleep:', error);
+    } catch {
       toast({ title: 'ไม่สามารถบันทึกได้', variant: 'destructive' });
     }
   };
@@ -265,30 +244,55 @@ export function SleepForm({ onSuccess, onCancel, initialEditData }: SleepFormPro
 
   return (
     <div className="space-y-6 pb-4">
-      {/* Summary Card */}
-      <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl p-5 text-white text-center relative overflow-hidden">
-        <div className="absolute -right-10 -top-10 w-32 h-32 bg-white/10 rounded-full" />
-        <div className="relative z-10 flex items-center justify-center gap-4">
-          <Moon className="w-10 h-10" />
-          <div>
-            <p className="text-sm text-white/80">การนอนหลับ</p>
-            <p className="text-2xl font-bold">
-              {formData.sleep_hours ? `${formData.sleep_hours} ชั่วโมง` : 'เลือกข้อมูล'}
-            </p>
-          </div>
-        </div>
-      </div>
+      {/* Edit Drawer */}
+      {editDrawerItem && (
+        <Drawer open={true} onOpenChange={(open) => !open && handleCloseEditDrawer()}>
+          <DrawerContent className="max-h-[90vh]">
+            <DrawerHeader className="flex items-center justify-between px-6">
+              <DrawerTitle className="text-xl font-bold">แก้ไขบันทึกการนอน</DrawerTitle>
+              <DrawerClose asChild>
+                <Button variant="ghost" size="icon" className="rounded-full h-10 w-10">
+                  <X className="w-5 h-5" />
+                </Button>
+              </DrawerClose>
+            </DrawerHeader>
+
+            <div className="px-6 overflow-y-auto max-h-[calc(90vh-80px)]">
+              {editDrawerSuccess ? (
+                <div className="py-12 flex flex-col items-center text-center space-y-6 animate-in zoom-in-95 duration-300">
+                  <div className="w-20 h-20 bg-emerald-100 dark:bg-emerald-950/30 text-emerald-600 rounded-full flex items-center justify-center">
+                    <Check className="w-10 h-10 stroke-[3px]" />
+                  </div>
+                  <div className="space-y-2">
+                    <h2 className="text-2xl font-bold text-foreground">อัปเดตเรียบร้อย!</h2>
+                    <p className="text-muted-foreground text-sm leading-relaxed px-8">
+                      ข้อมูลการนอนของคุณถูกอัปเดตแล้ว
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <SleepForm
+                  key={editDrawerItem.id}
+                  onSuccess={handleEditDrawerSuccess}
+                  onCancel={handleCloseEditDrawer}
+                  initialEditData={editDrawerItem}
+                />
+              )}
+            </div>
+          </DrawerContent>
+        </Drawer>
+      )}
 
       {/* Sleep Time */}
-      <div className="bg-muted/30 rounded-2xl p-4 space-y-4">
+      <div className="space-y-4">
         <div className="flex items-center gap-2">
           <Clock className="w-5 h-5 text-primary" />
           <Label className="text-base font-bold">เวลานอน - เวลาตื่น</Label>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-3">
           {/* เข้านอน */}
-          <div className="bg-card rounded-xl p-4 space-y-2">
+          <div className="bg-indigo-50/50 dark:bg-indigo-950/20 rounded-xl border border-indigo-100 dark:border-indigo-900/30 p-4 space-y-2">
             <Label className="text-sm text-muted-foreground flex items-center gap-2">
               <Moon className="w-4 h-4 text-indigo-500" />
               <span>เข้านอน</span>
@@ -300,7 +304,7 @@ export function SleepForm({ onSuccess, onCancel, initialEditData }: SleepFormPro
           </div>
 
           {/* ตื่นนอน */}
-          <div className="bg-card rounded-xl p-4 space-y-2">
+          <div className="bg-indigo-50/50 dark:bg-indigo-950/20 rounded-xl border border-indigo-100 dark:border-indigo-900/30 p-4 space-y-2">
             <Label className="text-sm text-muted-foreground flex items-center gap-2">
               <Sun className="w-4 h-4 text-amber-500" />
               <span>ตื่นนอน</span>
@@ -313,11 +317,12 @@ export function SleepForm({ onSuccess, onCancel, initialEditData }: SleepFormPro
         </div>
 
         {formData.sleep_time && formData.wake_time && (
-          <div className="text-center p-4 bg-primary/10 rounded-xl">
+          <div className="text-center p-4 bg-indigo-50/50 dark:bg-indigo-950/20 rounded-[32px] border border-indigo-100 dark:border-indigo-900/30">
             <p className="text-sm text-muted-foreground">รวมเวลานอน</p>
-            <p className="text-3xl font-bold text-primary">
-              {calculateHours(formData.sleep_time, formData.wake_time)} ชั่วโมง
+            <p className="text-4xl font-bold font-mono text-indigo-600 dark:text-indigo-400">
+              {calculateHours(formData.sleep_time, formData.wake_time)}
             </p>
+            <p className="text-sm text-muted-foreground">ชั่วโมง</p>
           </div>
         )}
       </div>
@@ -327,15 +332,19 @@ export function SleepForm({ onSuccess, onCancel, initialEditData }: SleepFormPro
         <Label className="text-base font-bold">หรือเลือกจำนวนชั่วโมง</Label>
         <div className="flex flex-wrap gap-2">
           {HOURS_OPTIONS.map((opt) => (
-            <Button
+            <button
               key={opt.value}
               type="button"
-              variant={formData.sleep_hours === opt.value ? 'default' : 'outline'}
-              size="sm"
               onClick={() => handleHoursSelect(opt.value)}
+              className={cn(
+                'px-4 py-2 rounded-2xl border-2 text-sm font-medium transition-all',
+                formData.sleep_hours === opt.value
+                  ? 'bg-indigo-100 text-indigo-700 border-indigo-300 dark:bg-indigo-950/50 dark:text-indigo-400 dark:border-indigo-700'
+                  : 'bg-white dark:bg-card border-muted shadow-sm hover:bg-muted/50'
+              )}
             >
               {opt.label}
-            </Button>
+            </button>
           ))}
         </div>
       </div>
@@ -353,10 +362,10 @@ export function SleepForm({ onSuccess, onCancel, initialEditData }: SleepFormPro
               type="button"
               onClick={() => handleQualitySelect(opt)}
               className={cn(
-                'p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1',
+                'p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-1',
                 formData.sleep_quality === opt.value
                   ? opt.color + ' border-current'
-                  : 'bg-muted/50 border-transparent hover:bg-muted'
+                  : 'bg-white dark:bg-card border-muted shadow-sm hover:bg-muted/50'
               )}
             >
               <span className="text-2xl">{opt.icon}</span>
@@ -374,6 +383,7 @@ export function SleepForm({ onSuccess, onCancel, initialEditData }: SleepFormPro
           onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
           placeholder="เช่น ตื่นกลางดึก 2 ครั้ง, ฝันร้าย"
           rows={2}
+          className="rounded-2xl bg-muted/20 border border-muted"
         />
       </div>
 
@@ -412,7 +422,7 @@ export function SleepForm({ onSuccess, onCancel, initialEditData }: SleepFormPro
               return (
                 <div
                   key={log.id}
-                  className="flex items-center gap-3 bg-muted/50 rounded-xl p-3 group cursor-pointer active:scale-[0.99] transition-transform"
+                  className="flex items-center gap-3 bg-white dark:bg-card border border-muted shadow-sm rounded-2xl p-3 group cursor-pointer active:scale-[0.99] transition-transform"
                   onClick={() => !isDeleting && handleEditDrawer(log)}
                 >
                   <div className="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-950/30 flex items-center justify-center shrink-0">
@@ -486,45 +496,6 @@ export function SleepForm({ onSuccess, onCancel, initialEditData }: SleepFormPro
             })}
           </div>
         </div>
-      )}
-
-      {/* Edit Drawer - like history tab */}
-      {editDrawerItem && (
-        <Drawer open={true} onOpenChange={(open) => !open && handleCloseEditDrawer()}>
-          <DrawerContent className="max-h-[90vh]">
-            <DrawerHeader className="flex items-center justify-between px-6">
-              <DrawerTitle className="text-xl font-bold">แก้ไขบันทึกการนอน</DrawerTitle>
-              <DrawerClose asChild>
-                <Button variant="ghost" size="icon" className="rounded-full h-10 w-10">
-                  <X className="w-5 h-5" />
-                </Button>
-              </DrawerClose>
-            </DrawerHeader>
-
-            <div className="px-6 overflow-y-auto max-h-[calc(90vh-80px)]">
-              {editDrawerSuccess ? (
-                <div className="py-12 flex flex-col items-center text-center space-y-6 animate-in zoom-in-95 duration-300">
-                  <div className="w-20 h-20 bg-emerald-100 dark:bg-emerald-950/30 text-emerald-600 rounded-full flex items-center justify-center">
-                    <Check className="w-10 h-10 stroke-[3px]" />
-                  </div>
-                  <div className="space-y-2">
-                    <h2 className="text-2xl font-bold text-foreground">อัปเดตเรียบร้อย!</h2>
-                    <p className="text-muted-foreground text-sm leading-relaxed px-8">
-                      ข้อมูลการนอนของคุณถูกอัปเดตแล้ว
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <SleepForm
-                  key={editDrawerItem.id}
-                  onSuccess={handleEditDrawerSuccess}
-                  onCancel={handleCloseEditDrawer}
-                  initialEditData={editDrawerItem}
-                />
-              )}
-            </div>
-          </DrawerContent>
-        </Drawer>
       )}
 
       {/* Action Buttons */}

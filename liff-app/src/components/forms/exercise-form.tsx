@@ -33,6 +33,7 @@ import { useLogExercise, useTodayExercise, useDeleteExercise, useUpdateExercise 
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { useEnsurePatient } from '@/hooks/use-ensure-patient';
+import { TimeSelectorPill } from './time-selector-pill';
 
 const EXERCISE_TYPES = [
   { value: 'walk', label: 'เดิน', icon: Footprints },
@@ -94,7 +95,6 @@ export function ExerciseForm({ onSuccess, onCancel, initialEditData }: ExerciseF
   // Initialize state - use initialEditData if provided (component is re-mounted via key prop)
   const [formData, setFormData] = useState<ExerciseFormData>(() => {
     if (initialEditData) {
-      console.log('[ExerciseForm] Initializing from initialEditData:', initialEditData);
       const isCustomType = !EXERCISE_TYPES.some(t => t.value === initialEditData.exercise_type);
       return {
         exercise_type: isCustomType ? 'custom' : (initialEditData.exercise_type || ''),
@@ -151,20 +151,6 @@ export function ExerciseForm({ onSuccess, onCancel, initialEditData }: ExerciseF
     }, 1500);
   };
 
-  // Load log data into form for editing (used by initialEditData mode)
-  const handleEdit = (log: ExerciseLog) => {
-    setEditingLog(log);
-    const isCustomType = !EXERCISE_TYPES.some(t => t.value === log.exercise_type);
-    setFormData({
-      exercise_type: isCustomType ? 'custom' : (log.exercise_type || ''),
-      custom_type: isCustomType ? (log.exercise_type || '') : '',
-      duration_minutes: log.duration_minutes || 30,
-      intensity: log.intensity || '',
-      distance_meters: log.distance_meters?.toString() || '',
-      notes: log.notes || '',
-    });
-  };
-
   // Cancel editing
   const handleCancelEdit = () => {
     setEditingLog(null);
@@ -178,8 +164,7 @@ export function ExerciseForm({ onSuccess, onCancel, initialEditData }: ExerciseF
       toast({ description: 'ลบข้อมูลเรียบร้อยแล้ว' });
       setDeleteConfirmId(null);
       refetchExercise();
-    } catch (error) {
-      console.error('Error deleting exercise:', error);
+    } catch {
       toast({ description: 'เกิดข้อผิดพลาดในการลบข้อมูล', variant: 'destructive' });
     }
   };
@@ -236,8 +221,7 @@ export function ExerciseForm({ onSuccess, onCancel, initialEditData }: ExerciseF
       setFormData(defaultFormData);
       refetchExercise();
       onSuccess?.();
-    } catch (error) {
-      console.error('Error saving exercise:', error);
+    } catch {
       toast({ description: 'เกิดข้อผิดพลาดในการบันทึก', variant: 'destructive' });
     }
   };
@@ -254,8 +238,161 @@ export function ExerciseForm({ onSuccess, onCancel, initialEditData }: ExerciseF
   const exerciseList = (todayExercise || []) as ExerciseLog[];
   const isSaving = logExercise.isPending || updateExercise.isPending;
 
+  const now = new Date();
+  const [selectedTime, setSelectedTime] = useState(() => {
+    if (initialEditData?.created_at) {
+      const d = new Date(initialEditData.created_at);
+      return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+    }
+    return `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+  });
+
   return (
     <div className="space-y-6 pb-4">
+      {/* Edit Drawer */}
+      {editDrawerItem && (
+        <Drawer open={true} onOpenChange={(open) => !open && handleCloseEditDrawer()}>
+          <DrawerContent className="max-h-[90vh]">
+            <DrawerHeader className="flex items-center justify-between px-6">
+              <DrawerTitle className="text-xl font-bold">แก้ไขบันทึกออกกำลังกาย</DrawerTitle>
+              <DrawerClose asChild>
+                <Button variant="ghost" size="icon" className="rounded-full h-10 w-10">
+                  <X className="w-5 h-5" />
+                </Button>
+              </DrawerClose>
+            </DrawerHeader>
+
+            <div className="px-6 overflow-y-auto max-h-[calc(90vh-80px)]">
+              {editDrawerSuccess ? (
+                <div className="py-12 flex flex-col items-center text-center space-y-6 animate-in zoom-in-95 duration-300">
+                  <div className="w-20 h-20 bg-emerald-100 dark:bg-emerald-950/30 text-emerald-600 rounded-full flex items-center justify-center">
+                    <Check className="w-10 h-10 stroke-[3px]" />
+                  </div>
+                  <div className="space-y-2">
+                    <h2 className="text-2xl font-bold text-foreground">อัปเดตเรียบร้อย!</h2>
+                    <p className="text-muted-foreground text-sm leading-relaxed px-8">
+                      ข้อมูลออกกำลังกายของคุณถูกอัปเดตแล้ว
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <ExerciseForm
+                  key={editDrawerItem.id}
+                  onSuccess={handleEditDrawerSuccess}
+                  onCancel={handleCloseEditDrawer}
+                  initialEditData={editDrawerItem}
+                />
+              )}
+            </div>
+          </DrawerContent>
+        </Drawer>
+      )}
+
+      {/* Time Selector Pill */}
+      <TimeSelectorPill
+        time={selectedTime}
+        onTimeChange={setSelectedTime}
+      />
+
+      {/* Exercise Type */}
+      <div className="space-y-3">
+        <Label className="text-base font-bold">ประเภทกิจกรรม</Label>
+        <div className="grid grid-cols-3 gap-2">
+          {EXERCISE_TYPES.map((type) => {
+            const Icon = type.icon;
+            return (
+              <button
+                key={type.value}
+                type="button"
+                onClick={() => setFormData(prev => ({ ...prev, exercise_type: type.value }))}
+                className={cn(
+                  'p-3 rounded-2xl border-2 transition-all flex flex-col items-center gap-1.5',
+                  formData.exercise_type === type.value
+                    ? 'bg-purple-100 text-purple-600 border-purple-300 dark:bg-purple-950/50 dark:text-purple-400 dark:border-purple-700'
+                    : 'bg-white dark:bg-card border-muted shadow-sm hover:bg-muted/50'
+                )}
+              >
+                <Icon className="w-6 h-6" />
+                <span className="text-xs font-medium">{type.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Custom Type Input */}
+      {formData.exercise_type === 'custom' && (
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">ระบุประเภท</Label>
+          <Input
+            value={formData.custom_type}
+            onChange={(e) => setFormData(prev => ({ ...prev, custom_type: e.target.value }))}
+            placeholder="เช่น เต้นแอโรบิค, ว่ายน้ำ"
+            className="h-12 rounded-2xl bg-muted/20 border border-muted"
+          />
+        </div>
+      )}
+
+      {/* Duration */}
+      <div className="space-y-2">
+        <Label className="text-base font-bold">ระยะเวลา (นาที)</Label>
+        <Input
+          type="number"
+          value={formData.duration_minutes}
+          onChange={(e) => setFormData(prev => ({ ...prev, duration_minutes: Number(e.target.value) }))}
+          placeholder="30"
+          min={1}
+          className="h-12 text-lg rounded-2xl bg-muted/20 border border-muted"
+        />
+      </div>
+
+      {/* Intensity */}
+      <div className="space-y-3">
+        <Label className="text-base font-bold">ความเข้มข้น</Label>
+        <div className="grid grid-cols-3 gap-2">
+          {INTENSITY_LEVELS.map((level) => (
+            <button
+              key={level.value}
+              type="button"
+              onClick={() => setFormData(prev => ({ ...prev, intensity: level.value }))}
+              className={cn(
+                'p-4 rounded-2xl border-2 transition-all text-center',
+                formData.intensity === level.value
+                  ? level.color + ' border-current'
+                  : 'bg-white dark:bg-card border-muted shadow-sm hover:bg-muted/50'
+              )}
+            >
+              <span className="text-sm font-medium">{level.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Distance (optional) */}
+      <div className="space-y-2">
+        <Label className="text-base font-bold">ระยะทาง (เมตร) — ไม่บังคับ</Label>
+        <Input
+          type="number"
+          value={formData.distance_meters}
+          onChange={(e) => setFormData(prev => ({ ...prev, distance_meters: e.target.value }))}
+          placeholder="เช่น 5000"
+          min={0}
+          className="h-12 rounded-2xl bg-muted/20 border border-muted"
+        />
+      </div>
+
+      {/* Notes */}
+      <div className="space-y-2">
+        <Label className="text-base font-bold">หมายเหตุ (ถ้ามี)</Label>
+        <Textarea
+          value={formData.notes}
+          onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+          placeholder="เช่น เดินในสวน, วิ่งบนลู่"
+          rows={2}
+          className="rounded-2xl bg-muted/20 border border-muted"
+        />
+      </div>
+
       {/* Today's Logged Exercise */}
       {exerciseList.length > 0 && (
         <div className="space-y-2">
@@ -271,7 +408,7 @@ export function ExerciseForm({ onSuccess, onCancel, initialEditData }: ExerciseF
               return (
                 <div
                   key={exercise.id}
-                  className="flex items-center gap-3 bg-muted/50 rounded-xl p-3 group cursor-pointer active:scale-[0.99] transition-transform"
+                  className="flex items-center gap-3 bg-white dark:bg-card border border-muted shadow-sm rounded-2xl p-3 group cursor-pointer active:scale-[0.99] transition-transform"
                   onClick={() => !isDeleting && handleEditDrawer(exercise)}
                 >
                   <div className="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-950/50 flex items-center justify-center shrink-0">
@@ -346,157 +483,6 @@ export function ExerciseForm({ onSuccess, onCancel, initialEditData }: ExerciseF
           </div>
         </div>
       )}
-
-      {/* Edit Drawer - like history tab */}
-      {editDrawerItem && (
-        <Drawer open={true} onOpenChange={(open) => !open && handleCloseEditDrawer()}>
-          <DrawerContent className="max-h-[90vh]">
-            <DrawerHeader className="flex items-center justify-between px-6">
-              <DrawerTitle className="text-xl font-bold">แก้ไขบันทึกออกกำลังกาย</DrawerTitle>
-              <DrawerClose asChild>
-                <Button variant="ghost" size="icon" className="rounded-full h-10 w-10">
-                  <X className="w-5 h-5" />
-                </Button>
-              </DrawerClose>
-            </DrawerHeader>
-
-            <div className="px-6 overflow-y-auto max-h-[calc(90vh-80px)]">
-              {editDrawerSuccess ? (
-                <div className="py-12 flex flex-col items-center text-center space-y-6 animate-in zoom-in-95 duration-300">
-                  <div className="w-20 h-20 bg-emerald-100 dark:bg-emerald-950/30 text-emerald-600 rounded-full flex items-center justify-center">
-                    <Check className="w-10 h-10 stroke-[3px]" />
-                  </div>
-                  <div className="space-y-2">
-                    <h2 className="text-2xl font-bold text-foreground">อัปเดตเรียบร้อย!</h2>
-                    <p className="text-muted-foreground text-sm leading-relaxed px-8">
-                      ข้อมูลออกกำลังกายของคุณถูกอัปเดตแล้ว
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <ExerciseForm
-                  key={editDrawerItem.id}
-                  onSuccess={handleEditDrawerSuccess}
-                  onCancel={handleCloseEditDrawer}
-                  initialEditData={editDrawerItem}
-                />
-              )}
-            </div>
-          </DrawerContent>
-        </Drawer>
-      )}
-
-      {/* Summary Card */}
-      <div className="bg-gradient-to-br from-purple-500 to-violet-600 rounded-2xl p-5 text-white text-center relative overflow-hidden">
-        <div className="absolute -right-10 -top-10 w-32 h-32 bg-white/10 rounded-full" />
-        <div className="relative z-10 flex items-center justify-center gap-4">
-          <Dumbbell className="w-10 h-10" />
-          <div>
-            <p className="text-sm text-white/80">ออกกำลังกาย</p>
-            <p className="text-2xl font-bold">
-              {formData.duration_minutes ? `${formData.duration_minutes} นาที` : 'เลือกข้อมูล'}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Exercise Type */}
-      <div className="space-y-3">
-        <Label className="text-base font-bold">ประเภทกิจกรรม</Label>
-        <div className="grid grid-cols-3 gap-2">
-          {EXERCISE_TYPES.map((type) => {
-            const Icon = type.icon;
-            return (
-              <button
-                key={type.value}
-                type="button"
-                onClick={() => setFormData(prev => ({ ...prev, exercise_type: type.value }))}
-                className={cn(
-                  'p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1.5',
-                  formData.exercise_type === type.value
-                    ? 'bg-purple-100 text-purple-600 border-purple-300 dark:bg-purple-950/50 dark:text-purple-400 dark:border-purple-700'
-                    : 'bg-muted/50 border-transparent hover:bg-muted'
-                )}
-              >
-                <Icon className="w-6 h-6" />
-                <span className="text-xs font-medium">{type.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Custom Type Input */}
-      {formData.exercise_type === 'custom' && (
-        <div className="space-y-2">
-          <Label className="text-sm font-medium">ระบุประเภท</Label>
-          <Input
-            value={formData.custom_type}
-            onChange={(e) => setFormData(prev => ({ ...prev, custom_type: e.target.value }))}
-            placeholder="เช่น เต้นแอโรบิค, ว่ายน้ำ"
-            className="h-12"
-          />
-        </div>
-      )}
-
-      {/* Duration */}
-      <div className="space-y-2">
-        <Label className="text-base font-bold">ระยะเวลา (นาที)</Label>
-        <Input
-          type="number"
-          value={formData.duration_minutes}
-          onChange={(e) => setFormData(prev => ({ ...prev, duration_minutes: Number(e.target.value) }))}
-          placeholder="30"
-          min={1}
-          className="h-12 text-lg"
-        />
-      </div>
-
-      {/* Intensity */}
-      <div className="space-y-3">
-        <Label className="text-base font-bold">ความเข้มข้น</Label>
-        <div className="grid grid-cols-3 gap-2">
-          {INTENSITY_LEVELS.map((level) => (
-            <button
-              key={level.value}
-              type="button"
-              onClick={() => setFormData(prev => ({ ...prev, intensity: level.value }))}
-              className={cn(
-                'p-3 rounded-xl border-2 transition-all text-center',
-                formData.intensity === level.value
-                  ? level.color + ' border-current'
-                  : 'bg-muted/50 border-transparent hover:bg-muted'
-              )}
-            >
-              <span className="text-sm font-medium">{level.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Distance (optional) */}
-      <div className="space-y-2">
-        <Label className="text-base font-bold">ระยะทาง (เมตร) — ไม่บังคับ</Label>
-        <Input
-          type="number"
-          value={formData.distance_meters}
-          onChange={(e) => setFormData(prev => ({ ...prev, distance_meters: e.target.value }))}
-          placeholder="เช่น 5000"
-          min={0}
-          className="h-12"
-        />
-      </div>
-
-      {/* Notes */}
-      <div className="space-y-2">
-        <Label className="text-base font-bold">หมายเหตุ (ถ้ามี)</Label>
-        <Textarea
-          value={formData.notes}
-          onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-          placeholder="เช่น เดินในสวน, วิ่งบนลู่"
-          rows={2}
-        />
-      </div>
 
       {/* Date/Time editing - only shown when editing */}
       {editingLog && (
