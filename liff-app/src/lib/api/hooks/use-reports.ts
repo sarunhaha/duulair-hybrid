@@ -101,6 +101,11 @@ export interface ReportSummary {
     daysRecorded: number;
     status: 'good' | 'fair' | 'poor';
   };
+  glucose?: {
+    avgGlucose: number;
+    daysRecorded: number;
+    status: 'normal' | 'pre' | 'high';
+  };
   activities: {
     total: number;
     byType: Record<string, number>;
@@ -134,6 +139,7 @@ export interface ChartDataPoint {
   medsPercent?: number;
   waterMl?: number;
   sleepHours?: number;
+  glucose?: number;
 }
 
 export interface ReportData {
@@ -755,6 +761,11 @@ function getMockReportData(startDate: Date, endDate: Date): ReportData {
       avgMl: avgWater,
       daysRecorded: waterData.length,
       status: avgWater >= 1500 ? 'good' : avgWater >= 1000 ? 'fair' : 'poor',
+    },
+    glucose: {
+      avgGlucose: 95 + Math.floor(Math.random() * 25),
+      daysRecorded: Math.floor(bpData.length * 0.6),
+      status: 'normal' as const,
     },
     activities: {
       total: activities.length,

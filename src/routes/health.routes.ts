@@ -17,6 +17,8 @@ router.post('/vitals', async (req: Request, res: Response) => {
     temperature,
     spo2,
     glucose,
+    meal_context,
+    food_notes,
     notes,
     measured_at,
   } = req.body;
@@ -37,6 +39,8 @@ router.post('/vitals', async (req: Request, res: Response) => {
         temperature: temperature || null,
         spo2: spo2 || null,
         glucose: glucose || null,
+        meal_context: meal_context || null,
+        food_notes: food_notes || null,
         notes: notes || null,
         measured_at: measured_at || new Date().toISOString(),
         source: 'manual',
@@ -70,6 +74,8 @@ router.put('/vitals/:id', async (req: Request, res: Response) => {
     temperature,
     spo2,
     glucose,
+    meal_context,
+    food_notes,
     notes,
     measured_at,
   } = req.body;
@@ -83,6 +89,8 @@ router.put('/vitals/:id', async (req: Request, res: Response) => {
       temperature: temperature ?? null,
       spo2: spo2 ?? null,
       glucose: glucose ?? null,
+      meal_context: meal_context ?? null,
+      food_notes: food_notes ?? null,
       notes: notes ?? null,
     };
 

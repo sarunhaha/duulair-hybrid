@@ -9,6 +9,9 @@ export interface VitalsLog {
   heart_rate: number | null;
   weight: number | null;
   temperature: number | null;
+  glucose: number | null;
+  meal_context: string | null;
+  food_notes: string | null;
   measured_at: string;
   source: 'manual' | 'ocr';
 }
@@ -117,6 +120,9 @@ export function useSaveVitals() {
       heart_rate?: number;
       weight?: number;
       temperature?: number;
+      glucose?: number;
+      meal_context?: string;
+      food_notes?: string;
     }) => {
       // Map to backend field names (snake_case patient_id)
       return await apiClient.post('/health/vitals', {
@@ -126,6 +132,9 @@ export function useSaveVitals() {
         heart_rate: data.heart_rate,
         weight: data.weight,
         temperature: data.temperature,
+        glucose: data.glucose,
+        meal_context: data.meal_context,
+        food_notes: data.food_notes,
       });
     },
     onSuccess: (_, variables) => {
@@ -148,6 +157,9 @@ export function useUpdateVitals() {
       heart_rate?: number;
       weight?: number;
       temperature?: number;
+      glucose?: number;
+      meal_context?: string;
+      food_notes?: string;
       measured_at?: string;
       notes?: string;
     }) => {
@@ -157,6 +169,9 @@ export function useUpdateVitals() {
         heart_rate: data.heart_rate,
         weight: data.weight,
         temperature: data.temperature,
+        glucose: data.glucose,
+        meal_context: data.meal_context,
+        food_notes: data.food_notes,
         measured_at: data.measured_at,
         notes: data.notes,
       });
@@ -946,7 +961,7 @@ export function getBloodPressureStatus(systolic: number, diastolic: number) {
 // Health History Hook - for History page
 export interface HealthHistoryItem {
   id: string;
-  type: 'vitals' | 'sleep' | 'symptoms' | 'medications' | 'water' | 'exercise' | 'mood' | 'medical_notes';
+  type: 'vitals' | 'glucose' | 'sleep' | 'symptoms' | 'medications' | 'water' | 'exercise' | 'mood' | 'medical_notes';
   title: string;
   detail: string;
   time: string;
@@ -1009,16 +1024,35 @@ export function useHealthHistory(
         const today = new Date().toISOString().split('T')[0];
 
         // Format vitals
+        const mealContextLabels: Record<string, string> = {
+          fasting: 'ตื่นนอน', post_meal_1h: 'หลังอาหาร 1 ชม.', post_meal_2h: 'หลังอาหาร 2 ชม.', before_bed: 'ก่อนนอน',
+        };
         (data.vitals || []).forEach(v => {
-          items.push({
-            id: v.id,
-            type: 'vitals',
-            title: 'ความดัน',
-            detail: `${v.bp_systolic}/${v.bp_diastolic} mmHg${v.heart_rate ? ` (ชีพจร ${v.heart_rate})` : ''}`,
-            time: new Date(v.measured_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.',
-            date: v.measured_at.split('T')[0] === today ? 'วันนี้' : formatDate(v.measured_at),
-            raw: v,
-          });
+          // BP entry
+          if (v.bp_systolic || v.bp_diastolic) {
+            items.push({
+              id: v.id,
+              type: 'vitals',
+              title: 'ความดัน',
+              detail: `${v.bp_systolic}/${v.bp_diastolic} mmHg${v.heart_rate ? ` (ชีพจร ${v.heart_rate})` : ''}`,
+              time: new Date(v.measured_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.',
+              date: v.measured_at.split('T')[0] === today ? 'วันนี้' : formatDate(v.measured_at),
+              raw: v,
+            });
+          }
+          // Glucose entry
+          if (v.glucose) {
+            const ctxLabel = v.meal_context ? mealContextLabels[v.meal_context] || v.meal_context : '';
+            items.push({
+              id: `${v.id}-glucose`,
+              type: 'glucose',
+              title: 'น้ำตาล',
+              detail: `${v.glucose} mg/dL${ctxLabel ? ` (${ctxLabel})` : ''}`,
+              time: new Date(v.measured_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.',
+              date: v.measured_at.split('T')[0] === today ? 'วันนี้' : formatDate(v.measured_at),
+              raw: v,
+            });
+          }
         });
 
         // Format sleep

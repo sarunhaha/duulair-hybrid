@@ -34,6 +34,9 @@ export interface TrendDataPoint {
   // Water
   glasses?: number | null;
   ml?: number | null;
+  // Glucose
+  glucose?: number | null;
+  mealContext?: string | null;
   // Common
   note?: string;
   event?: string;
@@ -53,7 +56,7 @@ export interface TrendData {
 }
 
 export type TimeRange = '7d' | '15d' | '30d' | 'custom';
-export type TrendCategory = 'heart' | 'meds' | 'sleep' | 'exercise' | 'mood' | 'water';
+export type TrendCategory = 'heart' | 'meds' | 'sleep' | 'exercise' | 'mood' | 'water' | 'glucose';
 
 export interface CustomDateRange {
   startDate: string; // YYYY-MM-DD
@@ -99,6 +102,8 @@ export const trendKeys = {
     [...trendKeys.all, 'mood', patientId, range] as const,
   water: (patientId: string, range: TimeRange) =>
     [...trendKeys.all, 'water', patientId, range] as const,
+  glucose: (patientId: string, range: TimeRange) =>
+    [...trendKeys.all, 'glucose', patientId, range] as const,
 };
 
 // Vitals Trends Hook
@@ -683,4 +688,96 @@ function getWaterInsight(avgGlasses: number, goodDays: number, totalDays: number
     return 'ดื่มน้ำน้อยไป ลองพกขวดน้ำติดตัวเพื่อเตือนให้ดื่มบ่อยขึ้นนะครับ';
   }
   return 'ดื่มน้ำน้อยมาก ร่างกายต้องการน้ำอย่างน้อย 8 แก้ว/วันนะครับ';
+}
+
+// Glucose Trends Hook
+export function useGlucoseTrend(patientId: string | null, range: TimeRange, customRange?: CustomDateRange) {
+  const queryKey = patientId
+    ? range === 'custom' && customRange
+      ? [...trendKeys.glucose(patientId, range), customRange.startDate, customRange.endDate]
+      : trendKeys.glucose(patientId, range)
+    : ['trends', 'glucose', 'none'];
+
+  return useQuery({
+    queryKey,
+    queryFn: async (): Promise<TrendData> => {
+      if (!patientId) return getMockGlucoseData(range, customRange);
+      try {
+        let url = `/trends/glucose/${patientId}?range=${range}`;
+        if (range === 'custom' && customRange) {
+          url += `&startDate=${customRange.startDate}&endDate=${customRange.endDate}`;
+        }
+        const data = await apiClient.get<TrendData>(url);
+        return data;
+      } catch {
+        console.warn('Glucose trend API not available, using mock data');
+        return getMockGlucoseData(range, customRange);
+      }
+    },
+    enabled: true,
+    staleTime: 60 * 1000,
+  });
+}
+
+// Mock Data for Glucose
+function getMockGlucoseData(range: TimeRange, customRange?: CustomDateRange): TrendData {
+  let days: number;
+  let labels: string[];
+  let dates: string[];
+
+  if (range === 'custom' && customRange) {
+    days = getDaysBetween(customRange.startDate, customRange.endDate);
+    const customDates = getCustomDateRange(customRange.startDate, customRange.endDate);
+    labels = customDates.labels;
+    dates = customDates.dates;
+  } else {
+    days = DAYS_MAP[range] || 7;
+    labels = getLastNDays(days);
+    dates = getLastNDates(days);
+  }
+
+  const mealContexts = ['fasting', 'post_meal_1h', 'post_meal_2h', 'before_bed'];
+
+  const data: TrendDataPoint[] = labels.map((day, i) => {
+    const glucose = 85 + Math.floor(Math.random() * 55);
+    const mealContext = mealContexts[Math.floor(Math.random() * mealContexts.length)];
+    const isFasting = mealContext === 'fasting' || mealContext === 'before_bed';
+    const isHigh = isFasting ? glucose >= 126 : glucose >= 200;
+    const isPreDiabetic = !isHigh && (isFasting ? glucose >= 100 : glucose >= 140);
+
+    return {
+      day,
+      date: dates[i],
+      glucose,
+      mealContext,
+      event: isHigh ? 'สูง' : isPreDiabetic ? 'เสี่ยง' : undefined,
+      note: isHigh ? 'น้ำตาลสูงกว่าปกติ' : isPreDiabetic ? 'น้ำตาลสูงกว่าเกณฑ์เล็กน้อย' : undefined,
+    };
+  });
+
+  const avgGlucose = Math.round(data.reduce((sum, d) => sum + (d.glucose || 0), 0) / data.length);
+  const recordedDays = data.filter((d) => d.glucose !== null).length;
+
+  return {
+    data,
+    summary: {
+      avg: `${avgGlucose} mg/dL`,
+      label1: 'ค่าเฉลี่ย',
+      count: `วัดแล้ว ${recordedDays}/${days} วัน`,
+      label2: 'วันที่มีการวัด',
+    },
+    insight: getGlucoseInsight(avgGlucose, recordedDays),
+  };
+}
+
+function getGlucoseInsight(avgGlucose: number, recordedDays: number): string {
+  if (recordedDays === 0) {
+    return 'ยังไม่มีข้อมูลน้ำตาลในช่วงนี้ ลองวัดระดับน้ำตาลเพื่อติดตามสุขภาพนะครับ';
+  }
+  if (avgGlucose >= 126) {
+    return 'ระดับน้ำตาลเฉลี่ยสูงกว่าปกติ ควรปรึกษาแพทย์เพื่อปรับยาหรือพฤติกรรม';
+  } else if (avgGlucose >= 100) {
+    return 'ระดับน้ำตาลอยู่ในช่วงเสี่ยง ควรลดอาหารหวานและออกกำลังกายสม่ำเสมอ';
+  }
+  return 'ระดับน้ำตาลอยู่ในเกณฑ์ปกติ ดีมากครับ รักษาพฤติกรรมนี้ต่อไป';
 }

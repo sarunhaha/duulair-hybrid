@@ -23,6 +23,8 @@ export interface DashboardSummary {
     sleep_change: number | null;
     weight: number | null;
     weight_change: number | null;
+    glucose: number | null;
+    glucose_change: number | null;
   };
   aiInsight: {
     title: string;
@@ -73,6 +75,8 @@ function getEmptyDashboardSummary(): DashboardSummary {
       sleep_change: null,
       weight: null,
       weight_change: null,
+      glucose: null,
+      glucose_change: null,
     },
     aiInsight: null,
   };
@@ -146,6 +150,8 @@ function getMockDashboardSummary(): DashboardSummary {
       sleep_change: -1.2,
       weight: 64.2,
       weight_change: -0.3,
+      glucose: 105,
+      glucose_change: -3,
     },
     aiInsight: {
       title: 'อุ่นใจแนะนำ',

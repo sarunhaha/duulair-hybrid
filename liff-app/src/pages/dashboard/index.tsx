@@ -1,4 +1,4 @@
-import { TrendingUp, ArrowDownRight, ArrowUpRight, Flame, Moon, Sun, Droplets, Loader2, PlusCircle, FileText } from 'lucide-react';
+import { TrendingUp, ArrowDownRight, ArrowUpRight, Flame, Moon, Sun, Droplets, Loader2, PlusCircle, FileText, CheckCircle2 } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -42,11 +42,18 @@ export default function DashboardPage() {
   const insight = summary?.aiInsight || DEFAULT_INSIGHT;
   const streak = summary?.streak ?? 0;
 
-  // Check if we have any vitals data
-  const hasVitalsData = vitals && (vitals.bp_systolic !== null || vitals.sleep_hours !== null || vitals.weight !== null);
-
   // Check if we have tasks
   const hasTasks = tasks && tasks.items && tasks.items.length > 0;
+
+  // Compute medication adherence from todayTasks
+  const medTasks = hasTasks ? tasks.items.filter(t => t.id !== 'water-goal') : [];
+  const medTotal = medTasks.length;
+  const medDone = medTasks.filter(t => t.done).length;
+  const medAdherence = medTotal > 0 ? Math.round((medDone / medTotal) * 100) : null;
+  const medAllDone = medTotal > 0 && medDone === medTotal;
+
+  // Check if we have any highlight data
+  const hasVitalsData = vitals && (vitals.bp_systolic !== null || vitals.sleep_hours !== null) || medTotal > 0;
   const remainingTasks = hasTasks ? tasks.total - tasks.completed : 0;
 
   const goToRecords = () => setLocation('/records');
@@ -132,12 +139,12 @@ export default function DashboardPage() {
           <CardContent className="p-5 pt-2">
             {hasVitalsData ? (
               <div className="grid grid-cols-3 gap-4 divide-x divide-border">
-                {/* Blood Pressure */}
+                {/* 1. Blood Pressure */}
                 <div className="space-y-1 text-center px-1">
-                  <p className="text-[10px] text-muted-foreground font-medium">ความดัน</p>
-                  {vitals.bp_systolic !== null ? (
+                  <p className="text-xs text-muted-foreground font-medium">ความดัน</p>
+                  {vitals?.bp_systolic !== null && vitals?.bp_systolic !== undefined ? (
                     <>
-                      <p className="text-lg font-bold text-foreground">
+                      <p className="text-xl font-bold text-foreground">
                         {vitals.bp_systolic}/{vitals.bp_diastolic}
                       </p>
                       {vitals.bp_change !== null && (
@@ -159,12 +166,38 @@ export default function DashboardPage() {
                   )}
                 </div>
 
-                {/* Sleep */}
+                {/* 2. Medication Adherence */}
                 <div className="space-y-1 text-center px-1">
-                  <p className="text-[10px] text-muted-foreground font-medium">การนอน</p>
-                  {vitals.sleep_hours !== null ? (
+                  <p className="text-xs text-muted-foreground font-medium">กินยา</p>
+                  {medAdherence !== null ? (
                     <>
-                      <p className="text-lg font-bold text-foreground">{vitals.sleep_hours} ชม.</p>
+                      <p className="text-xl font-bold text-foreground">{medAdherence}%</p>
+                      <div
+                        className={cn(
+                          'flex items-center justify-center gap-1 text-[10px] font-bold w-fit mx-auto px-1.5 py-0.5 rounded-md',
+                          medAllDone
+                            ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30'
+                            : 'text-amber-600 bg-amber-50 dark:bg-amber-950/30'
+                        )}
+                      >
+                        {medAllDone ? (
+                          <><CheckCircle2 className="w-3 h-3" /> ครบ</>
+                        ) : (
+                          <>{medDone}/{medTotal}</>
+                        )}
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">-</p>
+                  )}
+                </div>
+
+                {/* 3. Sleep */}
+                <div className="space-y-1 text-center px-1">
+                  <p className="text-xs text-muted-foreground font-medium">การนอน</p>
+                  {vitals?.sleep_hours !== null && vitals?.sleep_hours !== undefined ? (
+                    <>
+                      <p className="text-xl font-bold text-foreground">{vitals.sleep_hours} ชม.</p>
                       {vitals.sleep_change !== null && (
                         <div
                           className={cn(
@@ -183,31 +216,6 @@ export default function DashboardPage() {
                     <p className="text-sm text-muted-foreground">-</p>
                   )}
                 </div>
-
-                {/* Weight */}
-                <div className="space-y-1 text-center px-1">
-                  <p className="text-[10px] text-muted-foreground font-medium">น้ำหนัก</p>
-                  {vitals.weight !== null ? (
-                    <>
-                      <p className="text-lg font-bold text-foreground">{vitals.weight} กก.</p>
-                      {vitals.weight_change !== null && (
-                        <div
-                          className={cn(
-                            'flex items-center justify-center gap-1 text-[10px] font-bold w-fit mx-auto px-1.5 py-0.5 rounded-md',
-                            vitals.weight_change <= 0
-                              ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30'
-                              : 'text-red-500 bg-red-50 dark:bg-red-950/30'
-                          )}
-                        >
-                          {vitals.weight_change <= 0 ? <ArrowDownRight className="w-3 h-3" /> : <ArrowUpRight className="w-3 h-3" />}
-                          {vitals.weight_change > 0 ? '+' : ''}{vitals.weight_change}
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">-</p>
-                  )}
-                </div>
               </div>
             ) : (
               <div className="text-center py-6 space-y-4">
@@ -216,7 +224,7 @@ export default function DashboardPage() {
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm font-medium text-muted-foreground">ยังไม่มีข้อมูล</p>
-                  <p className="text-xs text-muted-foreground/70">เริ่มบันทึกความดัน น้ำหนัก หรือการนอน</p>
+                  <p className="text-xs text-muted-foreground/70">เริ่มบันทึกความดัน กินยา หรือการนอน</p>
                 </div>
                 <Button
                   variant="outline"

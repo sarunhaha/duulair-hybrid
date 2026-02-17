@@ -21,6 +21,7 @@ import {
   Moon,
   X,
   Info,
+  Droplet,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -694,6 +695,24 @@ export default function ReportsPage() {
                 )}
               </div>
             </Card>
+            {summary?.glucose && (
+              <Card className="border-none shadow-sm bg-card p-4">
+                <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2">
+                  <Droplet className="w-3 h-3 text-pink-500" /> น้ำตาล
+                </div>
+                <div className="space-y-1">
+                  <p className="text-lg font-bold">
+                    {summary.glucose.avgGlucose || '-'} <span className="text-[10px] text-muted-foreground font-normal ml-1">mg/dL เฉลี่ย</span>
+                  </p>
+                  <p className={cn(
+                    'text-[10px] font-medium',
+                    summary.glucose.daysRecorded >= daysToSubtract * 0.5 ? 'text-emerald-600' : 'text-orange-600'
+                  )}>
+                    บันทึก {summary.glucose.daysRecorded}/{daysToSubtract} วัน
+                  </p>
+                </div>
+              </Card>
+            )}
           </div>
         </div>
 

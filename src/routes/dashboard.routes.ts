@@ -19,6 +19,8 @@ interface DashboardSummary {
     sleep_change: number | null;
     weight: number | null;
     weight_change: number | null;
+    glucose: number | null;
+    glucose_change: number | null;
   };
   aiInsight: { title: string; message: string; icon: string } | null;
 }
@@ -57,7 +59,7 @@ router.get('/summary/:patientId', async (req: Request, res: Response) => {
       // Latest vitals (today or most recent)
       supabase
         .from('vitals_logs')
-        .select('bp_systolic, bp_diastolic, weight, measured_at')
+        .select('bp_systolic, bp_diastolic, weight, glucose, measured_at')
         .eq('patient_id', patientId)
         .order('measured_at', { ascending: false })
         .limit(1)
@@ -149,12 +151,16 @@ router.get('/summary/:patientId', async (req: Request, res: Response) => {
     const bp_systolic = latestVitals?.bp_systolic || null;
     const bp_diastolic = latestVitals?.bp_diastolic || null;
     const weight = latestVitals?.weight || null;
+    const glucose = latestVitals?.glucose || null;
 
     const bp_change = latestVitals?.bp_systolic && previousVitals?.bp_systolic
       ? latestVitals.bp_systolic - previousVitals.bp_systolic
       : null;
     const weight_change = latestVitals?.weight && previousVitals?.weight
       ? Number((latestVitals.weight - previousVitals.weight).toFixed(1))
+      : null;
+    const glucose_change = latestVitals?.glucose && previousVitals?.glucose
+      ? latestVitals.glucose - previousVitals.glucose
       : null;
 
     // Process sleep
@@ -365,6 +371,8 @@ router.get('/summary/:patientId', async (req: Request, res: Response) => {
         sleep_change,
         weight,
         weight_change,
+        glucose,
+        glucose_change,
       },
       aiInsight,
     };
@@ -489,6 +497,8 @@ function getEmptyDashboardSummary(): DashboardSummary {
       sleep_change: null,
       weight: null,
       weight_change: null,
+      glucose: null,
+      glucose_change: null,
     },
     aiInsight: null,
   };
@@ -513,14 +523,14 @@ async function getPatientDashboardSummary(patientId: string): Promise<DashboardS
   ] = await Promise.all([
     supabase
       .from('vitals_logs')
-      .select('bp_systolic, bp_diastolic, weight, measured_at')
+      .select('bp_systolic, bp_diastolic, weight, glucose, measured_at')
       .eq('patient_id', patientId)
       .order('measured_at', { ascending: false })
       .limit(1)
       .single(),
     supabase
       .from('vitals_logs')
-      .select('bp_systolic, bp_diastolic, weight')
+      .select('bp_systolic, bp_diastolic, weight, glucose')
       .eq('patient_id', patientId)
       .order('measured_at', { ascending: false })
       .range(1, 1)
@@ -571,12 +581,16 @@ async function getPatientDashboardSummary(patientId: string): Promise<DashboardS
   const bp_systolic = latestVitals?.bp_systolic || null;
   const bp_diastolic = latestVitals?.bp_diastolic || null;
   const weight = latestVitals?.weight || null;
+  const glucose = latestVitals?.glucose || null;
 
   const bp_change = latestVitals?.bp_systolic && previousVitals?.bp_systolic
     ? latestVitals.bp_systolic - previousVitals.bp_systolic
     : null;
   const weight_change = latestVitals?.weight && previousVitals?.weight
     ? Number((latestVitals.weight - previousVitals.weight).toFixed(1))
+    : null;
+  const glucose_change = latestVitals?.glucose && previousVitals?.glucose
+    ? latestVitals.glucose - previousVitals.glucose
     : null;
 
   // Process sleep
@@ -774,6 +788,8 @@ async function getPatientDashboardSummary(patientId: string): Promise<DashboardS
       sleep_change,
       weight,
       weight_change,
+      glucose,
+      glucose_change,
     },
     aiInsight,
   };

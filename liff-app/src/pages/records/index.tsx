@@ -26,7 +26,7 @@ import {
   DrawerTitle,
 } from '@/components/ui/drawer';
 import { BottomNav } from '@/components/layout/bottom-nav';
-import { VitalsForm, WaterForm, MedicationForm, SymptomForm, SleepForm, ExerciseForm, MoodForm, MedicalNotesForm } from '@/components/forms';
+import { VitalsForm, WaterForm, MedicationForm, SymptomForm, SleepForm, ExerciseForm, MoodForm, MedicalNotesForm, GlucoseForm } from '@/components/forms';
 import { cn } from '@/lib/utils';
 import { useLocation } from 'wouter';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -45,7 +45,7 @@ import {
 import { useEnsurePatient } from '@/hooks/use-ensure-patient';
 import { useToast } from '@/hooks/use-toast';
 
-type CategoryId = 'health' | 'meds' | 'sleep' | 'water' | 'exercise' | 'stress' | 'symptoms' | 'notes';
+type CategoryId = 'health' | 'glucose' | 'meds' | 'sleep' | 'water' | 'exercise' | 'stress' | 'symptoms' | 'notes';
 
 interface Category {
   id: CategoryId;
@@ -63,6 +63,14 @@ const categories: Category[] = [
     icon: Activity,
     color: 'bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400',
     desc: 'ความดัน, ชีพจร, น้ำหนัก',
+    hasForm: true,
+  },
+  {
+    id: 'glucose',
+    title: 'ระดับน้ำตาล',
+    icon: Droplet,
+    color: 'bg-pink-50 text-pink-600 dark:bg-pink-950/30 dark:text-pink-400',
+    desc: 'วัดน้ำตาล, ช่วงเวลาวัด',
     hasForm: true,
   },
   {
@@ -126,6 +134,7 @@ const categories: Category[] = [
 // Map category to health history type
 const categoryToHistoryType: Record<CategoryId, string> = {
   health: 'vitals',
+  glucose: 'glucose',
   meds: 'medications',
   sleep: 'sleep',
   water: 'water',
@@ -221,6 +230,7 @@ export default function RecordsPage() {
   const getEditCategoryFromType = (type: string): CategoryId | null => {
     const typeToCategory: Record<string, CategoryId> = {
       vitals: 'health',
+      glucose: 'glucose',
       medications: 'meds',
       sleep: 'sleep',
       water: 'water',
@@ -253,6 +263,8 @@ export default function RecordsPage() {
     switch (category) {
       case 'health':
         return <VitalsForm key={formKey} onSuccess={handleEditSuccess} onCancel={handleCloseEdit} initialEditData={rawData as any} />;
+      case 'glucose':
+        return <GlucoseForm key={formKey} onSuccess={handleEditSuccess} onCancel={handleCloseEdit} initialEditData={rawData as any} />;
       case 'water':
         return <WaterForm key={formKey} onSuccess={handleEditSuccess} onCancel={handleCloseEdit} initialEditData={rawData as any} />;
       case 'meds':
@@ -309,6 +321,8 @@ export default function RecordsPage() {
     switch (selectedCategory) {
       case 'health':
         return <VitalsForm onSuccess={handleSuccess} onCancel={handleClose} />;
+      case 'glucose':
+        return <GlucoseForm onSuccess={handleSuccess} onCancel={handleClose} />;
       case 'water':
         return <WaterForm onSuccess={handleSuccess} onCancel={handleClose} />;
       case 'meds':

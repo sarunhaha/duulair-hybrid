@@ -45,7 +45,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useEnsurePatient } from '@/hooks/use-ensure-patient';
 import { BottomNav } from '@/components/layout/bottom-nav';
-import { VitalsForm, WaterForm, MedicationForm, SymptomForm, SleepForm, ExerciseForm, MoodForm, MedicalNotesForm } from '@/components/forms';
+import { VitalsForm, WaterForm, MedicationForm, SymptomForm, SleepForm, ExerciseForm, MoodForm, MedicalNotesForm, GlucoseForm } from '@/components/forms';
 
 interface HistoryItem {
   id: number;
@@ -69,6 +69,7 @@ const TYPE_CONFIG: Record<string, { icon: React.ComponentType<{ className?: stri
   meds: { icon: Pill, color: 'text-orange-500', bg: 'bg-orange-50 dark:bg-orange-950/30' },
   water: { icon: Droplet, color: 'text-sky-500', bg: 'bg-sky-50 dark:bg-sky-950/30' },
   exercise: { icon: Dumbbell, color: 'text-purple-500', bg: 'bg-purple-50 dark:bg-purple-950/30' },
+  glucose: { icon: Droplet, color: 'text-pink-500', bg: 'bg-pink-50 dark:bg-pink-950/30' },
 };
 
 // Date range options
@@ -245,6 +246,8 @@ export default function HistoryPage() {
     switch (formType) {
       case 'vitals':
         return <VitalsForm onSuccess={handleEditSuccess} onCancel={handleCloseEdit} />;
+      case 'glucose':
+        return <GlucoseForm onSuccess={handleEditSuccess} onCancel={handleCloseEdit} />;
       case 'water':
         return <WaterForm onSuccess={handleEditSuccess} onCancel={handleCloseEdit} />;
       case 'medications':
@@ -274,6 +277,7 @@ export default function HistoryPage() {
     const typeLabels: Record<string, string> = {
       health: 'ความดัน/ชีพจร',
       vitals: 'ความดัน/ชีพจร',
+      glucose: 'ระดับน้ำตาล',
       meds: 'ยา',
       medications: 'ยา',
       sleep: 'การนอน',
@@ -373,6 +377,7 @@ export default function HistoryPage() {
           {[
             { id: 'symptoms', label: 'อาการ' },
             { id: 'health', label: 'ความดัน' },
+            { id: 'glucose', label: 'น้ำตาล' },
             { id: 'meds', label: 'ยา' },
             { id: 'water', label: 'น้ำ' },
             { id: 'sleep', label: 'การนอน' },

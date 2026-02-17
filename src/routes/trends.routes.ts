@@ -34,6 +34,9 @@ interface TrendDataPoint {
   // Water
   glasses?: number | null;
   ml?: number | null;
+  // Glucose
+  glucose?: number | null;
+  mealContext?: string | null;
   // Common
   note?: string;
   event?: string;
@@ -812,5 +815,113 @@ router.get('/water/:patientId', async (req: Request, res: Response) => {
     return res.status(500).json({ error: error.message || 'Failed to get water trend' });
   }
 });
+
+/**
+ * GET /api/trends/glucose/:patientId
+ * Get blood sugar (glucose) trends
+ */
+router.get('/glucose/:patientId', async (req: Request, res: Response) => {
+  const { patientId } = req.params;
+  const range = (req.query.range as string) || '7d';
+  const customStartDate = req.query.startDate as string;
+  const customEndDate = req.query.endDate as string;
+
+  if (!patientId) {
+    return res.status(400).json({ error: 'Patient ID is required' });
+  }
+
+  try {
+    let dates: string[];
+    let labels: string[];
+    let days: number;
+
+    if (range === 'custom' && customStartDate && customEndDate) {
+      const customRange = getCustomDateRange(customStartDate, customEndDate);
+      dates = customRange.dates;
+      labels = customRange.labels;
+      days = dates.length;
+    } else {
+      days = getRangeDays(range);
+      const dateRange = getDateRange(days);
+      dates = dateRange.dates;
+      labels = dateRange.labels;
+    }
+
+    const startDate = dates[0];
+
+    // Query vitals logs with glucose data
+    const { data: glucoseLogs, error } = await supabase
+      .from('vitals_logs')
+      .select('glucose, meal_context, measured_at')
+      .eq('patient_id', patientId)
+      .not('glucose', 'is', null)
+      .gte('measured_at', `${startDate}T00:00:00`)
+      .order('measured_at', { ascending: true });
+
+    if (error) throw error;
+
+    // Group by date (take latest reading per day)
+    const byDate: Record<string, { glucose: number; mealContext: string | null }> = {};
+    (glucoseLogs || []).forEach((log) => {
+      if (!log.glucose) return;
+      const dateKey = formatISODate(parseISODate(log.measured_at));
+      byDate[dateKey] = {
+        glucose: log.glucose,
+        mealContext: log.meal_context || null,
+      };
+    });
+
+    // Build data array
+    const data: TrendDataPoint[] = dates.map((date, i) => {
+      const entry = byDate[date];
+      const glucose = entry?.glucose || null;
+      const isFasting = entry?.mealContext === 'fasting' || entry?.mealContext === 'before_bed';
+      const isHigh = glucose !== null && (isFasting ? glucose >= 126 : glucose >= 200);
+      const isPreDiabetic = glucose !== null && !isHigh && (isFasting ? glucose >= 100 : glucose >= 140);
+
+      return {
+        day: labels[i],
+        date,
+        glucose,
+        mealContext: entry?.mealContext || null,
+        event: isHigh ? 'สูง' : isPreDiabetic ? 'เสี่ยง' : undefined,
+        note: isHigh ? 'น้ำตาลสูงกว่าปกติ' : isPreDiabetic ? 'น้ำตาลสูงกว่าเกณฑ์เล็กน้อย' : undefined,
+      };
+    });
+
+    // Calculate summary
+    const recorded = data.filter((d) => d.glucose !== null);
+    const avgGlucose = recorded.length > 0
+      ? Math.round(recorded.reduce((sum, d) => sum + (d.glucose || 0), 0) / recorded.length)
+      : 0;
+
+    const summary: TrendSummary = {
+      avg: recorded.length > 0 ? `${avgGlucose} mg/dL` : '-',
+      label1: 'ค่าเฉลี่ย',
+      count: `วัดแล้ว ${recorded.length}/${days} วัน`,
+      label2: 'วันที่มีการวัด',
+    };
+
+    // Generate insight
+    const insight = getGlucoseInsight(avgGlucose, recorded.length);
+
+    return res.json({ data, summary, insight });
+  } catch (error: any) {
+    console.error('Glucose trend error:', error);
+    return res.status(500).json({ error: error.message || 'Failed to get glucose trend' });
+  }
+});
+
+function getGlucoseInsight(avgGlucose: number, recordedDays: number): string {
+  if (recordedDays === 0) {
+    return 'ยังไม่มีข้อมูลน้ำตาลในช่วงนี้ ลองวัดระดับน้ำตาลเพื่อติดตามสุขภาพนะครับ';
+  }
+  if (avgGlucose >= 126) {
+    return 'ระดับน้ำตาลเฉลี่ยสูงกว่าปกติ ควรปรึกษาแพทย์เพื่อปรับยาหรือพฤติกรรม';
+  } else if (avgGlucose >= 100) {
+    return 'ระดับน้ำตาลอยู่ในช่วงเสี่ยง ควรลดอาหารหวานและออกกำลังกายสม่ำเสมอ';
+  }
+  return 'ระดับน้ำตาลอยู่ในเกณฑ์ปกติ ดีมากครับ รักษาพฤติกรรมนี้ต่อไป';
+}
 
 export default router;

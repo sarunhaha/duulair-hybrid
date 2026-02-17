@@ -12,6 +12,7 @@ import {
   Dumbbell,
   Smile,
   Droplets,
+  Droplet,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -46,6 +47,7 @@ import {
   useExerciseTrend,
   useMoodTrend,
   useWaterTrend,
+  useGlucoseTrend,
   type TimeRange,
   type TrendCategory,
   type TrendDataPoint,
@@ -143,6 +145,7 @@ export default function TrendsPage() {
   const { data: exerciseData, isLoading: exerciseLoading } = useExerciseTrend(patientId, range, range === 'custom' ? customRange : undefined);
   const { data: moodData, isLoading: moodLoading } = useMoodTrend(patientId, range, range === 'custom' ? customRange : undefined);
   const { data: waterData, isLoading: waterLoading } = useWaterTrend(patientId, range, range === 'custom' ? customRange : undefined);
+  const { data: glucoseData, isLoading: glucoseLoading } = useGlucoseTrend(patientId, range, range === 'custom' ? customRange : undefined);
 
   // Get active data based on category
   const activeData = useMemo(() => {
@@ -159,10 +162,12 @@ export default function TrendsPage() {
         return moodData;
       case 'water':
         return waterData;
+      case 'glucose':
+        return glucoseData;
       default:
         return vitalsData || MOCK_VITALS_DATA;
     }
-  }, [category, vitalsData, medsData, sleepData, exerciseData, moodData, waterData]);
+  }, [category, vitalsData, medsData, sleepData, exerciseData, moodData, waterData, glucoseData]);
 
   const isLoading = useMemo(() => {
     switch (category) {
@@ -178,10 +183,12 @@ export default function TrendsPage() {
         return moodLoading;
       case 'water':
         return waterLoading;
+      case 'glucose':
+        return glucoseLoading;
       default:
         return false;
     }
-  }, [category, vitalsLoading, medsLoading, sleepLoading, exerciseLoading, moodLoading, waterLoading]);
+  }, [category, vitalsLoading, medsLoading, sleepLoading, exerciseLoading, moodLoading, waterLoading, glucoseLoading]);
 
   // Clear selected point when changing range/category
   useEffect(() => {
@@ -195,6 +202,7 @@ export default function TrendsPage() {
     { id: 'exercise' as TrendCategory, label: 'ออกกำลัง', icon: Dumbbell },
     { id: 'mood' as TrendCategory, label: 'อารมณ์', icon: Smile },
     { id: 'water' as TrendCategory, label: 'น้ำ', icon: Droplets },
+    { id: 'glucose' as TrendCategory, label: 'น้ำตาล', icon: Droplet },
   ];
 
   const handleChartClick = (e: any) => {
@@ -577,6 +585,48 @@ export default function TrendsPage() {
                         ))}
                       </Bar>
                     </BarChart>
+                  ) : category === 'glucose' ? (
+                    <BarChart
+                      data={activeData.data}
+                      margin={{ top: 10, right: 10, left: -25, bottom: 0 }}
+                      onClick={handleChartClick}
+                    >
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        vertical={false}
+                        stroke="hsl(var(--muted))"
+                      />
+                      <XAxis
+                        dataKey="day"
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                        dy={10}
+                      />
+                      <YAxis
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                        domain={[0, 250]}
+                      />
+                      <Tooltip cursor={{ fill: 'rgba(0,0,0,0.05)' }} contentStyle={{ borderRadius: '12px', fontSize: '12px', border: '1px solid hsl(var(--border))' }} />
+                      <ReferenceLine y={100} stroke="#f59e0b" strokeDasharray="6 4" strokeOpacity={0.5} label={{ value: 'เสี่ยง', position: 'right', fontSize: 9, fill: '#f59e0b' }} />
+                      <ReferenceLine y={126} stroke="#ef4444" strokeDasharray="6 4" strokeOpacity={0.5} label={{ value: 'สูง', position: 'right', fontSize: 9, fill: '#ef4444' }} />
+                      <Bar dataKey="glucose" radius={[6, 6, 0, 0]}>
+                        {activeData.data.map((entry, index) => (
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={
+                              (entry.glucose || 0) >= 126
+                                ? '#ef4444'
+                                : (entry.glucose || 0) >= 100
+                                  ? '#f59e0b'
+                                  : '#ec4899'
+                            }
+                          />
+                        ))}
+                      </Bar>
+                    </BarChart>
                   ) : (
                     /* Water */
                     <BarChart
@@ -725,6 +775,25 @@ export default function TrendsPage() {
                           </p>
                           {selectedPoint.ml && (
                             <p className="text-xs text-muted-foreground mt-0.5">≈ {selectedPoint.ml} ml</p>
+                          )}
+                        </div>
+                      )}
+                      {category === 'glucose' && (
+                        <div className="mt-1">
+                          <p className="text-xl font-bold text-pink-600">
+                            {selectedPoint.glucose !== null ? (
+                              <>
+                                {selectedPoint.glucose}{' '}
+                                <span className="text-xs font-normal text-muted-foreground">mg/dL</span>
+                              </>
+                            ) : (
+                              <span className="text-muted-foreground text-base">ไม่ได้วัด</span>
+                            )}
+                          </p>
+                          {selectedPoint.mealContext && (
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {({ fasting: 'ตื่นนอน', post_meal_1h: 'หลังอาหาร 1 ชม.', post_meal_2h: 'หลังอาหาร 2 ชม.', before_bed: 'ก่อนนอน' } as Record<string, string>)[selectedPoint.mealContext] || selectedPoint.mealContext}
+                            </p>
                           )}
                         </div>
                       )}
