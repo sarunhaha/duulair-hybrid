@@ -55,6 +55,9 @@ router.get('/summary/:patientId', async (req: Request, res: Response) => {
       todayMedLogsResult,
       todayWaterResult,
       streakResult,
+      todayReminderLogsResult,
+      todayVitalsResult,
+      todayActivityLogsResult,
     ] = await Promise.all([
       // Latest vitals (today or most recent)
       supabase
@@ -142,6 +145,28 @@ router.get('/summary/:patientId', async (req: Request, res: Response) => {
           .order('log_date', { ascending: false })
           .limit(50),
       ]),
+
+      // Today's reminder logs (for non-medication completion check)
+      supabase
+        .from('reminder_logs')
+        .select('reminder_id, status')
+        .eq('patient_id', patientId)
+        .gte('sent_at', today.toISOString())
+        .eq('status', 'acknowledged'),
+
+      // Today's vitals logs (for vitals/glucose reminder completion via chat)
+      supabase
+        .from('vitals_logs')
+        .select('bp_systolic, glucose, measured_at')
+        .eq('patient_id', patientId)
+        .gte('measured_at', today.toISOString()),
+
+      // Today's activity logs (for exercise/food reminder completion via chat)
+      supabase
+        .from('activity_logs')
+        .select('activity_type, timestamp')
+        .eq('patient_id', patientId)
+        .gte('timestamp', today.toISOString()),
     ]);
 
     // Process vitals
@@ -303,23 +328,73 @@ router.get('/summary/:patientId', async (req: Request, res: Response) => {
       });
     }
 
-    // Add water goal task
+    // Add non-medication reminders (vitals, exercise, food, glucose, water)
+    // Check completion from multiple sources:
+    // 1. reminder_logs with status='acknowledged' (from Flex button postback)
+    // 2. vitals_logs today (for vitals/glucose — user may type values via chat)
+    // 3. activity_logs today (for exercise/food — user may report via chat)
+    const acknowledgedReminderIds = new Set(
+      (todayReminderLogsResult.data || []).map((log: any) => log.reminder_id)
+    );
+
+    const todayVitals = todayVitalsResult.data || [];
+    const hasTodayBP = todayVitals.some((v: any) => v.bp_systolic != null);
+    const hasTodayGlucose = todayVitals.some((v: any) => v.glucose != null);
+
+    const todayActivities = todayActivityLogsResult.data || [];
+    const todayActivityTypes = new Set(todayActivities.map((a: any) => a.activity_type));
+
+    const typeLabels: Record<string, string> = {
+      vitals: 'วัดความดัน', exercise: 'ออกกำลังกาย',
+      food: 'ทานอาหาร', glucose: 'วัดน้ำตาล', water: 'ดื่มน้ำ',
+    };
+
+    const isReminderDone = (reminder: any): boolean => {
+      // Source 1: postback button → reminder_logs acknowledged
+      if (acknowledgedReminderIds.has(reminder.id)) return true;
+      // Source 2: chat-based logging → check actual data tables
+      switch (reminder.type) {
+        case 'vitals': return hasTodayBP;
+        case 'glucose': return hasTodayGlucose;
+        case 'exercise': return todayActivityTypes.has('exercise');
+        case 'food': return todayActivityTypes.has('food') || todayActivityTypes.has('meal');
+        default: return false;
+      }
+    };
+
+    const otherReminders = reminders
+      .filter((r: any) => r.type !== 'medication')
+      .sort((a: any, b: any) => (a.time || '').localeCompare(b.time || ''));
+
+    for (const reminder of otherReminders) {
+      tasks.push({
+        id: reminder.id,
+        label: reminder.title || typeLabels[reminder.type] || reminder.type,
+        done: isReminderDone(reminder),
+        time: reminder.time?.slice(0, 5),
+      });
+    }
+
+    // Add water goal task only if there are no water-type reminders (to prevent duplicate)
+    const hasWaterReminders = reminders.some((r: any) => r.type === 'water');
     const waterLogs = todayWaterResult.data || [];
     const totalWaterMl = waterLogs.reduce((sum, log) => sum + (log.amount_ml || 0), 0);
     const totalGlasses = waterLogs.reduce((sum, log) => sum + (log.glasses || 0), 0);
     const waterGoalGlasses = 8; // Default goal
     const remainingGlasses = Math.max(0, waterGoalGlasses - totalGlasses);
 
-    tasks.push({
-      id: 'water-goal',
-      label: `ดื่มน้ำ ${waterGoalGlasses} แก้ว`,
-      done: remainingGlasses === 0,
-      sub: remainingGlasses > 0 ? `เหลือ ${remainingGlasses} แก้ว` : undefined,
-    });
+    if (!hasWaterReminders) {
+      tasks.push({
+        id: 'water-goal',
+        label: `ดื่มน้ำ ${waterGoalGlasses} แก้ว`,
+        done: remainingGlasses === 0,
+        sub: remainingGlasses > 0 ? `เหลือ ${remainingGlasses} แก้ว` : undefined,
+      });
+    }
 
-    // Sort tasks by time (water-goal at the end)
+    // Sort tasks by time (tasks without time go last)
     tasks.sort((a, b) => {
-      if (!a.time) return 1;  // water-goal goes last
+      if (!a.time) return 1;
       if (!b.time) return -1;
       return a.time.localeCompare(b.time);
     });
@@ -520,6 +595,9 @@ async function getPatientDashboardSummary(patientId: string): Promise<DashboardS
     todayMedLogsResult,
     todayWaterResult,
     streakResult,
+    todayReminderLogsResult,
+    todayVitalsResult,
+    todayActivityLogsResult,
   ] = await Promise.all([
     supabase
       .from('vitals_logs')
@@ -572,6 +650,25 @@ async function getPatientDashboardSummary(patientId: string): Promise<DashboardS
       supabase.from('vitals_logs').select('measured_at').eq('patient_id', patientId).order('measured_at', { ascending: false }).limit(50),
       supabase.from('water_logs').select('log_date').eq('patient_id', patientId).order('log_date', { ascending: false }).limit(50),
     ]),
+    // Today's reminder logs (for non-medication completion check)
+    supabase
+      .from('reminder_logs')
+      .select('reminder_id, status')
+      .eq('patient_id', patientId)
+      .gte('sent_at', today.toISOString())
+      .eq('status', 'acknowledged'),
+    // Today's vitals logs (for vitals/glucose reminder completion via chat)
+    supabase
+      .from('vitals_logs')
+      .select('bp_systolic, glucose, measured_at')
+      .eq('patient_id', patientId)
+      .gte('measured_at', today.toISOString()),
+    // Today's activity logs (for exercise/food reminder completion via chat)
+    supabase
+      .from('activity_logs')
+      .select('activity_type, timestamp')
+      .eq('patient_id', patientId)
+      .gte('timestamp', today.toISOString()),
   ]);
 
   // Process vitals
@@ -723,22 +820,72 @@ async function getPatientDashboardSummary(patientId: string): Promise<DashboardS
     });
   }
 
-  // Add water goal task
+  // Add non-medication reminders (vitals, exercise, food, glucose, water)
+  // Check completion from multiple sources:
+  // 1. reminder_logs with status='acknowledged' (from Flex button postback)
+  // 2. vitals_logs today (for vitals/glucose — user may type values via chat)
+  // 3. activity_logs today (for exercise/food — user may report via chat)
+  const acknowledgedReminderIds = new Set(
+    (todayReminderLogsResult.data || []).map((log: any) => log.reminder_id)
+  );
+
+  const todayVitals = todayVitalsResult.data || [];
+  const hasTodayBP = todayVitals.some((v: any) => v.bp_systolic != null);
+  const hasTodayGlucose = todayVitals.some((v: any) => v.glucose != null);
+
+  const todayActivities = todayActivityLogsResult.data || [];
+  const todayActivityTypes = new Set(todayActivities.map((a: any) => a.activity_type));
+
+  const typeLabels: Record<string, string> = {
+    vitals: 'วัดความดัน', exercise: 'ออกกำลังกาย',
+    food: 'ทานอาหาร', glucose: 'วัดน้ำตาล', water: 'ดื่มน้ำ',
+  };
+
+  const isReminderDone = (reminder: any): boolean => {
+    // Source 1: postback button → reminder_logs acknowledged
+    if (acknowledgedReminderIds.has((reminder as any).id)) return true;
+    // Source 2: chat-based logging → check actual data tables
+    switch ((reminder as any).type) {
+      case 'vitals': return hasTodayBP;
+      case 'glucose': return hasTodayGlucose;
+      case 'exercise': return todayActivityTypes.has('exercise');
+      case 'food': return todayActivityTypes.has('food') || todayActivityTypes.has('meal');
+      default: return false;
+    }
+  };
+
+  const otherReminders = reminders
+    .filter((r: any) => (r as any).type !== 'medication')
+    .sort((a: any, b: any) => ((a as any).time || '').localeCompare((b as any).time || ''));
+
+  for (const reminder of otherReminders) {
+    tasks.push({
+      id: (reminder as any).id,
+      label: (reminder as any).title || typeLabels[(reminder as any).type] || (reminder as any).type,
+      done: isReminderDone(reminder),
+      time: (reminder as any).time?.slice(0, 5),
+    });
+  }
+
+  // Add water goal task only if there are no water-type reminders (to prevent duplicate)
+  const hasWaterReminders = reminders.some((r: any) => (r as any).type === 'water');
   const waterLogs = todayWaterResult.data || [];
   const totalGlasses = waterLogs.reduce((sum: number, log: any) => sum + (log.glasses || 0), 0);
   const waterGoalGlasses = 8;
   const remainingGlasses = Math.max(0, waterGoalGlasses - totalGlasses);
 
-  tasks.push({
-    id: 'water-goal',
-    label: `ดื่มน้ำ ${waterGoalGlasses} แก้ว`,
-    done: remainingGlasses === 0,
-    sub: remainingGlasses > 0 ? `เหลือ ${remainingGlasses} แก้ว` : undefined,
-  });
+  if (!hasWaterReminders) {
+    tasks.push({
+      id: 'water-goal',
+      label: `ดื่มน้ำ ${waterGoalGlasses} แก้ว`,
+      done: remainingGlasses === 0,
+      sub: remainingGlasses > 0 ? `เหลือ ${remainingGlasses} แก้ว` : undefined,
+    });
+  }
 
-  // Sort tasks by time (water-goal at the end)
+  // Sort tasks by time (tasks without time go last)
   tasks.sort((a, b) => {
-    if (!a.time) return 1;  // water-goal goes last
+    if (!a.time) return 1;
     if (!b.time) return -1;
     return a.time.localeCompare(b.time);
   });

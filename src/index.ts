@@ -3027,14 +3027,45 @@ async function handlePostback(event: any) {
             console.error('❌ Error logging water:', waterError);
           }
         } else if (reminderType === 'vitals') {
-          // For vitals, we just acknowledge - user needs to provide actual values
-          // Send a follow-up message asking for the values
+          // For vitals, acknowledge + mark reminder as done, then ask for actual values
+          await supabase.from('reminder_logs').update({
+            status: 'acknowledged',
+            acknowledged_at: now.toISOString()
+          }).eq('reminder_id', reminderId).order('sent_at', { ascending: false }).limit(1);
+
+          await supabase.from('activity_logs').insert({
+            patient_id: patientId,
+            activity_type: reminderType,
+            description: `${title || 'วัดความดัน'} - บันทึกจากแจ้งเตือน`,
+            timestamp: now.toISOString()
+          });
+
           const replyMessage: TextMessage = {
             type: 'text',
             text: '📝 รับทราบค่ะ กรุณาพิมพ์ค่าความดันที่วัดได้นะคะ\nเช่น "ความดัน 120/80" หรือ "120/80"'
           };
           await lineClient.replyMessage(replyToken, replyMessage);
           return { success: true, type: 'reminder_vitals_pending' };
+        } else if (reminderType === 'glucose') {
+          // For glucose, acknowledge + mark reminder as done, then ask for actual values
+          await supabase.from('reminder_logs').update({
+            status: 'acknowledged',
+            acknowledged_at: now.toISOString()
+          }).eq('reminder_id', reminderId).order('sent_at', { ascending: false }).limit(1);
+
+          await supabase.from('activity_logs').insert({
+            patient_id: patientId,
+            activity_type: reminderType,
+            description: `${title || 'วัดน้ำตาล'} - บันทึกจากแจ้งเตือน`,
+            timestamp: now.toISOString()
+          });
+
+          const replyMessage: TextMessage = {
+            type: 'text',
+            text: '📝 รับทราบค่ะ กรุณาพิมพ์ค่าน้ำตาลที่วัดได้นะคะ\nเช่น "น้ำตาล 120" หรือ "glucose 120"'
+          };
+          await lineClient.replyMessage(replyToken, replyMessage);
+          return { success: true, type: 'reminder_glucose_pending' };
         }
 
         // Log to activity_logs for all types
@@ -3057,7 +3088,8 @@ async function handlePostback(event: any) {
           vitals: '🩺',
           water: '💧',
           exercise: '🏃',
-          food: '🍽️'
+          food: '🍽️',
+          glucose: '🩸'
         };
         const emoji = typeEmojis[reminderType] || '✅';
 

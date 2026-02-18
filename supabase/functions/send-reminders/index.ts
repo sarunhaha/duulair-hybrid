@@ -488,7 +488,8 @@ function formatReminderMessage(reminder: Reminder): string {
     vitals: '🩺',
     water: '💧',
     exercise: '🏃',
-    meal: '🍽️'
+    meal: '🍽️',
+    glucose: '🩸'
   }
 
   const typeNames: Record<string, string> = {
@@ -496,7 +497,8 @@ function formatReminderMessage(reminder: Reminder): string {
     vitals: 'วัดความดัน',
     water: 'ดื่มน้ำ',
     exercise: 'ออกกำลังกาย',
-    meal: 'กินอาหาร'
+    meal: 'กินอาหาร',
+    glucose: 'วัดน้ำตาล'
   }
 
   const emoji = typeEmojis[reminder.type] || '🔔'
@@ -525,7 +527,8 @@ function getConfirmCommand(type: string): string {
     vitals: 'วัดความดันแล้ว',  // Changed - will trigger NLU to ask for value
     water: 'ดื่มน้ำแล้ว',
     exercise: 'ออกกำลังกายแล้ว',
-    meal: 'กินข้าวแล้ว'
+    meal: 'กินข้าวแล้ว',
+    glucose: 'วัดน้ำตาลแล้ว'
   }
   return commands[type] || 'บันทึกแล้ว'
 }
@@ -536,7 +539,8 @@ function createQuickReplyItems(type: string, patientName: string): QuickReplyIte
     vitals: { label: '📊 วัดความดันแล้ว', text: `วัดความดันแล้ว ${patientName}` },
     water: { label: '💧 ดื่มน้ำแล้ว', text: `ดื่มน้ำแล้ว ${patientName}` },
     exercise: { label: '🏃 ออกกำลังกายแล้ว', text: `ออกกำลังกายแล้ว ${patientName}` },
-    meal: { label: '🍽️ กินข้าวแล้ว', text: `กินข้าวแล้ว ${patientName}` }
+    meal: { label: '🍽️ กินข้าวแล้ว', text: `กินข้าวแล้ว ${patientName}` },
+    glucose: { label: '🩸 วัดน้ำตาลแล้ว', text: `วัดน้ำตาลแล้ว ${patientName}` }
   }
 
   const action = typeActions[type] || { label: '✅ บันทึกแล้ว', text: `บันทึกแล้ว ${patientName}` }
@@ -686,6 +690,7 @@ const OONJAI = {
     water:      { accent: '#3B82F6', bg: '#EFF6FF', label: 'ดื่มน้ำ' },
     exercise:   { accent: '#22C55E', bg: '#F0FDF4', label: 'ออกกำลังกาย' },
     food:       { accent: '#F97316', bg: '#FFF7ED', label: 'ทานอาหาร' },
+    glucose:    { accent: '#F59E0B', bg: '#FFFBEB', label: 'วัดน้ำตาล' },
   } as Record<string, { accent: string, bg: string, label: string }>,
 }
 
@@ -846,7 +851,7 @@ function createReminderFlexMessage(reminder: Reminder): { contents: any, altText
             { type: 'text', text: 'น.', size: 'sm', color: '#FFFFFFB3', margin: 'sm', gravity: 'bottom', offsetBottom: '4px' },
           ],
           margin: 'md',
-          alignItems: 'baseline',
+          alignItems: 'flex-end',
         },
       ],
       backgroundColor: typeConf.accent,

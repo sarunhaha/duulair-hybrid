@@ -16,7 +16,7 @@
 import { supabase } from './supabase.service';
 import { DayOfWeek, Frequency } from './medication.service';
 
-export type ReminderType = 'medication' | 'vitals' | 'water' | 'food' | 'exercise' | 'custom';
+export type ReminderType = 'medication' | 'vitals' | 'water' | 'food' | 'exercise' | 'glucose' | 'custom';
 
 export interface Reminder {
   id?: string;
@@ -359,6 +359,7 @@ export class ReminderService {
       water: '💧',
       food: '🍚',
       exercise: '🚶',
+      glucose: '🩸',
       custom: '🔔'
     };
     return icons[type] || '🔔';

@@ -14,6 +14,7 @@ import {
   Heart,
   Utensils,
   Footprints,
+  Syringe,
   Clock,
   ChevronDown,
 } from 'lucide-react';
@@ -57,6 +58,7 @@ const REMINDER_TYPES = [
   { value: 'vitals', label: 'วัดความดัน', icon: Heart, color: 'bg-red-500/10 text-red-500' },
   { value: 'food', label: 'ทานอาหาร', icon: Utensils, color: 'bg-orange-500/10 text-orange-500' },
   { value: 'exercise', label: 'ออกกำลังกาย', icon: Footprints, color: 'bg-green-500/10 text-green-500' },
+  { value: 'glucose', label: 'วัดน้ำตาล', icon: Syringe, color: 'bg-amber-500/10 text-amber-500' },
 ];
 
 // Category tabs — no "ทั้งหมด", start from first category
@@ -108,6 +110,7 @@ const getPlaceholder = (cat: string) => {
     case 'vitals': return 'เช่น วัดความดันเช้า';
     case 'food': return 'เช่น ทานอาหารเช้า';
     case 'exercise': return 'เช่น เดินออกกำลังกาย';
+    case 'glucose': return 'เช่น วัดน้ำตาลเช้า';
     default: return 'ชื่อกิจกรรม';
   }
 };
@@ -120,6 +123,7 @@ const getEmptyMessage = (cat: string) => {
     case 'vitals': return 'ยังไม่มีเตือนวัดความดัน';
     case 'food': return 'ยังไม่มีเตือนทานอาหาร';
     case 'exercise': return 'ยังไม่มีเตือนออกกำลังกาย';
+    case 'glucose': return 'ยังไม่มีเตือนวัดระดับน้ำตาล';
     default: return 'ยังไม่มีการเตือน';
   }
 };
@@ -360,37 +364,35 @@ export default function RemindersPage() {
       </header>
 
       <main className="max-w-md mx-auto px-4 py-6 space-y-4">
-        {/* Category Tabs — scrollable pills */}
-        <div className="overflow-x-auto scrollbar-hide -mx-4 px-4">
-          <div className="flex gap-2 w-max">
-            {CATEGORY_TABS.map((tab) => {
-              const isActive = activeCategory === tab.value;
-              const count = categoryCounts[tab.value];
-              return (
-                <button
-                  key={tab.value}
-                  onClick={() => setActiveCategory(tab.value)}
-                  className={cn(
-                    'shrink-0 py-2 px-4 text-xs font-semibold rounded-full transition-all flex items-center gap-1.5 whitespace-nowrap',
-                    isActive
-                      ? 'bg-primary/10 text-primary shadow-sm border border-primary/30'
-                      : 'bg-muted/50 text-muted-foreground'
-                  )}
-                >
-                  <tab.icon className="w-3.5 h-3.5" />
-                  {tab.label}
-                  {count && count.total > 0 && (
-                    <span className={cn(
-                      'text-[10px] font-bold rounded-full px-1 leading-none',
-                      isActive ? 'text-primary' : 'text-muted-foreground/60'
-                    )}>
-                      {count.total}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
+        {/* Category Tabs — scrollable pills (same as trends page) */}
+        <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+          {CATEGORY_TABS.map((tab) => {
+            const isActive = activeCategory === tab.value;
+            const count = categoryCounts[tab.value];
+            return (
+              <button
+                key={tab.value}
+                onClick={() => setActiveCategory(tab.value)}
+                className={cn(
+                  'flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all border',
+                  isActive
+                    ? 'bg-primary text-primary-foreground border-primary shadow-md shadow-primary/20'
+                    : 'bg-card text-muted-foreground border-border'
+                )}
+              >
+                <tab.icon className="w-3.5 h-3.5" />
+                {tab.label}
+                {count && count.total > 0 && (
+                  <span className={cn(
+                    'ml-0.5 text-[10px] font-bold rounded-full px-1.5 py-0.5 leading-none',
+                    isActive ? 'bg-white/20' : 'bg-muted'
+                  )}>
+                    {count.total}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
 
         {/* Main Card */}
@@ -409,6 +411,7 @@ export default function RemindersPage() {
                   {activeCategory === 'vitals' && 'ตั้งเตือนวัดความดัน ชีพจร'}
                   {activeCategory === 'food' && 'ตั้งเตือนเวลาทานอาหาร'}
                   {activeCategory === 'exercise' && 'ตั้งเตือนเวลาออกกำลังกาย'}
+                  {activeCategory === 'glucose' && 'ตั้งเตือนวัดระดับน้ำตาล'}
                 </p>
               </div>
               {filteredReminders.length > 0 && (
