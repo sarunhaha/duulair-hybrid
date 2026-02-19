@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Stethoscope,
   Activity,
@@ -11,6 +11,7 @@ import {
   ChevronRight,
   Clock,
   Droplet,
+  FlaskConical,
   Check,
   X,
   FileText,
@@ -41,11 +42,13 @@ import {
   useDeleteMedicationLog,
   useDeleteSleep,
   useDeleteWater,
+  useDeleteLabResult,
 } from '@/lib/api/hooks/use-health';
 import { useToast } from '@/hooks/use-toast';
 import { useEnsurePatient } from '@/hooks/use-ensure-patient';
+import { useHealthPreferences, type HealthCategoryPreferences } from '@/lib/api/hooks/use-preferences';
 import { BottomNav } from '@/components/layout/bottom-nav';
-import { VitalsForm, WaterForm, MedicationForm, SymptomForm, SleepForm, ExerciseForm, MoodForm, MedicalNotesForm, GlucoseForm } from '@/components/forms';
+import { VitalsForm, WaterForm, MedicationForm, SymptomForm, SleepForm, ExerciseForm, MoodForm, MedicalNotesForm, GlucoseForm, LabResultsForm } from '@/components/forms';
 
 interface HistoryItem {
   id: number;
@@ -70,6 +73,7 @@ const TYPE_CONFIG: Record<string, { icon: React.ComponentType<{ className?: stri
   water: { icon: Droplet, color: 'text-sky-500', bg: 'bg-sky-50 dark:bg-sky-950/30' },
   exercise: { icon: Dumbbell, color: 'text-purple-500', bg: 'bg-purple-50 dark:bg-purple-950/30' },
   glucose: { icon: Droplet, color: 'text-pink-500', bg: 'bg-pink-50 dark:bg-pink-950/30' },
+  lab_results: { icon: FlaskConical, color: 'text-teal-500', bg: 'bg-teal-50 dark:bg-teal-950/30' },
 };
 
 // Date range options
@@ -97,6 +101,33 @@ export default function HistoryPage() {
   // Fetch real data with date range
   const ensurePatient = useEnsurePatient();
   const { patientId, isLoading: authLoading } = ensurePatient;
+  const { data: prefs } = useHealthPreferences(patientId);
+
+  // Map history filter IDs to preference keys
+  const historyFilterToPref: Record<string, keyof HealthCategoryPreferences> = {
+    symptoms: 'symptoms_enabled',
+    health: 'vitals_enabled',
+    glucose: 'glucose_enabled',
+    meds: 'medications_enabled',
+    water: 'water_enabled',
+    sleep: 'sleep_enabled',
+    lab_results: 'lab_results_enabled',
+  };
+
+  const allFilterChips = [
+    { id: 'symptoms', label: 'อาการ' },
+    { id: 'health', label: 'ความดัน' },
+    { id: 'glucose', label: 'ระดับน้ำตาล' },
+    { id: 'meds', label: 'ยา' },
+    { id: 'water', label: 'น้ำ' },
+    { id: 'sleep', label: 'การนอน' },
+    { id: 'lab_results', label: 'ผลแล็บ' },
+  ];
+
+  const visibleFilterChips = useMemo(
+    () => allFilterChips.filter((f) => !prefs || prefs[historyFilterToPref[f.id]] !== false),
+    [prefs]
+  );
 
   // Delete hooks
   const deleteVitals = useDeleteVitals();
@@ -107,6 +138,7 @@ export default function HistoryPage() {
   const deleteMedicationLog = useDeleteMedicationLog();
   const deleteSleep = useDeleteSleep();
   const deleteWater = useDeleteWater();
+  const deleteLabResultMut = useDeleteLabResult();
 
   // Map type to delete function
   const getDeleteMutation = (type: string) => {
@@ -121,13 +153,14 @@ export default function HistoryPage() {
       medications: deleteMedicationLog,
       sleep: deleteSleep,
       water: deleteWater,
+      lab_results: deleteLabResultMut,
     };
     return deleteMap[type];
   };
 
   const isDeleting = deleteVitals.isPending || deleteSymptom.isPending || deleteExercise.isPending ||
     deleteMood.isPending || deleteMedicalNote.isPending || deleteMedicationLog.isPending ||
-    deleteSleep.isPending || deleteWater.isPending;
+    deleteSleep.isPending || deleteWater.isPending || deleteLabResultMut.isPending;
 
   // Use custom dates if dateRange is -1, otherwise use days
   const historyOptions = dateRange === -1 && customStartDate && customEndDate
@@ -209,10 +242,33 @@ export default function HistoryPage() {
     };
   });
 
+  // Filter real data by preferences (hide disabled categories from "ทั้งหมด" view too)
+  const prefFilteredHistory = useMemo(() => {
+    if (!prefs) return realHistoryData;
+    const typeToPref: Record<string, keyof HealthCategoryPreferences> = {
+      health: 'vitals_enabled',
+      vitals: 'vitals_enabled',
+      glucose: 'glucose_enabled',
+      meds: 'medications_enabled',
+      medications: 'medications_enabled',
+      sleep: 'sleep_enabled',
+      water: 'water_enabled',
+      exercise: 'exercise_enabled',
+      symptoms: 'symptoms_enabled',
+      mood: 'mood_enabled',
+      medical_notes: 'notes_enabled',
+      lab_results: 'lab_results_enabled',
+    };
+    return realHistoryData.filter((item) => {
+      const prefKey = typeToPref[item.type];
+      return !prefKey || prefs[prefKey] !== false;
+    });
+  }, [realHistoryData, prefs]);
+
   // เลือก data ตาม filter
   const isExampleTab = filter === 'example';
   const isLoading = authLoading || historyLoading;
-  const dataSource = isExampleTab ? mockHistoryData : realHistoryData;
+  const dataSource = isExampleTab ? mockHistoryData : prefFilteredHistory;
   const filteredData = filter === 'all' || filter === 'example'
     ? dataSource
     : dataSource.filter((item) => item.type === filter);
@@ -262,6 +318,8 @@ export default function HistoryPage() {
         return <MoodForm onSuccess={handleEditSuccess} onCancel={handleCloseEdit} />;
       case 'medical_notes':
         return <MedicalNotesForm onSuccess={handleEditSuccess} onCancel={handleCloseEdit} />;
+      case 'lab_results':
+        return <LabResultsForm onSuccess={handleEditSuccess} onCancel={handleCloseEdit} />;
       default:
         return (
           <div className="p-4 bg-muted/20 rounded-2xl text-center text-muted-foreground text-sm">
@@ -286,6 +344,7 @@ export default function HistoryPage() {
       symptoms: 'อาการ',
       mood: 'อารมณ์',
       medical_notes: 'โน้ต/บันทึกแพทย์',
+      lab_results: 'ผลตรวจเลือด',
     };
     return typeLabels[editingItem.type] || editingItem.title;
   };
@@ -374,14 +433,7 @@ export default function HistoryPage() {
           >
             ทั้งหมด
           </button>
-          {[
-            { id: 'symptoms', label: 'อาการ' },
-            { id: 'health', label: 'ความดัน' },
-            { id: 'glucose', label: 'ระดับน้ำตาล' },
-            { id: 'meds', label: 'ยา' },
-            { id: 'water', label: 'น้ำ' },
-            { id: 'sleep', label: 'การนอน' },
-          ].map((f) => (
+          {visibleFilterChips.map((f) => (
             <button
               key={f.id}
               onClick={() => setFilter(f.id)}

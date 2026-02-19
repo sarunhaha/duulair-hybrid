@@ -57,7 +57,7 @@ export interface TrendData {
 }
 
 export type TimeRange = '7d' | '15d' | '30d' | 'custom';
-export type TrendCategory = 'heart' | 'meds' | 'sleep' | 'exercise' | 'mood' | 'water' | 'glucose';
+export type TrendCategory = 'heart' | 'meds' | 'sleep' | 'exercise' | 'mood' | 'water' | 'glucose' | 'lab_results';
 
 export interface CustomDateRange {
   startDate: string; // YYYY-MM-DD

@@ -73,6 +73,24 @@ export interface MedicalNote {
   created_at: string;
 }
 
+export interface LabResultLog {
+  id: string;
+  patient_id: string;
+  test_type: string;
+  test_name: string;
+  value: number;
+  unit: string | null;
+  normal_min: number | null;
+  normal_max: number | null;
+  status: 'normal' | 'high' | 'low' | 'critical' | null;
+  lab_date: string | null;
+  lab_name: string | null;
+  notes: string | null;
+  source: string;
+  created_at: string;
+  updated_at: string;
+}
+
 // Query keys
 export const healthKeys = {
   all: ['health'] as const,
@@ -84,6 +102,7 @@ export const healthKeys = {
   exercise: (patientId: string, date?: string) => [...healthKeys.all, 'exercise', patientId, date] as const,
   mood: (patientId: string, date?: string) => [...healthKeys.all, 'mood', patientId, date] as const,
   medicalNotes: (patientId: string, date?: string) => [...healthKeys.all, 'medical-notes', patientId, date] as const,
+  labResults: (patientId: string, date?: string) => [...healthKeys.all, 'lab-results', patientId, date] as const,
 };
 
 // Vitals Hooks
@@ -941,6 +960,109 @@ export function useDeleteMedicationLog() {
   });
 }
 
+// Lab Results Hooks
+export function useTodayLabResults(patientId: string | null) {
+  const today = new Date().toISOString().split('T')[0];
+
+  return useQuery({
+    queryKey: patientId ? healthKeys.labResults(patientId, today) : ['lab-results', 'none'],
+    queryFn: async (): Promise<LabResultLog[]> => {
+      if (!patientId) return [];
+      try {
+        const data = await apiClient.get<{ labResults: LabResultLog[] }>(`/health/today/${patientId}`);
+        return data.labResults || [];
+      } catch (err) {
+        console.warn('[useTodayLabResults] API error:', err);
+        return [];
+      }
+    },
+    enabled: !!patientId,
+    staleTime: 30 * 1000,
+  });
+}
+
+export function useSaveLabResults() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: {
+      patientId: string;
+      results: Array<{
+        test_type: string;
+        test_name: string;
+        value: number;
+        unit?: string;
+        normal_min?: number;
+        normal_max?: number;
+        status?: string;
+        lab_date?: string;
+        lab_name?: string;
+        notes?: string;
+      }>;
+    }) => {
+      return await apiClient.post('/health/lab-results', {
+        patient_id: data.patientId,
+        results: data.results,
+      });
+    },
+    onSuccess: (_, variables) => {
+      const today = new Date().toISOString().split('T')[0];
+      queryClient.invalidateQueries({ queryKey: healthKeys.labResults(variables.patientId, today) });
+      queryClient.invalidateQueries({ queryKey: ['health', 'history'] });
+    },
+  });
+}
+
+export function useUpdateLabResult() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: {
+      id: string;
+      patientId: string;
+      value?: number;
+      unit?: string;
+      normal_min?: number;
+      normal_max?: number;
+      status?: string;
+      lab_date?: string;
+      lab_name?: string;
+      notes?: string;
+    }) => {
+      return await apiClient.put(`/health/lab-results/${data.id}`, {
+        value: data.value,
+        unit: data.unit,
+        normal_min: data.normal_min,
+        normal_max: data.normal_max,
+        status: data.status,
+        lab_date: data.lab_date,
+        lab_name: data.lab_name,
+        notes: data.notes,
+      });
+    },
+    onSuccess: (_, variables) => {
+      const today = new Date().toISOString().split('T')[0];
+      queryClient.invalidateQueries({ queryKey: healthKeys.labResults(variables.patientId, today) });
+      queryClient.invalidateQueries({ queryKey: ['health', 'history'] });
+    },
+  });
+}
+
+export function useDeleteLabResult() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: { id: string; patientId: string }) => {
+      return await apiClient.delete(`/health/lab-results/${data.id}`);
+    },
+    onSuccess: (_, variables) => {
+      const today = new Date().toISOString().split('T')[0];
+      queryClient.invalidateQueries({ queryKey: healthKeys.labResults(variables.patientId, today) });
+      queryClient.invalidateQueries({ queryKey: ['health', 'history'] });
+    },
+  });
+}
+
 // BP Status Helper
 export function getBloodPressureStatus(systolic: number, diastolic: number) {
   if (systolic >= 180 || diastolic >= 120) {
@@ -961,7 +1083,7 @@ export function getBloodPressureStatus(systolic: number, diastolic: number) {
 // Health History Hook - for History page
 export interface HealthHistoryItem {
   id: string;
-  type: 'vitals' | 'glucose' | 'sleep' | 'symptoms' | 'medications' | 'water' | 'exercise' | 'mood' | 'medical_notes';
+  type: 'vitals' | 'glucose' | 'sleep' | 'symptoms' | 'medications' | 'water' | 'exercise' | 'mood' | 'medical_notes' | 'lab_results';
   title: string;
   detail: string;
   time: string;
@@ -1018,6 +1140,7 @@ export function useHealthHistory(
           }[];
           mood: MoodLogEntry[];
           medicalNotes: MedicalNote[];
+          labResults: LabResultLog[];
         }>(`/health/history/${patientId}?${queryParams}`);
 
         const items: HealthHistoryItem[] = [];
@@ -1162,6 +1285,24 @@ export function useHealthHistory(
             time: new Date(n.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.',
             date: n.event_date === today ? 'วันนี้' : formatDate(n.event_date),
             raw: n,
+          });
+        });
+
+        // Format lab results
+        const panelLabels: Record<string, string> = {
+          cbc: 'CBC', liver: 'ตับ', kidney: 'ไต', lipid: 'ไขมัน', diabetes: 'เบาหวาน', thyroid: 'ไทรอยด์',
+        };
+        (data.labResults || []).forEach(lr => {
+          const panelTh = panelLabels[lr.test_type] || lr.test_type;
+          const statusEmoji = lr.status === 'high' || lr.status === 'critical' ? ' (สูง)' : lr.status === 'low' ? ' (ต่ำ)' : '';
+          items.push({
+            id: lr.id,
+            type: 'lab_results',
+            title: `ผลแล็บ (${panelTh})`,
+            detail: `${lr.test_name}: ${lr.value} ${lr.unit || ''}${statusEmoji}`,
+            time: new Date(lr.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.',
+            date: lr.lab_date === today ? 'วันนี้' : formatDate(lr.lab_date || lr.created_at),
+            raw: lr,
           });
         });
 

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Activity,
   Pill,
@@ -8,6 +8,7 @@ import {
   Smile,
   Stethoscope,
   PlusCircle,
+  FlaskConical,
   ChevronRight,
   History,
   Check,
@@ -26,7 +27,7 @@ import {
   DrawerTitle,
 } from '@/components/ui/drawer';
 import { BottomNav } from '@/components/layout/bottom-nav';
-import { VitalsForm, WaterForm, MedicationForm, SymptomForm, SleepForm, ExerciseForm, MoodForm, MedicalNotesForm, GlucoseForm } from '@/components/forms';
+import { VitalsForm, WaterForm, MedicationForm, SymptomForm, SleepForm, ExerciseForm, MoodForm, MedicalNotesForm, GlucoseForm, LabResultsForm } from '@/components/forms';
 import { cn } from '@/lib/utils';
 import { useLocation } from 'wouter';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -40,12 +41,14 @@ import {
   useDeleteMedicationLog,
   useDeleteSleep,
   useDeleteWater,
+  useDeleteLabResult,
   type HealthHistoryItem,
 } from '@/lib/api/hooks/use-health';
 import { useEnsurePatient } from '@/hooks/use-ensure-patient';
+import { useHealthPreferences, type HealthCategoryPreferences } from '@/lib/api/hooks/use-preferences';
 import { useToast } from '@/hooks/use-toast';
 
-type CategoryId = 'health' | 'glucose' | 'meds' | 'sleep' | 'water' | 'exercise' | 'stress' | 'symptoms' | 'notes';
+type CategoryId = 'health' | 'glucose' | 'meds' | 'sleep' | 'water' | 'exercise' | 'stress' | 'symptoms' | 'notes' | 'lab_results';
 
 interface Category {
   id: CategoryId;
@@ -129,6 +132,14 @@ const categories: Category[] = [
     desc: 'บันทึกสั้น, แนบรูป',
     hasForm: true,
   },
+  {
+    id: 'lab_results',
+    title: 'ผลตรวจเลือด',
+    icon: FlaskConical,
+    color: 'bg-teal-50 text-teal-600 dark:bg-teal-950/30 dark:text-teal-400',
+    desc: 'CBC, ค่าตับ, ค่าไต, ไขมัน',
+    hasForm: true,
+  },
 ];
 
 // Map category to health history type
@@ -142,6 +153,7 @@ const categoryToHistoryType: Record<CategoryId, string> = {
   stress: 'mood',
   symptoms: 'symptoms',
   notes: 'medical_notes',
+  lab_results: 'lab_results',
 };
 
 export default function RecordsPage() {
@@ -156,7 +168,27 @@ export default function RecordsPage() {
 
   // Get patient ID for history
   const { patientId } = useEnsurePatient();
+  const { data: prefs } = useHealthPreferences(patientId);
   const { data: healthHistory, isLoading: historyLoading, refetch: refetchHistory } = useHealthHistory(patientId, 30);
+
+  // Map category IDs to preference keys
+  const categoryToPref: Record<CategoryId, keyof HealthCategoryPreferences> = {
+    health: 'vitals_enabled',
+    glucose: 'glucose_enabled',
+    meds: 'medications_enabled',
+    sleep: 'sleep_enabled',
+    water: 'water_enabled',
+    exercise: 'exercise_enabled',
+    stress: 'mood_enabled',
+    symptoms: 'symptoms_enabled',
+    notes: 'notes_enabled',
+    lab_results: 'lab_results_enabled',
+  };
+
+  const visibleCategories = useMemo(
+    () => categories.filter((cat) => !prefs || prefs[categoryToPref[cat.id]] !== false),
+    [prefs]
+  );
 
   // Delete hooks for each category
   const deleteVitals = useDeleteVitals();
@@ -167,6 +199,7 @@ export default function RecordsPage() {
   const deleteMedicationLog = useDeleteMedicationLog();
   const deleteSleep = useDeleteSleep();
   const deleteWater = useDeleteWater();
+  const deleteLabResultMut = useDeleteLabResult();
 
   // Map category type to delete function
   const getDeleteMutation = (type: string) => {
@@ -179,6 +212,7 @@ export default function RecordsPage() {
       medications: deleteMedicationLog,
       sleep: deleteSleep,
       water: deleteWater,
+      lab_results: deleteLabResultMut,
     };
     return deleteMap[type];
   };
@@ -204,7 +238,7 @@ export default function RecordsPage() {
 
   const isDeleting = deleteVitals.isPending || deleteSymptom.isPending || deleteExercise.isPending ||
     deleteMood.isPending || deleteMedicalNote.isPending || deleteMedicationLog.isPending ||
-    deleteSleep.isPending || deleteWater.isPending;
+    deleteSleep.isPending || deleteWater.isPending || deleteLabResultMut.isPending;
 
   // Handle edit item click
   const handleEditItem = (item: HealthHistoryItem) => {
@@ -238,6 +272,7 @@ export default function RecordsPage() {
       mood: 'stress',
       symptoms: 'symptoms',
       medical_notes: 'notes',
+      lab_results: 'lab_results',
     };
     return typeToCategory[type] || null;
   };
@@ -279,6 +314,8 @@ export default function RecordsPage() {
         return <MoodForm key={formKey} onSuccess={handleEditSuccess} onCancel={handleCloseEdit} initialEditData={rawData as any} />;
       case 'notes':
         return <MedicalNotesForm key={formKey} onSuccess={handleEditSuccess} onCancel={handleCloseEdit} initialEditData={rawData as any} />;
+      case 'lab_results':
+        return <LabResultsForm key={formKey} onSuccess={handleEditSuccess} onCancel={handleCloseEdit} initialEditData={rawData as any} />;
       default:
         return null;
     }
@@ -337,6 +374,8 @@ export default function RecordsPage() {
         return <MoodForm onSuccess={handleSuccess} onCancel={handleClose} />;
       case 'notes':
         return <MedicalNotesForm onSuccess={handleSuccess} onCancel={handleClose} />;
+      case 'lab_results':
+        return <LabResultsForm onSuccess={handleSuccess} onCancel={handleClose} />;
       default:
         return (
           <div className="space-y-6 pb-8">
@@ -390,7 +429,7 @@ export default function RecordsPage() {
             เลือกหมวดบันทึก
           </h3>
           <div className="grid grid-cols-1 gap-3">
-            {categories.map((cat) => (
+            {visibleCategories.map((cat) => (
               <Card
                 key={cat.id}
                 className="border-none shadow-sm hover:shadow-md transition-all cursor-pointer overflow-hidden group active:scale-[0.98]"

@@ -961,6 +961,109 @@ router.delete('/medications/:id', async (req: Request, res: Response) => {
 });
 
 /**
+ * POST /api/health/lab-results
+ * Record one or multiple lab results (batch insert for a panel)
+ */
+router.post('/lab-results', async (req: Request, res: Response) => {
+  const { patient_id, results } = req.body;
+
+  if (!patient_id || !results || !Array.isArray(results) || results.length === 0) {
+    return res.status(400).json({ error: 'Patient ID and results array are required' });
+  }
+
+  try {
+    const rows = results.map((r: any) => ({
+      patient_id,
+      test_type: r.test_type,
+      test_name: r.test_name,
+      value: r.value,
+      unit: r.unit || null,
+      normal_min: r.normal_min ?? null,
+      normal_max: r.normal_max ?? null,
+      status: r.status || null,
+      lab_date: r.lab_date || new Date().toISOString().split('T')[0],
+      lab_name: r.lab_name || null,
+      notes: r.notes || null,
+      source: 'manual',
+    }));
+
+    const { data, error } = await supabase
+      .from('lab_results')
+      .insert(rows)
+      .select();
+
+    if (error) throw error;
+
+    return res.json({ success: true, data });
+  } catch (error: any) {
+    console.error('Record lab results error:', error);
+    return res.status(500).json({ error: error.message || 'Failed to record lab results' });
+  }
+});
+
+/**
+ * PUT /api/health/lab-results/:id
+ * Update single lab result
+ */
+router.put('/lab-results/:id', async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { value, unit, normal_min, normal_max, status, lab_date, lab_name, notes } = req.body;
+
+  try {
+    const updateData: Record<string, unknown> = {
+      value: value ?? null,
+      unit: unit ?? null,
+      normal_min: normal_min ?? null,
+      normal_max: normal_max ?? null,
+      status: status ?? null,
+      lab_name: lab_name ?? null,
+      notes: notes ?? null,
+      updated_at: new Date().toISOString(),
+    };
+
+    if (lab_date) {
+      updateData.lab_date = lab_date;
+    }
+
+    const { data, error } = await supabase
+      .from('lab_results')
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return res.json({ success: true, data });
+  } catch (error: any) {
+    console.error('Update lab result error:', error);
+    return res.status(500).json({ error: error.message || 'Failed to update lab result' });
+  }
+});
+
+/**
+ * DELETE /api/health/lab-results/:id
+ * Delete single lab result
+ */
+router.delete('/lab-results/:id', async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  try {
+    const { error } = await supabase
+      .from('lab_results')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+
+    return res.json({ success: true });
+  } catch (error: any) {
+    console.error('Delete lab result error:', error);
+    return res.status(500).json({ error: error.message || 'Failed to delete lab result' });
+  }
+});
+
+/**
  * GET /api/health/today/:patientId
  * Get all health data for today
  */
@@ -981,7 +1084,7 @@ router.get('/today/:patientId', async (req: Request, res: Response) => {
 
     console.log('[/health/today] patientId:', patientId, 'today:', today, 'todayStart:', todayStart.toISOString());
 
-    const [vitals, water, medications, symptoms, sleep, exercise, mood, medicalNotes] = await Promise.all([
+    const [vitals, water, medications, symptoms, sleep, exercise, mood, medicalNotes, labResults] = await Promise.all([
       supabase
         .from('vitals_logs')
         .select('*')
@@ -1035,6 +1138,13 @@ router.get('/today/:patientId', async (req: Request, res: Response) => {
         .eq('patient_id', patientId)
         .eq('event_date', today)
         .order('created_at', { ascending: false }),
+
+      supabase
+        .from('lab_results')
+        .select('*')
+        .eq('patient_id', patientId)
+        .eq('lab_date', today)
+        .order('created_at', { ascending: false }),
     ]);
 
     return res.json({
@@ -1046,6 +1156,7 @@ router.get('/today/:patientId', async (req: Request, res: Response) => {
       exercise: exercise.data || [],
       mood: mood.data || [],
       medicalNotes: medicalNotes.data || [],
+      labResults: labResults.data || [],
     });
   } catch (error: any) {
     console.error('Get today health error:', error);
@@ -1079,7 +1190,7 @@ router.get('/history/:patientId', async (req: Request, res: Response) => {
 
     const startDateTimeISO = startDateTime.toISOString();
 
-    const [vitals, water, medications, symptoms, sleep, exercise, mood, medicalNotes] = await Promise.all([
+    const [vitals, water, medications, symptoms, sleep, exercise, mood, medicalNotes, labResults] = await Promise.all([
       supabase
         .from('vitals_logs')
         .select('*')
@@ -1143,6 +1254,14 @@ router.get('/history/:patientId', async (req: Request, res: Response) => {
         .gte('event_date', startDate)
         .order('event_date', { ascending: false })
         .limit(100),
+
+      supabase
+        .from('lab_results')
+        .select('*')
+        .eq('patient_id', patientId)
+        .gte('lab_date', startDate)
+        .order('lab_date', { ascending: false })
+        .limit(100),
     ]);
 
     console.log('[/health/history] Results - vitals:', vitals.data?.length || 0, 'sleep:', sleep.data?.length || 0);
@@ -1156,6 +1275,7 @@ router.get('/history/:patientId', async (req: Request, res: Response) => {
       exercise: exercise.data || [],
       mood: mood.data || [],
       medicalNotes: medicalNotes.data || [],
+      labResults: labResults.data || [],
     });
   } catch (error: any) {
     console.error('Get health history error:', error);

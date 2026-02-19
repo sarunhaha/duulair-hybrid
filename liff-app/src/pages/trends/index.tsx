@@ -13,6 +13,7 @@ import {
   Smile,
   Droplets,
   Droplet,
+  FlaskConical,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -43,6 +44,7 @@ import {
 } from 'recharts';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth';
+import { useHealthPreferences, type HealthCategoryPreferences } from '@/lib/api/hooks/use-preferences';
 import {
   useVitalsTrend,
   useMedsTrend,
@@ -128,6 +130,8 @@ export default function TrendsPage() {
   // Fallback to user.profileId if context.patientId is null (for patient role)
   const patientId = context.patientId || (user.role === 'patient' ? user.profileId : null);
 
+  const { data: prefs } = useHealthPreferences(patientId);
+
   const [range, setRange] = useState<TimeRange>('7d');
   const [category, setCategory] = useState<TrendCategory>('heart');
   const [selectedPoint, setSelectedPoint] = useState<TrendDataPoint | null>(null);
@@ -167,6 +171,8 @@ export default function TrendsPage() {
         return waterData;
       case 'glucose':
         return glucoseData;
+      case 'lab_results':
+        return null; // Chart rendering in future phase
       default:
         return vitalsData || MOCK_VITALS_DATA;
     }
@@ -188,6 +194,8 @@ export default function TrendsPage() {
         return waterLoading;
       case 'glucose':
         return glucoseLoading;
+      case 'lab_results':
+        return false;
       default:
         return false;
     }
@@ -198,7 +206,18 @@ export default function TrendsPage() {
     setSelectedPoint(null);
   }, [range, category]);
 
-  const categories = [
+  const trendCategoryToPref: Record<TrendCategory, keyof HealthCategoryPreferences> = {
+    heart: 'vitals_enabled',
+    meds: 'medications_enabled',
+    sleep: 'sleep_enabled',
+    exercise: 'exercise_enabled',
+    mood: 'mood_enabled',
+    water: 'water_enabled',
+    glucose: 'glucose_enabled',
+    lab_results: 'lab_results_enabled',
+  };
+
+  const allCategories = [
     { id: 'heart' as TrendCategory, label: 'ความดัน', icon: Heart },
     { id: 'meds' as TrendCategory, label: 'ยา', icon: Pill },
     { id: 'sleep' as TrendCategory, label: 'นอน', icon: Moon },
@@ -206,7 +225,20 @@ export default function TrendsPage() {
     { id: 'mood' as TrendCategory, label: 'อารมณ์', icon: Smile },
     { id: 'water' as TrendCategory, label: 'น้ำ', icon: Droplets },
     { id: 'glucose' as TrendCategory, label: 'ระดับน้ำตาล', icon: Droplet },
+    { id: 'lab_results' as TrendCategory, label: 'ผลแล็บ', icon: FlaskConical },
   ];
+
+  const categories = useMemo(
+    () => allCategories.filter((cat) => !prefs || prefs[trendCategoryToPref[cat.id]] !== false),
+    [prefs]
+  );
+
+  // Auto-select first enabled category if active one gets filtered out
+  useEffect(() => {
+    if (categories.length > 0 && !categories.find((c) => c.id === category)) {
+      setCategory(categories[0].id);
+    }
+  }, [categories, category]);
 
   const handleChartClick = (e: any) => {
     if (e && e.activePayload && e.activePayload[0]) {
@@ -298,6 +330,23 @@ export default function TrendsPage() {
           <div className="flex items-center justify-center py-12">
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
           </div>
+        )}
+
+        {/* Lab results placeholder */}
+        {!isLoading && category === 'lab_results' && (
+          <Card className="border-none shadow-sm bg-card">
+            <CardContent className="py-12 flex flex-col items-center text-center space-y-4">
+              <div className="w-16 h-16 bg-teal-50 dark:bg-teal-950/30 rounded-full flex items-center justify-center">
+                <FlaskConical className="w-8 h-8 text-teal-500" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="font-bold text-foreground">กราฟผลแล็บ</h3>
+                <p className="text-sm text-muted-foreground max-w-[250px]">
+                  กราฟแนวโน้มผลตรวจเลือดกำลังพัฒนา สามารถบันทึกผลแล็บได้จากหน้า "บันทึก" แล้ววันนี้
+                </p>
+              </div>
+            </CardContent>
+          </Card>
         )}
 
         {/* Content */}
