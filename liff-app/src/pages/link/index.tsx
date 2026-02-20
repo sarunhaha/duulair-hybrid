@@ -67,7 +67,7 @@ export default function LinkPage() {
   return (
     <div className="min-h-screen bg-background pb-8 font-sans">
       {/* Header */}
-      <header className="bg-card pt-12 pb-4 px-4 sticky top-0 z-20 border-b border-border">
+      <header className="bg-card pt-4 pb-1 px-4 sticky top-0 z-20 border-b border-border">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => navigate('/profile')} className="shrink-0">
             <ArrowLeft className="w-5 h-5" />

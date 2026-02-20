@@ -13,6 +13,7 @@ import dashboardRoutes from './routes/dashboard.routes';
 import healthRoutes from './routes/health.routes';
 import medicationRoutes from './routes/medication.routes';
 import reminderRoutes from './routes/reminder.routes';
+import preferencesRoutes from './routes/preferences.routes';
 import trendsRoutes from './routes/trends.routes';
 import { groupWebhookService } from './services/group-webhook.service';
 import { commandHandlerService } from './services/command-handler.service';
@@ -1557,6 +1558,9 @@ app.use('/api/medications', medicationRoutes);
 
 // Reminder CRUD routes (LIFF app - manage reminders list)
 app.use('/api/reminders', reminderRoutes);
+
+// Health category preferences routes (LIFF app - privacy toggles)
+app.use('/api/preferences', preferencesRoutes);
 
 // Trends API routes (LIFF app - charts & analytics)
 app.use('/api/trends', trendsRoutes);

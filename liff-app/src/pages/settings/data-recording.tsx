@@ -90,7 +90,7 @@ export default function DataRecordingPage() {
   return (
     <div className="min-h-screen bg-background font-sans">
       {/* Header */}
-      <header className="bg-card pt-12 pb-4 px-6 sticky top-0 z-20 flex items-center gap-4 border-b border-border">
+      <header className="bg-card pt-4 pb-1 px-6 sticky top-0 z-20 flex items-center gap-4 border-b border-border">
         <Button
           variant="ghost"
           size="icon"

@@ -17,6 +17,7 @@ import {
   X,
   AlertTriangle,
   FileDown,
+  ClipboardList,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -99,7 +100,8 @@ export default function SettingsPage() {
       title: 'ข้อมูลและความเป็นส่วนตัว',
       items: [
         { id: 'D1', title: 'รายงานสุขภาพ', icon: BarChart3, description: 'สรุปภาพรวม, กราฟ, ส่งออก PDF', href: '/reports' },
-        { id: 'D2', title: 'ความเป็นส่วนตัว', icon: Lock, description: 'การบันทึกข้อมูล, สิทธิ์การเข้าถึง' },
+        { id: 'D2', title: 'การบันทึกข้อมูล', icon: ClipboardList, description: 'จัดการหมวดหมู่บันทึก, เปิด/ปิด', href: '/settings/data-recording' },
+        { id: 'D3', title: 'ความเป็นส่วนตัว', icon: Lock, description: 'นโยบายความเป็นส่วนตัว, คุกกี้', href: '/settings/privacy' },
         // { id: 'D3', title: 'ส่งออกข้อมูล', icon: FileDown, description: 'CSV เท่านั้น' }, // Hidden - use PDF export in reports
       ],
     },
@@ -108,7 +110,7 @@ export default function SettingsPage() {
   return (
     <div className="min-h-screen bg-background pb-32 font-sans">
       {/* Top Bar */}
-      <header className="bg-card pt-12 pb-4 px-6 sticky top-0 z-20 flex justify-between items-center border-b border-border">
+      <header className="bg-card pt-4 pb-1 px-6 sticky top-0 z-20 flex justify-between items-center border-b border-border">
         <h1 className="text-2xl font-bold text-foreground">ตั้งค่า</h1>
         <Button variant="ghost" size="sm" className="text-accent font-bold h-auto p-0">
           ช่วยเหลือ

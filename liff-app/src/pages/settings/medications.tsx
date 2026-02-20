@@ -243,7 +243,7 @@ export default function MedicationsPage() {
   if (auth.isLoading || ensurePatient.isLoading) {
     return (
       <div className="min-h-screen pb-8 font-sans bg-background">
-        <header className="bg-card pt-12 pb-4 px-6 sticky top-0 z-20 flex items-center gap-4 border-b border-border">
+        <header className="bg-card pt-4 pb-1 px-6 sticky top-0 z-20 flex items-center gap-4 border-b border-border">
           <Button variant="ghost" size="icon" onClick={() => navigate('/settings')}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
@@ -266,7 +266,7 @@ export default function MedicationsPage() {
   return (
     <div className="min-h-screen pb-8 font-sans bg-background">
       {/* Header */}
-      <header className="bg-card pt-12 pb-4 px-6 sticky top-0 z-20 flex items-center gap-4 border-b border-border">
+      <header className="bg-card pt-4 pb-1 px-6 sticky top-0 z-20 flex items-center gap-4 border-b border-border">
         <Button variant="ghost" size="icon" onClick={() => navigate('/settings')}>
           <ArrowLeft className="w-5 h-5" />
         </Button>

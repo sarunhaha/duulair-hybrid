@@ -1289,17 +1289,26 @@ export function useHealthHistory(
         });
 
         // Format lab results
-        const panelLabels: Record<string, string> = {
-          cbc: 'CBC', liver: 'ตับ', kidney: 'ไต', lipid: 'ไขมัน', diabetes: 'เบาหวาน', thyroid: 'ไทรอยด์',
+        const labPanelLabels: Record<string, string> = {
+          cbc: 'ความสมบูรณ์ของเลือด', liver: 'ค่าตับ', kidney: 'ค่าไต', lipid: 'ไขมันในเลือด', diabetes: 'เบาหวาน', thyroid: 'ไทรอยด์',
         };
+        const labTestNameTh: Record<string, string> = {
+          Platelet: 'เกล็ดเลือด', WBC: 'เม็ดเลือดขาว', Hemoglobin: 'ฮีโมโกลบิน', Hematocrit: 'ฮีมาโตคริต',
+          ALT: 'ค่าตับ ALT', AST: 'ค่าตับ AST', ALP: 'ค่าตับ ALP', Albumin: 'อัลบูมิน',
+          Creatinine: 'ครีเอตินิน', BUN: 'ยูเรียไนโตรเจน', eGFR: 'อัตราการกรองไต', 'Uric Acid': 'กรดยูริก',
+          'Total Cholesterol': 'คอเลสเตอรอลรวม', LDL: 'ไขมันร้าย', HDL: 'ไขมันดี', Triglycerides: 'ไตรกลีเซอไรด์',
+          HbA1c: 'น้ำตาลสะสม', TSH: 'ฮอร์โมนไทรอยด์', FT4: 'ไทรอกซินอิสระ',
+        };
+        const labStatusTh: Record<string, string> = { high: 'สูง', low: 'ต่ำ', critical: 'วิกฤต' };
         (data.labResults || []).forEach(lr => {
-          const panelTh = panelLabels[lr.test_type] || lr.test_type;
-          const statusEmoji = lr.status === 'high' || lr.status === 'critical' ? ' (สูง)' : lr.status === 'low' ? ' (ต่ำ)' : '';
+          const panelTh = labPanelLabels[lr.test_type] || lr.test_type;
+          const nameTh = labTestNameTh[lr.test_name] || lr.test_name;
+          const statusText = lr.status && lr.status !== 'normal' ? ` (${labStatusTh[lr.status] || lr.status})` : '';
           items.push({
             id: lr.id,
             type: 'lab_results',
-            title: `ผลแล็บ (${panelTh})`,
-            detail: `${lr.test_name}: ${lr.value} ${lr.unit || ''}${statusEmoji}`,
+            title: `ผลแล็บ — ${panelTh}`,
+            detail: `${nameTh}: ${lr.value} ${lr.unit || ''}${statusText}`,
             time: new Date(lr.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.',
             date: lr.lab_date === today ? 'วันนี้' : formatDate(lr.lab_date || lr.created_at),
             raw: lr,

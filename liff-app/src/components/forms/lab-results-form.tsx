@@ -1,13 +1,14 @@
 import { useState } from 'react';
-import { FlaskConical, Check, Loader2, ChevronDown, ChevronUp, Trash2, Clock } from 'lucide-react';
+import { FlaskConical, Check, Loader2, ChevronDown, ChevronUp, Trash2, Clock, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { useEnsurePatient } from '@/hooks/use-ensure-patient';
-import { useTodayLabResults, useSaveLabResults, useDeleteLabResult } from '@/lib/api/hooks/use-health';
+import { useTodayLabResults, useSaveLabResults, useUpdateLabResult, useDeleteLabResult } from '@/lib/api/hooks/use-health';
 import type { LabResultLog } from '@/lib/api/hooks/use-health';
 import { useToast } from '@/hooks/use-toast';
+import { DateInput } from '@/components/ui/date-picker';
 
 // Lab test definitions per panel
 interface TestDef {
@@ -38,9 +39,9 @@ const LAB_PANELS: Panel[] = [
   {
     id: 'liver', label: 'Liver', label_th: 'ค่าตับ',
     tests: [
-      { test_name: 'ALT', label_th: 'ALT (SGPT)', unit: 'U/L', normal_min: 0, normal_max: 40 },
-      { test_name: 'AST', label_th: 'AST (SGOT)', unit: 'U/L', normal_min: 0, normal_max: 40 },
-      { test_name: 'ALP', label_th: 'ALP', unit: 'U/L', normal_min: 40, normal_max: 130 },
+      { test_name: 'ALT', label_th: 'ค่าตับ ALT', unit: 'U/L', normal_min: 0, normal_max: 40 },
+      { test_name: 'AST', label_th: 'ค่าตับ AST', unit: 'U/L', normal_min: 0, normal_max: 40 },
+      { test_name: 'ALP', label_th: 'ค่าตับ ALP', unit: 'U/L', normal_min: 40, normal_max: 130 },
       { test_name: 'Albumin', label_th: 'อัลบูมิน', unit: 'g/dL', normal_min: 3.5, normal_max: 5.0 },
     ],
   },
@@ -48,8 +49,8 @@ const LAB_PANELS: Panel[] = [
     id: 'kidney', label: 'Kidney', label_th: 'ค่าไต',
     tests: [
       { test_name: 'Creatinine', label_th: 'ครีเอตินิน', unit: 'mg/dL', normal_min: 0.6, normal_max: 1.2 },
-      { test_name: 'BUN', label_th: 'BUN', unit: 'mg/dL', normal_min: 7, normal_max: 20 },
-      { test_name: 'eGFR', label_th: 'eGFR', unit: 'mL/min', normal_min: 90, normal_max: 999 },
+      { test_name: 'BUN', label_th: 'ยูเรียไนโตรเจน (BUN)', unit: 'mg/dL', normal_min: 7, normal_max: 20 },
+      { test_name: 'eGFR', label_th: 'อัตราการกรองไต (eGFR)', unit: 'mL/min', normal_min: 90, normal_max: 999 },
       { test_name: 'Uric Acid', label_th: 'กรดยูริก', unit: 'mg/dL', normal_min: 2.5, normal_max: 7.0 },
     ],
   },
@@ -57,22 +58,22 @@ const LAB_PANELS: Panel[] = [
     id: 'lipid', label: 'Lipid', label_th: 'ไขมันในเลือด',
     tests: [
       { test_name: 'Total Cholesterol', label_th: 'คอเลสเตอรอลรวม', unit: 'mg/dL', normal_min: 0, normal_max: 200 },
-      { test_name: 'LDL', label_th: 'LDL', unit: 'mg/dL', normal_min: 0, normal_max: 100 },
-      { test_name: 'HDL', label_th: 'HDL', unit: 'mg/dL', normal_min: 40, normal_max: 999 },
+      { test_name: 'LDL', label_th: 'ไขมันร้าย (LDL)', unit: 'mg/dL', normal_min: 0, normal_max: 100 },
+      { test_name: 'HDL', label_th: 'ไขมันดี (HDL)', unit: 'mg/dL', normal_min: 40, normal_max: 999 },
       { test_name: 'Triglycerides', label_th: 'ไตรกลีเซอไรด์', unit: 'mg/dL', normal_min: 0, normal_max: 150 },
     ],
   },
   {
     id: 'diabetes', label: 'Diabetes', label_th: 'เบาหวาน',
     tests: [
-      { test_name: 'HbA1c', label_th: 'HbA1c', unit: '%', normal_min: 4.0, normal_max: 5.6 },
+      { test_name: 'HbA1c', label_th: 'น้ำตาลสะสม (HbA1c)', unit: '%', normal_min: 4.0, normal_max: 5.6 },
     ],
   },
   {
     id: 'thyroid', label: 'Thyroid', label_th: 'ไทรอยด์',
     tests: [
-      { test_name: 'TSH', label_th: 'TSH', unit: 'mIU/L', normal_min: 0.4, normal_max: 4.0 },
-      { test_name: 'FT4', label_th: 'FT4', unit: 'ng/dL', normal_min: 0.8, normal_max: 1.8 },
+      { test_name: 'TSH', label_th: 'ฮอร์โมนกระตุ้นไทรอยด์ (TSH)', unit: 'mIU/L', normal_min: 0.4, normal_max: 4.0 },
+      { test_name: 'FT4', label_th: 'ไทรอกซินอิสระ (FT4)', unit: 'ng/dL', normal_min: 0.8, normal_max: 1.8 },
     ],
   },
 ];
@@ -118,15 +119,33 @@ export function LabResultsForm({ onSuccess, onCancel, initialEditData }: LabResu
 
   const { data: todayResults, isLoading: resultsLoading, refetch } = useTodayLabResults(patientId);
   const saveLabResults = useSaveLabResults();
+  const updateLabResult = useUpdateLabResult();
   const deleteLabResult = useDeleteLabResult();
 
   const now = new Date();
   const nowDate = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`;
 
-  const [labDate, setLabDate] = useState(nowDate);
-  const [labName, setLabName] = useState('');
-  const [expandedPanels, setExpandedPanels] = useState<Set<string>>(new Set());
-  const [values, setValues] = useState<Record<string, string>>({});
+  // Pre-fill from initialEditData when editing
+  const [editingLog] = useState<LabResultLog | null>(() => initialEditData || null);
+
+  const [labDate, setLabDate] = useState(() => {
+    if (initialEditData?.lab_date) return initialEditData.lab_date;
+    return nowDate;
+  });
+  const [labName, setLabName] = useState(() => initialEditData?.lab_name || '');
+
+  // Pre-fill the specific test value when editing a single result
+  const [expandedPanels, setExpandedPanels] = useState<Set<string>>(() => {
+    if (initialEditData?.test_type) return new Set([initialEditData.test_type]);
+    return new Set();
+  });
+  const [values, setValues] = useState<Record<string, string>>(() => {
+    if (initialEditData) {
+      const key = `${initialEditData.test_type}:${initialEditData.test_name}`;
+      return { [key]: String(initialEditData.value) };
+    }
+    return {};
+  });
   const [isSaving, setIsSaving] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
@@ -212,8 +231,25 @@ export function LabResultsForm({ onSuccess, onCancel, initialEditData }: LabResu
     }
 
     try {
-      await saveLabResults.mutateAsync({ patientId: patientId!, results });
-      toast({ description: `บันทึกผลแล็บ ${results.length} รายการเรียบร้อย` });
+      if (editingLog && results.length === 1) {
+        // Update existing single record
+        const r = results[0];
+        await updateLabResult.mutateAsync({
+          id: editingLog.id,
+          patientId: patientId!,
+          value: r.value,
+          unit: r.unit,
+          normal_min: r.normal_min,
+          normal_max: r.normal_max,
+          status: r.status,
+          lab_date: r.lab_date,
+          lab_name: r.lab_name,
+        });
+        toast({ description: 'อัปเดตผลแล็บเรียบร้อย' });
+      } else {
+        await saveLabResults.mutateAsync({ patientId: patientId!, results });
+        toast({ description: `บันทึกผลแล็บ ${results.length} รายการเรียบร้อย` });
+      }
       refetch();
       onSuccess?.();
     } catch (error) {
@@ -244,21 +280,40 @@ export function LabResultsForm({ onSuccess, onCancel, initialEditData }: LabResu
   });
 
   const panelLabels: Record<string, string> = {
-    cbc: 'CBC', liver: 'ค่าตับ', kidney: 'ค่าไต', lipid: 'ไขมัน', diabetes: 'เบาหวาน', thyroid: 'ไทรอยด์',
+    cbc: 'ความสมบูรณ์ของเลือด', liver: 'ค่าตับ', kidney: 'ค่าไต', lipid: 'ไขมันในเลือด', diabetes: 'เบาหวาน', thyroid: 'ไทรอยด์',
   };
+
+  // Map test_name → label_th for display
+  const testNameToTh: Record<string, string> = {};
+  for (const panel of LAB_PANELS) {
+    for (const test of panel.tests) {
+      testNameToTh[test.test_name] = test.label_th;
+    }
+  }
 
   return (
     <div className="space-y-6 pb-8">
+      {/* Edit mode banner */}
+      {editingLog && (
+        <div className="bg-teal-50 dark:bg-teal-950/20 border border-teal-200 dark:border-teal-900/30 rounded-2xl p-4 space-y-1">
+          <p className="text-xs font-bold text-teal-700 dark:text-teal-400">กำลังแก้ไขผลตรวจ</p>
+          <p className="text-sm font-bold text-foreground">
+            {testNameToTh[editingLog.test_name] || editingLog.test_name}: {editingLog.value} {editingLog.unit || ''}
+          </p>
+        </div>
+      )}
+
       {/* Date & Lab Name */}
       <div className="space-y-4">
         <div className="space-y-2">
-          <Label className="text-sm font-medium">วันที่ตรวจ</Label>
-          <Input
-            type="date"
+          <div className="flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-primary/60" />
+            <Label className="text-sm font-medium">วันที่ตรวจ</Label>
+          </div>
+          <DateInput
             value={labDate}
-            onChange={(e) => setLabDate(e.target.value)}
-            max={nowDate}
-            className="h-12 rounded-xl"
+            onChange={setLabDate}
+            maxDate={nowDate}
           />
         </div>
         <div className="space-y-2">
@@ -290,8 +345,8 @@ export function LabResultsForm({ onSuccess, onCancel, initialEditData }: LabResu
                     <FlaskConical className="w-5 h-5" />
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-foreground">{panel.label}</p>
-                    <p className="text-[11px] text-muted-foreground">{panel.label_th}</p>
+                    <p className="text-sm font-bold text-foreground">{panel.label_th}</p>
+                    <p className="text-[11px] text-muted-foreground">{panel.label}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -376,7 +431,7 @@ export function LabResultsForm({ onSuccess, onCancel, initialEditData }: LabResu
           ) : (
             <Check className="w-5 h-5 mr-2" />
           )}
-          บันทึก ({totalFilled} ค่า)
+          {editingLog ? 'อัปเดต' : `บันทึก (${totalFilled} ค่า)`}
         </Button>
       </div>
 
@@ -392,7 +447,7 @@ export function LabResultsForm({ onSuccess, onCancel, initialEditData }: LabResu
                 return (
                   <div key={r.id} className="flex items-center justify-between group">
                     <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <span className="text-xs text-muted-foreground">{r.test_name}:</span>
+                      <span className="text-xs text-muted-foreground">{testNameToTh[r.test_name] || r.test_name}:</span>
                       <span className={cn('text-sm font-bold', getStatusColor(r.status))}>
                         {r.value}
                       </span>

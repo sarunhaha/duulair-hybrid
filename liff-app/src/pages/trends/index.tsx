@@ -249,7 +249,7 @@ export default function TrendsPage() {
   return (
     <div className="min-h-screen pb-32 font-sans overflow-x-hidden relative z-10 bg-background">
       {/* Top Bar */}
-      <header className="bg-card pt-12 pb-4 px-6 sticky top-0 z-20 flex justify-between items-center border-b border-border">
+      <header className="bg-card pt-4 pb-1 px-6 sticky top-0 z-20 flex justify-between items-center border-b border-border">
         <h1 className="text-2xl font-bold text-foreground">แนวโน้ม</h1>
       </header>
 

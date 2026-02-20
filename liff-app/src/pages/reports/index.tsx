@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useLocation } from 'wouter';
 import {
   ArrowLeft,
@@ -131,6 +131,12 @@ export default function ReportsPage() {
   // Selected chart point for detail panel (same as trends page)
   const [selectedChartPoint, setSelectedChartPoint] = useState<ChartDataPoint | null>(null);
 
+  // Chart refs for PDF capture
+  const bpChartRef = useRef<HTMLDivElement>(null);
+  const medsChartRef = useRef<HTMLDivElement>(null);
+  const sleepChartRef = useRef<HTMLDivElement>(null);
+  const glucoseChartRef = useRef<HTMLDivElement>(null);
+
   // Custom date range state (same pattern as trends page)
   const [customRange, setCustomRange] = useState({ startDate: getLocalDateString(90), endDate: getLocalDateString(0) });
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -258,6 +264,29 @@ export default function ReportsPage() {
     if (!reportData || isExporting) return;
     setIsExporting(true);
     try {
+      // Capture chart images using html2canvas
+      const html2canvasModule = await import('html2canvas');
+      const html2canvas = html2canvasModule.default;
+
+      const captureOpts = { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false };
+
+      const captureRef = async (ref: React.RefObject<HTMLDivElement | null>): Promise<string | null> => {
+        if (!ref.current) return null;
+        try {
+          const canvas = await html2canvas(ref.current, captureOpts);
+          return canvas.toDataURL('image/png');
+        } catch {
+          return null;
+        }
+      };
+
+      const [bpImage, medsImage, sleepImage, glucoseImage] = await Promise.all([
+        captureRef(bpChartRef),
+        captureRef(medsChartRef),
+        captureRef(sleepChartRef),
+        captureRef(glucoseChartRef),
+      ]);
+
       await exportToPDF(reportData, patientName, dateRangeText, {
         patientName,
         patientAge,
@@ -271,6 +300,7 @@ export default function ReportsPage() {
           dosage_unit: m.dosage_unit,
         })),
         doctorQuestions: questions.map(q => q.question),
+        chartImages: { bpImage, medsImage, sleepImage, glucoseImage },
       });
     } catch (error) {
       console.error('PDF export failed:', error);
@@ -282,7 +312,7 @@ export default function ReportsPage() {
   return (
     <div className="min-h-screen pb-32 font-sans relative z-10 bg-background">
       {/* Top Bar */}
-      <header className="bg-card pt-12 pb-4 px-4 sticky top-0 z-20 flex justify-between items-center border-b border-border shadow-sm">
+      <header className="bg-card pt-4 pb-1 px-4 sticky top-0 z-20 flex justify-between items-center border-b border-border shadow-sm">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => navigate('/settings')} className="shrink-0">
             <ArrowLeft className="w-5 h-5" />
@@ -500,7 +530,7 @@ export default function ReportsPage() {
                     </p>
                     <p className="text-[10px] text-muted-foreground">เฉลี่ย {bpAvgDisplay}</p>
                   </div>
-                  <div className="h-[180px] w-full">
+                  <div ref={bpChartRef} className="h-[180px] w-full">
                     {chartDataSliced.length > 0 ? (
                       <ResponsiveContainer width="100%" height="100%">
                         <LineChart data={chartDataSliced} onClick={handleChartClick}>
@@ -530,7 +560,7 @@ export default function ReportsPage() {
                     </p>
                     <p className="text-[10px] text-muted-foreground">ครบ {medsAdherenceDisplay}</p>
                   </div>
-                  <div className="h-[120px] w-full">
+                  <div ref={medsChartRef} className="h-[120px] w-full">
                     {chartDataSliced.length > 0 ? (
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={chartDataSliced} onClick={handleChartClick}>
@@ -565,7 +595,7 @@ export default function ReportsPage() {
                     </p>
                     <p className="text-[10px] text-muted-foreground">เฉลี่ย {sleepAvgDisplay}</p>
                   </div>
-                  <div className="h-[120px] w-full">
+                  <div ref={sleepChartRef} className="h-[120px] w-full">
                     {chartDataSliced.some(d => d.sleepHours !== undefined) ? (
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={chartDataSliced} onClick={handleChartClick}>
@@ -614,7 +644,7 @@ export default function ReportsPage() {
                       <span className="text-muted-foreground">ก่อนนอน</span>
                     </div>
                   </div>
-                  <div className="h-[160px] w-full">
+                  <div ref={glucoseChartRef} className="h-[160px] w-full">
                     {chartDataSliced.some(d => d.glucose !== undefined || (d.glucoseReadings && d.glucoseReadings.length > 0)) ? (
                       (() => {
                         const mealColorMap: Record<string, string> = {

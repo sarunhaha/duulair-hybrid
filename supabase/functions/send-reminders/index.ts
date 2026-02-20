@@ -516,7 +516,7 @@ function formatReminderMessage(reminder: Reminder): string {
     message += `💬 ${reminder.description}\n`
   }
 
-  message += `\n✅ กดปุ่มด้านล่าง หรือพิมพ์ "${getConfirmCommand(reminder.type)} ${patientName}"`
+  message += `\n✅ กดปุ่มด้านล่าง หรือพิมพ์ "${getConfirmCommand(reminder.type)}"`
 
   return message
 }
@@ -535,15 +535,15 @@ function getConfirmCommand(type: string): string {
 
 function createQuickReplyItems(type: string, patientName: string): QuickReplyItem[] {
   const typeActions: Record<string, { label: string, text: string }> = {
-    medication: { label: '✅ กินยาแล้ว', text: `กินยาแล้ว ${patientName}` },
-    vitals: { label: '📊 วัดความดันแล้ว', text: `วัดความดันแล้ว ${patientName}` },
-    water: { label: '💧 ดื่มน้ำแล้ว', text: `ดื่มน้ำแล้ว ${patientName}` },
-    exercise: { label: '🏃 ออกกำลังกายแล้ว', text: `ออกกำลังกายแล้ว ${patientName}` },
-    meal: { label: '🍽️ กินข้าวแล้ว', text: `กินข้าวแล้ว ${patientName}` },
-    glucose: { label: '🩸 วัดน้ำตาลแล้ว', text: `วัดน้ำตาลแล้ว ${patientName}` }
+    medication: { label: '✅ กินยาแล้ว', text: 'กินยาแล้ว' },
+    vitals: { label: '📊 วัดความดันแล้ว', text: 'วัดความดันแล้ว' },
+    water: { label: '💧 ดื่มน้ำแล้ว', text: 'ดื่มน้ำแล้ว' },
+    exercise: { label: '🏃 ออกกำลังกายแล้ว', text: 'ออกกำลังกายแล้ว' },
+    meal: { label: '🍽️ กินข้าวแล้ว', text: 'กินข้าวแล้ว' },
+    glucose: { label: '🩸 วัดน้ำตาลแล้ว', text: 'วัดน้ำตาลแล้ว' }
   }
 
-  const action = typeActions[type] || { label: '✅ บันทึกแล้ว', text: `บันทึกแล้ว ${patientName}` }
+  const action = typeActions[type] || { label: '✅ บันทึกแล้ว', text: 'บันทึกแล้ว' }
 
   return [{
     type: 'action',
@@ -666,7 +666,7 @@ function formatMedicationMessage(medication: Medication, timePeriod: string): st
     message += `📝 ${medication.instructions}\n`
   }
 
-  message += `\n✅ กดปุ่มด้านล่าง หรือพิมพ์ "กินยาแล้ว ${patientName}"`
+  message += `\n✅ กดปุ่มด้านล่าง หรือพิมพ์ "กินยาแล้ว"`
 
   return message
 }
@@ -883,7 +883,7 @@ function createReminderFlexMessage(reminder: Reminder): { contents: any, altText
             type: 'postback',
             label: `${typeConf.label}แล้ว ✓`,
             data: `a=rc&t=${reminder.type}&r=${reminder.id}&p=${reminder.patient_id}&st=${timeDisplay}&tt=${encodeURIComponent(reminder.title || typeConf.label)}`,
-            displayText: `${typeConf.label}แล้ว ${patientName}`,
+            displayText: `${typeConf.label}แล้ว`,
           },
           style: 'primary',
           color: OONJAI.primary,
@@ -896,7 +896,7 @@ function createReminderFlexMessage(reminder: Reminder): { contents: any, altText
             type: 'postback',
             label: 'ยังไม่ได้ทำ',
             data: `a=rs&t=${reminder.type}&r=${reminder.id}&p=${reminder.patient_id}&st=${timeDisplay}&tt=${encodeURIComponent(reminder.title || typeConf.label)}`,
-            displayText: `ยัง${typeConf.label} ${patientName}`,
+            displayText: `ยัง${typeConf.label}`,
           },
           style: 'secondary',
           height: 'sm',

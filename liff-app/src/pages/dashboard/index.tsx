@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { TrendingUp, ArrowDownRight, ArrowUpRight, Flame, Moon, Sun, Droplets, Loader2, PlusCircle, FileText, CheckCircle2 } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,6 +8,7 @@ import { useLiff } from '@/lib/liff/provider';
 import { useAuth } from '@/hooks/use-auth';
 import { BottomNav } from '@/components/layout/bottom-nav';
 import { useDashboardSummary } from '@/lib/api/hooks/use-dashboard';
+import { useHealthPreferences } from '@/lib/api/hooks/use-preferences';
 import { useLocation } from 'wouter';
 
 // Map icon string to component
@@ -35,6 +37,12 @@ export default function DashboardPage() {
   // Fetch dashboard data
   // React Query handles refetchOnWindowFocus globally — no manual listeners needed
   const { data: summary, isLoading } = useDashboardSummary(patientId);
+  const { data: prefs } = useHealthPreferences(patientId);
+
+  // Preference helpers
+  const showVitals = !prefs || prefs.vitals_enabled !== false;
+  const showMeds = !prefs || prefs.medications_enabled !== false;
+  const showSleep = !prefs || prefs.sleep_enabled !== false;
 
   // Use real data with proper empty states
   const vitals = summary?.latestVitals;
@@ -52,16 +60,33 @@ export default function DashboardPage() {
   const medAdherence = medTotal > 0 ? Math.round((medDone / medTotal) * 100) : null;
   const medAllDone = medTotal > 0 && medDone === medTotal;
 
+  // Count visible highlight columns for dynamic grid
+  const visibleHighlightCount = [showVitals, showMeds, showSleep].filter(Boolean).length;
+
   // Check if we have any highlight data
-  const hasVitalsData = vitals && (vitals.bp_systolic !== null || vitals.sleep_hours !== null) || medTotal > 0;
-  const remainingTasks = hasTasks ? tasks.total - tasks.completed : 0;
+  const hasVitalsData = (showVitals && vitals && vitals.bp_systolic !== null) ||
+    (showSleep && vitals && vitals.sleep_hours !== null) ||
+    (showMeds && medTotal > 0);
+
+  // Filter tasks by preferences
+  const filteredTaskItems = useMemo(() => {
+    if (!hasTasks) return [];
+    return tasks.items.filter((task) => {
+      if (task.id === 'water-goal') return !prefs || prefs.water_enabled !== false;
+      // Medication tasks
+      return !prefs || prefs.medications_enabled !== false;
+    });
+  }, [hasTasks, tasks, prefs]);
+  const hasFilteredTasks = filteredTaskItems.length > 0;
+
+  const remainingTasks = hasFilteredTasks ? filteredTaskItems.filter(t => !t.done).length : 0;
 
   const goToRecords = () => setLocation('/records');
 
   return (
     <div className="min-h-screen pb-32 font-sans relative z-10 bg-background">
       {/* Top Bar */}
-      <header className="bg-card pt-12 pb-4 px-6 sticky top-0 z-20 flex justify-between items-center border-b border-border">
+      <header className="bg-card pt-4 pb-1 px-6 sticky top-0 z-20 flex justify-between items-center border-b border-border">
         <h1 className="text-2xl font-bold text-foreground">สุขภาพวันนี้</h1>
       </header>
 
@@ -137,9 +162,14 @@ export default function DashboardPage() {
             </div>
           </CardHeader>
           <CardContent className="p-5 pt-2">
-            {hasVitalsData ? (
-              <div className="grid grid-cols-3 gap-4 divide-x divide-border">
+            {hasVitalsData && visibleHighlightCount > 0 ? (
+              <div className={cn('grid gap-4 divide-x divide-border', {
+                'grid-cols-1': visibleHighlightCount === 1,
+                'grid-cols-2': visibleHighlightCount === 2,
+                'grid-cols-3': visibleHighlightCount === 3,
+              })}>
                 {/* 1. Blood Pressure */}
+                {showVitals && (
                 <div className="space-y-1 text-center px-1">
                   <p className="text-xs text-muted-foreground font-medium">ความดัน</p>
                   {vitals?.bp_systolic !== null && vitals?.bp_systolic !== undefined ? (
@@ -165,8 +195,10 @@ export default function DashboardPage() {
                     <p className="text-sm text-muted-foreground">-</p>
                   )}
                 </div>
+                )}
 
                 {/* 2. Medication Adherence */}
+                {showMeds && (
                 <div className="space-y-1 text-center px-1">
                   <p className="text-xs text-muted-foreground font-medium">กินยา</p>
                   {medAdherence !== null ? (
@@ -191,8 +223,10 @@ export default function DashboardPage() {
                     <p className="text-sm text-muted-foreground">-</p>
                   )}
                 </div>
+                )}
 
                 {/* 3. Sleep */}
+                {showSleep && (
                 <div className="space-y-1 text-center px-1">
                   <p className="text-xs text-muted-foreground font-medium">การนอน</p>
                   {vitals?.sleep_hours !== null && vitals?.sleep_hours !== undefined ? (
@@ -216,6 +250,7 @@ export default function DashboardPage() {
                     <p className="text-sm text-muted-foreground">-</p>
                   )}
                 </div>
+                )}
               </div>
             ) : (
               <div className="text-center py-6 space-y-4">
@@ -245,7 +280,7 @@ export default function DashboardPage() {
           <CardHeader className="p-5 pb-0 flex flex-row justify-between items-center">
             <div>
               <h3 className="text-base font-bold text-foreground">ภารกิจสุขภาพวันนี้</h3>
-              {hasTasks && (
+              {hasFilteredTasks && (
                 <p className="text-xs font-bold text-accent uppercase tracking-wider">
                   {remainingTasks > 0 ? `เหลือ ${remainingTasks} อย่าง` : 'เสร็จหมดแล้ว!'}
                 </p>
@@ -253,9 +288,9 @@ export default function DashboardPage() {
             </div>
           </CardHeader>
           <CardContent className="p-5 pt-4">
-            {hasTasks ? (
+            {hasFilteredTasks ? (
               <div className="space-y-4">
-                {tasks.items.map((task) => (
+                {filteredTaskItems.map((task) => (
                   <div key={task.id} className="flex items-start gap-3">
                     <Checkbox
                       id={`task-${task.id}`}

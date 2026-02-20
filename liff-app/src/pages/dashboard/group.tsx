@@ -46,7 +46,7 @@ export default function GroupDashboardPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen pb-32 font-sans relative z-10 bg-background">
-        <header className="bg-card pt-12 pb-4 px-6 sticky top-0 z-20 flex justify-between items-center border-b border-border">
+        <header className="bg-card pt-4 pb-1 px-6 sticky top-0 z-20 flex justify-between items-center border-b border-border">
           <h1 className="text-2xl font-bold text-foreground">สุขภาพวันนี้</h1>
         </header>
         <div className="flex items-center justify-center py-20">
@@ -61,7 +61,7 @@ export default function GroupDashboardPage() {
   if (error && !data) {
     return (
       <div className="min-h-screen pb-32 font-sans relative z-10 bg-background">
-        <header className="bg-card pt-12 pb-4 px-6 sticky top-0 z-20 flex justify-between items-center border-b border-border">
+        <header className="bg-card pt-4 pb-1 px-6 sticky top-0 z-20 flex justify-between items-center border-b border-border">
           <h1 className="text-2xl font-bold text-foreground">สุขภาพวันนี้</h1>
         </header>
         <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
@@ -88,7 +88,7 @@ export default function GroupDashboardPage() {
   return (
     <div className="min-h-screen pb-32 font-sans relative z-10 bg-background">
       {/* Top Bar */}
-      <header className="bg-card pt-12 pb-4 px-6 sticky top-0 z-20 border-b border-border">
+      <header className="bg-card pt-4 pb-1 px-6 sticky top-0 z-20 border-b border-border">
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">

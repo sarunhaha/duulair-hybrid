@@ -336,6 +336,35 @@ export interface PDFExportOptions {
     dosage_unit?: string;
   }>;
   doctorQuestions?: string[];
+  chartImages?: {
+    bpImage: string | null;
+    medsImage: string | null;
+    sleepImage: string | null;
+    glucoseImage: string | null;
+  };
+}
+
+// Helper: ensure enough space on page, add new page if needed
+function ensureSpace(doc: jsPDF, yPos: number, neededHeight: number): number {
+  const pageHeight = doc.internal.pageSize.getHeight();
+  if (yPos + neededHeight > pageHeight - 25) {
+    doc.addPage();
+    return 20;
+  }
+  return yPos;
+}
+
+// Helper: add chart image to PDF
+function addChartImage(
+  doc: jsPDF,
+  imageData: string,
+  yPos: number,
+  pageWidth: number,
+  targetHeight: number
+): number {
+  const imgWidth = pageWidth - 28; // 14px margin each side
+  doc.addImage(imageData, 'PNG', 14, yPos, imgWidth, targetHeight);
+  return yPos + targetHeight + 8;
 }
 
 // Export to PDF with Thai support
@@ -363,7 +392,6 @@ export async function exportToPDF(
         doc.addFileToVFS('Sarabun-Bold.ttf', fonts.bold);
         doc.addFont('Sarabun-Bold.ttf', 'Sarabun', 'bold');
       } else {
-        // Fallback: use Regular as Bold if Bold not available
         doc.addFont('Sarabun-Regular.ttf', 'Sarabun', 'bold');
       }
 
@@ -390,7 +418,20 @@ export async function exportToPDF(
     doc.setFont('helvetica', style);
   };
 
-  // ============ HEADER ============
+  // Status color mapping for didParseCell
+  const getStatusColor = (text: string): [number, number, number] | null => {
+    const greenStatuses = ['ปกติ', 'ดี', 'ดีมาก', 'เพียงพอ'];
+    const orangeStatuses = ['พอใช้', 'เสี่ยง', 'สูงเล็กน้อย', 'น้อย'];
+    const redStatuses = ['สูง', 'สูงมาก', 'ต้องปรับปรุง', 'น้อยเกินไป'];
+    if (greenStatuses.includes(text)) return [22, 163, 74];   // green-600
+    if (orangeStatuses.includes(text)) return [234, 138, 0];  // orange-500
+    if (redStatuses.includes(text)) return [220, 38, 38];     // red-600
+    return null;
+  };
+
+  // ============ PAGE 1: COVER + SUMMARY ============
+
+  // Header
   setFont('bold', 18);
   doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
   doc.text('รายงานสุขภาพ - OONJAI', pageWidth / 2, yPos, { align: 'center' });
@@ -419,13 +460,18 @@ export async function exportToPDF(
   doc.setTextColor(100, 100, 100);
   doc.text(`สร้างเมื่อ: ${format(new Date(), 'd MMM yyyy HH:mm', { locale: th })} น.`, pageWidth / 2, yPos, { align: 'center' });
   doc.setTextColor(0, 0, 0);
-  yPos += 12;
+  yPos += 8;
 
-  // ============ ALLERGIES ============
+  // Horizontal divider
+  doc.setDrawColor(200, 200, 200);
+  doc.setLineWidth(0.5);
+  doc.line(14, yPos, pageWidth - 14, yPos);
+  yPos += 8;
+
+  // Allergies
   const drugAllergies = options?.drugAllergies || [];
   const foodAllergies = options?.foodAllergies || [];
   if (drugAllergies.length > 0 || foodAllergies.length > 0) {
-    // Red warning box
     doc.setFillColor(254, 226, 226);
     doc.setDrawColor(239, 68, 68);
     doc.roundedRect(14, yPos - 2, pageWidth - 28, 18, 3, 3, 'FD');
@@ -441,7 +487,7 @@ export async function exportToPDF(
     yPos += 22;
   }
 
-  // ============ MEDICATIONS ============
+  // Medications table
   const medications = options?.medications || [];
   if (medications.length > 0) {
     setFont('bold', 12);
@@ -470,7 +516,8 @@ export async function exportToPDF(
     yPos = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
   }
 
-  // ============ SUMMARY ============
+  // Executive Summary with color-coded status
+  yPos = ensureSpace(doc, yPos, 60);
   setFont('bold', 12);
   doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
   doc.text('สรุปภาพรวม', 14, yPos);
@@ -502,16 +549,73 @@ export async function exportToPDF(
     bodyStyles: { ...(hasThaiFont && { font: 'Sarabun' }) },
     margin: { left: 14, right: 14 },
     styles: { fontSize: 10, ...(hasThaiFont && { font: 'Sarabun' }) },
+    didParseCell: (hookData) => {
+      // Color-code the status column (column index 2) in body rows
+      if (hookData.section === 'body' && hookData.column.index === 2) {
+        const cellText = String(hookData.cell.raw || '');
+        const color = getStatusColor(cellText);
+        if (color) {
+          hookData.cell.styles.textColor = color;
+          hookData.cell.styles.fontStyle = 'bold';
+        }
+      }
+    },
   });
 
   yPos = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
 
-  // ============ SIGNIFICANT EVENTS ============
+  // ============ PAGE 2: CHARTS ============
+  doc.addPage();
+  yPos = 20;
+
+  setFont('bold', 14);
+  doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+  doc.text('กราฟสุขภาพ', 14, yPos);
+  doc.setTextColor(0, 0, 0);
+  yPos += 10;
+
+  const chartImages = options?.chartImages;
+
+  // BP & Pulse chart
+  if (chartImages?.bpImage) {
+    setFont('bold', 11);
+    doc.text('ความดัน & ชีพจร', 14, yPos);
+    yPos += 6;
+    yPos = addChartImage(doc, chartImages.bpImage, yPos, pageWidth, 55);
+  }
+
+  // Medication adherence chart
+  if (chartImages?.medsImage) {
+    yPos = ensureSpace(doc, yPos, 50);
+    setFont('bold', 11);
+    doc.text('การกินยา (%)', 14, yPos);
+    yPos += 6;
+    yPos = addChartImage(doc, chartImages.medsImage, yPos, pageWidth, 40);
+  }
+
+  // Sleep chart
+  if (chartImages?.sleepImage) {
+    yPos = ensureSpace(doc, yPos, 50);
+    setFont('bold', 11);
+    doc.text('การนอน (ชม.)', 14, yPos);
+    yPos += 6;
+    yPos = addChartImage(doc, chartImages.sleepImage, yPos, pageWidth, 40);
+  }
+
+  // ============ PAGE 3: GLUCOSE CHART + SIGNIFICANT EVENTS ============
+
+  // Glucose chart (if data exists)
+  if (chartImages?.glucoseImage) {
+    yPos = ensureSpace(doc, yPos, 55);
+    setFont('bold', 11);
+    doc.text('ระดับน้ำตาล (mg/dL)', 14, yPos);
+    yPos += 6;
+    yPos = addChartImage(doc, chartImages.glucoseImage, yPos, pageWidth, 50);
+  }
+
+  // Significant events — show ALL (no .slice)
   if (data.significantEvents && data.significantEvents.length > 0) {
-    if (yPos > 220) {
-      doc.addPage();
-      yPos = 20;
-    }
+    yPos = ensureSpace(doc, yPos, 40);
 
     setFont('bold', 12);
     doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
@@ -519,7 +623,7 @@ export async function exportToPDF(
     doc.setTextColor(0, 0, 0);
     yPos += 8;
 
-    const eventsData = data.significantEvents.slice(0, 10).map((event) => [
+    const eventsData = data.significantEvents.map((event) => [
       event.date,
       event.title,
       event.tag,
@@ -539,11 +643,8 @@ export async function exportToPDF(
     yPos = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
   }
 
-  // ============ DAILY DATA ============
-  if (yPos > 200) {
-    doc.addPage();
-    yPos = 20;
-  }
+  // ============ PAGE 4-5: DAILY DATA + DOCTOR QUESTIONS ============
+  yPos = ensureSpace(doc, yPos, 40);
 
   setFont('bold', 12);
   doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
@@ -551,35 +652,43 @@ export async function exportToPDF(
   doc.setTextColor(0, 0, 0);
   yPos += 8;
 
-  const dailyData = data.chartData.slice(-14).map((point) => [
+  // Show ALL days (no .slice) and add water column
+  const dailyData = data.chartData.map((point) => [
     point.day || point.date,
     point.systolic ? `${point.systolic}/${point.diastolic}` : '-',
     point.pulse?.toString() || '-',
     point.medsPercent !== undefined ? `${point.medsPercent}%` : '-',
     point.sleepHours?.toFixed(1) || '-',
+    point.waterMl?.toString() || '-',
     point.glucose?.toString() || '-',
   ]);
 
   autoTable(doc, {
     startY: yPos,
-    head: [['วันที่', 'ความดัน', 'ชีพจร', 'กินยา', 'นอน (ชม.)', 'ระดับน้ำตาล']],
+    head: [['วันที่', 'ความดัน', 'ชีพจร', 'กินยา', 'นอน (ชม.)', 'น้ำ (มล.)', 'น้ำตาล']],
     body: dailyData,
     theme: 'striped',
     headStyles: { fillColor: primaryColor, ...(hasThaiFont && { font: 'Sarabun' }) },
     bodyStyles: { ...(hasThaiFont && { font: 'Sarabun' }) },
     margin: { left: 14, right: 14 },
-    styles: { fontSize: 9, ...(hasThaiFont && { font: 'Sarabun' }) },
+    styles: { fontSize: 8, ...(hasThaiFont && { font: 'Sarabun' }) },
+    columnStyles: {
+      0: { cellWidth: 22 },
+      1: { cellWidth: 26 },
+      2: { cellWidth: 18 },
+      3: { cellWidth: 18 },
+      4: { cellWidth: 22 },
+      5: { cellWidth: 22 },
+      6: { cellWidth: 22 },
+    },
   });
 
   yPos = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
 
-  // ============ DOCTOR QUESTIONS ============
+  // Doctor questions
   const doctorQuestions = options?.doctorQuestions || [];
   if (doctorQuestions.length > 0) {
-    if (yPos > 230) {
-      doc.addPage();
-      yPos = 20;
-    }
+    yPos = ensureSpace(doc, yPos, 40);
 
     setFont('bold', 12);
     doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
@@ -606,59 +715,72 @@ export async function exportToPDF(
         1: { cellWidth: 'auto' },
       },
     });
-
-    yPos = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
   }
 
-  // ============ FOOTER ============
+  // ============ FOOTER — every page ============
   const pageCount = doc.getNumberOfPages();
+  const pageHeight = doc.internal.pageSize.getHeight();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
+
+    // Divider line above footer
+    doc.setDrawColor(200, 200, 200);
+    doc.setLineWidth(0.3);
+    doc.line(14, pageHeight - 18, pageWidth - 14, pageHeight - 18);
+
     setFont('normal', 8);
     doc.setTextColor(128, 128, 128);
     doc.text(
       `สร้างโดย OONJAI | ${format(new Date(), 'yyyy-MM-dd HH:mm')} | หน้า ${i}/${pageCount}`,
       pageWidth / 2,
-      doc.internal.pageSize.getHeight() - 10,
+      pageHeight - 12,
       { align: 'center' }
     );
 
-    // Disclaimer
     doc.setTextColor(180, 180, 180);
     setFont('normal', 7);
     doc.text(
       'ข้อมูลนี้เป็นข้อมูลที่ผู้ใช้บันทึกเอง ไม่ใช่การวินิจฉัยทางการแพทย์',
       pageWidth / 2,
-      doc.internal.pageSize.getHeight() - 5,
+      pageHeight - 7,
       { align: 'center' }
     );
   }
 
-  // Download — LINE WebView blocks window.open and <a download>
-  // Use base64 data URI opened via location.href as fallback
+  // ============ DOWNLOAD ============
   const isInLineWebView = typeof window !== 'undefined' &&
     (window.liff?.isInClient?.() || /Line/i.test(navigator.userAgent));
 
   if (isInLineWebView) {
-    // Convert PDF to base64 data URI and open directly
-    // This bypasses popup blockers and download attribute limitations
     const pdfBase64 = doc.output('datauristring');
 
-    // Method 1: Open data URI in a new iframe overlay for viewing
-    const iframe = document.createElement('iframe');
-    iframe.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:99999;border:none;background:white;';
-    iframe.src = pdfBase64;
-    document.body.appendChild(iframe);
+    // Toolbar bar at top
+    const toolbar = document.createElement('div');
+    toolbar.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:48px;z-index:100000;background:#1E7B9C;display:flex;align-items:center;justify-content:space-between;padding:0 16px;box-shadow:0 2px 8px rgba(0,0,0,0.2);';
 
-    // Add close button
+    const title = document.createElement('span');
+    title.textContent = 'รายงานสุขภาพ PDF';
+    title.style.cssText = 'color:white;font-size:15px;font-family:Kanit,sans-serif;font-weight:600;';
+
     const closeBtn = document.createElement('button');
-    closeBtn.textContent = '✕ ปิด';
-    closeBtn.style.cssText = 'position:fixed;top:12px;right:12px;z-index:100000;background:#1E7B9C;color:white;border:none;border-radius:20px;padding:8px 20px;font-size:16px;font-family:Kanit,sans-serif;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.3);';
+    closeBtn.textContent = 'ปิด';
+    closeBtn.style.cssText = 'color:white;background:rgba(255,255,255,0.2);border:none;border-radius:8px;padding:6px 16px;font-size:14px;font-family:Kanit,sans-serif;cursor:pointer;';
+
+    toolbar.appendChild(title);
+    toolbar.appendChild(closeBtn);
+
+    // iframe below toolbar
+    const iframe = document.createElement('iframe');
+    iframe.style.cssText = 'position:fixed;top:48px;left:0;width:100%;height:calc(100% - 48px);z-index:99999;border:none;background:white;';
+    iframe.src = pdfBase64;
+
+    document.body.appendChild(iframe);
+    document.body.appendChild(toolbar);
+
     closeBtn.onclick = () => {
       iframe.remove();
-      closeBtn.remove();
+      toolbar.remove();
     };
-    document.body.appendChild(closeBtn);
   } else {
     doc.save(`รายงานสุขภาพ-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
   }

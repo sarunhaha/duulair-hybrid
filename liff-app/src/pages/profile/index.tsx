@@ -67,7 +67,7 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen pb-32 font-sans bg-background">
       {/* Header */}
-      <header className="bg-gradient-to-br from-primary to-primary/80 pt-12 pb-8 px-6 text-white relative overflow-hidden">
+      <header className="bg-gradient-to-br from-primary to-primary/80 pt-4 pb-2 px-6 text-white relative overflow-hidden">
         <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
         <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
 

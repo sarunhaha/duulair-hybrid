@@ -318,8 +318,10 @@ export default function HistoryPage() {
         return <MoodForm onSuccess={handleEditSuccess} onCancel={handleCloseEdit} />;
       case 'medical_notes':
         return <MedicalNotesForm onSuccess={handleEditSuccess} onCancel={handleCloseEdit} />;
-      case 'lab_results':
-        return <LabResultsForm onSuccess={handleEditSuccess} onCancel={handleCloseEdit} />;
+      case 'lab_results': {
+        const labRaw = editingItem ? realHistoryData.find(h => h.id === editingItem.id) : null;
+        return <LabResultsForm key={labRaw?.rawId} onSuccess={handleEditSuccess} onCancel={handleCloseEdit} initialEditData={labRaw?.rawId ? (healthHistory || []).find(h => h.id === labRaw.rawId)?.raw as any : undefined} />;
+      }
       default:
         return (
           <div className="p-4 bg-muted/20 rounded-2xl text-center text-muted-foreground text-sm">
@@ -352,7 +354,7 @@ export default function HistoryPage() {
   return (
     <div className="min-h-screen bg-background pb-32 font-sans relative z-10">
       {/* Header with date range selector */}
-      <header className="bg-card pt-12 pb-4 px-6 sticky top-0 z-20 border-b border-border">
+      <header className="bg-card pt-4 pb-1 px-6 sticky top-0 z-20 border-b border-border">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Button

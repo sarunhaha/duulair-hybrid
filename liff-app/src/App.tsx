@@ -37,6 +37,8 @@ const ProfileEditPage = lazy(() => import('@/pages/profile/edit'));
 const MedicationsPage = lazy(() => import('@/pages/settings/medications'));
 const RemindersPage = lazy(() => import('@/pages/settings/reminders'));
 const PackagePage = lazy(() => import('@/pages/settings/package'));
+const PrivacyPage = lazy(() => import('@/pages/settings/privacy'));
+const DataRecordingPage = lazy(() => import('@/pages/settings/data-recording'));
 
 // Health logging - lazy
 const SleepLogPage = lazy(() => import('@/pages/health/sleep'));
@@ -131,6 +133,12 @@ export default function App() {
             </Route>
             <Route path="/settings/package">
               <Protected><PackagePage /></Protected>
+            </Route>
+            <Route path="/settings/privacy">
+              <Protected><PrivacyPage /></Protected>
+            </Route>
+            <Route path="/settings/data-recording">
+              <Protected><DataRecordingPage /></Protected>
             </Route>
 
             {/* Health Logging - Protected */}
