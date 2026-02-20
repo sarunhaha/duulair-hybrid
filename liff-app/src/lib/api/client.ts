@@ -85,6 +85,31 @@ export const apiClient = {
   delete<T>(endpoint: string): Promise<T> {
     return request<T>(endpoint, { method: 'DELETE' });
   },
+
+  async upload<T>(endpoint: string, formData: FormData): Promise<T> {
+    const url = `${API_BASE_URL}${endpoint}`;
+    console.log(`[API] POST (upload) ${url}`);
+
+    // Don't set Content-Type — let browser set multipart boundary automatically
+    const response = await fetch(url, {
+      method: 'POST',
+      body: formData,
+    });
+
+    const data = await response.json();
+    console.log(`[API] Response ${response.status}:`, data);
+
+    if (!response.ok) {
+      const errorMessage = data.message || data.error || 'Upload failed';
+      console.error(`[API] Error: ${errorMessage}`);
+      const error: ApiError = new Error(errorMessage);
+      error.status = response.status;
+      error.data = data;
+      throw error;
+    }
+
+    return data;
+  },
 };
 
 // API Endpoints

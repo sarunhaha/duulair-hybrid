@@ -67,6 +67,7 @@ import {
   useDeleteDoctorQuestion,
 } from '@/lib/api/hooks/use-health';
 import { BottomNav } from '@/components/layout/bottom-nav';
+import { useLiff } from '@/lib/liff/provider';
 
 // Calculate dates for today reference
 const today = new Date();
@@ -123,6 +124,7 @@ export default function ReportsPage() {
   const [, navigate] = useLocation();
   const { user, context } = useAuthStore();
   const patientId = context.patientId || (user.role === 'patient' ? user.profileId : null);
+  const { openUrl } = useLiff();
 
   const [range, setRange] = useState<RangeKey>('30d');
   const [onlySignificant, setOnlySignificant] = useState(false);
@@ -301,6 +303,8 @@ export default function ReportsPage() {
         })),
         doctorQuestions: questions.map(q => q.question),
         chartImages: { bpImage, medsImage, sleepImage, glucoseImage },
+        patientId,
+        openUrl,
       });
     } catch (error) {
       console.error('PDF export failed:', error);

@@ -6,9 +6,67 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { supabase } from '../services/supabase.service';
+import multer from 'multer';
+import { supabase, supabaseService } from '../services/supabase.service';
 
 const router = Router();
+
+// Multer: accept single PDF file up to 5MB in memory
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (file.mimetype === 'application/pdf') {
+      cb(null, true);
+    } else {
+      cb(new Error('Only PDF files are allowed'));
+    }
+  },
+});
+
+/**
+ * POST /api/reports/upload-pdf
+ *
+ * Upload a client-generated PDF to Supabase Storage and return a signed URL.
+ * Body: multipart/form-data with fields:
+ *   - pdf: PDF file
+ *   - patientId: UUID string
+ */
+router.post('/upload-pdf', (req: Request, res: Response) => {
+  upload.single('pdf')(req, res, async (multerErr: any) => {
+    if (multerErr) {
+      return res.status(400).json({ success: false, error: multerErr.message || 'File upload error' });
+    }
+
+    try {
+      const { patientId } = req.body;
+
+      if (!patientId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(patientId)) {
+        return res.status(400).json({ success: false, error: 'Valid patientId (UUID) is required' });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({ success: false, error: 'PDF file is required' });
+      }
+
+      const timestamp = Date.now();
+      const filename = `${timestamp}-report.pdf`;
+
+      const { signedUrl } = await supabaseService.uploadReportPDF(
+        patientId,
+        req.file.buffer,
+        filename
+      );
+
+      console.log(`[POST /reports/upload-pdf] Uploaded for patient ${patientId}: ${filename}`);
+
+      res.json({ success: true, url: signedUrl });
+    } catch (error: any) {
+      console.error('PDF upload error:', error);
+      res.status(500).json({ success: false, error: error.message || 'Failed to upload PDF' });
+    }
+  });
+});
 
 /**
  * GET /api/reports/:patientId

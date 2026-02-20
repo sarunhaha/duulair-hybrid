@@ -582,6 +582,37 @@ export class SupabaseService {
   }
 
   // ========================================
+  // Storage: PDF Reports
+  // ========================================
+
+  async uploadReportPDF(
+    patientId: string,
+    pdfBuffer: Buffer,
+    filename: string
+  ): Promise<{ signedUrl: string; path: string }> {
+    const filePath = `${patientId}/${filename}`;
+
+    const { error: uploadError } = await this.client.storage
+      .from('reports')
+      .upload(filePath, pdfBuffer, {
+        contentType: 'application/pdf',
+        upsert: false,
+      });
+
+    if (uploadError) throw uploadError;
+
+    const { data: signedData, error: signError } = await this.client.storage
+      .from('reports')
+      .createSignedUrl(filePath, 3600); // 1-hour expiry
+
+    if (signError || !signedData?.signedUrl) {
+      throw signError || new Error('Failed to create signed URL');
+    }
+
+    return { signedUrl: signedData.signedUrl, path: filePath };
+  }
+
+  // ========================================
   // Utility Methods
   // ========================================
 

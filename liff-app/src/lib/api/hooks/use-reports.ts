@@ -5,6 +5,19 @@ import { th } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
+// Upload PDF to Supabase Storage and get a signed URL
+async function uploadPDFAndGetUrl(blob: Blob, patientId: string): Promise<string> {
+  const formData = new FormData();
+  formData.append('pdf', blob, 'report.pdf');
+  formData.append('patientId', patientId);
+
+  const result = await apiClient.upload<{ success: boolean; url: string }>(
+    '/reports/upload-pdf',
+    formData
+  );
+  return result.url;
+}
+
 // Thai font support - using Sarabun TTF (Regular + Bold)
 let thaiFontRegular: string | null = null;
 let thaiFontBold: string | null = null;
@@ -342,6 +355,10 @@ export interface PDFExportOptions {
     sleepImage: string | null;
     glucoseImage: string | null;
   };
+  /** patientId for uploading to Supabase Storage */
+  patientId?: string | null;
+  /** Callback to open URL (from useLiff().openUrl) — if provided, opens in external browser */
+  openUrl?: (url: string, external?: boolean) => void;
 }
 
 // Helper: ensure enough space on page, add new page if needed
@@ -747,14 +764,35 @@ export async function exportToPDF(
     );
   }
 
-  // ============ DOWNLOAD ============
+  // ============ OUTPUT ============
   const isInLineWebView = typeof window !== 'undefined' &&
     (window.liff?.isInClient?.() || /Line/i.test(navigator.userAgent));
 
-  if (isInLineWebView) {
-    const pdfBase64 = doc.output('datauristring');
+  if (isInLineWebView && options?.patientId) {
+    // LINE LIFF: upload to Supabase Storage → open in external browser
+    const blob = doc.output('blob');
+    try {
+      const signedUrl = await uploadPDFAndGetUrl(blob, options.patientId);
 
-    // Toolbar bar at top
+      if (options?.openUrl) {
+        // Open in external browser (Safari/Chrome) where PDF viewing + download works
+        options.openUrl(signedUrl, true);
+      } else {
+        // Fallback: open in same window
+        window.open(signedUrl, '_blank');
+      }
+      return;
+    } catch (uploadErr) {
+      console.warn('PDF upload failed, falling back to Blob URL iframe:', uploadErr);
+      // Fall through to Blob URL iframe fallback
+    }
+  }
+
+  if (isInLineWebView) {
+    // Fallback for LINE: use Blob URL in iframe (better than data URI)
+    const blob = doc.output('blob');
+    const blobUrl = URL.createObjectURL(blob);
+
     const toolbar = document.createElement('div');
     toolbar.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:48px;z-index:100000;background:#1E7B9C;display:flex;align-items:center;justify-content:space-between;padding:0 16px;box-shadow:0 2px 8px rgba(0,0,0,0.2);';
 
@@ -769,10 +807,9 @@ export async function exportToPDF(
     toolbar.appendChild(title);
     toolbar.appendChild(closeBtn);
 
-    // iframe below toolbar
     const iframe = document.createElement('iframe');
     iframe.style.cssText = 'position:fixed;top:48px;left:0;width:100%;height:calc(100% - 48px);z-index:99999;border:none;background:white;';
-    iframe.src = pdfBase64;
+    iframe.src = blobUrl;
 
     document.body.appendChild(iframe);
     document.body.appendChild(toolbar);
@@ -780,8 +817,10 @@ export async function exportToPDF(
     closeBtn.onclick = () => {
       iframe.remove();
       toolbar.remove();
+      URL.revokeObjectURL(blobUrl);
     };
   } else {
+    // Normal browser: direct download
     doc.save(`รายงานสุขภาพ-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
   }
 }
