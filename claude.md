@@ -1,9 +1,9 @@
 # OONJAI - Claude Development Context
 
 > **Brand:** OONJAI (formerly Duulair)
-> **Model:** Group-Based Elderly Care via LINE
+> **Model:** Personal Health Tracking via LINE — for all demographics (not limited to elderly)
 > **AI Model:** Claude Sonnet 4.5 (Unified Pipeline)
-> **Last Updated:** 2025-01-07
+> **Last Updated:** 2026-02-19
 
 ---
 
@@ -126,14 +126,18 @@ users (line_user_id, role)
   └── patient_profiles (user_id)
         ├── medications
         ├── reminders
-        ├── vitals_logs
+        ├── vitals_logs (BP, HR, glucose, weight, temp, SpO2)
         ├── activity_logs
         ├── symptoms
         ├── mood_logs
         ├── sleep_logs
         ├── exercise_logs
+        ├── health_category_preferences (toggle on/off per category)
         └── conversation_logs
 ```
+
+### Target Audience
+OONJAI serves **all demographics** — not just elderly. Users include patients managing chronic conditions, health-conscious individuals, and anyone who wants to track health data via LINE OA with AI assistance. This means the platform should support diverse health metrics including lab results (CBC, liver, kidney, lipid panels).
 
 **Important:** Old `caregivers` table is backed up - use `users` → `caregiver_profiles` → `patient_caregivers` flow.
 

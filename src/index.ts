@@ -1148,6 +1148,8 @@ app.use(cors({
     'https://liff.line.me',
     /\.line\.me$/,
     /localhost/,
+    /app\.oonj\.ai$/,
+    /oonj\.ai$/,
     /duulair\.vercel\.app$/,
     /duulair-hybrid\.vercel\.app$/
   ],

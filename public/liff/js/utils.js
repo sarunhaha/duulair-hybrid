@@ -417,10 +417,10 @@ function getUniqueId() {
  * Check if user is registered and redirect to registration if not
  * Call this function after LIFF init in pages that require registration
  * @param {string} lineUserId - LINE user ID from LIFF profile
- * @param {string} apiBaseUrl - API base URL (default: https://duulair.vercel.app/api)
+ * @param {string} apiBaseUrl - API base URL (default: https://app.oonj.ai/api)
  * @returns {Promise<boolean>} - Returns true if user is registered, false otherwise
  */
-async function checkUserRegistration(lineUserId, apiBaseUrl = 'https://duulair.vercel.app/api') {
+async function checkUserRegistration(lineUserId, apiBaseUrl = 'https://app.oonj.ai/api') {
   try {
     const response = await fetch(`${apiBaseUrl}/check-user?lineUserId=${encodeURIComponent(lineUserId)}`, {
       method: 'GET',
@@ -468,7 +468,7 @@ async function checkUserRegistration(lineUserId, apiBaseUrl = 'https://duulair.v
  * @param {string} apiBaseUrl - API base URL (optional)
  * @returns {Promise<void>}
  */
-async function initLiffWithRegistrationCheck(liffId, onSuccess, apiBaseUrl = 'https://duulair.vercel.app/api') {
+async function initLiffWithRegistrationCheck(liffId, onSuccess, apiBaseUrl = 'https://app.oonj.ai/api') {
   try {
     // Initialize LIFF
     await liff.init({ liffId: liffId });
