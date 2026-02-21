@@ -4,6 +4,7 @@
  */
 
 import { supabaseService } from '../../services/supabase.service';
+import { AI_CONFIG } from '../../services/openrouter.service';
 import { HealthEventInsert } from '../../types/health.types';
 
 export interface CreateHealthEventOptions {
@@ -40,7 +41,7 @@ export async function createHealthEvent(options: CreateHealthEventOptions): Prom
     reference_id: options.referenceId,
     raw_text: options.rawText,
     ai_confidence: options.aiConfidence,
-    extraction_model: options.extractionModel || 'claude-3-haiku',
+    extraction_model: options.extractionModel || AI_CONFIG.model,
     summary_text: options.summaryText,
     summary_json: options.summaryJson
   };

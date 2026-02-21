@@ -2,15 +2,15 @@
  * AI Health Data Extraction
  * Extract structured health data from Thai conversation text
  *
- * Uses OpenRouter API with Claude Sonnet 4.5
+ * Uses OpenRouter API with AI_CONFIG model (see openrouter.service.ts)
  */
 
-import { openRouterService, OPENROUTER_MODELS, ChatMessage } from '../../services/openrouter.service';
+import { openRouterService, AI_CONFIG, ChatMessage } from '../../services/openrouter.service';
 import { buildExtractionPrompt } from './prompts/extraction';
 import { AIExtractedData } from '../../types/health.types';
 
-// Default model for extraction (can be overridden)
-const DEFAULT_EXTRACTION_MODEL = OPENROUTER_MODELS.CLAUDE_SONNET_4_5;
+// Uses AI_CONFIG.model from central config
+const DEFAULT_EXTRACTION_MODEL = AI_CONFIG.model;
 
 export interface ExtractionResult {
   success: boolean;
@@ -72,7 +72,7 @@ export async function extractHealthData(
     const response = await openRouterService.createChatCompletion({
       model,
       messages,
-      max_tokens: 1024,
+      max_tokens: AI_CONFIG.maxTokens,
       temperature,
       response_format: { type: 'json_object' }
     });

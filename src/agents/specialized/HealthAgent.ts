@@ -17,9 +17,8 @@ export class HealthAgent extends BaseAgent {
     super({
       name: 'health',
       role: 'Process and log health data',
-      model: 'anthropic/claude-sonnet-4.5',  // OpenRouter: Claude Sonnet 4.5
+      // model, maxTokens inherited from AI_CONFIG via BaseAgent
       temperature: 0.3,
-      maxTokens: 1000,
       ...config
     });
   }

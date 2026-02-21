@@ -43,9 +43,8 @@ export class ProfileEditAgent extends BaseAgent {
     super({
       name: 'profile_edit',
       role: 'Handle profile and data editing via chat',
-      model: 'anthropic/claude-sonnet-4.5',
+      // model, maxTokens inherited from AI_CONFIG via BaseAgent
       temperature: 0.3,
-      maxTokens: 1000,
       ...config
     });
   }

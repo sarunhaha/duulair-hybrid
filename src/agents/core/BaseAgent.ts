@@ -3,15 +3,15 @@ import { EventEmitter } from 'events';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 import { SupabaseService } from '../../services/supabase.service';
-import { OpenRouterService, OPENROUTER_MODELS } from '../../services/openrouter.service';
+import { OpenRouterService, AI_CONFIG } from '../../services/openrouter.service';
 
 // Schema definitions using Zod
 const ConfigSchema = z.object({
   name: z.string(),
   role: z.string(),
-  model: z.string().default(OPENROUTER_MODELS.CLAUDE_SONNET_4_5),
-  temperature: z.number().default(0.7),
-  maxTokens: z.number().default(1000),
+  model: z.string().default(AI_CONFIG.model),
+  temperature: z.number().default(AI_CONFIG.temperature),
+  maxTokens: z.number().default(AI_CONFIG.maxTokens),
   capabilities: z.array(z.string()).optional()
 });
 
@@ -44,7 +44,8 @@ const ResponseSchema = z.object({
   metadata: z.record(z.any()).optional()
 });
 
-export type Config = z.infer<typeof ConfigSchema>;
+export type Config = z.input<typeof ConfigSchema>;
+type ParsedConfig = z.infer<typeof ConfigSchema>;
 export type Message = z.infer<typeof MessageSchema>;
 export type Response = z.infer<typeof ResponseSchema>;
 
@@ -69,7 +70,7 @@ interface Collaborative {
 
 // Base Agent Class
 export abstract class BaseAgent extends EventEmitter implements Observable, Stateful, Collaborative {
-  protected config: Config;
+  protected config: ParsedConfig;
   protected openRouter: OpenRouterService;
   protected supabase: SupabaseService;
   protected state: Map<string, any>;

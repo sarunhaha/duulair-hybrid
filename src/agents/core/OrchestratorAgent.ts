@@ -1,5 +1,6 @@
 // src/agents/core/OrchestratorAgent.ts
 import { BaseAgent, Message, Response, Config } from './BaseAgent';
+import { AI_CONFIG } from '../../services/openrouter.service';
 import { IntentAgent } from '../specialized/IntentAgent';
 import { HealthAgent } from '../specialized/HealthAgent';
 import { ReportAgent } from '../specialized/ReportAgent';
@@ -26,9 +27,8 @@ export class OrchestratorAgent extends BaseAgent {
     super({
       name: 'orchestrator',
       role: 'Main coordinator for all agents',
-      model: 'claude-3-5-sonnet-20241022',
+      // model, maxTokens inherited from AI_CONFIG via BaseAgent
       temperature: 0.5,
-      maxTokens: 2000,
       capabilities: ['routing', 'coordination', 'monitoring']
     });
   }
@@ -270,7 +270,7 @@ export class OrchestratorAgent extends BaseAgent {
             intent: nluResult.intent,
             aiExtractedData: nluResult.healthData || (nluResult as any).healthDataArray,
             aiConfidence: nluResult.confidence,
-            aiModel: 'claude-sonnet-4.5'
+            aiModel: AI_CONFIG.model
           } as any);
         } catch (updateError) {
           this.log('debug', 'Could not update conversation log', updateError);
@@ -288,7 +288,7 @@ export class OrchestratorAgent extends BaseAgent {
             text: finalResponse,
             intent: nluResult.intent,
             aiConfidence: nluResult.confidence,
-            aiModel: 'claude-sonnet-4.5',
+            aiModel: AI_CONFIG.model,
             source: isGroupChat ? 'group' : '1:1'
           } as any);
         } catch (botLogError) {

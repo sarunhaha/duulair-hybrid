@@ -92,7 +92,10 @@ export interface OpenRouterError {
 // ============================================
 
 export const OPENROUTER_MODELS = {
-  // Claude 4.5 Series (Latest - best for vision/OCR)
+  // Claude 4.6 Series (Latest - most intelligent)
+  CLAUDE_OPUS_4_6: 'anthropic/claude-opus-4.6',
+
+  // Claude 4.5 Series
   CLAUDE_SONNET_4_5: 'anthropic/claude-sonnet-4.5',
   CLAUDE_HAIKU_4_5: 'anthropic/claude-haiku-4.5',
 
@@ -117,9 +120,21 @@ export type OpenRouterModel = typeof OPENROUTER_MODELS[keyof typeof OPENROUTER_M
 // Default Configuration
 // ============================================
 
-const DEFAULT_MODEL = OPENROUTER_MODELS.CLAUDE_SONNET_4_5;
-const DEFAULT_MAX_TOKENS = 4096;
-const DEFAULT_TEMPERATURE = 0.7;
+// ============================================
+// Change these 3 values to switch ALL agents at once
+// ============================================
+export const AI_CONFIG = {
+  /** Primary model for all agents */
+  model: OPENROUTER_MODELS.CLAUDE_OPUS_4_6,
+  /** Default max output tokens */
+  maxTokens: 4096,
+  /** Default temperature */
+  temperature: 0.7,
+} as const;
+
+const DEFAULT_MODEL = AI_CONFIG.model;
+const DEFAULT_MAX_TOKENS = AI_CONFIG.maxTokens;
+const DEFAULT_TEMPERATURE = AI_CONFIG.temperature;
 
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
@@ -290,7 +305,7 @@ export class OpenRouterService {
     const response = await this.createChatCompletion({
       model: options?.model || this.defaultModel,
       messages,
-      max_tokens: 1024,
+      max_tokens: AI_CONFIG.maxTokens,
     });
 
     return response.choices[0]?.message?.content || '';

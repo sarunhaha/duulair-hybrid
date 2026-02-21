@@ -75,9 +75,8 @@ export class DialogAgent extends BaseAgent {
     super({
       name: 'dialog',
       role: 'Handle general conversations',
-      model: 'anthropic/claude-sonnet-4.5',  // OpenRouter: Claude Sonnet 4.5
+      // model, maxTokens inherited from AI_CONFIG via BaseAgent
       temperature: 0.8,  // สูงหน่อยให้ natural
-      maxTokens: 800,    // เพิ่มเพื่อให้ตอบประโยคจบ
       ...config
     });
   }

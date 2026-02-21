@@ -9,9 +9,9 @@ export class ReportAgent extends BaseAgent {
     super({
       name: 'report',
       role: 'Generate daily, weekly, and monthly reports',
-      model: 'claude-3-sonnet-20240229',  // ใช้ sonnet เพราะต้องการ creativity
+      // model inherited from AI_CONFIG via BaseAgent
       temperature: 0.7,
-      maxTokens: 2000,
+      maxTokens: 8192,  // รายงานต้องการพื้นที่มากกว่า default
       ...config
     });
   }

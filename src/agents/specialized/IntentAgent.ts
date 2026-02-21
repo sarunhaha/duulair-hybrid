@@ -211,9 +211,8 @@ export class IntentAgent extends BaseAgent {
     super({
       name: 'intent',
       role: 'Classify user messages into intents',
-      model: 'anthropic/claude-sonnet-4.5',  // OpenRouter: Claude Sonnet 4.5
+      // model, maxTokens inherited from AI_CONFIG via BaseAgent
       temperature: 0.1,  // ต่ำเพื่อให้ consistent
-      maxTokens: 200,    // ไม่ต้องเยอะ แค่ classify
       ...config
     });
   }

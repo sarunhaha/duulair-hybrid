@@ -23,8 +23,8 @@ import { supabaseService, supabase } from './services/supabase.service';
 import { schedulerService } from './services/scheduler.service';
 import crypto from 'crypto';
 import multer from 'multer';
-import { openRouterService, OPENROUTER_MODELS } from './services/openrouter.service';
-// Note: Health extraction now handled by UnifiedNLUAgent (Sonnet 4.5)
+import { openRouterService, AI_CONFIG } from './services/openrouter.service';
+// Note: Health extraction now handled by UnifiedNLUAgent (AI_CONFIG model)
 import { deepgramService } from './services/deepgram.service';
 import { voiceConfirmationService } from './services/voice-confirmation.service';
 import { compressImageForAPI } from './utils/image.utils';
@@ -1495,7 +1495,7 @@ app.post('/api/ocr/vitals', upload.single('image'), async (req, res) => {
       base64Image,
       mimeType,
       visionPrompt,
-      { model: OPENROUTER_MODELS.CLAUDE_SONNET_4_5 }
+      { model: AI_CONFIG.model }
     );
     console.log('📷 Vision result:', visionResult);
 
@@ -1908,7 +1908,7 @@ async function handleTextMessage(event: any) {
     }
 
     // ============================================
-    // Phase 4: Unified AI Processing (Sonnet 4.5)
+    // Phase 4: Unified AI Processing (AI_CONFIG model)
     // ============================================
     // Show loading animation while AI processes (1:1 chat only)
     if (sourceType === 'user' && userId) {
@@ -2260,7 +2260,7 @@ async function handleImageMessage(event: any) {
       base64Image,
       mimeType,
       ocrPrompt,
-      { model: OPENROUTER_MODELS.CLAUDE_SONNET_4_5 }
+      { model: AI_CONFIG.model }
     );
     console.log('📷 Vision result:', visionResult);
 
@@ -2684,7 +2684,7 @@ async function handleAudioMessage(event: any) {
       }
     }
 
-    // Process voice through Unified AI (Sonnet 4.5) - same as text
+    // Process voice through Unified AI (AI_CONFIG model) - same as text
     let responseText = '';
     let handled = false;
 
@@ -3202,7 +3202,7 @@ async function handlePostback(event: any) {
           context.groupId = pending.context.groupId;
         }
 
-        // Process through Unified AI (Sonnet 4.5) - same as text
+        // Process through Unified AI (AI_CONFIG model) - same as text
         let responseText = '';
         let handled = false;
 

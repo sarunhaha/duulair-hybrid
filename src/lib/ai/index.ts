@@ -6,6 +6,7 @@
 import { extractHealthData, hasHealthData, getExtractionSummary, ExtractionResult } from './extraction';
 import { processExtractedData, ProcessorResult, ProcessorContext } from './processors';
 import { supabaseService } from '../../services/supabase.service';
+import { AI_CONFIG } from '../../services/openrouter.service';
 import { checkForAbnormalValues } from '../health/event-creator';
 import { AIExtractedData } from '../../types/health.types';
 
@@ -72,7 +73,7 @@ export async function runHealthExtractionPipeline(
       intent: extractedData.intent,
       aiExtractedData: extractedData,
       aiConfidence: extractedData.confidence,
-      aiModel: 'claude-3-haiku'
+      aiModel: AI_CONFIG.model
     } as any);
 
     // Step 4: Process and save health data if found
