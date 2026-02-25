@@ -281,8 +281,10 @@ export default function RemindersPage() {
   };
 
   const handleSubmit = async () => {
-    if (!patientId) {
-      toast({ title: 'กรุณาคุยกับน้องอุ่นใน LINE Chat ก่อนนะคะ', variant: 'destructive' });
+    // Ensure patient profile exists (auto-create if needed)
+    const resolvedPatientId = patientId || await ensurePatient.ensurePatient();
+    if (!resolvedPatientId) {
+      toast({ title: 'ไม่สามารถสร้างโปรไฟล์ได้ กรุณาลองใหม่อีกครั้ง', variant: 'destructive' });
       return;
     }
     if (!formData.title.trim()) {
@@ -306,7 +308,7 @@ export default function RemindersPage() {
             ...formData,
             custom_time: formData.time,
             days_of_week: formData.frequency === 'specific_days' ? formData.days_of_week : undefined,
-            patient_id: patientId,
+            patient_id: resolvedPatientId,
           },
         });
         toast({ title: 'แก้ไขการเตือนเรียบร้อยแล้ว' });

@@ -343,7 +343,7 @@ function createRegistrationFlexMessage(): FlexMessage {
     altText: 'ลงทะเบียนใช้งาน OONJAI',
     contents: {
       type: 'bubble',
-      header: onjaiHeader('ลงทะเบียนใช้งาน', 'ระบบดูแลสุขภาพผู้สูงอายุ'),
+      header: onjaiHeader('ลงทะเบียนใช้งาน', 'ผู้ช่วยดูแลสุขภาพส่วนตัวของคุณ'),
       body: {
         type: 'box',
         layout: 'vertical',
@@ -1682,7 +1682,8 @@ async function handleTextMessage(event: any) {
     const isGroup = sourceType === 'group' && groupId;
 
     let context: any = {
-      userId,
+      userId,          // Will be overridden to UUID below if user found
+      lineUserId: userId, // Always keep LINE User ID for LINE API calls
       source: 'line',
       timestamp: new Date()
     };
@@ -1705,6 +1706,9 @@ async function handleTextMessage(event: any) {
           .single();
 
         if (user) {
+          // Override userId to UUID for consistent use across agents
+          context.userId = user.id;
+
           // Step 2: Check user role and get linked patient
           if (user.role === 'caregiver') {
             // Get caregiver profile
@@ -2664,8 +2668,18 @@ async function handleAudioMessage(event: any) {
     }
 
     // Fallback: process directly (if saving or sending confirmation failed)
+    // Use users.id (UUID) for userId if available, keep LINE ID as lineUserId
+    let contextUserId = userId;
+    try {
+      const { createClient } = await import('@supabase/supabase-js');
+      const sb = createClient(process.env.SUPABASE_URL || '', process.env.SUPABASE_SERVICE_KEY || '');
+      const { data: u } = await sb.from('users').select('id').eq('line_user_id', userId).single();
+      if (u) contextUserId = u.id;
+    } catch (_) { /* keep LINE ID as fallback */ }
+
     let context: any = {
-      userId,
+      userId: contextUserId,
+      lineUserId: userId,
       patientId,
       source: isGroupContext ? 'group' : 'voice',
       timestamp: new Date(),
@@ -2783,7 +2797,7 @@ async function handleFollow(event: any) {
           contents: [
             {
               type: 'text',
-              text: 'ระบบดูแลสุขภาพผู้สูงอายุ',
+              text: 'ผู้ช่วยดูแลสุขภาพส่วนตัวของคุณ',
               size: 'sm',
               color: OJ.textMuted,
               wrap: true
@@ -3191,6 +3205,7 @@ async function handlePostback(event: any) {
 
         const context: any = {
           userId: pending.context?.userId || userId,
+          lineUserId: userId,
           patientId: pending.patient_id,
           source: pending.context?.isGroupContext ? 'group' : 'voice',
           timestamp: new Date(),

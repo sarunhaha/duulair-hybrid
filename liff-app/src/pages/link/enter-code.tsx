@@ -69,7 +69,7 @@ export default function EnterCodePage() {
             </div>
             <h2 className="text-xl font-bold text-foreground mb-2">เชื่อมต่อสำเร็จ!</h2>
             <p className="text-sm text-muted-foreground">
-              คุณได้เชื่อมต่อกับผู้สูงอายุเรียบร้อยแล้ว กำลังนำไปหน้าหลัก...
+              คุณได้เชื่อมต่อกับสมาชิกเรียบร้อยแล้ว กำลังนำไปหน้าหลัก...
             </p>
           </CardContent>
         </Card>
@@ -86,8 +86,8 @@ export default function EnterCodePage() {
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div className="flex-1">
-            <h1 className="text-xl font-bold text-foreground">เชื่อมต่อกับผู้สูงอายุ</h1>
-            <p className="text-xs text-muted-foreground">กรอกรหัสที่ได้รับจากผู้สูงอายุ</p>
+            <h1 className="text-xl font-bold text-foreground">เชื่อมต่อกับสมาชิก</h1>
+            <p className="text-xs text-muted-foreground">กรอกรหัสที่ได้รับจากสมาชิก</p>
           </div>
         </div>
       </header>
@@ -157,7 +157,7 @@ export default function EnterCodePage() {
                 1
               </div>
               <p className="text-sm text-muted-foreground">
-                ให้ผู้สูงอายุเปิดแอป OONJAI
+                ให้สมาชิกเปิดแอป OONJAI
               </p>
             </div>
             <div className="flex gap-3">
@@ -184,7 +184,7 @@ export default function EnterCodePage() {
           <CardContent className="py-4">
             <p className="text-sm font-medium text-foreground mb-2">ทำไมต้องเชื่อมต่อ?</p>
             <ul className="text-xs text-muted-foreground space-y-1">
-              <li>• ดูข้อมูลสุขภาพของผู้สูงอายุได้แบบเรียลไทม์</li>
+              <li>• ดูข้อมูลสุขภาพของสมาชิกได้แบบเรียลไทม์</li>
               <li>• รับแจ้งเตือนเมื่อมีความผิดปกติ</li>
               <li>• ช่วยเตือนการกินยาและนัดพบแพทย์</li>
               <li>• ติดตามดูแลได้ทุกที่ทุกเวลา</li>
