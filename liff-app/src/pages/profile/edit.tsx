@@ -13,16 +13,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useAuthStore } from '@/stores/auth';
 import { usePatientProfile, useUpdatePatientProfile, type PatientProfile } from '@/lib/api/hooks/use-profile';
 import { useToast } from '@/hooks/use-toast';
+import { useEnsurePatient } from '@/hooks/use-ensure-patient';
+import { useAuth } from '@/hooks/use-auth';
 
 export default function ProfileEditPage() {
   const [, navigate] = useLocation();
-  const { context, user } = useAuthStore();
-  // Fallback to user.profileId if context.patientId is null (for patient role)
-  const patientId = context.patientId || (user.role === 'patient' ? user.profileId : null);
+  const auth = useAuth();
+  const ensurePatient = useEnsurePatient();
+  const patientId = ensurePatient.patientId;
   const { toast } = useToast();
+
+  // Auto-ensure patient on mount
+  const [hasEnsured, setHasEnsured] = useState(false);
+  if (!auth.isLoading && !ensurePatient.isLoading && !patientId && !hasEnsured) {
+    setHasEnsured(true);
+    ensurePatient.ensurePatient();
+  }
 
   const { data: profile, isLoading } = usePatientProfile(patientId);
   const updateProfile = useUpdatePatientProfile();
@@ -46,19 +54,20 @@ export default function ProfileEditPage() {
     console.log('[ProfileEdit] handleSubmit - patientId:', patientId);
     console.log('[ProfileEdit] handleSubmit - formData:', formData);
 
-    if (!patientId) {
-      console.error('[ProfileEdit] No patientId!');
-      toast({
-        title: 'เกิดข้อผิดพลาด',
-        description: 'ไม่พบ patientId กรุณาลองใหม่อีกครั้ง',
-        variant: 'destructive',
-      });
-      return;
-    }
-
     try {
+      // Ensure patient profile exists (auto-create if needed)
+      const resolvedPatientId = patientId || await ensurePatient.ensurePatient();
+      if (!resolvedPatientId) {
+        toast({
+          title: 'เกิดข้อผิดพลาด',
+          description: 'ไม่สามารถสร้างโปรไฟล์ได้ กรุณาลองใหม่อีกครั้ง',
+          variant: 'destructive',
+        });
+        return;
+      }
+
       console.log('[ProfileEdit] Calling updateProfile.mutateAsync...');
-      const result = await updateProfile.mutateAsync({ patientId, data: formData });
+      const result = await updateProfile.mutateAsync({ patientId: resolvedPatientId, data: formData });
       console.log('[ProfileEdit] Update result:', result);
       toast({
         title: 'บันทึกสำเร็จ',
