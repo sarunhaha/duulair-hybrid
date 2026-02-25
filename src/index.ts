@@ -1746,6 +1746,21 @@ async function handleTextMessage(event: any) {
               console.log(`👤 1:1 chat (patient) - own profile: ${context.patientId}`);
             }
           }
+        } else {
+          // User not in DB — auto-create patient profile from LINE profile
+          console.log(`📭 User not in DB, auto-creating patient profile for ${userId}`);
+          try {
+            const lineProfile = await lineClient.getProfile(userId);
+            const autoResult = await userService.autoCreatePatient(
+              userId,
+              lineProfile.displayName,
+              lineProfile.pictureUrl
+            );
+            context.patientId = autoResult.patientId;
+            console.log(`✅ Auto-created patient from LINE chat: ${autoResult.patientId} (isNew: ${autoResult.isNew})`);
+          } catch (autoErr) {
+            console.log('⚠️ Auto-create patient failed (non-blocking):', autoErr);
+          }
         }
       } catch (err) {
         console.log('ℹ️ Could not fetch user info for 1:1 chat:', err);
@@ -2179,19 +2194,26 @@ async function handleImageMessage(event: any) {
       return { success: true, skipped: true, reason: 'redelivery' };
     }
 
-    // Check user registration
-    const userCheck = await userService.checkUserExists(userId);
-    if (!userCheck.exists || userCheck.role !== 'caregiver') {
-      const replyMessage: TextMessage = {
-        type: 'text',
-        text: 'กรุณาลงทะเบียนก่อนใช้งานค่ะ'
-      };
-      await lineClient.replyMessage(replyToken, replyMessage);
-      return { success: true, skipped: true, reason: 'not_registered' };
+    // Check user registration — auto-create if not found
+    let userCheck = await userService.checkUserExists(userId);
+    if (!userCheck.exists) {
+      try {
+        const lineProfile = await lineClient.getProfile(userId);
+        await userService.autoCreatePatient(userId, lineProfile.displayName, lineProfile.pictureUrl);
+        userCheck = await userService.checkUserExists(userId);
+        console.log(`✅ Auto-created patient from image message: ${userId}`);
+      } catch (autoErr) {
+        console.log('⚠️ Auto-create failed for image handler:', autoErr);
+        const replyMessage: TextMessage = { type: 'text', text: 'เกิดข้อผิดพลาด กรุณาปิดแล้วเปิดแอปใหม่อีกครั้ง' };
+        await lineClient.replyMessage(replyToken, replyMessage);
+        return { success: true, skipped: true, reason: 'not_registered' };
+      }
     }
 
-    // Get patient ID (snake_case from user.service.ts)
-    let patientId = (userCheck.profile as any)?.linked_patient_id;
+    // Get patient ID — for patient role use profile.id, for caregiver use linked_patient_id
+    let patientId = userCheck.role === 'patient'
+      ? userCheck.profile?.id
+      : (userCheck.profile as any)?.linked_patient_id;
     if (!patientId) {
       const replyMessage: TextMessage = {
         type: 'text',
@@ -2516,19 +2538,26 @@ async function handleAudioMessage(event: any) {
       return { success: true, skipped: true, reason: 'redelivery' };
     }
 
-    // Check user registration
-    const userCheck = await userService.checkUserExists(userId);
-    if (!userCheck.exists || userCheck.role !== 'caregiver') {
-      const replyMessage: TextMessage = {
-        type: 'text',
-        text: 'กรุณาลงทะเบียนก่อนใช้งานค่ะ พิมพ์ "ลงทะเบียน" เพื่อเริ่มต้น'
-      };
-      await lineClient.replyMessage(replyToken, replyMessage);
-      return { success: true, skipped: true, reason: 'not_registered' };
+    // Check user registration — auto-create if not found
+    let userCheck = await userService.checkUserExists(userId);
+    if (!userCheck.exists) {
+      try {
+        const lineProfile = await lineClient.getProfile(userId);
+        await userService.autoCreatePatient(userId, lineProfile.displayName, lineProfile.pictureUrl);
+        userCheck = await userService.checkUserExists(userId);
+        console.log(`✅ Auto-created patient from audio message: ${userId}`);
+      } catch (autoErr) {
+        console.log('⚠️ Auto-create failed for audio handler:', autoErr);
+        const replyMessage: TextMessage = { type: 'text', text: 'เกิดข้อผิดพลาด กรุณาปิดแล้วเปิดแอปใหม่อีกครั้ง' };
+        await lineClient.replyMessage(replyToken, replyMessage);
+        return { success: true, skipped: true, reason: 'not_registered' };
+      }
     }
 
-    // Get patient ID (snake_case from user.service.ts)
-    let patientId = (userCheck.profile as any)?.linked_patient_id;
+    // Get patient ID — for patient role use profile.id, for caregiver use linked_patient_id
+    let patientId = userCheck.role === 'patient'
+      ? userCheck.profile?.id
+      : (userCheck.profile as any)?.linked_patient_id;
 
     // If in group, try to get patient from group context
     if (isGroupContext && groupId) {
