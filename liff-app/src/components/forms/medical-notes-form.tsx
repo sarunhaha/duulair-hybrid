@@ -164,7 +164,7 @@ export function MedicalNotesForm({ onSuccess, onCancel, initialEditData }: Medic
     try {
       const resolvedPatientId = await ensurePatient();
       if (!resolvedPatientId) {
-        toast({ title: 'ไม่สามารถสร้างโปรไฟล์ได้ กรุณาลองใหม่อีกครั้ง', variant: 'destructive' });
+        toast({ title: 'เกิดข้อผิดพลาด กรุณาปิดแล้วเปิดแอปใหม่อีกครั้ง', variant: 'destructive' });
         return;
       }
 

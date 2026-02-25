@@ -207,7 +207,7 @@ export function MedicationForm({ onSuccess, onCancel, initialEditData }: Medicat
     try {
       const resolvedPatientId = await ensurePatient();
       if (!resolvedPatientId) {
-        toast({ description: 'ไม่สามารถสร้างโปรไฟล์ได้ กรุณาลองใหม่อีกครั้ง', variant: 'destructive' });
+        toast({ description: 'เกิดข้อผิดพลาด กรุณาปิดแล้วเปิดแอปใหม่อีกครั้ง', variant: 'destructive' });
         return;
       }
       const takenAt = `${selectedDate}T${selectedTime}:00+07:00`;
@@ -236,7 +236,7 @@ export function MedicationForm({ onSuccess, onCancel, initialEditData }: Medicat
     try {
       const resolvedPatientId = await ensurePatient();
       if (!resolvedPatientId) {
-        toast({ description: 'ไม่สามารถสร้างโปรไฟล์ได้ กรุณาลองใหม่อีกครั้ง', variant: 'destructive' });
+        toast({ description: 'เกิดข้อผิดพลาด กรุณาปิดแล้วเปิดแอปใหม่อีกครั้ง', variant: 'destructive' });
         return;
       }
       const takenAt = `${selectedDate}T${selectedTime}:00+07:00`;

@@ -60,7 +60,7 @@ export default function ProfileEditPage() {
       if (!resolvedPatientId) {
         toast({
           title: 'เกิดข้อผิดพลาด',
-          description: 'ไม่สามารถสร้างโปรไฟล์ได้ กรุณาลองใหม่อีกครั้ง',
+          description: 'เกิดข้อผิดพลาด กรุณาปิดแล้วเปิดแอปใหม่อีกครั้ง',
           variant: 'destructive',
         });
         return;

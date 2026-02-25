@@ -256,7 +256,7 @@ export function SymptomForm({ onSuccess, onCancel, initialEditData }: SymptomFor
       // Ensure patient profile exists (auto-create if needed)
       const resolvedPatientId = await ensurePatient();
       if (!resolvedPatientId) {
-        toast({ description: 'ไม่สามารถสร้างโปรไฟล์ได้ กรุณาลองใหม่อีกครั้ง', variant: 'destructive' });
+        toast({ description: 'เกิดข้อผิดพลาด กรุณาปิดแล้วเปิดแอปใหม่อีกครั้ง', variant: 'destructive' });
         return;
       }
 
