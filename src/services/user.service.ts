@@ -176,6 +176,7 @@ export class UserService {
           user_id: existingUser.id,
           first_name: displayName,
           last_name: '',
+          birth_date: '1990-01-01',
         })
         .select('id')
         .single();
@@ -213,6 +214,7 @@ export class UserService {
         user_id: newUser.id,
         first_name: displayName,
         last_name: '',
+        birth_date: '1990-01-01',
       })
       .select('id')
       .single();
