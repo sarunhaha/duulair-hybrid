@@ -550,7 +550,8 @@ async function saveProfileUpdate(
     if (data.phone) updateData.phone = data.phone;
     if (data.address) updateData.address = data.address;
     if (data.bloodType) updateData.blood_type = data.bloodType;
-    if (data.dateOfBirth) updateData.date_of_birth = data.dateOfBirth;
+    if (data.dateOfBirth) updateData.birth_date = data.dateOfBirth;
+    if (data.birthDate) updateData.birth_date = data.birthDate;
     if (data.gender) updateData.gender = data.gender;
 
     // Medical info

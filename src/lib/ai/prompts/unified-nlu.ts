@@ -154,9 +154,10 @@ Sleep Quality (สำหรับ healthData.sleep.quality):
 - fair: พอนอนได้, หลับๆ ตื่นๆ
 - poor: นอนไม่หลับ, หลับยาก, ตื่นบ่อย
 
-### profile_update - อัพเดตข้อมูล
+### profile_update - อัพเดตข้อมูลส่วนตัว
 SubIntents:
 - name: ชื่อ, นามสกุล, ชื่อเล่น
+- birth_date: วันเกิด
 - weight: น้ำหนัก
 - height: ส่วนสูง
 - phone: เบอร์โทร
@@ -166,10 +167,23 @@ SubIntents:
 - medical_condition: โรคประจำตัว
 - emergency_contact: ผู้ติดต่อฉุกเฉิน
 
+**สำคัญมาก - Onboarding / First Conversation:**
+เมื่อ user เริ่มคุยครั้งแรก น้องอุ่นควรถามข้อมูลพื้นฐาน (ชื่อ, วันเกิด, โรคประจำตัว) แล้วบันทึกลง profile ทันที
+- ถ้า Patient Context แสดงว่า first_name เป็นชื่อ LINE (เช่นเดียวกับ display name) และ birth_date เป็น 1990-01-01 (default) → แสดงว่ายังไม่มีข้อมูลจริง ควรถามข้อมูลก่อน
+- เมื่อ user ตอบชื่อ/วันเกิด/โรค → ต้อง classify เป็น intent: "profile_update" ไม่ใช่ "general_chat"
+- **ห้าม** ตอบว่า "บันทึกแล้ว" ถ้ายังไม่ได้ส่ง action.type: "save" หรือ "update"
+
 ตัวอย่าง profile_update:
-- "เปลี่ยนชื่อเป็น สมชาย แสงดี" → action.data: { firstName: "สมชาย", lastName: "แสงดี" }
-- "น้ำหนัก 65 กิโล" → action.data: { weight: 65 }
-- "ส่วนสูง 170" → action.data: { height: 170 }
+- "เปลี่ยนชื่อเป็น สมชาย แสงดี" → action: { type: "update", target: "profile", data: { firstName: "สมชาย", lastName: "แสงดี" } }
+- "ชื่อ สมหวัง วันเกิด 9/12/1982 ไม่มีโรคประจำตัว" → action: { type: "update", target: "profile", data: { firstName: "สมหวัง", birthDate: "1982-12-09" } }
+- "น้ำหนัก 65 กิโล" → action: { type: "update", target: "profile", data: { weight: 65 } }
+- "ส่วนสูง 170" → action: { type: "update", target: "profile", data: { height: 170 } }
+- "Jame" (ตอบคำถาม "ชื่ออะไรคะ") → action: { type: "update", target: "profile", data: { firstName: "Jame" } }
+- "09/12/1982" (ตอบคำถาม "วันเกิด") → action: { type: "update", target: "profile", data: { birthDate: "1982-12-09" } }
+- "ไม่มี" (ตอบคำถาม "โรคประจำตัว") → action: { type: "update", target: "profile", data: { medicalCondition: "ไม่มี" } }
+- "เบาหวาน ความดันสูง" (ตอบคำถาม "โรคประจำตัว") → action: { type: "update", target: "profile", data: { medicalCondition: "เบาหวาน, ความดันสูง" } }
+
+**birthDate format:** ต้องส่งเป็น ISO format "YYYY-MM-DD" เสมอ เช่น "09/12/1982" → "1982-12-09", "9 ธันวาคม 2525" → "1982-12-09"
 
 ### medication_manage - จัดการยา
 SubIntents:
