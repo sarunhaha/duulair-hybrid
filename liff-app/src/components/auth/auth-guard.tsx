@@ -1,6 +1,7 @@
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
+import { useEnsurePatient } from '@/hooks/use-ensure-patient';
 import { useAuthStore } from '@/stores/auth';
 
 interface AuthGuardProps {
@@ -15,22 +16,44 @@ interface AuthGuardProps {
  * - User can choose: conversation with AI OR form input in LIFF
  * - Just sync auth data if available, then render children immediately
  * - Works for both registered and unregistered users
+ * - Auto-creates patient profile if user doesn't have one yet
  */
 export function AuthGuard({ children }: AuthGuardProps) {
   const auth = useAuth();
+  const ensurePatient = useEnsurePatient();
   const { setUser, setContext, setIsRegistered } = useAuthStore();
+  const hasTriggeredEnsure = useRef(false);
+
+  // Auto-ensure patient profile exists when user is authenticated but has no patientId
+  useEffect(() => {
+    if (
+      !auth.isLoading &&
+      auth.isAuthenticated &&
+      !auth.patientId &&
+      !ensurePatient.patientId &&
+      !ensurePatient.isLoading &&
+      !hasTriggeredEnsure.current
+    ) {
+      hasTriggeredEnsure.current = true;
+      ensurePatient.ensurePatient();
+    }
+  }, [auth.isLoading, auth.isAuthenticated, auth.patientId, ensurePatient]);
+
+  // Use patientId from ensurePatient (includes auto-created)
+  const resolvedPatientId = ensurePatient.patientId;
 
   // Sync auth data to Zustand store when it changes (non-blocking)
   useEffect(() => {
-    if (auth.profileId) {
+    const profileId = auth.profileId || resolvedPatientId;
+    if (profileId) {
       setUser({
         role: auth.role,
-        profileId: auth.profileId,
+        profileId,
         lineUserId: auth.lineUserId,
       });
 
-      if (auth.patientId) {
-        setContext({ patientId: auth.patientId });
+      if (resolvedPatientId) {
+        setContext({ patientId: resolvedPatientId });
       }
 
       if (auth.isRegistered) {
@@ -39,13 +62,13 @@ export function AuthGuard({ children }: AuthGuardProps) {
         // Save to localStorage for backwards compatibility
         const userData = {
           role: auth.role,
-          profile_id: auth.profileId,
+          profile_id: profileId,
           line_user_id: auth.lineUserId,
         };
         localStorage.setItem('oonjai_user', JSON.stringify(userData));
       }
     }
-  }, [auth.isRegistered, auth.profileId, auth.patientId, auth.role, auth.lineUserId, setUser, setContext, setIsRegistered]);
+  }, [auth.isRegistered, auth.profileId, resolvedPatientId, auth.role, auth.lineUserId, setUser, setContext, setIsRegistered]);
 
   // Minimal loading state - only show briefly while LIFF initializes
   if (auth.isLoading) {

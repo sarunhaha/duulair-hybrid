@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '../client';
-import { subDays, format, eachDayOfInterval } from 'date-fns';
+import { subDays, format } from 'date-fns';
 import { th } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -217,18 +217,18 @@ export function useReportData(
   return useQuery({
     queryKey: patientId ? reportKeys.data(patientId, startStr, endStr) : ['reports', 'data', 'none'],
     queryFn: async (): Promise<ReportData> => {
-      if (!patientId) return getMockReportData(startDate, endDate);
+      if (!patientId) return getEmptyReportData();
       try {
         const data = await apiClient.get<ReportData>(
           `/reports/${patientId}?start=${startStr}&end=${endStr}`
         );
         return data;
       } catch {
-        console.warn('Reports API not available, using mock data');
-        return getMockReportData(startDate, endDate);
+        console.warn('Reports API not available');
+        return getEmptyReportData();
       }
     },
-    enabled: !!patientId || true, // Always fetch for demo
+    enabled: !!patientId,
     staleTime: 60 * 1000,
   });
 }
@@ -825,143 +825,16 @@ export async function exportToPDF(
   }
 }
 
-// Mock Data Generator
-function getMockReportData(startDate: Date, endDate: Date): ReportData {
-  const days = eachDayOfInterval({ start: startDate, end: endDate });
-
-  // Generate chart data
-  const chartData: ChartDataPoint[] = days.map((date) => {
-    const sys = 115 + Math.floor(Math.random() * 30);
-    const dia = 70 + Math.floor(Math.random() * 20);
-    const medsPercent = Math.random() > 0.2 ? 100 : Math.random() > 0.5 ? 50 : 0;
-    const waterMl = 1000 + Math.floor(Math.random() * 1500);
-
-    return {
-      date: format(date, 'yyyy-MM-dd'),
-      day: format(date, 'd MMM', { locale: th }),
-      systolic: Math.random() > 0.1 ? sys : undefined,
-      diastolic: Math.random() > 0.1 ? dia : undefined,
-      medsPercent,
-      waterMl: Math.random() > 0.15 ? waterMl : undefined,
-      glucose: Math.random() > 0.3 ? 85 + Math.floor(Math.random() * 55) : undefined,
-      glucoseReadings: Math.random() > 0.3
-        ? Array.from({ length: 1 + Math.floor(Math.random() * 2) }, () => {
-            const contexts = ['fasting', 'post_meal_1h', 'post_meal_2h', 'before_bed'];
-            const ctx = contexts[Math.floor(Math.random() * contexts.length)];
-            const h = 6 + Math.floor(Math.random() * 14);
-            const m = Math.floor(Math.random() * 60);
-            return {
-              glucose: 85 + Math.floor(Math.random() * 55),
-              mealContext: ctx,
-              time: `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`,
-            };
-          })
-        : undefined,
-    };
-  });
-
-  // Calculate summary
-  const bpData = chartData.filter((d) => d.systolic && d.diastolic);
-  const avgSystolic = bpData.length > 0
-    ? Math.round(bpData.reduce((sum, d) => sum + (d.systolic || 0), 0) / bpData.length)
-    : 0;
-  const avgDiastolic = bpData.length > 0
-    ? Math.round(bpData.reduce((sum, d) => sum + (d.diastolic || 0), 0) / bpData.length)
-    : 0;
-
-  const medsData = chartData.filter((d) => d.medsPercent !== undefined);
-  const avgMedsPercent = medsData.length > 0
-    ? Math.round(medsData.reduce((sum, d) => sum + (d.medsPercent || 0), 0) / medsData.length)
-    : 0;
-
-  const waterData = chartData.filter((d) => d.waterMl !== undefined);
-  const avgWater = waterData.length > 0
-    ? Math.round(waterData.reduce((sum, d) => sum + (d.waterMl || 0), 0) / waterData.length)
-    : 0;
-
-  // Generate activities
-  const activities: ActivityLogItem[] = [];
-  const activityTypes: ActivityLogItem['type'][] = ['medication', 'vitals', 'water', 'symptom'];
-
-  days.forEach((date) => {
-    const numActivities = 2 + Math.floor(Math.random() * 4);
-    for (let i = 0; i < numActivities; i++) {
-      const type = activityTypes[Math.floor(Math.random() * activityTypes.length)];
-      const hour = 6 + Math.floor(Math.random() * 14);
-      const minute = Math.floor(Math.random() * 60);
-
-      let title = '';
-      let value = '';
-
-      switch (type) {
-        case 'medication':
-          title = 'กินยา';
-          value = ['ยาลดความดัน', 'Metformin', 'วิตามิน'][Math.floor(Math.random() * 3)];
-          break;
-        case 'vitals':
-          title = 'วัดความดัน';
-          value = `${115 + Math.floor(Math.random() * 30)}/${70 + Math.floor(Math.random() * 20)} mmHg`;
-          break;
-        case 'water':
-          title = 'ดื่มน้ำ';
-          value = `${250 + Math.floor(Math.random() * 500)} มล.`;
-          break;
-        case 'symptom':
-          title = 'บันทึกอาการ';
-          value = ['ปวดหัว', 'เวียนศีรษะ', 'อ่อนเพลีย'][Math.floor(Math.random() * 3)];
-          break;
-      }
-
-      activities.push({
-        id: `${format(date, 'yyyy-MM-dd')}-${i}`,
-        type,
-        title,
-        value,
-        timestamp: new Date(date.setHours(hour, minute)).toISOString(),
-        date: format(date, 'd MMM', { locale: th }),
-        time: `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`,
-      });
-    }
-  });
-
-  // Sort activities by timestamp descending
-  activities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-
-  const summary: ReportSummary = {
-    bp: {
-      avgSystolic,
-      avgDiastolic,
-      count: bpData.length,
-      status: getBpStatus(avgSystolic, avgDiastolic),
-    },
-    meds: {
-      adherencePercent: avgMedsPercent,
-      takenCount: medsData.filter((d) => d.medsPercent === 100).length,
-      totalCount: medsData.length,
-      status: avgMedsPercent >= 90 ? 'good' : avgMedsPercent >= 70 ? 'fair' : 'poor',
-    },
-    water: {
-      avgMl: avgWater,
-      daysRecorded: waterData.length,
-      status: avgWater >= 1500 ? 'good' : avgWater >= 1000 ? 'fair' : 'poor',
-    },
-    glucose: {
-      avgGlucose: 95 + Math.floor(Math.random() * 25),
-      daysRecorded: Math.floor(bpData.length * 0.6),
-      status: 'normal' as const,
-    },
-    activities: {
-      total: activities.length,
-      byType: activities.reduce((acc, a) => {
-        acc[a.type] = (acc[a.type] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>),
-    },
-  };
-
+// Empty data for when no patient or no data exists
+function getEmptyReportData(): ReportData {
   return {
-    summary,
-    chartData,
-    activities: activities.slice(0, 30), // Limit to 30 most recent
+    summary: {
+      bp: { avgSystolic: 0, avgDiastolic: 0, count: 0, status: 'normal' },
+      meds: { adherencePercent: 0, takenCount: 0, totalCount: 0, status: 'good' },
+      water: { avgMl: 0, daysRecorded: 0, status: 'good' },
+      activities: { total: 0, byType: {} },
+    },
+    chartData: [],
+    activities: [],
   };
 }

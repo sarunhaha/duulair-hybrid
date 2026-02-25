@@ -56,67 +56,8 @@ import {
   type TimeRange,
   type TrendCategory,
   type TrendDataPoint,
-  type TrendData,
   type CustomDateRange,
 } from '@/lib/api/hooks/use-trends';
-
-// Mock data for fallback (with required 'date' field for TrendDataPoint)
-const MOCK_VITALS_DATA: TrendData = {
-  data: [
-    { day: 'จ', date: '2026-01-06', systolic: 122, diastolic: 80, pulse: 72, sys_am: 118, dia_am: 76, pulse_am: 68, sys_pm: 122, dia_pm: 80, pulse_pm: 72 },
-    { day: 'อ', date: '2026-01-07', systolic: 125, diastolic: 82, pulse: 75, sys_am: 120, dia_am: 78, pulse_am: 70, sys_pm: 125, dia_pm: 82, pulse_pm: 75, event: 'สูงนิดหน่อย' },
-    { day: 'พ', date: '2026-01-08', systolic: 118, diastolic: 78, pulse: 70, sys_am: 115, dia_am: 74, pulse_am: 66, sys_pm: 118, dia_pm: 78, pulse_pm: 70 },
-    { day: 'พฤ', date: '2026-01-09', systolic: 120, diastolic: 79, pulse: 73, sys_am: 117, dia_am: 75, pulse_am: 69, sys_pm: 120, dia_pm: 79, pulse_pm: 73 },
-    { day: 'ศ', date: '2026-01-10', systolic: 123, diastolic: 81, pulse: 74, sys_am: 119, dia_am: 77, pulse_am: 70, sys_pm: 123, dia_pm: 81, pulse_pm: 74, note: 'ตื่นมาเหนื่อย' },
-    { day: 'ส', date: '2026-01-11', systolic: 119, diastolic: 77, pulse: 71, sys_am: 116, dia_am: 73, pulse_am: 67, sys_pm: 119, dia_pm: 77, pulse_pm: 71 },
-    { day: 'อา', date: '2026-01-12', systolic: 121, diastolic: 80, pulse: 72, sys_am: 118, dia_am: 76, pulse_am: 68, sys_pm: 121, dia_pm: 80, pulse_pm: 72 },
-  ],
-  summary: {
-    avg: '121/79',
-    count: '7/7 วัน',
-    label1: 'ค่าเฉลี่ย',
-    label2: 'บันทึกครบ',
-  },
-  insight: 'ความดันคุณอยู่ในเกณฑ์ปกติตลอดสัปดาห์ ยอดเยี่ยม!',
-};
-
-const MOCK_MEDS_DATA: TrendData = {
-  data: [
-    { day: 'จ', date: '2026-01-06', percent: 100, target: 3, done: 3 },
-    { day: 'อ', date: '2026-01-07', percent: 67, target: 3, done: 2, note: 'ลืมมื้อเที่ยง' },
-    { day: 'พ', date: '2026-01-08', percent: 100, target: 3, done: 3 },
-    { day: 'พฤ', date: '2026-01-09', percent: 100, target: 3, done: 3 },
-    { day: 'ศ', date: '2026-01-10', percent: 100, target: 3, done: 3 },
-    { day: 'ส', date: '2026-01-11', percent: 33, target: 3, done: 1, note: 'ลืม 2 มื้อ' },
-    { day: 'อา', date: '2026-01-12', percent: 100, target: 3, done: 3 },
-  ],
-  summary: {
-    avg: '86%',
-    count: '5/7 วัน',
-    label1: 'อัตราครบ',
-    label2: 'กินครบทั้งวัน',
-  },
-  insight: 'สัปดาห์นี้คุณลืมยา 2 วัน ลองตั้งเตือนเพิ่มช่วงเที่ยงนะคะ',
-};
-
-const MOCK_SLEEP_DATA: TrendData = {
-  data: [
-    { day: 'จ', date: '2026-01-06', hours: 7.5 },
-    { day: 'อ', date: '2026-01-07', hours: 6.2, note: 'นอนดึก' },
-    { day: 'พ', date: '2026-01-08', hours: 7.0 },
-    { day: 'พฤ', date: '2026-01-09', hours: 5.5, note: 'ตื่นกลางดึก' },
-    { day: 'ศ', date: '2026-01-10', hours: 8.0 },
-    { day: 'ส', date: '2026-01-11', hours: 7.2 },
-    { day: 'อา', date: '2026-01-12', hours: 6.8 },
-  ],
-  summary: {
-    avg: '6.9 ชม.',
-    count: '7/7 วัน',
-    label1: 'เฉลี่ย/คืน',
-    label2: 'บันทึกครบ',
-  },
-  insight: 'สัปดาห์นี้คุณนอนเฉลี่ย 6.9 ชม. ลองนอนก่อน 22:00 จะดีขึ้นนะคะ',
-};
 
 // Helper to get local date string
 const getLocalDateString = (daysAgo = 0) => {
@@ -158,11 +99,11 @@ export default function TrendsPage() {
   const activeData = useMemo(() => {
     switch (category) {
       case 'heart':
-        return vitalsData || MOCK_VITALS_DATA;
+        return vitalsData;
       case 'meds':
-        return medsData || MOCK_MEDS_DATA;
+        return medsData;
       case 'sleep':
-        return sleepData || MOCK_SLEEP_DATA;
+        return sleepData;
       case 'exercise':
         return exerciseData;
       case 'mood':
@@ -172,11 +113,14 @@ export default function TrendsPage() {
       case 'glucose':
         return glucoseData;
       case 'lab_results':
-        return null; // Chart rendering in future phase
+        return null;
       default:
-        return vitalsData || MOCK_VITALS_DATA;
+        return vitalsData;
     }
   }, [category, vitalsData, medsData, sleepData, exerciseData, moodData, waterData, glucoseData]);
+
+  // Check if data is empty (no records)
+  const hasNoData = activeData && activeData.data.length === 0;
 
   const isLoading = useMemo(() => {
     switch (category) {
@@ -349,8 +293,29 @@ export default function TrendsPage() {
           </Card>
         )}
 
+        {/* Empty State - no data recorded yet */}
+        {!isLoading && hasNoData && category !== 'lab_results' && (
+          <Card className="border-none shadow-sm bg-card">
+            <CardContent className="py-12 flex flex-col items-center text-center space-y-4">
+              <div className="w-16 h-16 bg-muted/50 rounded-full flex items-center justify-center">
+                {(() => {
+                  const cat = categories.find((c) => c.id === category);
+                  const Icon = cat?.icon || Heart;
+                  return <Icon className="w-8 h-8 text-muted-foreground" />;
+                })()}
+              </div>
+              <div className="space-y-2">
+                <h3 className="font-bold text-foreground">ยังไม่มีข้อมูล</h3>
+                <p className="text-sm text-muted-foreground max-w-[250px]">
+                  เริ่มบันทึกข้อมูลสุขภาพผ่าน LINE Chat หรือหน้า "บันทึก" เพื่อดูแนวโน้มที่นี่
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Content */}
-        {!isLoading && activeData && (
+        {!isLoading && activeData && activeData.data.length > 0 && (
           <>
             {/* Summary Cards */}
             <div className="grid grid-cols-2 gap-3 transition-all">

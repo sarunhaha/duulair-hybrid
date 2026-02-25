@@ -433,8 +433,25 @@ export default function ReportsPage() {
           )}
         </div>
 
+        {/* Empty State - no data recorded yet */}
+        {!isReportLoading && reportData && reportData.chartData.length === 0 && reportData.activities.length === 0 && (
+          <Card className="border-none shadow-sm bg-card">
+            <CardContent className="py-12 flex flex-col items-center text-center space-y-4">
+              <div className="w-16 h-16 bg-muted/50 rounded-full flex items-center justify-center">
+                <ClipboardList className="w-8 h-8 text-muted-foreground" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="font-bold text-foreground">ยังไม่มีข้อมูล</h3>
+                <p className="text-sm text-muted-foreground max-w-[250px]">
+                  เริ่มบันทึกข้อมูลสุขภาพผ่าน LINE Chat หรือหน้า "บันทึก" เพื่อดูรายงานที่นี่
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Executive Summary */}
-        <Card className="border-none shadow-md bg-card overflow-hidden ring-1 ring-primary/10">
+        <Card className={cn("border-none shadow-md bg-card overflow-hidden ring-1 ring-primary/10", reportData && reportData.chartData.length === 0 && reportData.activities.length === 0 && "hidden")}>
           <CardContent className="p-6 space-y-4">
             <div className="flex items-center gap-2 pb-2 border-b border-border">
               <ClipboardList className="w-5 h-5 text-primary" />
