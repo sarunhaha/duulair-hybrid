@@ -131,6 +131,106 @@ interface MonthlyReport {
 export class ReportService {
 
   // ============================================
+  // UNIFIED DATA FETCH — merges activity_logs + dedicated tables
+  // ============================================
+
+  private async fetchAllHealthData(
+    patientId: string,
+    startDate: Date,
+    endDate: Date
+  ): Promise<any[]> {
+    const since = startDate.toISOString();
+    const until = endDate.toISOString();
+
+    // Query activity_logs + all dedicated health tables in parallel
+    const [activityRes, vitalsRes, moodRes, sleepRes, exerciseRes, symptomRes] = await Promise.all([
+      supabase.from('activity_logs').select('*').eq('patient_id', patientId)
+        .gte('timestamp', since).lte('timestamp', until).order('timestamp', { ascending: false }),
+      supabase.from('vitals_logs').select('*').eq('patient_id', patientId)
+        .gte('measured_at', since).lte('measured_at', until).order('measured_at', { ascending: false }),
+      supabase.from('mood_logs').select('*').eq('patient_id', patientId)
+        .gte('created_at', since).lte('created_at', until).order('created_at', { ascending: false }),
+      supabase.from('sleep_logs').select('*').eq('patient_id', patientId)
+        .gte('created_at', since).lte('created_at', until).order('created_at', { ascending: false }),
+      supabase.from('exercise_logs').select('*').eq('patient_id', patientId)
+        .gte('created_at', since).lte('created_at', until).order('created_at', { ascending: false }),
+      supabase.from('symptoms').select('*').eq('patient_id', patientId)
+        .gte('created_at', since).lte('created_at', until).order('created_at', { ascending: false }),
+    ]);
+
+    const activities = activityRes.data || [];
+
+    // Track existing vitals/mood/sleep/exercise in activity_logs to avoid duplicates
+    const existingActivityIds = new Set(
+      activities.map((a: any) => a.metadata?.vitals_log_id || a.metadata?.mood_log_id ||
+        a.metadata?.sleep_log_id || a.metadata?.exercise_log_id || a.metadata?.symptom_id).filter(Boolean)
+    );
+
+    // Normalize dedicated table records into activity_logs format
+    for (const v of (vitalsRes.data || [])) {
+      if (existingActivityIds.has(v.id)) continue;
+      const parts: string[] = [];
+      if (v.bp_systolic && v.bp_diastolic) parts.push(`${v.bp_systolic}/${v.bp_diastolic}`);
+      if (v.heart_rate) parts.push(`HR ${v.heart_rate}`);
+      if (v.weight) parts.push(`${v.weight} kg`);
+      if (v.temperature) parts.push(`${v.temperature}°C`);
+      if (v.glucose) parts.push(`glucose ${v.glucose}`);
+      if (v.spo2) parts.push(`SpO2 ${v.spo2}%`);
+      activities.push({
+        id: v.id, patient_id: patientId, task_type: 'vitals',
+        value: parts.join(', '), timestamp: v.measured_at || v.created_at,
+        created_at: v.created_at,
+        metadata: { systolic: v.bp_systolic, diastolic: v.bp_diastolic, heart_rate: v.heart_rate,
+          weight: v.weight, temperature: v.temperature, glucose: v.glucose, spo2: v.spo2,
+          _source: 'vitals_logs' }
+      });
+    }
+    for (const m of (moodRes.data || [])) {
+      if (existingActivityIds.has(m.id)) continue;
+      activities.push({
+        id: m.id, patient_id: patientId, task_type: 'mood',
+        value: m.mood, timestamp: m.timestamp || m.created_at,
+        created_at: m.created_at,
+        metadata: { mood: m.mood, stress_level: m.stress_level, energy_level: m.energy_level, _source: 'mood_logs' }
+      });
+    }
+    for (const s of (sleepRes.data || [])) {
+      if (existingActivityIds.has(s.id)) continue;
+      activities.push({
+        id: s.id, patient_id: patientId, task_type: 'sleep',
+        value: `${s.sleep_hours || '?'} ชม.`, timestamp: s.created_at,
+        created_at: s.created_at,
+        metadata: { sleep_hours: s.sleep_hours, sleep_quality: s.sleep_quality, _source: 'sleep_logs' }
+      });
+    }
+    for (const ex of (exerciseRes.data || [])) {
+      if (existingActivityIds.has(ex.id)) continue;
+      activities.push({
+        id: ex.id, patient_id: patientId, task_type: 'exercise',
+        value: ex.exercise_type || 'ออกกำลังกาย', timestamp: ex.created_at,
+        created_at: ex.created_at,
+        metadata: { exercise_type: ex.exercise_type, duration: ex.duration_minutes, intensity: ex.intensity, _source: 'exercise_logs' }
+      });
+    }
+    for (const sym of (symptomRes.data || [])) {
+      if (existingActivityIds.has(sym.id)) continue;
+      activities.push({
+        id: sym.id, patient_id: patientId, task_type: 'symptom',
+        value: sym.symptom_name, timestamp: sym.created_at,
+        created_at: sym.created_at,
+        metadata: { symptom_name: sym.symptom_name, severity: sym.severity_1to5, body_location: sym.body_location, _source: 'symptoms' }
+      });
+    }
+
+    // Sort by timestamp descending
+    activities.sort((a: any, b: any) =>
+      new Date(b.timestamp || b.created_at).getTime() - new Date(a.timestamp || a.created_at).getTime()
+    );
+
+    return activities;
+  }
+
+  // ============================================
   // DAILY REPORT
   // ============================================
 
@@ -151,19 +251,8 @@ export class ReportService {
 
     const patientName = patient ? `คุณ${patient.first_name} ${patient.last_name}` : 'สมาชิก';
 
-    // Get activities for the day
-    const { data: activities, error } = await supabase
-      .from('activity_logs')
-      .select('*')
-      .eq('patient_id', patientId)
-      .gte('timestamp', startOfDay.toISOString())
-      .lte('timestamp', endOfDay.toISOString())
-      .order('timestamp', { ascending: false });
-
-    if (error) {
-      console.error('Error fetching activities:', error);
-      throw error;
-    }
+    // Get all health data for the day (activity_logs + dedicated tables)
+    const activities = await this.fetchAllHealthData(patientId, startOfDay, endOfDay);
 
     // Get patient's medications
     const { data: medications } = await supabase
@@ -236,22 +325,11 @@ export class ReportService {
 
     const patientName = patient ? `คุณ${patient.first_name} ${patient.last_name}` : 'สมาชิก';
 
-    // Get activities for this week
-    const { data: activities } = await supabase
-      .from('activity_logs')
-      .select('*')
-      .eq('patient_id', patientId)
-      .gte('timestamp', start.toISOString())
-      .lte('timestamp', end.toISOString())
-      .order('timestamp', { ascending: true });
+    // Get all health data for this week (activity_logs + dedicated tables)
+    const activities = await this.fetchAllHealthData(patientId, start, end);
 
-    // Get activities for previous week (for comparison)
-    const { data: prevActivities } = await supabase
-      .from('activity_logs')
-      .select('*')
-      .eq('patient_id', patientId)
-      .gte('timestamp', prevStart.toISOString())
-      .lte('timestamp', prevEnd.toISOString());
+    // Get all health data for previous week (for comparison)
+    const prevActivities = await this.fetchAllHealthData(patientId, prevStart, prevEnd);
 
     // Group by day
     const dailySummaries: { [date: string]: ActivitySummary } = {};
@@ -348,22 +426,11 @@ export class ReportService {
 
     const patientName = patient ? `คุณ${patient.first_name} ${patient.last_name}` : 'สมาชิก';
 
-    // Get activities for this month
-    const { data: activities } = await supabase
-      .from('activity_logs')
-      .select('*')
-      .eq('patient_id', patientId)
-      .gte('timestamp', startOfMonth.toISOString())
-      .lte('timestamp', endOfMonth.toISOString())
-      .order('timestamp', { ascending: true });
+    // Get all health data for this month (activity_logs + dedicated tables)
+    const activities = await this.fetchAllHealthData(patientId, startOfMonth, endOfMonth);
 
-    // Get activities for previous month
-    const { data: prevActivities } = await supabase
-      .from('activity_logs')
-      .select('*')
-      .eq('patient_id', patientId)
-      .gte('timestamp', prevStartOfMonth.toISOString())
-      .lte('timestamp', prevEndOfMonth.toISOString());
+    // Get all health data for previous month (for comparison)
+    const prevActivities = await this.fetchAllHealthData(patientId, prevStartOfMonth, prevEndOfMonth);
 
     // Group by week
     const weeklySummaries: { [weekNumber: string]: ActivitySummary } = {};
@@ -497,7 +564,7 @@ export class ReportService {
 
         case 'water':
           summary.water.count++;
-          const amount = metadata.amount || 250; // default 250ml
+          const amount = metadata.amount_ml || metadata.amount || parseInt(activity.value) || 250;
           summary.water.totalMl += amount;
           break;
 
@@ -511,11 +578,18 @@ export class ReportService {
         case 'walk':
         case 'exercise':
           summary.exercise.count++;
-          if (metadata.duration) {
-            summary.exercise.totalMinutes += metadata.duration;
+          if (metadata.duration || metadata.duration_minutes) {
+            summary.exercise.totalMinutes += (metadata.duration || metadata.duration_minutes);
           } else {
             summary.exercise.totalMinutes += 30; // default 30 min
           }
+          break;
+
+        case 'mood':
+        case 'sleep':
+        case 'symptom':
+          // These are tracked but don't fit existing summary categories yet
+          // They are still included in the activities array for timeline display
           break;
       }
     });

@@ -982,12 +982,12 @@ export class OrchestratorAgent extends BaseAgent {
         this.log('warn', 'Could not fetch reminders', e);
       }
 
-      // Fetch recent health data from ALL tables (last 3 days)
+      // Fetch recent health data from ALL tables (last 7 days)
       let recentActivities: any[] = [];
       try {
-        const threeDaysAgo = new Date();
-        threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
-        const since = threeDaysAgo.toISOString();
+        const lookback = new Date();
+        lookback.setDate(lookback.getDate() - 7);
+        const since = lookback.toISOString();
         const client = this.supabase.getClient();
 
         // Query all health tables in parallel

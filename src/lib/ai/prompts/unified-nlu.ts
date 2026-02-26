@@ -789,34 +789,9 @@ export function buildRecentActivitiesString(activities: any[]): string {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const threeDaysAgo = new Date();
-  threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
-  threeDaysAgo.setHours(0, 0, 0, 0);
-
-  const todayActivities: any[] = [];
-  const recentActivities: any[] = [];
-
-  for (const a of activities) {
-    const actDate = new Date(a.timestamp || a.created_at);
-    const actDay = new Date(actDate);
-    actDay.setHours(0, 0, 0, 0);
-
-    if (actDay.getTime() === today.getTime()) {
-      todayActivities.push(a);
-    } else if (actDay.getTime() >= threeDaysAgo.getTime()) {
-      recentActivities.push(a);
-    }
-  }
-
   const typeEmoji: Record<string, string> = {
-    'medication': '💊',
-    'vitals': '❤️',
-    'water': '💧',
-    'exercise': '🏃',
-    'food': '🍽️',
-    'sleep': '😴',
-    'mood': '😊',
-    'symptom': '🤒'
+    'medication': '💊', 'vitals': '❤️', 'water': '💧', 'exercise': '🏃',
+    'food': '🍽️', 'sleep': '😴', 'mood': '😊', 'symptom': '🤒'
   };
 
   const formatEntry = (a: any) => {
@@ -828,19 +803,48 @@ export function buildRecentActivitiesString(activities: any[]): string {
     return `${typeEmoji[type] || '📝'} ${time} - ${type}${value ? ': ' + value : ''}`;
   };
 
-  const parts: string[] = [];
-
-  if (todayActivities.length) {
-    parts.push('📅 วันนี้:');
-    parts.push(...todayActivities.slice(0, 10).map(formatEntry));
-  } else {
-    parts.push('📅 วันนี้: ยังไม่มีกิจกรรม');
+  // Group activities by date
+  const dateGroups = new Map<string, any[]>();
+  for (const a of activities) {
+    const actDate = new Date(a.timestamp || a.created_at);
+    const dateKey = actDate.toISOString().split('T')[0];
+    if (!dateGroups.has(dateKey)) dateGroups.set(dateKey, []);
+    dateGroups.get(dateKey)!.push(a);
   }
 
-  if (recentActivities.length) {
-    parts.push('');
-    parts.push('📅 2-3 วันที่ผ่านมา:');
-    parts.push(...recentActivities.slice(0, 10).map(formatEntry));
+  // Sort dates descending (newest first)
+  const sortedDates = [...dateGroups.keys()].sort((a, b) => b.localeCompare(a));
+  const todayStr = today.toISOString().split('T')[0];
+
+  const parts: string[] = [];
+  let totalShown = 0;
+  const MAX_ENTRIES = 20;
+
+  for (const dateKey of sortedDates) {
+    if (totalShown >= MAX_ENTRIES) break;
+    const entries = dateGroups.get(dateKey)!;
+    const isToday = dateKey === todayStr;
+
+    const dateLabel = isToday ? '📅 วันนี้' :
+      `📅 ${new Date(dateKey + 'T00:00:00').toLocaleDateString('th-TH', { weekday: 'short', day: 'numeric', month: 'short' })}`;
+
+    if (parts.length > 0) parts.push('');
+    parts.push(`${dateLabel}:`);
+
+    const remaining = MAX_ENTRIES - totalShown;
+    const toShow = entries.slice(0, remaining);
+    parts.push(...toShow.map(formatEntry));
+    totalShown += toShow.length;
+
+    if (entries.length > toShow.length) {
+      parts.push(`  ... และอีก ${entries.length - toShow.length} รายการ`);
+    }
+  }
+
+  // If today has no data, show that explicitly
+  if (!dateGroups.has(todayStr)) {
+    parts.unshift('📅 วันนี้: ยังไม่มีกิจกรรม');
+    if (sortedDates.length > 0) parts.splice(1, 0, '');
   }
 
   return parts.join('\n');
