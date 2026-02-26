@@ -143,7 +143,7 @@ export class ReportService {
     const until = endDate.toISOString();
 
     // Query activity_logs + all dedicated health tables in parallel
-    const [activityRes, vitalsRes, moodRes, sleepRes, exerciseRes, symptomRes] = await Promise.all([
+    const [activityRes, vitalsRes, moodRes, sleepRes, exerciseRes, symptomRes, medLogsRes, waterLogsRes, labRes] = await Promise.all([
       supabase.from('activity_logs').select('*').eq('patient_id', patientId)
         .gte('timestamp', since).lte('timestamp', until).order('timestamp', { ascending: false }),
       supabase.from('vitals_logs').select('*').eq('patient_id', patientId)
@@ -156,6 +156,12 @@ export class ReportService {
         .gte('created_at', since).lte('created_at', until).order('created_at', { ascending: false }),
       supabase.from('symptoms').select('*').eq('patient_id', patientId)
         .gte('created_at', since).lte('created_at', until).order('created_at', { ascending: false }),
+      supabase.from('medication_logs').select('*').eq('patient_id', patientId)
+        .gte('taken_at', since).lte('taken_at', until).order('taken_at', { ascending: false }),
+      supabase.from('water_logs').select('*').eq('patient_id', patientId)
+        .gte('created_at', since).lte('created_at', until).order('created_at', { ascending: false }),
+      supabase.from('lab_results').select('*').eq('patient_id', patientId)
+        .gte('lab_date', since.split('T')[0]).lte('lab_date', until.split('T')[0]).order('lab_date', { ascending: false }),
     ]);
 
     const activities = activityRes.data || [];
@@ -219,6 +225,45 @@ export class ReportService {
         value: sym.symptom_name, timestamp: sym.created_at,
         created_at: sym.created_at,
         metadata: { symptom_name: sym.symptom_name, severity: sym.severity_1to5, body_location: sym.body_location, _source: 'symptoms' }
+      });
+    }
+    // Medication logs (may duplicate activity_logs dual-write — dedupe by medication_log_id)
+    const existingMedLogIds = new Set(
+      activities.filter((a: any) => a.metadata?.medication_log_id).map((a: any) => a.metadata.medication_log_id)
+    );
+    for (const ml of (medLogsRes.data || [])) {
+      if (existingMedLogIds.has(ml.id)) continue;
+      activities.push({
+        id: ml.id, patient_id: patientId, task_type: 'medication',
+        value: ml.medication_name || 'ยา', timestamp: ml.taken_at || ml.created_at,
+        created_at: ml.created_at,
+        metadata: { medication_name: ml.medication_name, status: ml.status, _source: 'medication_logs' }
+      });
+    }
+    // Water logs (may duplicate activity_logs dual-write — dedupe by water_log_id)
+    const existingWaterLogIds = new Set(
+      activities.filter((a: any) => a.metadata?.water_log_id).map((a: any) => a.metadata.water_log_id)
+    );
+    for (const wl of (waterLogsRes.data || [])) {
+      if (existingWaterLogIds.has(wl.id)) continue;
+      activities.push({
+        id: wl.id, patient_id: patientId, task_type: 'water',
+        value: `${wl.amount_ml || 0} ml`, timestamp: wl.created_at,
+        created_at: wl.created_at,
+        metadata: { amount_ml: wl.amount_ml, glasses: wl.glasses, _source: 'water_logs' }
+      });
+    }
+    // Lab results
+    for (const lr of (labRes.data || [])) {
+      const statusLabel = lr.status === 'high' ? '↑สูง' : lr.status === 'low' ? '↓ต่ำ' : '';
+      activities.push({
+        id: lr.id, patient_id: patientId, task_type: 'lab',
+        value: `${lr.test_name}: ${lr.value}${lr.unit ? ' ' + lr.unit : ''}${statusLabel ? ' ' + statusLabel : ''}`,
+        timestamp: lr.lab_date ? `${lr.lab_date}T00:00:00` : lr.created_at,
+        created_at: lr.created_at,
+        metadata: { test_type: lr.test_type, test_name: lr.test_name, value: lr.value, unit: lr.unit,
+          normal_min: lr.normal_min, normal_max: lr.normal_max, status: lr.status,
+          lab_name: lr.lab_name, _source: 'lab_results' }
       });
     }
 
@@ -588,6 +633,7 @@ export class ReportService {
         case 'mood':
         case 'sleep':
         case 'symptom':
+        case 'lab':
           // These are tracked but don't fit existing summary categories yet
           // They are still included in the activities array for timeline display
           break;
@@ -1181,7 +1227,11 @@ export class ReportService {
       water: '💧',
       food: '🍚',
       walk: '🚶',
-      exercise: '🏃'
+      exercise: '🏃',
+      mood: '😊',
+      sleep: '😴',
+      symptom: '🤒',
+      lab: '🔬'
     };
     return emojis[type] || '📝';
   }
@@ -1193,7 +1243,11 @@ export class ReportService {
       water: 'ดื่มน้ำ',
       food: 'ทานอาหาร',
       walk: 'เดิน',
-      exercise: 'ออกกำลังกาย'
+      exercise: 'ออกกำลังกาย',
+      mood: 'อารมณ์',
+      sleep: 'การนอน',
+      symptom: 'อาการ',
+      lab: 'ผลตรวจเลือด'
     };
     return names[type] || type;
   }
