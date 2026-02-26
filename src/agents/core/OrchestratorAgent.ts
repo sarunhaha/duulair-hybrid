@@ -982,20 +982,76 @@ export class OrchestratorAgent extends BaseAgent {
         this.log('warn', 'Could not fetch reminders', e);
       }
 
-      // Fetch recent activity logs (last 3 days)
+      // Fetch recent health data from ALL tables (last 3 days)
       let recentActivities: any[] = [];
       try {
         const threeDaysAgo = new Date();
         threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+        const since = threeDaysAgo.toISOString();
+        const client = this.supabase.getClient();
 
-        const { data: activityData } = await this.supabase.getClient()
-          .from('activity_logs')
-          .select('*')
-          .eq('patient_id', patientId)
-          .gte('created_at', threeDaysAgo.toISOString())
-          .order('created_at', { ascending: false })
-          .limit(20);
-        recentActivities = activityData || [];
+        // Query all health tables in parallel
+        const [activityRes, vitalsRes, moodRes, sleepRes, exerciseRes, symptomRes] = await Promise.all([
+          client.from('activity_logs').select('*').eq('patient_id', patientId)
+            .gte('created_at', since).order('created_at', { ascending: false }).limit(20),
+          client.from('vitals_logs').select('*').eq('patient_id', patientId)
+            .gte('measured_at', since).order('measured_at', { ascending: false }).limit(10),
+          client.from('mood_logs').select('*').eq('patient_id', patientId)
+            .gte('created_at', since).order('created_at', { ascending: false }).limit(10),
+          client.from('sleep_logs').select('*').eq('patient_id', patientId)
+            .gte('created_at', since).order('created_at', { ascending: false }).limit(10),
+          client.from('exercise_logs').select('*').eq('patient_id', patientId)
+            .gte('created_at', since).order('created_at', { ascending: false }).limit(10),
+          client.from('symptoms').select('*').eq('patient_id', patientId)
+            .gte('created_at', since).order('created_at', { ascending: false }).limit(10),
+        ]);
+
+        recentActivities = activityRes.data || [];
+
+        // Normalize dedicated table rows into a unified format
+        for (const v of (vitalsRes.data || [])) {
+          const parts: string[] = [];
+          if (v.bp_systolic && v.bp_diastolic) parts.push(`BP ${v.bp_systolic}/${v.bp_diastolic}`);
+          if (v.heart_rate) parts.push(`HR ${v.heart_rate}`);
+          if (v.weight) parts.push(`${v.weight} kg`);
+          if (v.temperature) parts.push(`${v.temperature}°C`);
+          if (v.glucose) parts.push(`glucose ${v.glucose}`);
+          if (v.spo2) parts.push(`SpO2 ${v.spo2}%`);
+          recentActivities.push({
+            task_type: 'vitals', value: parts.join(', '),
+            created_at: v.measured_at || v.created_at, _source: 'vitals_logs'
+          });
+        }
+        for (const m of (moodRes.data || [])) {
+          recentActivities.push({
+            task_type: 'mood', value: `${m.mood}${m.stress_level ? ` stress:${m.stress_level}` : ''}`,
+            created_at: m.timestamp || m.created_at, _source: 'mood_logs'
+          });
+        }
+        for (const s of (sleepRes.data || [])) {
+          recentActivities.push({
+            task_type: 'sleep', value: `${s.sleep_hours || '?'} ชม.${s.sleep_quality ? ` (${s.sleep_quality})` : ''}`,
+            created_at: s.created_at, _source: 'sleep_logs'
+          });
+        }
+        for (const ex of (exerciseRes.data || [])) {
+          recentActivities.push({
+            task_type: 'exercise', value: `${ex.exercise_type || 'ออกกำลังกาย'}${ex.duration_minutes ? ` ${ex.duration_minutes} นาที` : ''}`,
+            created_at: ex.created_at, _source: 'exercise_logs'
+          });
+        }
+        for (const sym of (symptomRes.data || [])) {
+          recentActivities.push({
+            task_type: 'symptom', value: `${sym.symptom_name}${sym.severity_1to5 ? ` (${sym.severity_1to5}/5)` : ''}`,
+            created_at: sym.created_at, _source: 'symptoms'
+          });
+        }
+
+        // Sort all combined activities by date descending and limit
+        recentActivities.sort((a, b) =>
+          new Date(b.created_at || b.timestamp).getTime() - new Date(a.created_at || a.timestamp).getTime()
+        );
+        recentActivities = recentActivities.slice(0, 30);
       } catch (e) {
         this.log('warn', 'Could not fetch recent activities', e);
       }

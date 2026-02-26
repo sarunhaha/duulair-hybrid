@@ -225,8 +225,18 @@ SubIntents:
 - patient_info: ข้อมูลสมาชิก
 - medication_list: ยาอะไรบ้าง
 - reminder_list: เตือนอะไรบ้าง
-- report: รายงาน, สรุป
-- history: ประวัติ
+- report: รายงาน, สรุป (response = null → ส่งต่อ ReportAgent)
+- history: ประวัติ, ถามข้อมูลที่บันทึก (ตอบเองจาก Recent Activities)
+- health_status: ถามสถานะสุขภาพ เช่น ความดัน น้ำตาล น้ำหนัก (ตอบเองจาก Recent Activities)
+
+**สำคัญ: แยก history/health_status vs report**
+- "ความดันผมเป็นยังไง", "วันนี้กินยาหรือยัง", "น้ำตาลเท่าไหร่" → subIntent: "health_status" (ตอบเองจาก Recent Activities)
+- "รายงานวันนี้", "สรุปสัปดาห์" → subIntent: "report" (response = null → ส่ง ReportAgent)
+
+เมื่อ subIntent เป็น health_status หรือ history:
+- ดูจาก **Recent Activities** ที่ให้มาใน context
+- ถ้ามีข้อมูลที่ตรงกับสิ่งที่ user ถาม → ตอบจากข้อมูลนั้นพร้อมเวลาที่บันทึก
+- ถ้าไม่มีข้อมูล → บอกว่ายังไม่มีการบันทึกข้อมูลนี้
 
 ### emergency - ฉุกเฉิน
 - ช่วยด้วย, ฉุกเฉิน, ไม่หายใจ, หมดสติ
@@ -572,6 +582,28 @@ Step ask_conditions (ผู้ใช้ตอบโรคประจำตั�
 - "รายงานสัปดาห์", "สรุปสัปดาห์", "รายงาน 7 วัน" → intent: "query", subIntent: "report", reportType: "weekly"
 - "รายงานเดือน", "สรุปเดือน", "รายงาน 30 วัน" → intent: "query", subIntent: "report", reportType: "monthly"
 
+ตัวอย่าง query - ถามข้อมูลสุขภาพที่บันทึก (health_status):
+\`\`\`json
+{
+  "intent": "query",
+  "subIntent": "health_status",
+  "confidence": 0.95,
+  "entities": { "queryType": "blood_pressure" },
+  "healthData": null,
+  "action": { "type": "query", "target": "vitals" },
+  "response": "วันนี้บันทึกความดัน 110/70 ตอน 18:01 น. ค่ะ อยู่ในเกณฑ์ปกติดีเลยค่ะ 💓",
+  "followUp": null
+}
+\`\`\`
+
+**สำคัญ: ถามข้อมูลสุขภาพ (health_status) — ต้องตอบเองจาก Recent Activities!**
+- "ความดันผมเป็นยังไง", "ความดันวันนี้เท่าไหร่" → subIntent: "health_status", ดูจาก Recent Activities แล้วตอบ
+- "กินยาหรือยัง", "วันนี้กินยาแล้วหรือยัง" → subIntent: "health_status", ดู medication จาก Recent Activities
+- "น้ำตาลเท่าไหร่", "น้ำหนักเท่าไหร่" → subIntent: "health_status"
+- "วันนี้ออกกำลังกายหรือยัง", "วันนี้ดื่มน้ำเท่าไหร่" → subIntent: "health_status"
+- "อาการเป็นยังไงบ้าง" → subIntent: "health_status"
+- ถ้า Recent Activities ไม่มีข้อมูลที่ user ถาม → ตอบว่า "ยังไม่มีการบันทึก[ข้อมูลนั้น]วันนี้ค่ะ"
+
 ตัวอย่าง medication_manage (เพิ่มยา):
 \`\`\`json
 {
@@ -752,40 +784,66 @@ export function buildPatientContextString(patientData: any): string {
  * Build recent activities string
  */
 export function buildRecentActivitiesString(activities: any[]): string {
-  if (!activities?.length) return 'ยังไม่มีกิจกรรมวันนี้';
+  if (!activities?.length) return 'ยังไม่มีกิจกรรมที่บันทึก';
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const todayActivities = activities.filter((a: any) => {
+  const threeDaysAgo = new Date();
+  threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+  threeDaysAgo.setHours(0, 0, 0, 0);
+
+  const todayActivities: any[] = [];
+  const recentActivities: any[] = [];
+
+  for (const a of activities) {
     const actDate = new Date(a.timestamp || a.created_at);
-    actDate.setHours(0, 0, 0, 0);
-    return actDate.getTime() === today.getTime();
-  });
+    const actDay = new Date(actDate);
+    actDay.setHours(0, 0, 0, 0);
 
-  if (!todayActivities.length) return 'ยังไม่มีกิจกรรมวันนี้';
+    if (actDay.getTime() === today.getTime()) {
+      todayActivities.push(a);
+    } else if (actDay.getTime() >= threeDaysAgo.getTime()) {
+      recentActivities.push(a);
+    }
+  }
 
-  const formatted = todayActivities.slice(0, 5).map((a: any) => {
+  const typeEmoji: Record<string, string> = {
+    'medication': '💊',
+    'vitals': '❤️',
+    'water': '💧',
+    'exercise': '🏃',
+    'food': '🍽️',
+    'sleep': '😴',
+    'mood': '😊',
+    'symptom': '🤒'
+  };
+
+  const formatEntry = (a: any) => {
     const time = new Date(a.timestamp || a.created_at).toLocaleTimeString('th-TH', {
-      hour: '2-digit',
-      minute: '2-digit'
+      hour: '2-digit', minute: '2-digit'
     });
     const type = a.task_type || a.type || 'activity';
     const value = a.value || '';
-
-    const typeEmoji: Record<string, string> = {
-      'medication': '💊',
-      'vitals': '❤️',
-      'water': '💧',
-      'exercise': '🏃',
-      'food': '🍽️',
-      'sleep': '😴'
-    };
-
     return `${typeEmoji[type] || '📝'} ${time} - ${type}${value ? ': ' + value : ''}`;
-  });
+  };
 
-  return formatted.join('\n');
+  const parts: string[] = [];
+
+  if (todayActivities.length) {
+    parts.push('📅 วันนี้:');
+    parts.push(...todayActivities.slice(0, 10).map(formatEntry));
+  } else {
+    parts.push('📅 วันนี้: ยังไม่มีกิจกรรม');
+  }
+
+  if (recentActivities.length) {
+    parts.push('');
+    parts.push('📅 2-3 วันที่ผ่านมา:');
+    parts.push(...recentActivities.slice(0, 10).map(formatEntry));
+  }
+
+  return parts.join('\n');
 }
 
 /**
