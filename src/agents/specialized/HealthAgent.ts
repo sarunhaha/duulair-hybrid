@@ -1,5 +1,6 @@
 // src/agents/specialized/HealthAgent.ts
 import { BaseAgent, Message, Response, Config } from '../core/BaseAgent';
+import { AGENT_MODELS } from '../../services/openrouter.service';
 import { SupabaseService } from '../../services/supabase.service';
 
 export class HealthAgent extends BaseAgent {
@@ -17,8 +18,7 @@ export class HealthAgent extends BaseAgent {
     super({
       name: 'health',
       role: 'Process and log health data',
-      // model, maxTokens inherited from AI_CONFIG via BaseAgent
-      temperature: 0.3,
+      ...AGENT_MODELS.health,
       ...config
     });
   }

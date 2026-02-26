@@ -1,5 +1,6 @@
 // src/agents/specialized/ReportAgent.ts
 import { BaseAgent, Message, Response, Config } from '../core/BaseAgent';
+import { AGENT_MODELS } from '../../services/openrouter.service';
 import { reportService } from '../../services/report.service';
 
 const LIFF_ID = process.env.LIFF_ID || '2008278683-5k69jxNq';
@@ -9,9 +10,7 @@ export class ReportAgent extends BaseAgent {
     super({
       name: 'report',
       role: 'Generate daily, weekly, and monthly reports',
-      // model inherited from AI_CONFIG via BaseAgent
-      temperature: 0.7,
-      maxTokens: 8192,  // รายงานต้องการพื้นที่มากกว่า default
+      ...AGENT_MODELS.report,
       ...config
     });
   }

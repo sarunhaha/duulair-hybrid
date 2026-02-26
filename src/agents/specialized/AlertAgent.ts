@@ -1,5 +1,6 @@
 // src/agents/specialized/AlertAgent.ts
 import { BaseAgent, Message, Response, Config } from '../core/BaseAgent';
+import { AGENT_MODELS } from '../../services/openrouter.service';
 import { LineService } from '../../services/line.service';
 import { groupService } from '../../services/group.service';
 
@@ -17,8 +18,7 @@ export class AlertAgent extends BaseAgent {
     super({
       name: 'alert',
       role: 'Monitor and send alerts',
-      // model, maxTokens inherited from AI_CONFIG via BaseAgent
-      temperature: 0.1,
+      ...AGENT_MODELS.alert,
       ...config
     });
 

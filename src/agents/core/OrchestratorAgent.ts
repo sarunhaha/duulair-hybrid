@@ -1,6 +1,6 @@
 // src/agents/core/OrchestratorAgent.ts
 import { BaseAgent, Message, Response, Config } from './BaseAgent';
-import { AI_CONFIG } from '../../services/openrouter.service';
+import { AI_CONFIG, AGENT_MODELS } from '../../services/openrouter.service';
 import { IntentAgent } from '../specialized/IntentAgent';
 import { HealthAgent } from '../specialized/HealthAgent';
 import { ReportAgent } from '../specialized/ReportAgent';
@@ -27,8 +27,7 @@ export class OrchestratorAgent extends BaseAgent {
     super({
       name: 'orchestrator',
       role: 'Main coordinator for all agents',
-      // model, maxTokens inherited from AI_CONFIG via BaseAgent
-      temperature: 0.5,
+      ...AGENT_MODELS.orchestrator,
       capabilities: ['routing', 'coordination', 'monitoring']
     });
   }

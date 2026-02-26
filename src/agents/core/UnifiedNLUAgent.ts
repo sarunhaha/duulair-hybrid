@@ -3,6 +3,7 @@
 // Replaces pattern matching with semantic understanding
 
 import { BaseAgent, Message, Response, Config } from './BaseAgent';
+import { AGENT_MODELS } from '../../services/openrouter.service';
 import {
   NLUResult,
   NLUContext,
@@ -43,8 +44,7 @@ export class UnifiedNLUAgent extends BaseAgent {
     super({
       name: 'UnifiedNLUAgent',
       role: 'Natural Language Understanding with Claude-first approach',
-      // model, maxTokens inherited from AI_CONFIG via BaseAgent
-      temperature: 0.4, // Slightly lower for consistent structured JSON output
+      ...AGENT_MODELS.UnifiedNLUAgent,
       ...config
     });
   }

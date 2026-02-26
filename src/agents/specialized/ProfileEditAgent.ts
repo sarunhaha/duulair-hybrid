@@ -8,6 +8,7 @@
  */
 
 import { BaseAgent, Message, Response, Config } from '../core/BaseAgent';
+import { AGENT_MODELS } from '../../services/openrouter.service';
 import { userService } from '../../services/user.service';
 import { medicationService, Medication, DosageForm, DosageUnit, Frequency, DayOfWeek } from '../../services/medication.service';
 import { reminderService, Reminder, ReminderType } from '../../services/reminder.service';
@@ -43,8 +44,7 @@ export class ProfileEditAgent extends BaseAgent {
     super({
       name: 'profile_edit',
       role: 'Handle profile and data editing via chat',
-      // model, maxTokens inherited from AI_CONFIG via BaseAgent
-      temperature: 0.3,
+      ...AGENT_MODELS.profile_edit,
       ...config
     });
   }

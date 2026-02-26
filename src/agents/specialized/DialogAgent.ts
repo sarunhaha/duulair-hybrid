@@ -1,5 +1,6 @@
 // src/agents/specialized/DialogAgent.ts
 import { BaseAgent, Message, Response, Config } from '../core/BaseAgent';
+import { AGENT_MODELS } from '../../services/openrouter.service';
 
 // Natural conversation mode flag - when true, don't teach commands
 const USE_NATURAL_CONVERSATION_MODE = true;
@@ -75,8 +76,7 @@ export class DialogAgent extends BaseAgent {
     super({
       name: 'dialog',
       role: 'Handle general conversations',
-      // model, maxTokens inherited from AI_CONFIG via BaseAgent
-      temperature: 0.8,  // สูงหน่อยให้ natural
+      ...AGENT_MODELS.dialog,
       ...config
     });
   }

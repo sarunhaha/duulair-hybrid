@@ -108,10 +108,14 @@ export const OPENROUTER_MODELS = {
   CLAUDE_3_SONNET: 'anthropic/claude-3-sonnet',
   CLAUDE_3_HAIKU: 'anthropic/claude-3-haiku',
 
-  // Other providers
+  // OpenAI
   GPT_4O: 'openai/gpt-4o',
   GPT_4O_MINI: 'openai/gpt-4o-mini',
+  GPT_5_MINI: 'openai/gpt-4.1-mini',
+
+  // Google Gemini
   GEMINI_PRO: 'google/gemini-pro-1.5',
+  GEMINI_2_5_FLASH: 'google/gemini-2.5-flash-preview',
 } as const;
 
 export type OpenRouterModel = typeof OPENROUTER_MODELS[keyof typeof OPENROUTER_MODELS];
@@ -121,15 +125,30 @@ export type OpenRouterModel = typeof OPENROUTER_MODELS[keyof typeof OPENROUTER_M
 // ============================================
 
 // ============================================
-// Change these 3 values to switch ALL agents at once
+// Default fallback — used when agent doesn't specify its own config
 // ============================================
 export const AI_CONFIG = {
-  /** Primary model for all agents */
-  model: OPENROUTER_MODELS.CLAUDE_OPUS_4_6,
+  /** Default model (fallback) */
+  model: OPENROUTER_MODELS.GPT_4O_MINI,
   /** Default max output tokens */
-  maxTokens: 4096,
+  maxTokens: 2048,
   /** Default temperature */
-  temperature: 0.7,
+  temperature: 0.5,
+} as const;
+
+// ============================================
+// Per-Agent Model Config — cost-optimized mapping
+// See: "Recommended Model Mapping สำหรับ oonjai.pdf"
+// ============================================
+export const AGENT_MODELS = {
+  orchestrator:   { model: OPENROUTER_MODELS.GEMINI_2_5_FLASH,  maxTokens: 1024, temperature: 0.1 },
+  UnifiedNLUAgent:{ model: OPENROUTER_MODELS.GPT_4O_MINI,       maxTokens: 1024, temperature: 0.2 },
+  dialog:         { model: OPENROUTER_MODELS.GPT_4O_MINI,       maxTokens: 2048, temperature: 0.6 },
+  health:         { model: OPENROUTER_MODELS.GPT_4O_MINI,       maxTokens: 2048, temperature: 0.3 },
+  report:         { model: OPENROUTER_MODELS.GPT_5_MINI,        maxTokens: 8192, temperature: 0.5 },
+  alert:          { model: OPENROUTER_MODELS.GEMINI_2_5_FLASH,  maxTokens: 512,  temperature: 0.1 },
+  profile_edit:   { model: OPENROUTER_MODELS.GEMINI_2_5_FLASH,  maxTokens: 1024, temperature: 0.2 },
+  intent:         { model: OPENROUTER_MODELS.GPT_4O_MINI,       maxTokens: 512,  temperature: 0.1 },
 } as const;
 
 const DEFAULT_MODEL = AI_CONFIG.model;

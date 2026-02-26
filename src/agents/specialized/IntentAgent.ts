@@ -1,5 +1,6 @@
 // src/agents/specialized/IntentAgent.ts
 import { BaseAgent, Message, Response, Config } from '../core/BaseAgent';
+import { AGENT_MODELS } from '../../services/openrouter.service';
 
 export class IntentAgent extends BaseAgent {
   // กำหนด patterns สำหรับจับ intent (Group-Based Care Model)
@@ -211,8 +212,7 @@ export class IntentAgent extends BaseAgent {
     super({
       name: 'intent',
       role: 'Classify user messages into intents',
-      // model, maxTokens inherited from AI_CONFIG via BaseAgent
-      temperature: 0.1,  // ต่ำเพื่อให้ consistent
+      ...AGENT_MODELS.intent,
       ...config
     });
   }
