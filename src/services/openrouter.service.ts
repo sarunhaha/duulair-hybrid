@@ -141,14 +141,14 @@ export const AI_CONFIG = {
 // See: "Recommended Model Mapping สำหรับ oonjai.pdf"
 // ============================================
 export const AGENT_MODELS = {
-  orchestrator:   { model: OPENROUTER_MODELS.GEMINI_2_5_FLASH,  maxTokens: 1024, temperature: 0.1 },
-  UnifiedNLUAgent:{ model: OPENROUTER_MODELS.GPT_4O_MINI,       maxTokens: 1024, temperature: 0.2 },
-  dialog:         { model: OPENROUTER_MODELS.GPT_4O_MINI,       maxTokens: 2048, temperature: 0.6 },
-  health:         { model: OPENROUTER_MODELS.GPT_4O_MINI,       maxTokens: 2048, temperature: 0.3 },
+  orchestrator:   { model: OPENROUTER_MODELS.GEMINI_2_5_FLASH,  maxTokens: 2048, temperature: 0.1 },
+  UnifiedNLUAgent:{ model: OPENROUTER_MODELS.GPT_4O_MINI,       maxTokens: 4096, temperature: 0.2 },
+  dialog:         { model: OPENROUTER_MODELS.GPT_4O_MINI,       maxTokens: 4096, temperature: 0.6 },
+  health:         { model: OPENROUTER_MODELS.GPT_4O_MINI,       maxTokens: 4096, temperature: 0.3 },
   report:         { model: OPENROUTER_MODELS.GPT_5_MINI,        maxTokens: 8192, temperature: 0.5 },
-  alert:          { model: OPENROUTER_MODELS.GEMINI_2_5_FLASH,  maxTokens: 512,  temperature: 0.1 },
-  profile_edit:   { model: OPENROUTER_MODELS.GEMINI_2_5_FLASH,  maxTokens: 1024, temperature: 0.2 },
-  intent:         { model: OPENROUTER_MODELS.GPT_4O_MINI,       maxTokens: 512,  temperature: 0.1 },
+  alert:          { model: OPENROUTER_MODELS.GEMINI_2_5_FLASH,  maxTokens: 2048, temperature: 0.1 },
+  profile_edit:   { model: OPENROUTER_MODELS.GEMINI_2_5_FLASH,  maxTokens: 2048, temperature: 0.2 },
+  intent:         { model: OPENROUTER_MODELS.GPT_4O_MINI,       maxTokens: 2048, temperature: 0.1 },
 } as const;
 
 const DEFAULT_MODEL = AI_CONFIG.model;
