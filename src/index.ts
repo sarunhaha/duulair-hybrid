@@ -3044,24 +3044,40 @@ async function handlePostback(event: any) {
         }
 
         if (reminderType === 'medication') {
-          // Log medication taken with scheduled_time for dashboard matching
-          console.log(`🔍 DEBUG: Inserting medication_log...`);
-          const { error: medError } = await supabase.from('medication_logs').insert({
-            patient_id: patientId,
-            medication_id: medicationId,
-            medication_name: medicationName || title || 'ยา',
-            taken_at: now.toISOString(),
-            scheduled_time: scheduledTimestamp, // เก็บเป็น timestamp เต็มรูปแบบ
-            status: 'taken',
-            skipped: false,
-            note: `บันทึกจากการกดปุ่มแจ้งเตือน (reminder: ${reminderId}, scheduled: ${scheduledTime})`
-          });
+          // Idempotency check: skip if already logged for this medication + scheduled_time today
+          const medName = medicationName || title || 'ยา';
+          let alreadyLogged = false;
+          if (scheduledTimestamp) {
+            const { data: existing } = await supabase.from('medication_logs')
+              .select('id')
+              .eq('patient_id', patientId)
+              .eq('medication_name', medName)
+              .eq('scheduled_time', scheduledTimestamp)
+              .limit(1);
+            alreadyLogged = !!(existing && existing.length > 0);
+          }
 
-          if (medError) {
-            console.error('❌ Error logging medication:', medError);
-            console.error('❌ Error details:', JSON.stringify(medError, null, 2));
+          if (alreadyLogged) {
+            console.log(`⏭️ Medication already logged: patient=${patientId}, med=${medName}, scheduled=${scheduledTime} — skipping duplicate`);
           } else {
-            console.log(`✅ Medication logged SUCCESS: patient=${patientId}, scheduled=${scheduledTime}, taken_at=${now.toISOString()}`);
+            console.log(`🔍 DEBUG: Inserting medication_log...`);
+            const { error: medError } = await supabase.from('medication_logs').insert({
+              patient_id: patientId,
+              medication_id: medicationId,
+              medication_name: medName,
+              taken_at: now.toISOString(),
+              scheduled_time: scheduledTimestamp,
+              status: 'taken',
+              skipped: false,
+              note: `บันทึกจากการกดปุ่มแจ้งเตือน (reminder: ${reminderId}, scheduled: ${scheduledTime})`
+            });
+
+            if (medError) {
+              console.error('❌ Error logging medication:', medError);
+              console.error('❌ Error details:', JSON.stringify(medError, null, 2));
+            } else {
+              console.log(`✅ Medication logged SUCCESS: patient=${patientId}, scheduled=${scheduledTime}, taken_at=${now.toISOString()}`);
+            }
           }
         } else if (reminderType === 'water') {
           // Log water intake
