@@ -332,9 +332,9 @@ export class DialogAgent extends BaseAgent {
         const activitiesList = todayActivities.length > 0
           ? todayActivities.slice(0, 5).map((a: any) => {
               const time = new Date(a.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
-              const type = a.activity_type || a.type || 'unknown';
+              const type = a.task_type || a.type || 'unknown';
               const typeIcon = type === 'medication' ? '💊' : type === 'vitals' ? '🩺' : type === 'water' ? '💧' : type === 'walk' ? '🚶' : type === 'food' ? '🍚' : '📝';
-              return `${typeIcon} ${a.description || type} (${time})`;
+              return `${typeIcon} ${a.value || type} (${time})`;
             }).join('\n  • ')
           : 'ยังไม่มีกิจกรรมวันนี้';
 

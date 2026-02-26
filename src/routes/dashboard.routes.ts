@@ -164,7 +164,7 @@ router.get('/summary/:patientId', async (req: Request, res: Response) => {
       // Today's activity logs (for exercise/food reminder completion via chat)
       supabase
         .from('activity_logs')
-        .select('activity_type, timestamp')
+        .select('task_type, timestamp')
         .eq('patient_id', patientId)
         .gte('timestamp', today.toISOString()),
     ]);
@@ -342,7 +342,14 @@ router.get('/summary/:patientId', async (req: Request, res: Response) => {
     const hasTodayGlucose = todayVitals.some((v: any) => v.glucose != null);
 
     const todayActivities = todayActivityLogsResult.data || [];
-    const todayActivityTypes = new Set(todayActivities.map((a: any) => a.activity_type));
+    const todayActivityTypes = new Set(todayActivities.map((a: any) => a.task_type));
+
+    // Water data (needed by isReminderDone for water-type reminders)
+    const waterLogs = todayWaterResult.data || [];
+    const totalWaterMl = waterLogs.reduce((sum, log) => sum + (log.amount_ml || 0), 0);
+    const totalGlasses = waterLogs.reduce((sum, log) => sum + (log.glasses || 0), 0);
+    const waterGoalGlasses = 8; // Default goal
+    const remainingGlasses = Math.max(0, waterGoalGlasses - totalGlasses);
 
     const typeLabels: Record<string, string> = {
       vitals: 'วัดความดัน', exercise: 'ออกกำลังกาย',
@@ -358,6 +365,7 @@ router.get('/summary/:patientId', async (req: Request, res: Response) => {
         case 'glucose': return hasTodayGlucose;
         case 'exercise': return todayActivityTypes.has('exercise');
         case 'food': return todayActivityTypes.has('food') || todayActivityTypes.has('meal');
+        case 'water': return totalGlasses >= waterGoalGlasses;
         default: return false;
       }
     };
@@ -377,11 +385,6 @@ router.get('/summary/:patientId', async (req: Request, res: Response) => {
 
     // Add water goal task only if there are no water-type reminders (to prevent duplicate)
     const hasWaterReminders = reminders.some((r: any) => r.type === 'water');
-    const waterLogs = todayWaterResult.data || [];
-    const totalWaterMl = waterLogs.reduce((sum, log) => sum + (log.amount_ml || 0), 0);
-    const totalGlasses = waterLogs.reduce((sum, log) => sum + (log.glasses || 0), 0);
-    const waterGoalGlasses = 8; // Default goal
-    const remainingGlasses = Math.max(0, waterGoalGlasses - totalGlasses);
 
     if (!hasWaterReminders) {
       tasks.push({
@@ -666,7 +669,7 @@ async function getPatientDashboardSummary(patientId: string): Promise<DashboardS
     // Today's activity logs (for exercise/food reminder completion via chat)
     supabase
       .from('activity_logs')
-      .select('activity_type, timestamp')
+      .select('task_type, timestamp')
       .eq('patient_id', patientId)
       .gte('timestamp', today.toISOString()),
   ]);
@@ -834,7 +837,7 @@ async function getPatientDashboardSummary(patientId: string): Promise<DashboardS
   const hasTodayGlucose = todayVitals.some((v: any) => v.glucose != null);
 
   const todayActivities = todayActivityLogsResult.data || [];
-  const todayActivityTypes = new Set(todayActivities.map((a: any) => a.activity_type));
+  const todayActivityTypes = new Set(todayActivities.map((a: any) => a.task_type));
 
   const typeLabels: Record<string, string> = {
     vitals: 'วัดความดัน', exercise: 'ออกกำลังกาย',

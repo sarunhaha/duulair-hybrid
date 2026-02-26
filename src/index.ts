@@ -3084,9 +3084,10 @@ async function handlePostback(event: any) {
 
           await supabase.from('activity_logs').insert({
             patient_id: patientId,
-            activity_type: reminderType,
-            description: `${title || 'วัดความดัน'} - บันทึกจากแจ้งเตือน`,
-            timestamp: now.toISOString()
+            task_type: 'vitals',
+            value: `${title || 'วัดความดัน'} - รอบันทึกค่าจริง`,
+            timestamp: now.toISOString(),
+            source: '1:1'
           });
 
           const replyMessage: TextMessage = {
@@ -3104,9 +3105,10 @@ async function handlePostback(event: any) {
 
           await supabase.from('activity_logs').insert({
             patient_id: patientId,
-            activity_type: reminderType,
-            description: `${title || 'วัดน้ำตาล'} - บันทึกจากแจ้งเตือน`,
-            timestamp: now.toISOString()
+            task_type: 'glucose',
+            value: `${title || 'วัดน้ำตาล'} - รอบันทึกค่าจริง`,
+            timestamp: now.toISOString(),
+            source: '1:1'
           });
 
           const replyMessage: TextMessage = {
@@ -3120,9 +3122,16 @@ async function handlePostback(event: any) {
         // Log to activity_logs for all types
         await supabase.from('activity_logs').insert({
           patient_id: patientId,
-          activity_type: reminderType,
-          description: `${medicationName || reminderType} - บันทึกจากแจ้งเตือน`,
-          timestamp: now.toISOString()
+          task_type: reminderType,
+          value: medicationName || reminderType,
+          timestamp: now.toISOString(),
+          source: '1:1',
+          metadata: {
+            from_reminder: true,
+            reminder_id: reminderId,
+            medication_name: medicationName || undefined,
+            medication_id: medicationId || undefined
+          }
         });
 
         // Update reminder_logs to mark as acknowledged

@@ -143,10 +143,9 @@ export class ReportService {
     const until = endDate.toISOString();
 
     // Query activity_logs + dedicated health tables in parallel
-    // NOTE: medication_logs & water_logs are NOT queried separately because they
-    // already dual-write into activity_logs (from both AI processor and reminder
-    // postback). Querying them separately causes double-counting.
-    const [activityRes, vitalsRes, moodRes, sleepRes, exerciseRes, symptomRes, labRes] = await Promise.all([
+    // medication_logs is also queried as fallback — reminder postback entries
+    // may not have a corresponding activity_logs row (deduped below)
+    const [activityRes, vitalsRes, moodRes, sleepRes, exerciseRes, symptomRes, labRes, medLogRes] = await Promise.all([
       supabase.from('activity_logs').select('*').eq('patient_id', patientId)
         .gte('timestamp', since).lte('timestamp', until).order('timestamp', { ascending: false }),
       supabase.from('vitals_logs').select('*').eq('patient_id', patientId)
@@ -161,15 +160,32 @@ export class ReportService {
         .gte('created_at', since).lte('created_at', until).order('created_at', { ascending: false }),
       supabase.from('lab_results').select('*').eq('patient_id', patientId)
         .gte('lab_date', since.split('T')[0]).lte('lab_date', until.split('T')[0]).order('lab_date', { ascending: false }),
+      supabase.from('medication_logs').select('*').eq('patient_id', patientId)
+        .gte('taken_at', since).lte('taken_at', until).order('taken_at', { ascending: false }),
     ]);
 
     const activities = activityRes.data || [];
 
-    // Track existing vitals/mood/sleep/exercise in activity_logs to avoid duplicates
+    // Track existing linked IDs in activity_logs to avoid duplicates
     const existingActivityIds = new Set(
       activities.map((a: any) => a.metadata?.vitals_log_id || a.metadata?.mood_log_id ||
         a.metadata?.sleep_log_id || a.metadata?.exercise_log_id || a.metadata?.symptom_id).filter(Boolean)
     );
+    const existingMedLogIds = new Set(
+      activities.filter((a: any) => a.metadata?.medication_log_id)
+        .map((a: any) => a.metadata.medication_log_id)
+    );
+
+    // Add medication_logs entries NOT already in activity_logs (dedup by medication_log_id)
+    for (const ml of (medLogRes.data || [])) {
+      if (existingMedLogIds.has(ml.id)) continue;
+      activities.push({
+        id: ml.id, patient_id: patientId, task_type: 'medication',
+        value: ml.medication_name || 'ยา', timestamp: ml.taken_at || ml.created_at,
+        created_at: ml.created_at,
+        metadata: { medication_name: ml.medication_name, status: ml.status, from_reminder: true, _source: 'medication_logs' }
+      });
+    }
 
     // Normalize dedicated table records into activity_logs format
     for (const v of (vitalsRes.data || [])) {

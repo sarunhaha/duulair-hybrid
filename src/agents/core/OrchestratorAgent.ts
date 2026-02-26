@@ -991,9 +991,9 @@ export class OrchestratorAgent extends BaseAgent {
         const client = this.supabase.getClient();
 
         // Query all health tables in parallel
-        const [activityRes, vitalsRes, moodRes, sleepRes, exerciseRes, symptomRes, labRes] = await Promise.all([
+        const [activityRes, vitalsRes, moodRes, sleepRes, exerciseRes, symptomRes, labRes, medLogRes] = await Promise.all([
           client.from('activity_logs').select('*').eq('patient_id', patientId)
-            .gte('created_at', since).order('created_at', { ascending: false }).limit(20),
+            .gte('timestamp', since).order('timestamp', { ascending: false }).limit(20),
           client.from('vitals_logs').select('*').eq('patient_id', patientId)
             .gte('measured_at', since).order('measured_at', { ascending: false }).limit(10),
           client.from('mood_logs').select('*').eq('patient_id', patientId)
@@ -1006,9 +1006,31 @@ export class OrchestratorAgent extends BaseAgent {
             .gte('created_at', since).order('created_at', { ascending: false }).limit(10),
           client.from('lab_results').select('*').eq('patient_id', patientId)
             .gte('lab_date', since.split('T')[0]).order('lab_date', { ascending: false }).limit(20),
+          // Also query medication_logs as fallback (reminder postback may not dual-write to activity_logs)
+          client.from('medication_logs').select('*').eq('patient_id', patientId)
+            .gte('taken_at', since).order('taken_at', { ascending: false }).limit(20),
         ]);
 
         recentActivities = activityRes.data || [];
+
+        // Add medication_logs entries that are NOT already in activity_logs (dedup by medication_log_id)
+        const existingMedLogIds = new Set(
+          recentActivities
+            .filter(a => a.metadata?.medication_log_id)
+            .map(a => a.metadata.medication_log_id)
+        );
+        for (const ml of (medLogRes.data || [])) {
+          if (!existingMedLogIds.has(ml.id)) {
+            recentActivities.push({
+              task_type: 'medication',
+              value: ml.medication_name || 'ยา',
+              timestamp: ml.taken_at || ml.created_at,
+              created_at: ml.created_at,
+              _source: 'medication_logs',
+              metadata: { status: ml.status, from_reminder: true }
+            });
+          }
+        }
 
         // Normalize dedicated table rows into a unified format
         for (const v of (vitalsRes.data || [])) {
