@@ -3135,20 +3135,24 @@ async function handlePostback(event: any) {
           return { success: true, type: 'reminder_glucose_pending' };
         }
 
-        // Log to activity_logs for all types
-        await supabase.from('activity_logs').insert({
-          patient_id: patientId,
-          task_type: reminderType,
-          value: medicationName || reminderType,
-          timestamp: now.toISOString(),
-          source: '1:1',
-          metadata: {
-            from_reminder: true,
-            reminder_id: reminderId,
-            medication_name: medicationName || undefined,
-            medication_id: medicationId || undefined
-          }
-        });
+        // Log to activity_logs for types that don't have their own dedicated table
+        // medication → medication_logs (handled above, dual-write from AI processor covers activity_logs)
+        // water → water_logs (handled above, dual-write from AI processor covers activity_logs)
+        // vitals/glucose → already returned above with pending message
+        // Other types (exercise, food, etc.) → need activity_logs entry
+        if (reminderType !== 'medication' && reminderType !== 'water') {
+          await supabase.from('activity_logs').insert({
+            patient_id: patientId,
+            task_type: reminderType,
+            value: medicationName || title || reminderType,
+            timestamp: now.toISOString(),
+            source: '1:1',
+            metadata: {
+              from_reminder: true,
+              reminder_id: reminderId
+            }
+          });
+        }
 
         // Update reminder_logs to mark as acknowledged
         await supabase.from('reminder_logs').update({
