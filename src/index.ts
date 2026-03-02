@@ -2882,9 +2882,13 @@ async function handleFollow(event: any) {
         await lineClient.replyMessage(replyToken, welcomeBackMessage);
         return { success: true, alreadyRegistered: true };
       } else {
-        // Not yet consented - send consent flex again
-        console.log('⚠️ User exists but not consented, sending consent flex');
-        await lineClient.replyMessage(replyToken, createConsentFlexMessage());
+        // Not yet consented - send greeting + consent flex again
+        console.log('⚠️ User exists but not consented, sending greeting + consent flex');
+        const reminderMessage: TextMessage = {
+          type: 'text',
+          text: 'สวัสดีค่ะ! ยินดีต้อนรับกลับมา 👋\n\nกรุณายอมรับข้อกำหนดก่อนเริ่มใช้งานนะคะ 👇'
+        };
+        await lineClient.replyMessage(replyToken, [reminderMessage, createConsentFlexMessage()]);
         return { success: true, needsConsent: true };
       }
     }
@@ -2899,9 +2903,13 @@ async function handleFollow(event: any) {
       console.log('⚠️ Auto-create patient failed (non-blocking):', autoErr);
     }
 
-    // Send consent flex instead of welcome text
-    await lineClient.replyMessage(replyToken, createConsentFlexMessage());
-    console.log('✅ Consent flex sent to new user');
+    // Send greeting + consent flex together
+    const greetingMessage: TextMessage = {
+      type: 'text',
+      text: 'สวัสดีค่ะ! ยินดีต้อนรับสู่ oonjai 🌿\n\nน้องอุ่นใจ ผู้ช่วยดูแลสุขภาพส่วนตัวของคุณค่ะ\n\nก่อนเริ่มใช้งาน กรุณายอมรับข้อกำหนดด้านล่างก่อนนะคะ 👇'
+    };
+    await lineClient.replyMessage(replyToken, [greetingMessage, createConsentFlexMessage()]);
+    console.log('✅ Greeting + consent flex sent to new user');
 
     return { success: true };
   } catch (error) {

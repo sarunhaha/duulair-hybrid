@@ -334,25 +334,17 @@
         });
 
         btn.textContent = 'สำเร็จ!';
+        btn.style.backgroundColor = 'hsl(160 84% 32%)';
 
-        // Close window after short delay
+        // Show success state immediately
         setTimeout(function() {
-          try {
-            // Try LIFF close first (works when opened inside LINE app)
-            if (typeof liff !== 'undefined') {
-              liff.closeWindow();
-            }
-          } catch (e) {
-            console.log('liff.closeWindow() failed:', e);
-          }
-          // Fallback: send user back to LINE chat
-          try {
-            window.close();
-          } catch (e) {
-            // Last resort: show success message
-            document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:Kanit,sans-serif;text-align:center;padding:2rem;"><div><h2 style="color:hsl(160 84% 32%);">ยอมรับสำเร็จ!</h2><p style="color:#666;margin-top:0.5rem;">กรุณาปิดหน้านี้แล้วกลับไปแชทกับ oonjai ได้เลย</p></div></div>';
-          }
-        }, 800);
+          // Replace page with success message + close instruction
+          document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:Kanit,sans-serif;text-align:center;padding:2rem;background:#f9fafb;"><div><div style="width:64px;height:64px;border-radius:50%;background:hsl(160 84% 32%);display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div><h2 style="color:hsl(160 84% 32%);font-size:1.25rem;margin:0 0 0.5rem;">ยอมรับสำเร็จ!</h2><p style="color:#666;font-size:0.875rem;line-height:1.6;">กรุณาปิดหน้านี้แล้ว<br>กลับไปแชทกับ oonjai ได้เลยค่ะ</p></div></div>';
+
+          // Try to close automatically (may not work on direct URL)
+          try { if (typeof liff !== 'undefined') liff.closeWindow(); } catch(e) {}
+          try { window.close(); } catch(e) {}
+        }, 600);
 
       } catch (error) {
         console.error('Accept consent error:', error);
