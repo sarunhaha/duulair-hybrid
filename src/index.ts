@@ -1912,14 +1912,28 @@ async function handleTextMessage(event: any) {
     // ============================================
     // Phase 3: Check for Menu Requests (Flex Message triggers)
     // ============================================
+
+    // Intercept "เริ่มบันทึก" (from carousel card) → show health log menu directly
+    const trimmedText = originalMessage.trim();
+    if (trimmedText === 'เริ่มบันทึก' || trimmedText === 'บันทึกสุขภาพ' || trimmedText === 'เมนูบันทึก') {
+      console.log('📋 Health log menu trigger detected:', trimmedText);
+      try {
+        const healthLogMenu = createHealthLogMenuFlexMessage();
+        await lineClient.replyMessage(replyToken, healthLogMenu);
+        console.log('✅ Health log menu sent');
+        return { success: true, type: 'health_log_menu' };
+      } catch (sendError) {
+        console.error('❌ Failed to send health log menu:', sendError);
+      }
+    }
+
     // Skip extraction pipeline for menu requests - go directly to orchestrator
     const menuPatterns = [
-      /^บันทึกสุขภาพ$/i,
       /^รายงานสุขภาพ$/i,
       /^ดูรายงาน$/i,
       /^รายงาน$/i
     ];
-    const isMenuRequest = menuPatterns.some(pattern => pattern.test(originalMessage.trim()));
+    const isMenuRequest = menuPatterns.some(pattern => pattern.test(trimmedText));
 
     if (isMenuRequest) {
       console.log('📋 Menu request detected, skipping extraction pipeline');
@@ -2004,35 +2018,12 @@ async function handleTextMessage(event: any) {
           contents: reportFlexMessage
         };
       } else if (flexMessageType === 'registration') {
-        // Check if user is already registered before showing registration flex
-        // In group: if groupContext exists, user is already a member
-        // In 1:1: check if user exists in caregivers table
-        const isInGroup = context.source === 'group' && context.groupId;
-        let isAlreadyRegistered = false;
-
-        if (isInGroup) {
-          // If we're in a registered group, user is already a member
-          isAlreadyRegistered = !!context.patientId;
-        } else {
-          // 1:1 chat - check if user is registered caregiver
-          const { createClient } = await import('@supabase/supabase-js');
-          const supabase = createClient(
-            process.env.SUPABASE_URL || '',
-            process.env.SUPABASE_SERVICE_KEY || ''
-          );
-          const { data: caregiver } = await supabase
-            .from('caregivers')
-            .select('id')
-            .eq('line_user_id', userId)
-            .single();
-          isAlreadyRegistered = !!caregiver;
-        }
-
-        if (isAlreadyRegistered) {
-          // User is already registered - send confirmation message instead
+        // Auto-create patient if not registered, then reply with text
+        if (context.patientId) {
+          // Already has patient profile
           const alreadyRegisteredMessage: TextMessage = {
             type: 'text',
-            text: `✅ คุณลงทะเบียนแล้วค่ะ!\n\n${isInGroup ? 'สามารถใช้งานในกลุ่มนี้ได้เลย พิมพ์ "วิธีใช้" เพื่อดูคำสั่งทั้งหมดค่ะ' : 'กดเมนูด้านล่างเพื่อใช้งานได้เลยค่ะ'}`
+            text: '✅ คุณใช้งานได้แล้วค่ะ! พิมพ์คุยกับน้องอุ่นได้เลยค่ะ 😊'
           };
           try {
             await lineClient.replyMessage(replyToken, alreadyRegisteredMessage);
@@ -2042,7 +2033,25 @@ async function handleTextMessage(event: any) {
             console.error('❌ Failed to send already registered message:', sendError);
           }
         } else {
-          flexMessage = createRegistrationFlexMessage();
+          // Auto-create patient profile
+          try {
+            const lineProfile = await lineClient.getProfile(context.lineUserId || userId);
+            await userService.autoCreatePatient(context.lineUserId || userId, lineProfile.displayName, lineProfile.pictureUrl);
+            console.log('✅ Auto-created patient from registration request');
+          } catch (autoErr) {
+            console.log('⚠️ Auto-create patient failed:', autoErr);
+          }
+          const createdMessage: TextMessage = {
+            type: 'text',
+            text: '✅ สร้างบัญชีให้แล้วค่ะ! พิมพ์คุยกับน้องอุ่นได้เลยค่ะ 😊'
+          };
+          try {
+            await lineClient.replyMessage(replyToken, createdMessage);
+            console.log('✅ Auto-created + welcome message sent');
+            return result;
+          } catch (sendError) {
+            console.error('❌ Failed to send auto-created message:', sendError);
+          }
         }
       } else if (flexMessageType === 'package') {
         flexMessage = createPackageFlexMessage();
@@ -2810,94 +2819,24 @@ async function handleFollow(event: any) {
       return { success: true, alreadyRegistered: true };
     }
 
-    // ✅ New user - send registration link
-    console.log('📝 New user - sending registration link');
-    const registrationUrl = `https://liff.line.me/${LIFF_ID}/registration`;
+    // ✅ New user - auto-create patient + send welcome text
+    console.log('📝 New user - auto-creating patient profile');
+    let displayName = 'คุณ';
+    try {
+      const lineProfile = await lineClient.getProfile(userId);
+      displayName = lineProfile.displayName || 'คุณ';
+      await userService.autoCreatePatient(userId, lineProfile.displayName, lineProfile.pictureUrl);
+      console.log('✅ Auto-created patient profile for new follower');
+    } catch (autoErr) {
+      console.log('⚠️ Auto-create patient failed (non-blocking):', autoErr);
+    }
 
-    const welcomeMessage: FlexMessage = {
-      type: 'flex',
-      altText: 'ยินดีต้อนรับสู่ OONJAI - กรุณาลงทะเบียน',
-      contents: {
-        type: 'bubble',
-        header: onjaiHeader('สวัสดีค่ะ!', 'ยินดีต้อนรับสู่ OONJAI'),
-        body: {
-          type: 'box',
-          layout: 'vertical',
-          contents: [
-            {
-              type: 'text',
-              text: 'ผู้ช่วยดูแลสุขภาพส่วนตัวของคุณ',
-              size: 'sm',
-              color: OJ.textMuted,
-              wrap: true
-            },
-            {
-              type: 'separator',
-              margin: 'xl'
-            },
-            {
-              type: 'box',
-              layout: 'vertical',
-              margin: 'xl',
-              spacing: 'sm',
-              contents: [
-                {
-                  type: 'text',
-                  text: 'กรุณาลงทะเบียนก่อนใช้งาน',
-                  color: OJ.text,
-                  size: 'md',
-                  weight: 'bold'
-                },
-                {
-                  type: 'text',
-                  text: 'กรอกข้อมูลเพียง 1 ครั้ง:\n• ข้อมูลผู้ดูแล (คุณ)\n• ข้อมูลสมาชิก (ผู้ที่คุณดูแล)',
-                  color: OJ.textMuted,
-                  size: 'sm',
-                  wrap: true,
-                  margin: 'md'
-                }
-              ]
-            }
-          ],
-          paddingAll: 'xl'
-        },
-        footer: {
-          type: 'box',
-          layout: 'vertical',
-          spacing: 'sm',
-          contents: [
-            {
-              type: 'button',
-              style: 'primary',
-              height: 'sm',
-              color: OJ.primary,
-              action: {
-                type: 'uri',
-                label: 'ลงทะเบียนเลย',
-                uri: registrationUrl
-              }
-            },
-            {
-              type: 'box',
-              layout: 'baseline',
-              margin: 'md',
-              contents: [
-                {
-                  type: 'text',
-                  text: 'ใช้เวลาไม่ถึง 2 นาที',
-                  color: OJ.textMuted,
-                  size: 'xs',
-                  flex: 0
-                }
-              ]
-            }
-          ]
-        }
-      }
+    const welcomeMessage: TextMessage = {
+      type: 'text',
+      text: `สวัสดีค่ะ! 👋 น้องอุ่นเองค่ะ\n\nยินดีต้อนรับ ${displayName} นะคะ\nน้องอุ่นพร้อมช่วยดูแลสุขภาพของคุณแล้วค่ะ\n\n💬 พิมพ์คุยได้เลย เช่น\n• "กินยาแล้ว"\n• "ความดัน 120/80"\n• "ดื่มน้ำ 1 แก้ว"\n\nหรือพิมพ์อะไรก็ได้ น้องอุ่นเข้าใจค่ะ 😊`
     };
-
     await lineClient.replyMessage(replyToken, welcomeMessage);
-    console.log('✅ Registration link sent');
+    console.log('✅ Welcome text sent');
 
     return { success: true };
   } catch (error) {

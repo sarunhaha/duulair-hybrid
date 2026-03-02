@@ -355,19 +355,19 @@
           }
 
         } else {
-          // Not registered
-          console.log('Not registered, redirecting to registration');
-          updateDebug('ยังไม่ได้ลงทะเบียน กำลังเปลี่ยนหน้า...');
+          // Not registered — redirect to dashboard (bot auto-creates patient on follow/message)
+          console.log('Not registered, redirecting to dashboard (auto-create handles registration)');
+          updateDebug('กำลังเปลี่ยนหน้า...');
 
           if (isGroupContext) {
-            console.log('Redirecting to group registration');
+            console.log('Redirecting to group dashboard');
             setTimeout(() => {
-              window.location.href = '/liff/group-registration.html';
+              window.location.href = '/liff/group-dashboard.html';
             }, 500);
           } else {
-            console.log('Redirecting to registration');
+            console.log('Redirecting to dashboard');
             setTimeout(() => {
-              window.location.href = '/liff/registration.html';
+              window.location.href = '/liff/dashboard.html';
             }, 500);
           }
         }
