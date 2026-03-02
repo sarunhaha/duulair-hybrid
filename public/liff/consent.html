@@ -335,12 +335,22 @@
 
         btn.textContent = 'สำเร็จ!';
 
-        // Close LIFF after short delay
+        // Close window after short delay
         setTimeout(function() {
-          if (typeof liff !== 'undefined' && liff.isInClient()) {
-            liff.closeWindow();
-          } else {
+          try {
+            // Try LIFF close first (works when opened inside LINE app)
+            if (typeof liff !== 'undefined') {
+              liff.closeWindow();
+            }
+          } catch (e) {
+            console.log('liff.closeWindow() failed:', e);
+          }
+          // Fallback: send user back to LINE chat
+          try {
             window.close();
+          } catch (e) {
+            // Last resort: show success message
+            document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:Kanit,sans-serif;text-align:center;padding:2rem;"><div><h2 style="color:hsl(160 84% 32%);">ยอมรับสำเร็จ!</h2><p style="color:#666;margin-top:0.5rem;">กรุณาปิดหน้านี้แล้วกลับไปแชทกับ oonjai ได้เลย</p></div></div>';
           }
         }, 800);
 
