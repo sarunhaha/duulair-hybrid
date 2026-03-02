@@ -2882,18 +2882,21 @@ async function handleFollow(event: any) {
         await lineClient.replyMessage(replyToken, welcomeBackMessage);
         return { success: true, alreadyRegistered: true };
       } else {
-        // Not yet consented - send greeting + consent flex again
-        console.log('⚠️ User exists but not consented, sending greeting + consent flex');
-        const reminderMessage: TextMessage = {
-          type: 'text',
-          text: 'สวัสดีค่ะ! ยินดีต้อนรับกลับมา 👋\n\nกรุณายอมรับข้อกำหนดก่อนเริ่มใช้งานนะคะ 👇'
-        };
-        await lineClient.replyMessage(replyToken, [reminderMessage, createConsentFlexMessage()]);
+        // Not yet consented - let LINE OA greeting show, then push consent flex
+        console.log('⚠️ User exists but not consented, pushing consent flex after greeting');
+        setTimeout(async () => {
+          try {
+            await lineClient.pushMessage(userId, createConsentFlexMessage());
+            console.log('✅ Consent flex pushed for unconsented re-follow user');
+          } catch (pushErr) {
+            console.log('⚠️ Push consent flex failed:', pushErr);
+          }
+        }, 2000);
         return { success: true, needsConsent: true };
       }
     }
 
-    // ✅ New user - auto-create patient (consent_accepted=false) + send consent flex
+    // ✅ New user - auto-create patient (consent_accepted=false)
     console.log('📝 New user - auto-creating patient profile (no consent yet)');
     try {
       const lineProfile = await lineClient.getProfile(userId);
@@ -2903,13 +2906,16 @@ async function handleFollow(event: any) {
       console.log('⚠️ Auto-create patient failed (non-blocking):', autoErr);
     }
 
-    // Send greeting + consent flex together
-    const greetingMessage: TextMessage = {
-      type: 'text',
-      text: 'สวัสดีค่ะ! ยินดีต้อนรับสู่ oonjai 🌿\n\nน้องอุ่นใจ ผู้ช่วยดูแลสุขภาพส่วนตัวของคุณค่ะ\n\nก่อนเริ่มใช้งาน กรุณายอมรับข้อกำหนดด้านล่างก่อนนะคะ 👇'
-    };
-    await lineClient.replyMessage(replyToken, [greetingMessage, createConsentFlexMessage()]);
-    console.log('✅ Greeting + consent flex sent to new user');
+    // Don't reply — let LINE OA greeting message (card carousel) send first
+    // Then push consent flex after a short delay
+    setTimeout(async () => {
+      try {
+        await lineClient.pushMessage(userId, createConsentFlexMessage());
+        console.log('✅ Consent flex pushed after greeting message');
+      } catch (pushErr) {
+        console.log('⚠️ Push consent flex failed:', pushErr);
+      }
+    }, 2000);
 
     return { success: true };
   } catch (error) {
