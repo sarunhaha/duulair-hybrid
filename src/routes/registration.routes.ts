@@ -6,6 +6,7 @@
 import { Router, Request, Response } from 'express';
 import { userService } from '../services/user.service';
 import { lineClient } from '../services/line-client.service';
+import { createHealthLogMenuFlexMessage } from '../lib/flex-messages';
 import {
   PatientRegistrationForm,
   CaregiverRegistrationForm
@@ -73,13 +74,16 @@ router.post('/accept-consent', async (req: Request, res: Response) => {
       marketing: marketing || false,
     });
 
-    // Push welcome message after consent accepted
+    // Push welcome message + health log menu after consent accepted
     try {
-      await lineClient.pushMessage(line_user_id, {
-        type: 'text',
-        text: 'ยินดีต้อนรับสู่ oonjai! 🎉\n\nขอบคุณที่ยอมรับข้อกำหนดค่ะ\nพิมพ์คุยกับน้องอุ่นใจได้เลย หรือกด "เริ่มบันทึก" เพื่อบันทึกสุขภาพวันนี้ค่ะ ✨'
-      });
-      console.log('✅ Welcome message pushed after consent');
+      await lineClient.pushMessage(line_user_id, [
+        {
+          type: 'text',
+          text: 'ยินดีต้อนรับสู่ oonjai! 🎉\n\nขอบคุณที่ยอมรับข้อกำหนดค่ะ\nลองกดเมนูด้านล่างเพื่อเริ่มบันทึกสุขภาพ หรือพิมพ์คุยกับน้องอุ่นใจได้เลยค่ะ ✨'
+        },
+        createHealthLogMenuFlexMessage(),
+      ]);
+      console.log('✅ Welcome + health log menu pushed after consent');
     } catch (pushErr) {
       console.log('⚠️ Push welcome message failed (non-blocking):', pushErr);
     }
