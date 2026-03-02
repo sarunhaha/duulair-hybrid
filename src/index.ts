@@ -460,7 +460,7 @@ function createConsentFlexMessage(): FlexMessage {
             action: {
               type: 'uri',
               label: 'อ่านและยอมรับ',
-              uri: `https://liff.line.me/${LIFF_ID}/consent.html`
+              uri: `https://app.oonj.ai/liff/consent.html`
             }
           }
         ]
