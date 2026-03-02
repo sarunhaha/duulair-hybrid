@@ -6,6 +6,7 @@
 import { Router, Request, Response } from 'express';
 import { userService } from '../services/user.service';
 import { lineClient } from '../services/line-client.service';
+import { createWelcomeOnboardingMessages } from '../lib/flex-messages';
 import {
   PatientRegistrationForm,
   CaregiverRegistrationForm
@@ -73,15 +74,13 @@ router.post('/accept-consent', async (req: Request, res: Response) => {
       marketing: marketing || false,
     });
 
-    // Push welcome message after consent accepted
+    // Push onboarding greeting messages after consent accepted
+    // (replicates LINE OA greeting card template)
     try {
-      await lineClient.pushMessage(line_user_id, {
-        type: 'text',
-        text: 'ขอบคุณที่ยอมรับข้อกำหนดค่ะ ✅\n\nตอนนี้ใช้งาน oonjai ได้แล้ว!\nพิมพ์คุยกับน้องอุ่นใจ หรือกดเมนูด้านล่างเพื่อเริ่มบันทึกสุขภาพได้เลยค่ะ 🌿'
-      });
-      console.log('✅ Welcome message pushed after consent');
+      await lineClient.pushMessage(line_user_id, createWelcomeOnboardingMessages());
+      console.log('✅ Onboarding greeting pushed after consent');
     } catch (pushErr) {
-      console.log('⚠️ Push welcome message failed (non-blocking):', pushErr);
+      console.log('⚠️ Push greeting failed (non-blocking):', pushErr);
     }
 
     res.json(result);

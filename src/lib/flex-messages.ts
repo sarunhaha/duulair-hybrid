@@ -136,3 +136,64 @@ export function createHealthLogMenuFlexMessage(): FlexMessage {
     },
   };
 }
+
+/**
+ * Welcome onboarding messages — sent after consent accepted
+ * Replicates the LINE OA greeting card template content
+ */
+export function createWelcomeOnboardingMessages(): Array<any> {
+  const welcomeText = {
+    type: 'text' as const,
+    text: 'ยินดีต้อนรับค่ะ! 🌿\n\nอุ่นใจคือผู้ช่วยบันทึกสุขภาพผ่าน LINE ที่ช่วยเก็บข้อมูลให้เป็นระบบ\n\nเมื่อมีการบันทึกอย่างต่อเนื่อง คุณจะเห็นแนวโน้มสุขภาพได้ชัดเจน และตัดสินใจดูแลตัวเองได้ดีขึ้น\n\nดูวิธีใช้งานด้านล่างได้เลยค่ะ 👇',
+  };
+
+  const onboardingCard: FlexMessage = {
+    type: 'flex',
+    altText: 'บันทึกสุขภาพได้ครบใน LINE',
+    contents: {
+      type: 'carousel',
+      contents: [
+        // Card 1: บันทึกสุขภาพได้ครบใน LINE
+        {
+          type: 'bubble',
+          size: 'mega',
+          header: onjaiHeader('บันทึกสุขภาพได้ครบใน LINE'),
+          body: {
+            type: 'box',
+            layout: 'vertical',
+            paddingAll: 'lg',
+            spacing: 'md',
+            contents: [
+              { type: 'text', text: '💊 ค่าเลือด ค่าตับ ค่าไต', size: 'sm', color: OJ.text, wrap: true },
+              { type: 'text', text: '💉 ความดัน น้ำตาล น้ำหนัก', size: 'sm', color: OJ.text, wrap: true },
+              { type: 'text', text: '😴 การนอน อาหาร และอื่น ๆ', size: 'sm', color: OJ.text, wrap: true },
+              { type: 'separator', margin: 'lg' },
+              { type: 'text', text: 'พิมพ์เหมือนคุยปกติ\nระบบจะจัดเก็บให้เป็นระบบ', size: 'xs', color: OJ.textMuted, wrap: true, margin: 'lg' },
+            ],
+          },
+        },
+        // Card 2: ข้อมูลสุขภาพของคุณ
+        {
+          type: 'bubble',
+          size: 'mega',
+          header: onjaiHeader('ข้อมูลสุขภาพของคุณ'),
+          body: {
+            type: 'box',
+            layout: 'vertical',
+            paddingAll: 'lg',
+            spacing: 'md',
+            contents: [
+              { type: 'text', text: '📊 ดูสรุปและแนวโน้มสุขภาพ', size: 'sm', color: OJ.text, wrap: true },
+              { type: 'text', text: '⏰ ตั้งเตือนกินยา / นัดหมอ', size: 'sm', color: OJ.text, wrap: true },
+              { type: 'text', text: '📋 รายงานสุขภาพส่งหมอ', size: 'sm', color: OJ.text, wrap: true },
+              { type: 'separator', margin: 'lg' },
+              { type: 'text', text: 'กดเมนูด้านล่าง หรือพิมพ์ได้เลยค่ะ', size: 'xs', color: OJ.textMuted, wrap: true, margin: 'lg' },
+            ],
+          },
+        },
+      ],
+    },
+  };
+
+  return [welcomeText, onboardingCard];
+}

@@ -2882,16 +2882,9 @@ async function handleFollow(event: any) {
         await lineClient.replyMessage(replyToken, welcomeBackMessage);
         return { success: true, alreadyRegistered: true };
       } else {
-        // Not yet consented - let LINE OA greeting show, then push consent flex
-        console.log('⚠️ User exists but not consented, pushing consent flex after greeting');
-        setTimeout(async () => {
-          try {
-            await lineClient.pushMessage(userId, createConsentFlexMessage());
-            console.log('✅ Consent flex pushed for unconsented re-follow user');
-          } catch (pushErr) {
-            console.log('⚠️ Push consent flex failed:', pushErr);
-          }
-        }, 2000);
+        // Not yet consented - reply with consent flex immediately
+        console.log('⚠️ User exists but not consented, sending consent flex');
+        await lineClient.replyMessage(replyToken, createConsentFlexMessage());
         return { success: true, needsConsent: true };
       }
     }
@@ -2906,16 +2899,9 @@ async function handleFollow(event: any) {
       console.log('⚠️ Auto-create patient failed (non-blocking):', autoErr);
     }
 
-    // Don't reply — let LINE OA greeting message (card carousel) send first
-    // Then push consent flex after a short delay
-    setTimeout(async () => {
-      try {
-        await lineClient.pushMessage(userId, createConsentFlexMessage());
-        console.log('✅ Consent flex pushed after greeting message');
-      } catch (pushErr) {
-        console.log('⚠️ Push consent flex failed:', pushErr);
-      }
-    }, 2000);
+    // Reply with consent flex immediately — greeting card comes AFTER consent
+    await lineClient.replyMessage(replyToken, createConsentFlexMessage());
+    console.log('✅ Consent flex sent to new user');
 
     return { success: true };
   } catch (error) {
