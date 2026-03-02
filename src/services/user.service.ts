@@ -122,6 +122,7 @@ export class UserService {
     return {
       exists: true,
       role: role,
+      consent_accepted: user.consent_accepted ?? false,
       profile: {
         ...profile,
         profile_id: profile.id
@@ -967,6 +968,36 @@ export class UserService {
     if (error) {
       throw new Error('ลบยาไม่สำเร็จ: ' + error.message);
     }
+  }
+
+  /**
+   * Accept PDPA consent
+   */
+  async acceptConsent(lineUserId: string, options: {
+    consentVersion: string;
+    caregiverShare: boolean;
+    marketing: boolean;
+  }): Promise<{ success: boolean }> {
+    console.log(`✅ UserService.acceptConsent() - lineUserId: ${lineUserId}`);
+
+    const { error } = await supabase
+      .from('users')
+      .update({
+        consent_accepted: true,
+        consent_accepted_at: new Date().toISOString(),
+        consent_version: options.consentVersion,
+        consent_caregiver_share: options.caregiverShare,
+        consent_marketing: options.marketing,
+      })
+      .eq('line_user_id', lineUserId);
+
+    if (error) {
+      console.error('❌ Error accepting consent:', error);
+      throw new Error('บันทึกความยินยอมไม่สำเร็จ: ' + error.message);
+    }
+
+    console.log('✅ Consent accepted successfully');
+    return { success: true };
   }
 
   // ========================================

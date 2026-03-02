@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#1E7B9C">
+  <title>ประกาศความเป็นส่วนตัว - OONJAI</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/oonjai-theme.css">
+
+  <style>
+    .doc-header {
+      background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(191 61% 28%) 100%);
+      color: white;
+      padding: 1.5rem;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .doc-header h1 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+    }
+
+    .doc-header p {
+      font-size: 0.75rem;
+      opacity: 0.8;
+    }
+
+    .doc-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: white;
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 500;
+      margin-bottom: 0.75rem;
+      opacity: 0.9;
+    }
+
+    .doc-back:hover { opacity: 1; }
+
+    .doc-body {
+      padding: 1.5rem;
+      padding-bottom: 3rem;
+    }
+
+    .doc-body h2 {
+      font-size: 1.0625rem;
+      font-weight: 600;
+      color: hsl(var(--foreground));
+      margin: 1.5rem 0 0.75rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid hsl(var(--border));
+    }
+
+    .doc-body h2:first-child {
+      margin-top: 0;
+    }
+
+    .doc-body h3 {
+      font-size: 0.9375rem;
+      font-weight: 600;
+      color: hsl(var(--foreground));
+      margin: 1rem 0 0.5rem;
+    }
+
+    .doc-body p {
+      font-size: 0.875rem;
+      color: hsl(var(--muted-foreground));
+      line-height: 1.8;
+      margin: 0 0 0.75rem;
+    }
+
+    .doc-body ul {
+      padding-left: 1.25rem;
+      margin: 0 0 0.75rem;
+    }
+
+    .doc-body li {
+      font-size: 0.875rem;
+      color: hsl(var(--muted-foreground));
+      line-height: 1.8;
+      margin-bottom: 0.25rem;
+    }
+
+    .doc-meta {
+      background: hsl(var(--muted));
+      border: 1px solid hsl(var(--border));
+      border-radius: var(--radius-lg);
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+      font-size: 0.8125rem;
+      color: hsl(var(--muted-foreground));
+      line-height: 1.8;
+    }
+
+    .doc-highlight {
+      background: hsl(var(--warning) / 0.08);
+      border: 1px solid hsl(var(--warning) / 0.2);
+      border-radius: var(--radius-lg);
+      padding: 0.875rem 1rem;
+      margin: 0.75rem 0;
+      font-size: 0.8125rem;
+      color: hsl(var(--foreground));
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+  <div class="doc-header">
+    <a href="consent.html" class="doc-back">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+      กลับหน้ายอมรับ
+    </a>
+    <h1>ประกาศความเป็นส่วนตัว</h1>
+    <p>Privacy Notice (PDPA) v1.0</p>
+  </div>
+
+  <div class="doc-body">
+    <div class="doc-meta">
+      <strong>ประกาศความเป็นส่วนตัว (Privacy Notice) — oonjai</strong><br>
+      ผู้ควบคุมข้อมูลส่วนบุคคล: [COMPANY_NAME] ("เรา")<br>
+      ที่อยู่: [COMPANY_ADDRESS]<br>
+      มีผลบังคับใช้ตั้งแต่: [EFFECTIVE_DATE]<br>
+      ติดต่อเรื่องข้อมูลส่วนบุคคล: [PRIVACY_EMAIL] / DPO: [DPO_EMAIL] (ถ้ามี)
+    </div>
+
+    <h2>1) เราเก็บข้อมูลอะไรบ้าง</h2>
+
+    <h3>(ก) ข้อมูลส่วนบุคคลทั่วไป</h3>
+    <ul>
+      <li>ข้อมูลบัญชี/การติดต่อ: ชื่อ (ถ้ามี), LINE user id, เบอร์โทร/อีเมล (ถ้ามี), อายุ/เพศ (ถ้ามี)</li>
+      <li>ข้อมูลการใช้งาน: ประวัติการใช้งานในระบบ, เวลาเข้าใช้, log เหตุการณ์, ข้อมูลอุปกรณ์/เบราว์เซอร์ (เท่าที่จำเป็น)</li>
+      <li>ข้อมูลการตั้งค่า: การตั้งค่าเตือน การตั้งค่าความเป็นส่วนตัว ผู้ดูแลที่กำหนด</li>
+    </ul>
+
+    <h3>(ข) ข้อมูลส่วนบุคคลอ่อนไหว: ข้อมูลสุขภาพ (Sensitive Personal Data)</h3>
+    <ul>
+      <li>อาการ ประวัติสุขภาพ โรคประจำตัว การแพ้ยา</li>
+      <li>รายการยา/อาหารเสริม ขนาดยา เวลาใช้ยา</li>
+      <li>ผลตรวจ/ค่าห้องแล็บ เอกสารหรือรูปภาพทางการแพทย์ที่ผู้ใช้อัปโหลด</li>
+    </ul>
+
+    <div class="doc-highlight">
+      ข้อมูลสุขภาพเป็นข้อมูลอ่อนไหว ต้องใช้ "ความยินยอมโดยชัดแจ้ง" เว้นแต่เข้าข้อยกเว้นตามกฎหมาย
+    </div>
+
+    <h2>2) เราเก็บข้อมูลจากแหล่งใด</h2>
+    <ul>
+      <li>จากผู้ใช้โดยตรง (พิมพ์แชท กรอกฟอร์ม อัปโหลดไฟล์)</li>
+      <li>จากการใช้งานระบบ (log การใช้งาน/การตั้งค่า)</li>
+      <li>จาก LINE platform เฉพาะข้อมูลจำเป็นต่อการให้บริการ (เช่น LINE user id)</li>
+    </ul>
+
+    <h2>3) วัตถุประสงค์ที่เราใช้ข้อมูล</h2>
+    <p>เราใช้ข้อมูลเพื่อ:</p>
+    <ul>
+      <li>สร้าง "โปรไฟล์สุขภาพ" และ "ไทม์ไลน์สุขภาพ" จากข้อมูลที่ผู้ใช้ให้</li>
+      <li>ติดตามและแจ้งเตือน (ยา นัด ตรวจซ้ำ พฤติกรรมสุขภาพ)</li>
+      <li>จัดทำสรุป/รายงานสุขภาพเพื่อผู้ใช้ (และผู้ดูแลเมื่อผู้ใช้สั่งและเปิดสิทธิ)</li>
+      <li>ดูแลความปลอดภัยระบบ ป้องกันการทุจริต ตรวจสอบข้อผิดพลาด</li>
+      <li>พัฒนาคุณภาพบริการ (โดยยึดหลักเท่าที่จำเป็น และใช้มาตรการลดการระบุตัวตนเมื่อทำได้)</li>
+    </ul>
+
+    <h2>4) ฐานกฎหมายในการประมวลผลข้อมูล</h2>
+    <ul>
+      <li><strong>เพื่อการให้บริการตามสัญญา:</strong> ข้อมูลทั่วไปที่จำเป็นต่อการให้บริการ</li>
+      <li><strong>ความยินยอม:</strong> กรณีที่ต้องใช้ความยินยอม (เช่น ข่าวสาร/การตลาด)</li>
+      <li><strong>ความยินยอมโดยชัดแจ้ง:</strong> สำหรับข้อมูลสุขภาพ (ข้อมูลอ่อนไหว)</li>
+    </ul>
+
+    <div class="doc-highlight">
+      ผู้ใช้สามารถถอนความยินยอมได้ทุกเมื่อ แต่การถอนอาจทำให้ใช้ฟีเจอร์หลักบางส่วนไม่ได้
+    </div>
+
+    <h2>5) เราเปิดเผยข้อมูลให้ใคร</h2>
+    <p>เราอาจเปิดเผยข้อมูลให้:</p>
+    <ul>
+      <li><strong>ผู้ประมวลผลข้อมูล (Data Processors)</strong> เพื่อให้บริการทำงาน เช่น โฮสติ้ง/ฐานข้อมูล/ระบบส่งข้อความ/ระบบวิเคราะห์การใช้งาน</li>
+      <li><strong>ผู้ดูแล (Caregiver)</strong> เฉพาะเมื่อผู้ใช้ "เปิดสิทธิ" และตามขอบเขตที่ผู้ใช้เลือก</li>
+      <li><strong>หน่วยงานรัฐ/ผู้มีอำนาจตามกฎหมาย</strong> เมื่อจำเป็นต้องปฏิบัติตามกฎหมายหรือคำสั่ง</li>
+    </ul>
+
+    <h2>6) การโอนข้อมูลไปต่างประเทศ</h2>
+    <p>หากผู้ให้บริการโครงสร้างพื้นฐานหรือผู้ประมวลผลข้อมูลตั้งอยู่ต่างประเทศ เราอาจโอนข้อมูลไปยังประเทศดังกล่าวโดยมีมาตรการคุ้มครองที่เหมาะสมตามกฎหมาย เช่น ข้อกำหนดในสัญญาและมาตรการความปลอดภัยที่เทียบเท่า</p>
+
+    <h2>7) ระยะเวลาการเก็บรักษาข้อมูล (Retention)</h2>
+    <p>เราจะเก็บข้อมูลเท่าที่จำเป็นตามวัตถุประสงค์ และตามระยะเวลาที่กฎหมายกำหนด</p>
+    <ul>
+      <li>ระหว่างที่ผู้ใช้ยังใช้บริการ: เก็บข้อมูลเพื่อให้บริการต่อเนื่อง</li>
+      <li>หลังยกเลิก/ลบบัญชี: ลบหรือทำให้ไม่สามารถระบุตัวตนได้ภายใน [RETENTION_DAYS] วัน เว้นแต่จำเป็นต้องเก็บเพื่อการพิสูจน์สิทธิ/ปฏิบัติตามกฎหมาย</li>
+    </ul>
+
+    <h2>8) สิทธิของเจ้าของข้อมูล</h2>
+    <p>ผู้ใช้มีสิทธิตาม PDPA (ขึ้นกับเงื่อนไขกฎหมาย) เช่น:</p>
+    <ul>
+      <li>ขอเข้าถึงและขอสำเนาข้อมูล</li>
+      <li>ขอแก้ไขให้ถูกต้อง</li>
+      <li>ขอให้ลบ/ทำลาย หรือทำให้ไม่สามารถระบุตัวตนได้</li>
+      <li>ขอจำกัดการประมวลผล หรือคัดค้านการประมวลผลในบางกรณี</li>
+      <li>ขอให้โอนย้ายข้อมูล (เมื่อมีเงื่อนไขรองรับ)</li>
+      <li>ถอนความยินยอมได้ทุกเมื่อ</li>
+    </ul>
+    <p>วิธีใช้สิทธิ: ติดต่อ [PRIVACY_EMAIL] หรือทำรายการได้ที่หน้า Settings (ถ้ามี)</p>
+
+    <h2>9) การถอนความยินยอมและการตั้งค่าความเป็นส่วนตัว</h2>
+    <p>ผู้ใช้สามารถไปที่หน้า Settings &rarr; Privacy เพื่อ:</p>
+    <ul>
+      <li>ปิด/เปิดโหมดผู้ดูแล</li>
+      <li>ถอนความยินยอมข้อมูลสุขภาพ (ถอนแล้วอาจใช้งานฟีเจอร์หลักไม่ได้)</li>
+      <li>ขอส่งออกข้อมูล (Data export request)</li>
+      <li>ขอให้ลบข้อมูล/ลบบัญชี (Data deletion request)</li>
+    </ul>
+
+    <h2>10) มาตรการความปลอดภัยของข้อมูล</h2>
+    <p>เรามีมาตรการทางเทคนิคและองค์กรที่เหมาะสม เช่น:</p>
+    <ul>
+      <li>ควบคุมสิทธิการเข้าถึงตามบทบาท (role-based access)</li>
+      <li>เข้ารหัสระหว่างส่งข้อมูล/ขณะจัดเก็บ (ตามความเหมาะสมของระบบ)</li>
+      <li>บันทึกการเข้าถึงและเหตุการณ์สำคัญ (audit log)</li>
+      <li>กระบวนการจัดการเหตุข้อมูลรั่วไหล/ละเมิดข้อมูล</li>
+    </ul>
+
+    <h2>11) ผู้เยาว์</h2>
+    <p>บริการนี้เหมาะสำหรับผู้มีอายุ [AGE_LIMIT] ปีขึ้นไป หากต่ำกว่าเกณฑ์ดังกล่าว อาจต้องได้รับความยินยอมจากผู้ใช้อำนาจปกครองตามกฎหมายก่อนใช้งาน</p>
+
+    <h2>12) การปรับปรุงประกาศ</h2>
+    <p>เราอาจปรับปรุง Privacy Notice เป็นครั้งคราว โดยจะแสดงเวอร์ชันล่าสุดในบริการ หากมีการเปลี่ยนสาระสำคัญ อาจขอให้ผู้ใช้ยืนยัน/ยอมรับใหม่ก่อนใช้งานต่อ</p>
+
+    <h2>13) ติดต่อ/ร้องเรียน</h2>
+    <p>ติดต่อเรื่องข้อมูลส่วนบุคคล: [PRIVACY_EMAIL] / DPO: [DPO_EMAIL]</p>
+    <p>ผู้ใช้มีสิทธิร้องเรียนต่อสำนักงานคณะกรรมการคุ้มครองข้อมูลส่วนบุคคล (สคส.) ตามช่องทางที่หน่วยงานกำหนด</p>
+  </div>
+</body>
+</html>

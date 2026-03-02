@@ -232,6 +232,7 @@ export interface CaregiverRegistrationForm {
 export interface RegistrationCheckResponse {
   exists: boolean;
   role?: 'patient' | 'caregiver';
+  consent_accepted?: boolean;
   profile?: PatientProfile | CaregiverProfile;
 }
 

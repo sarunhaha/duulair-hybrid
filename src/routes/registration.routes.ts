@@ -52,6 +52,37 @@ router.post('/check', async (req: Request, res: Response) => {
 });
 
 /**
+ * POST /api/registration/accept-consent
+ * Accept PDPA consent (Terms & Conditions + Privacy Notice)
+ */
+router.post('/accept-consent', async (req: Request, res: Response) => {
+  try {
+    const { line_user_id, consent_version, caregiver_share, marketing } = req.body;
+
+    if (!line_user_id) {
+      return res.status(400).json({
+        success: false,
+        error: 'line_user_id is required'
+      });
+    }
+
+    const result = await userService.acceptConsent(line_user_id, {
+      consentVersion: consent_version || '1.0',
+      caregiverShare: caregiver_share || false,
+      marketing: marketing || false,
+    });
+
+    res.json(result);
+  } catch (error: any) {
+    console.error('Accept consent error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'บันทึกความยินยอมไม่สำเร็จ'
+    });
+  }
+});
+
+/**
  * POST /api/registration/auto-create
  * Auto-create minimal patient profile for LIFF health recording
  * สร้าง patient profile อัตโนมัติ เมื่อ user ต้องการบันทึกข้อมูลสุขภาพ

@@ -414,6 +414,61 @@ function createRegistrationFlexMessage(): FlexMessage {
   };
 }
 
+// Flex Message for PDPA Consent Gate
+function createConsentFlexMessage(): FlexMessage {
+  return {
+    type: 'flex',
+    altText: 'กรุณายอมรับข้อกำหนดก่อนเริ่มใช้งาน',
+    contents: {
+      type: 'bubble',
+      header: onjaiHeader('ก่อนเริ่มใช้ oonjai', 'ข้อกำหนดและความเป็นส่วนตัว'),
+      body: {
+        type: 'box',
+        layout: 'vertical',
+        contents: [
+          {
+            type: 'text',
+            text: 'oonjai เก็บและใช้ข้อมูลสุขภาพของคุณเพื่อบันทึก ติดตาม และแจ้งเตือน',
+            size: 'sm',
+            color: OJ.text,
+            wrap: true
+          },
+          {
+            type: 'separator',
+            margin: 'lg'
+          },
+          {
+            type: 'text',
+            text: 'กรุณาอ่านและยอมรับข้อกำหนดเพื่อเริ่มใช้งาน',
+            size: 'xs',
+            color: OJ.textMuted,
+            margin: 'lg',
+            wrap: true
+          }
+        ],
+        paddingAll: 'xl'
+      },
+      footer: {
+        type: 'box',
+        layout: 'vertical',
+        spacing: 'sm',
+        contents: [
+          {
+            type: 'button',
+            style: 'primary',
+            color: OJ.primary,
+            action: {
+              type: 'uri',
+              label: 'อ่านและยอมรับ',
+              uri: `https://liff.line.me/${LIFF_ID}/consent.html`
+            }
+          }
+        ]
+      }
+    }
+  };
+}
+
 // Flex Message for Package Info
 function createPackageFlexMessage(): FlexMessage {
   return {
@@ -1698,14 +1753,21 @@ async function handleTextMessage(event: any) {
           process.env.SUPABASE_SERVICE_KEY || ''
         );
 
-        // Step 1: Get user by LINE user ID
+        // Step 1: Get user by LINE user ID (include consent_accepted)
         const { data: user } = await supabase
           .from('users')
-          .select('id, role')
+          .select('id, role, consent_accepted')
           .eq('line_user_id', userId)
           .single();
 
         if (user) {
+          // ✅ Consent gate: block if not accepted
+          if (!user.consent_accepted) {
+            console.log('⚠️ User has not accepted consent, sending consent reminder');
+            await lineClient.replyMessage(replyToken, createConsentFlexMessage());
+            return { success: true, blocked: true, reason: 'consent_not_accepted' };
+          }
+
           // Override userId to UUID for consistent use across agents
           context.userId = user.id;
 
@@ -2809,34 +2871,37 @@ async function handleFollow(event: any) {
     const checkResult = await userService.checkUserExists(userId);
 
     if (checkResult.exists) {
-      // Already registered - send welcome back message
-      console.log('✅ User already registered, sending welcome back message');
-      const welcomeBackMessage: TextMessage = {
-        type: 'text',
-        text: `สวัสดีค่ะ! ยินดีต้อนรับกลับมานะคะ 👋\n\nคุณลงทะเบียนเป็น${checkResult.role === 'caregiver' ? 'ผู้ดูแล' : 'สมาชิก'}แล้ว\nสามารถใช้งานได้ทันทีผ่านเมนูด้านล่างเลยค่ะ ✨`
-      };
-      await lineClient.replyMessage(replyToken, welcomeBackMessage);
-      return { success: true, alreadyRegistered: true };
+      // Already registered - check consent status
+      if (checkResult.consent_accepted) {
+        // Consented - send welcome back message
+        console.log('✅ User already registered + consented, sending welcome back message');
+        const welcomeBackMessage: TextMessage = {
+          type: 'text',
+          text: `สวัสดีค่ะ! ยินดีต้อนรับกลับมานะคะ 👋\n\nคุณลงทะเบียนเป็น${checkResult.role === 'caregiver' ? 'ผู้ดูแล' : 'สมาชิก'}แล้ว\nสามารถใช้งานได้ทันทีผ่านเมนูด้านล่างเลยค่ะ ✨`
+        };
+        await lineClient.replyMessage(replyToken, welcomeBackMessage);
+        return { success: true, alreadyRegistered: true };
+      } else {
+        // Not yet consented - send consent flex again
+        console.log('⚠️ User exists but not consented, sending consent flex');
+        await lineClient.replyMessage(replyToken, createConsentFlexMessage());
+        return { success: true, needsConsent: true };
+      }
     }
 
-    // ✅ New user - auto-create patient + send welcome text
-    console.log('📝 New user - auto-creating patient profile');
-    let displayName = 'คุณ';
+    // ✅ New user - auto-create patient (consent_accepted=false) + send consent flex
+    console.log('📝 New user - auto-creating patient profile (no consent yet)');
     try {
       const lineProfile = await lineClient.getProfile(userId);
-      displayName = lineProfile.displayName || 'คุณ';
       await userService.autoCreatePatient(userId, lineProfile.displayName, lineProfile.pictureUrl);
       console.log('✅ Auto-created patient profile for new follower');
     } catch (autoErr) {
       console.log('⚠️ Auto-create patient failed (non-blocking):', autoErr);
     }
 
-    const welcomeMessage: TextMessage = {
-      type: 'text',
-      text: `สวัสดีค่ะ! 👋 น้องอุ่นเองค่ะ\n\nยินดีต้อนรับ ${displayName} นะคะ\nน้องอุ่นพร้อมช่วยดูแลสุขภาพของคุณแล้วค่ะ\n\n💬 พิมพ์คุยได้เลย เช่น\n• "กินยาแล้ว"\n• "ความดัน 120/80"\n• "ดื่มน้ำ 1 แก้ว"\n\nหรือพิมพ์อะไรก็ได้ น้องอุ่นเข้าใจค่ะ 😊`
-    };
-    await lineClient.replyMessage(replyToken, welcomeMessage);
-    console.log('✅ Welcome text sent');
+    // Send consent flex instead of welcome text
+    await lineClient.replyMessage(replyToken, createConsentFlexMessage());
+    console.log('✅ Consent flex sent to new user');
 
     return { success: true };
   } catch (error) {

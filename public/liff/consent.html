@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#1E7B9C">
+  <title>ยอมรับข้อกำหนด - OONJAI</title>
+
+  <!-- Preconnect -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://static.line-scdn.net">
+
+  <!-- Kanit Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Theme CSS -->
+  <link rel="stylesheet" href="css/oonjai-theme.css">
+
+  <style>
+    /* Hero */
+    .consent-hero {
+      background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(191 61% 28%) 100%);
+      color: white;
+      padding: 2rem 1.5rem;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .consent-hero::before,
+    .consent-hero::after {
+      content: '';
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.06);
+    }
+
+    .consent-hero::before {
+      width: 200px; height: 200px;
+      top: -80px; right: -60px;
+    }
+
+    .consent-hero::after {
+      width: 120px; height: 120px;
+      bottom: -40px; left: -30px;
+    }
+
+    .consent-hero-icon {
+      width: 64px; height: 64px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1rem;
+    }
+
+    .consent-hero-icon svg {
+      width: 32px; height: 32px;
+      color: white;
+    }
+
+    .consent-hero h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+    }
+
+    .consent-hero p {
+      font-size: 0.875rem;
+      opacity: 0.85;
+    }
+
+    /* Summary */
+    .consent-summary {
+      background: hsl(var(--muted));
+      border: 1px solid hsl(var(--border));
+      border-radius: var(--radius-lg);
+      padding: 1rem 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .consent-summary p {
+      font-size: 0.8125rem;
+      color: hsl(var(--muted-foreground));
+      line-height: 1.7;
+      margin: 0;
+    }
+
+    .consent-summary p + p {
+      margin-top: 0.5rem;
+    }
+
+    /* Checkbox group */
+    .consent-section-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: hsl(var(--muted-foreground));
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.75rem;
+    }
+
+    .consent-group {
+      margin-bottom: 1.5rem;
+    }
+
+    .consent-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      padding: 0.875rem 1rem;
+      background: hsl(var(--card));
+      border: 1px solid hsl(var(--border));
+      border-radius: var(--radius-lg);
+      margin-bottom: 0.5rem;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+    }
+
+    .consent-item:hover {
+      border-color: hsl(var(--primary) / 0.4);
+    }
+
+    .consent-item.checked {
+      border-color: hsl(var(--primary));
+      background: hsl(var(--primary) / 0.04);
+    }
+
+    .consent-item input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+      margin-top: 2px;
+      accent-color: hsl(var(--primary));
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+
+    .consent-item-text {
+      flex: 1;
+      font-size: 0.875rem;
+      color: hsl(var(--foreground));
+      line-height: 1.5;
+    }
+
+    .consent-item-link {
+      color: hsl(var(--primary));
+      text-decoration: underline;
+      font-weight: 500;
+    }
+
+    /* Warning */
+    .consent-warning {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      padding: 0.875rem 1rem;
+      background: hsl(var(--warning) / 0.08);
+      border: 1px solid hsl(var(--warning) / 0.2);
+      border-radius: var(--radius-lg);
+      margin-bottom: 1.5rem;
+    }
+
+    .consent-warning svg {
+      flex-shrink: 0;
+      width: 24px; height: 24px;
+      color: hsl(var(--warning));
+    }
+
+    .consent-warning p {
+      font-size: 0.8125rem;
+      color: hsl(var(--foreground));
+      line-height: 1.5;
+      margin: 0;
+    }
+
+    /* Submit button */
+    .consent-submit {
+      margin-bottom: 1rem;
+    }
+
+    .consent-submit .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .consent-footer {
+      text-align: center;
+      font-size: 0.75rem;
+      color: hsl(var(--muted-foreground));
+      padding-bottom: 2rem;
+    }
+  </style>
+</head>
+<body>
+  <!-- Hero -->
+  <div class="consent-hero">
+    <div class="consent-hero-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>
+    </div>
+    <h1>ก่อนเริ่มใช้ oonjai</h1>
+    <p>ข้อกำหนดและความเป็นส่วนตัว</p>
+  </div>
+
+  <div class="container" style="padding-top: 1.5rem;">
+    <!-- Summary -->
+    <div class="consent-summary">
+      <p>oonjai ช่วยบันทึกและสรุปข้อมูลสุขภาพจากบทสนทนา เพื่อการติดตามและแจ้งเตือน</p>
+      <p>oonjai ไม่ใช่บริการทางการแพทย์ และไม่ใช้แทนแพทย์</p>
+      <p>เพื่อให้บริการได้ เราจำเป็นต้องขอความยินยอมโดยชัดแจ้งในการใช้ข้อมูลสุขภาพของคุณ</p>
+      <p>คุณถอนความยินยอมได้ทุกเมื่อใน Settings</p>
+    </div>
+
+    <!-- Required checkboxes -->
+    <div class="consent-group">
+      <div class="consent-section-label">จำเป็น (ต้องยอมรับทั้ง 3 ข้อ)</div>
+
+      <label class="consent-item" id="item1">
+        <input type="checkbox" id="cb1" onchange="updateItem(this); updateSubmitState()">
+        <span class="consent-item-text">
+          ฉันได้อ่านและยอมรับ <a href="terms.html" class="consent-item-link" onclick="event.stopPropagation()">ข้อกำหนดการใช้บริการ (Terms &amp; Conditions)</a>
+        </span>
+      </label>
+
+      <label class="consent-item" id="item2">
+        <input type="checkbox" id="cb2" onchange="updateItem(this); updateSubmitState()">
+        <span class="consent-item-text">
+          ฉันได้อ่านและรับทราบ <a href="privacy.html" class="consent-item-link" onclick="event.stopPropagation()">ประกาศความเป็นส่วนตัว (Privacy Notice)</a>
+        </span>
+      </label>
+
+      <label class="consent-item" id="item3">
+        <input type="checkbox" id="cb3" onchange="updateItem(this); updateSubmitState()">
+        <span class="consent-item-text">
+          ฉันยินยอมโดยชัดแจ้งให้เก็บ/ใช้/เปิดเผย "ข้อมูลสุขภาพ" ของฉันเพื่อให้บริการ
+        </span>
+      </label>
+    </div>
+
+    <!-- Optional checkboxes -->
+    <div class="consent-group">
+      <div class="consent-section-label">ทางเลือก (เปิด/ปิดได้ทีหลังใน Settings)</div>
+
+      <label class="consent-item" id="item4">
+        <input type="checkbox" id="cb4" onchange="updateItem(this)">
+        <span class="consent-item-text">
+          ยินยอมแชร์ข้อมูลบางส่วนให้ "ผู้ดูแล (Caregiver)" ที่ฉันกำหนด
+        </span>
+      </label>
+
+      <label class="consent-item" id="item5">
+        <input type="checkbox" id="cb5" onchange="updateItem(this)">
+        <span class="consent-item-text">
+          ยินยอมรับข่าวสารและอัปเดตผลิตภัณฑ์
+        </span>
+      </label>
+    </div>
+
+    <!-- Warning -->
+    <div class="consent-warning">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+      <p>หากไม่ยอมรับข้อบังคับทั้ง 3 ข้อ จะไม่สามารถใช้บริการ oonjai ได้</p>
+    </div>
+
+    <!-- Submit -->
+    <div class="consent-submit">
+      <button type="button" class="btn btn-primary btn-block" id="submitBtn" disabled onclick="submitConsent()">
+        ยอมรับและเริ่มใช้งาน
+      </button>
+    </div>
+
+    <div class="consent-footer">
+      เวอร์ชันเอกสาร 1.0
+    </div>
+  </div>
+
+  <!-- LIFF SDK -->
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+  <!-- API Client -->
+  <script src="js/api.js"></script>
+
+  <script>
+    const LIFF_ID = '2008278683-5k69jxNq';
+    let liffProfile = null;
+
+    function updateItem(checkbox) {
+      const item = checkbox.closest('.consent-item');
+      item.classList.toggle('checked', checkbox.checked);
+    }
+
+    function updateSubmitState() {
+      const cb1 = document.getElementById('cb1').checked;
+      const cb2 = document.getElementById('cb2').checked;
+      const cb3 = document.getElementById('cb3').checked;
+      document.getElementById('submitBtn').disabled = !(cb1 && cb2 && cb3);
+    }
+
+    async function submitConsent() {
+      const btn = document.getElementById('submitBtn');
+      btn.disabled = true;
+      btn.textContent = 'กำลังบันทึก...';
+
+      try {
+        if (!liffProfile) {
+          throw new Error('ไม่พบข้อมูลผู้ใช้');
+        }
+
+        await api.post('/registration/accept-consent', {
+          line_user_id: liffProfile.userId,
+          consent_version: '1.0',
+          caregiver_share: document.getElementById('cb4').checked,
+          marketing: document.getElementById('cb5').checked,
+        });
+
+        btn.textContent = 'สำเร็จ!';
+
+        // Close LIFF after short delay
+        setTimeout(function() {
+          if (typeof liff !== 'undefined' && liff.isInClient()) {
+            liff.closeWindow();
+          } else {
+            window.close();
+          }
+        }, 800);
+
+      } catch (error) {
+        console.error('Accept consent error:', error);
+        btn.disabled = false;
+        btn.textContent = 'ยอมรับและเริ่มใช้งาน';
+        alert('เกิดข้อผิดพลาด: ' + (error.message || 'กรุณาลองใหม่'));
+      }
+    }
+
+    async function init() {
+      try {
+        await liff.init({ liffId: LIFF_ID });
+
+        if (!liff.isLoggedIn()) {
+          liff.login();
+          return;
+        }
+
+        liffProfile = await liff.getProfile();
+        console.log('LIFF Profile:', liffProfile.userId);
+
+      } catch (error) {
+        console.error('LIFF init failed:', error);
+      }
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+  </script>
+</body>
+</html>
