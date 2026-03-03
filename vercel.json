@@ -13,64 +13,69 @@
   ],
   "routes": [
     {
-      "src": "/liff/registration/?$",
+      "src": "/liff/registration(\\.html)?/?$",
       "status": 302,
       "headers": { "Location": "/liff-v2/registration" }
     },
     {
-      "src": "/liff/group-registration/?$",
+      "src": "/liff/group-registration(\\.html)?/?$",
       "status": 302,
       "headers": { "Location": "/liff-v2/registration/group" }
     },
     {
-      "src": "/liff/success/?$",
+      "src": "/liff/success(\\.html)?/?$",
       "status": 302,
       "headers": { "Location": "/liff-v2/registration/success" }
     },
     {
-      "src": "/liff/dashboard/?$",
+      "src": "/liff/dashboard(\\.html)?/?$",
       "status": 302,
       "headers": { "Location": "/liff-v2/dashboard" }
     },
     {
-      "src": "/liff/group-dashboard/?$",
+      "src": "/liff/group-dashboard(\\.html)?/?$",
       "status": 302,
       "headers": { "Location": "/liff-v2/dashboard/group" }
     },
     {
-      "src": "/liff/(patient-profile|my-profile)/?$",
+      "src": "/liff/(patient-profile|my-profile)(\\.html)?/?$",
       "status": 302,
       "headers": { "Location": "/liff-v2/profile" }
     },
     {
-      "src": "/liff/edit-profile/?$",
+      "src": "/liff/edit-profile(\\.html)?/?$",
       "status": 302,
       "headers": { "Location": "/liff-v2/profile/edit" }
     },
     {
-      "src": "/liff/settings/?$",
+      "src": "/liff/settings(\\.html)?/?$",
       "status": 302,
       "headers": { "Location": "/liff-v2/settings" }
     },
     {
-      "src": "/liff/medications/?$",
+      "src": "/liff/medications(\\.html)?/?$",
       "status": 302,
       "headers": { "Location": "/liff-v2/settings/medications" }
     },
     {
-      "src": "/liff/reminders/?$",
+      "src": "/liff/reminders(\\.html)?/?$",
       "status": 302,
       "headers": { "Location": "/liff-v2/settings/reminders" }
     },
     {
-      "src": "/liff/(health-log|log-medication|log-symptom|vitals-tracking|water-tracking|log-exercise|log-mood|log-medical-notes)/?$",
+      "src": "/liff/(health-log|log-medication|log-symptom|vitals-tracking|water-tracking|log-exercise|log-mood|log-medical-notes)(\\.html)?/?$",
       "status": 302,
       "headers": { "Location": "/liff-v2/records" }
     },
     {
-      "src": "/liff/reports/?$",
+      "src": "/liff/reports(\\.html)?/?$",
       "status": 302,
       "headers": { "Location": "/liff-v2/reports" }
+    },
+    {
+      "src": "/liff/index(\\.html)?/?$",
+      "status": 302,
+      "headers": { "Location": "/liff-v2/" }
     },
     {
       "src": "/liff/(records|trends|history|link)(/?.*)",
@@ -83,8 +88,12 @@
       "headers": { "Location": "/liff-v2/" }
     },
     {
-      "src": "/liff/(.*)",
-      "dest": "public/liff/$1"
+      "src": "/liff/(consent|terms|privacy)(\\.html)?(\\?.*)?$",
+      "dest": "public/liff/$1.html"
+    },
+    {
+      "src": "/liff/(css|js|images)/(.*)",
+      "dest": "public/liff/$1/$2"
     },
 
     {

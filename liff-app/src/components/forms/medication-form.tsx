@@ -172,7 +172,7 @@ export function MedicationForm({ onSuccess, onCancel, initialEditData }: Medicat
     if (!medications) return [];
     return medications.filter((med) => {
       const times = med.times || [];
-      return times.includes(currentPeriod);
+      return times.length === 0 || times.includes(currentPeriod);
     });
   }, [medications, currentPeriod]);
 
