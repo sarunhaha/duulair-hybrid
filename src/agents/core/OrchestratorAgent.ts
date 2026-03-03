@@ -229,6 +229,14 @@ export class OrchestratorAgent extends BaseAgent {
         return this.handleOnboardingResponse(message, nluResult, onboardingContext, startTime);
       }
 
+      // Auto-complete stuck onboarding: if onboarding is not completed but user is already
+      // using the app normally (intent is not onboarding), mark it as complete so they don't
+      // get stuck in onboarding mode forever
+      if (onboardingContext && !onboardingContext.completed && nluResult.intent !== 'onboarding' && message.context.userId) {
+        this.log('info', `Auto-completing stuck onboarding for user (intent: ${nluResult.intent}, step: ${onboardingContext.step})`);
+        await this.updateOnboardingStep(message.context.userId, 'complete', true);
+      }
+
       // Special case: health_log_menu - show health logging menu
       if (this.isHealthLogMenuRequest(message.content)) {
         return this.handleHealthLogMenuRequest(message, startTime);
