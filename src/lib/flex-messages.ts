@@ -137,19 +137,22 @@ export function createHealthLogMenuFlexMessage(): FlexMessage {
   };
 }
 
+const IMG_BASE = 'https://app.oonj.ai/liff-v2/images';
+
 /**
  * Welcome onboarding messages — sent after consent accepted
- * Replicates the LINE OA greeting card template content
+ * Greeting text + image carousel (s-1 to s-4)
+ * Last card (s-4) has CTA button "เริ่มบันทึก"
  */
-export function createWelcomeOnboardingMessages(): Array<any> {
-  const welcomeText = {
+export function createWelcomeOnboardingMessages(displayName: string): Array<any> {
+  const greetingText = {
     type: 'text' as const,
-    text: 'ยินดีต้อนรับค่ะ! 🌿\n\nอุ่นใจคือผู้ช่วยบันทึกสุขภาพผ่าน LINE ที่ช่วยเก็บข้อมูลให้เป็นระบบ\n\nเมื่อมีการบันทึกอย่างต่อเนื่อง คุณจะเห็นแนวโน้มสุขภาพได้ชัดเจน และตัดสินใจดูแลตัวเองได้ดีขึ้น\n\nดูวิธีใช้งานด้านล่างได้เลยค่ะ 👇',
+    text: `สวัสดีค่ะ ${displayName}\nน้องอุ่น ยินดีต้อนรับ\n\nอุ่นใจคือผู้ช่วยบันทึกสุขภาพผ่าน LINE ที่ช่วยเก็บข้อมูลให้เป็นระบบ\n\nเมื่อมีการบันทึกอย่างต่อเนื่อง\nคุณจะเห็นแนวโน้มสุขภาพได้ชัดเจน และตัดสินใจดูแลตัวเองได้ดีขึ้น\n\nดูวิธีใช้งานด้านล่างได้เลยค่ะ 👇`,
   };
 
-  const onboardingCard: FlexMessage = {
+  const onboardingCarousel: FlexMessage = {
     type: 'flex',
-    altText: 'บันทึกสุขภาพได้ครบใน LINE',
+    altText: 'วิธีใช้งาน oonjai — บันทึกสุขภาพได้ครบใน LINE',
     contents: {
       type: 'carousel',
       contents: [
@@ -157,37 +160,68 @@ export function createWelcomeOnboardingMessages(): Array<any> {
         {
           type: 'bubble',
           size: 'mega',
-          header: onjaiHeader('บันทึกสุขภาพได้ครบใน LINE'),
-          body: {
-            type: 'box',
-            layout: 'vertical',
-            paddingAll: 'lg',
-            spacing: 'md',
-            contents: [
-              { type: 'text', text: '💊 ค่าเลือด ค่าตับ ค่าไต', size: 'sm', color: OJ.text, wrap: true },
-              { type: 'text', text: '💉 ความดัน น้ำตาล น้ำหนัก', size: 'sm', color: OJ.text, wrap: true },
-              { type: 'text', text: '😴 การนอน อาหาร และอื่น ๆ', size: 'sm', color: OJ.text, wrap: true },
-              { type: 'separator', margin: 'lg' },
-              { type: 'text', text: 'พิมพ์เหมือนคุยปกติ\nระบบจะจัดเก็บให้เป็นระบบ', size: 'xs', color: OJ.textMuted, wrap: true, margin: 'lg' },
-            ],
+          hero: {
+            type: 'image',
+            url: `${IMG_BASE}/s-1.jpg`,
+            size: 'full',
+            aspectRatio: '1:1',
+            aspectMode: 'cover',
           },
         },
-        // Card 2: ข้อมูลสุขภาพของคุณ
+        // Card 2: ข้อมูลสุขภาพไม่กระจัดกระจาย
         {
           type: 'bubble',
           size: 'mega',
-          header: onjaiHeader('ข้อมูลสุขภาพของคุณ'),
-          body: {
+          hero: {
+            type: 'image',
+            url: `${IMG_BASE}/s-2.jpg`,
+            size: 'full',
+            aspectRatio: '1:1',
+            aspectMode: 'cover',
+          },
+        },
+        // Card 3: ดูแนวโน้มสุขภาพได้ชัด
+        {
+          type: 'bubble',
+          size: 'mega',
+          hero: {
+            type: 'image',
+            url: `${IMG_BASE}/s-3.jpg`,
+            size: 'full',
+            aspectRatio: '1:1',
+            aspectMode: 'cover',
+          },
+        },
+        // Card 4: เริ่มบันทึกค่าสุขภาพวันนี้ — with CTA button
+        {
+          type: 'bubble',
+          size: 'mega',
+          hero: {
+            type: 'image',
+            url: `${IMG_BASE}/s-4.jpg`,
+            size: 'full',
+            aspectRatio: '1:1',
+            aspectMode: 'cover',
+            action: {
+              type: 'message',
+              label: 'เริ่มบันทึก',
+              text: 'เริ่มบันทึก',
+            },
+          },
+          footer: {
             type: 'box',
             layout: 'vertical',
-            paddingAll: 'lg',
-            spacing: 'md',
             contents: [
-              { type: 'text', text: '📊 ดูสรุปและแนวโน้มสุขภาพ', size: 'sm', color: OJ.text, wrap: true },
-              { type: 'text', text: '⏰ ตั้งเตือนกินยา / นัดหมอ', size: 'sm', color: OJ.text, wrap: true },
-              { type: 'text', text: '📋 รายงานสุขภาพส่งหมอ', size: 'sm', color: OJ.text, wrap: true },
-              { type: 'separator', margin: 'lg' },
-              { type: 'text', text: 'กดเมนูด้านล่าง หรือพิมพ์ได้เลยค่ะ', size: 'xs', color: OJ.textMuted, wrap: true, margin: 'lg' },
+              {
+                type: 'button',
+                style: 'primary',
+                color: OJ.primary,
+                action: {
+                  type: 'message',
+                  label: 'เริ่มบันทึก',
+                  text: 'เริ่มบันทึก',
+                },
+              },
             ],
           },
         },
@@ -195,5 +229,5 @@ export function createWelcomeOnboardingMessages(): Array<any> {
     },
   };
 
-  return [welcomeText, onboardingCard];
+  return [greetingText, onboardingCarousel];
 }

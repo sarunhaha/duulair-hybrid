@@ -74,10 +74,11 @@ router.post('/accept-consent', async (req: Request, res: Response) => {
       marketing: marketing || false,
     });
 
-    // Push onboarding greeting messages after consent accepted
-    // (replicates LINE OA greeting card template)
+    // Push onboarding greeting + carousel after consent accepted
     try {
-      await lineClient.pushMessage(line_user_id, createWelcomeOnboardingMessages());
+      const profile = await lineClient.getProfile(line_user_id);
+      const displayName = profile.displayName || 'คุณ';
+      await lineClient.pushMessage(line_user_id, createWelcomeOnboardingMessages(displayName));
       console.log('✅ Onboarding greeting pushed after consent');
     } catch (pushErr) {
       console.log('⚠️ Push greeting failed (non-blocking):', pushErr);
