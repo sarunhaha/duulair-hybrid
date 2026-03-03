@@ -1,6 +1,11 @@
 import { useState, useMemo } from 'react';
 import {
   Pill,
+  Clock,
+  Sunrise,
+  Sun,
+  Sunset,
+  Moon,
   Check,
   Loader2,
   Plus,
@@ -9,7 +14,6 @@ import {
   Trash2,
   X,
   ChevronRight,
-  Clock,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -24,6 +28,7 @@ import { useEnsurePatient } from '@/hooks/use-ensure-patient';
 import { usePatientMedications, useTodayMedicationLogs, useLogMedication, useDeleteMedicationLog } from '@/lib/api/hooks/use-health';
 import { useToast } from '@/hooks/use-toast';
 import { useLocation } from 'wouter';
+import { TimeSelectorPill } from './time-selector-pill';
 
 interface MedicationLogDB {
   id: string;
@@ -43,6 +48,23 @@ interface MedicationFormProps {
   initialEditData?: MedicationLogDB;
 }
 
+type TimePeriod = 'morning' | 'afternoon' | 'evening' | 'night';
+
+const TIME_PERIODS = [
+  { id: 'morning' as TimePeriod, label: 'เช้า', icon: Sunrise },
+  { id: 'afternoon' as TimePeriod, label: 'กลางวัน', icon: Sun },
+  { id: 'evening' as TimePeriod, label: 'เย็น', icon: Sunset },
+  { id: 'night' as TimePeriod, label: 'ก่อนนอน', icon: Moon },
+];
+
+function getCurrentPeriod(): TimePeriod {
+  const hour = new Date().getHours();
+  if (hour >= 5 && hour < 11) return 'morning';
+  if (hour >= 11 && hour < 14) return 'afternoon';
+  if (hour >= 14 && hour < 20) return 'evening';
+  return 'night';
+}
+
 export function MedicationForm({ onSuccess, onCancel }: MedicationFormProps) {
   const { patientId, isLoading: authLoading, ensurePatient } = useEnsurePatient();
   const { toast } = useToast();
@@ -53,9 +75,18 @@ export function MedicationForm({ onSuccess, onCancel }: MedicationFormProps) {
   const logMedication = useLogMedication();
   const deleteMedicationLog = useDeleteMedicationLog();
 
+  const [currentPeriod, setCurrentPeriod] = useState<TimePeriod>(getCurrentPeriod());
   const [selectedMeds, setSelectedMeds] = useState<Set<string>>(new Set());
   const [isSaving, setIsSaving] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+
+  const now = new Date();
+  const [selectedTime, setSelectedTime] = useState(
+    `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`
+  );
+  const [selectedDate, setSelectedDate] = useState(
+    `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`
+  );
 
   // Detail drawer for today's log
   const [detailLog, setDetailLog] = useState<MedicationLogDB | null>(null);
@@ -91,15 +122,14 @@ export function MedicationForm({ onSuccess, onCancel }: MedicationFormProps) {
         toast({ description: 'เกิดข้อผิดพลาด กรุณาปิดแล้วเปิดแอปใหม่อีกครั้ง', variant: 'destructive' });
         return;
       }
-      const now = new Date();
-      const takenAt = now.toISOString();
+      const takenAt = `${selectedDate}T${selectedTime}:00+07:00`;
       for (const medId of Array.from(selectedMeds)) {
         const med = activeMeds.find(m => m.id === medId);
         await logMedication.mutateAsync({
           patientId: resolvedPatientId,
           medication_id: medId,
           medication_name: med?.name,
-          scheduled_time: `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`,
+          scheduled_time: selectedTime,
           taken_at: takenAt,
         });
       }
@@ -140,6 +170,52 @@ export function MedicationForm({ onSuccess, onCancel }: MedicationFormProps) {
 
   return (
     <div className="space-y-6 pb-4">
+      {/* Time Selector Pill */}
+      <TimeSelectorPill
+        time={selectedTime}
+        onTimeChange={setSelectedTime}
+        date={selectedDate}
+        onDateChange={setSelectedDate}
+        showDate
+      />
+
+      {/* Time Period Selector */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+          <Clock className="w-4 h-4" />
+          ช่วงเวลา
+        </div>
+        <div className="grid grid-cols-4 gap-2">
+          {TIME_PERIODS.map((period) => (
+            <button
+              key={period.id}
+              onClick={() => setCurrentPeriod(period.id)}
+              className={cn(
+                'flex flex-col items-center gap-1.5 py-3 px-2 rounded-2xl border-2 transition-all',
+                currentPeriod === period.id
+                  ? 'border-primary bg-primary/10'
+                  : 'border-transparent bg-white dark:bg-card shadow-sm hover:bg-muted/50'
+              )}
+            >
+              <period.icon
+                className={cn(
+                  'w-5 h-5',
+                  currentPeriod === period.id ? 'text-primary' : 'text-muted-foreground'
+                )}
+              />
+              <span
+                className={cn(
+                  'text-xs font-medium',
+                  currentPeriod === period.id ? 'text-primary' : 'text-muted-foreground'
+                )}
+              >
+                {period.label}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Medication List */}
       <div className="space-y-3">
         <div className="flex items-center gap-2 text-sm font-medium text-foreground">
