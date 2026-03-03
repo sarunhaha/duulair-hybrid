@@ -142,7 +142,7 @@ const IMG_BASE = 'https://app.oonj.ai/liff-v2/images';
 /**
  * Welcome onboarding messages — sent after consent accepted
  * Greeting text + image carousel (s-1 to s-4)
- * Last card (s-4) has CTA button "เริ่มบันทึก"
+ * Last card (s-4) has CTA button "เริ่มต้นใช้งาน"
  */
 export function createWelcomeOnboardingMessages(displayName: string): Array<any> {
   const greetingText = {
@@ -192,7 +192,7 @@ export function createWelcomeOnboardingMessages(displayName: string): Array<any>
             aspectMode: 'cover',
           },
         },
-        // Card 4: เริ่มบันทึกค่าสุขภาพวันนี้ — with CTA button
+        // Card 4: เริ่มต้นใช้งาน — with CTA button
         {
           type: 'bubble',
           size: 'mega',
@@ -204,8 +204,8 @@ export function createWelcomeOnboardingMessages(displayName: string): Array<any>
             aspectMode: 'cover',
             action: {
               type: 'message',
-              label: 'เริ่มบันทึก',
-              text: 'เริ่มบันทึก',
+              label: 'เริ่มต้นใช้งาน',
+              text: 'เริ่มต้นใช้งาน',
             },
           },
           footer: {
@@ -218,8 +218,8 @@ export function createWelcomeOnboardingMessages(displayName: string): Array<any>
                 color: OJ.primary,
                 action: {
                   type: 'message',
-                  label: 'เริ่มบันทึก',
-                  text: 'เริ่มบันทึก',
+                  label: 'เริ่มต้นใช้งาน',
+                  text: 'เริ่มต้นใช้งาน',
                 },
               },
             ],

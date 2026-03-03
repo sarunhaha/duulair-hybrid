@@ -78,13 +78,14 @@
       margin-bottom: 0.25rem;
       position: relative;
       z-index: 1;
+      color: #FFFFFF !important;
       text-shadow: 0 1px 3px rgba(0,0,0,0.35);
       letter-spacing: -0.01em;
     }
 
     .consent-hero p {
       font-size: 0.875rem;
-      color: rgba(255,255,255,0.92);
+      color: rgba(255,255,255,0.92) !important;
       font-weight: 500;
       position: relative;
       z-index: 1;
@@ -302,7 +303,13 @@
 
   <script>
     const LIFF_ID = '2008278683-5k69jxNq';
-    let liffProfile = null;
+    let lineUserId = null;
+
+    // Read uid from URL query parameter (passed from consent flex card)
+    function getUidFromUrl() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('uid');
+    }
 
     function updateItem(checkbox) {
       const item = checkbox.closest('.consent-item');
@@ -322,12 +329,12 @@
       btn.textContent = 'กำลังบันทึก...';
 
       try {
-        if (!liffProfile) {
+        if (!lineUserId) {
           throw new Error('ไม่พบข้อมูลผู้ใช้');
         }
 
         await api.post('/registration/accept-consent', {
-          line_user_id: liffProfile.userId,
+          line_user_id: lineUserId,
           consent_version: '1.0',
           caregiver_share: document.getElementById('cb4').checked,
           marketing: document.getElementById('cb5').checked,
@@ -338,10 +345,8 @@
 
         // Show success state immediately
         setTimeout(function() {
-          // Replace page with success message + close instruction
           document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:Kanit,sans-serif;text-align:center;padding:2rem;background:#f9fafb;"><div><div style="width:64px;height:64px;border-radius:50%;background:hsl(160 84% 32%);display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div><h2 style="color:hsl(160 84% 32%);font-size:1.25rem;margin:0 0 0.5rem;">ยอมรับสำเร็จ!</h2><p style="color:#666;font-size:0.875rem;line-height:1.6;">กรุณาปิดหน้านี้แล้ว<br>กลับไปแชทกับ oonjai ได้เลยค่ะ</p></div></div>';
 
-          // Try to close automatically (may not work on direct URL)
           try { if (typeof liff !== 'undefined') liff.closeWindow(); } catch(e) {}
           try { window.close(); } catch(e) {}
         }, 600);
@@ -355,6 +360,15 @@
     }
 
     async function init() {
+      // Priority 1: Read uid from URL parameter (most reliable)
+      const urlUid = getUidFromUrl();
+      if (urlUid) {
+        lineUserId = urlUid;
+        console.log('✅ User ID from URL param:', lineUserId);
+        return;
+      }
+
+      // Priority 2: Try LIFF SDK methods
       try {
         await liff.init({ liffId: LIFF_ID });
         console.log('LIFF init OK, isLoggedIn:', liff.isLoggedIn(), 'isInClient:', liff.isInClient());
@@ -368,46 +382,27 @@
         return;
       }
 
-      // Try multiple methods to get user profile
-      // Method 1: liff.getProfile()
       try {
-        liffProfile = await liff.getProfile();
-        console.log('Profile via LIFF:', liffProfile.userId);
+        const profile = await liff.getProfile();
+        lineUserId = profile.userId;
+        console.log('✅ User ID from LIFF profile:', lineUserId);
         return;
       } catch (e) {
         console.log('liff.getProfile() failed:', e);
       }
 
-      // Method 2: LINE API with access token
-      try {
-        const token = liff.getAccessToken();
-        if (token) {
-          const res = await fetch('https://api.line.me/v2/profile', {
-            headers: { 'Authorization': 'Bearer ' + token }
-          });
-          if (res.ok) {
-            liffProfile = await res.json();
-            console.log('Profile via API:', liffProfile.userId);
-            return;
-          }
-        }
-      } catch (e) {
-        console.log('API profile failed:', e);
-      }
-
-      // Method 3: Decode ID token
       try {
         const context = liff.getContext();
         if (context && context.userId) {
-          liffProfile = { userId: context.userId };
-          console.log('Profile via context:', liffProfile.userId);
+          lineUserId = context.userId;
+          console.log('✅ User ID from LIFF context:', lineUserId);
           return;
         }
       } catch (e) {
         console.log('Context failed:', e);
       }
 
-      console.error('All profile methods failed');
+      console.error('All user ID methods failed');
     }
 
     if (document.readyState === 'loading') {

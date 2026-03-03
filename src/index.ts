@@ -415,7 +415,11 @@ function createRegistrationFlexMessage(): FlexMessage {
 }
 
 // Flex Message for PDPA Consent Gate
-function createConsentFlexMessage(): FlexMessage {
+function createConsentFlexMessage(lineUserId?: string): FlexMessage {
+  const consentUrl = lineUserId
+    ? `https://app.oonj.ai/liff/consent.html?uid=${lineUserId}`
+    : `https://app.oonj.ai/liff/consent.html`;
+
   return {
     type: 'flex',
     altText: 'กรุณายอมรับข้อกำหนดก่อนเริ่มใช้งาน',
@@ -460,7 +464,7 @@ function createConsentFlexMessage(): FlexMessage {
             action: {
               type: 'uri',
               label: 'อ่านและยอมรับ',
-              uri: `https://app.oonj.ai/liff/consent.html`
+              uri: consentUrl
             }
           }
         ]
@@ -1764,7 +1768,7 @@ async function handleTextMessage(event: any) {
           // ✅ Consent gate: block if not accepted
           if (!user.consent_accepted) {
             console.log('⚠️ User has not accepted consent, sending consent reminder');
-            await lineClient.replyMessage(replyToken, createConsentFlexMessage());
+            await lineClient.replyMessage(replyToken, createConsentFlexMessage(userId));
             return { success: true, blocked: true, reason: 'consent_not_accepted' };
           }
 
@@ -1975,19 +1979,7 @@ async function handleTextMessage(event: any) {
     // Phase 3: Check for Menu Requests (Flex Message triggers)
     // ============================================
 
-    // Intercept "เริ่มบันทึก" (from carousel card) → show health log menu directly
     const trimmedText = originalMessage.trim();
-    if (trimmedText === 'เริ่มบันทึก' || trimmedText === 'บันทึกสุขภาพ' || trimmedText === 'เมนูบันทึก') {
-      console.log('📋 Health log menu trigger detected:', trimmedText);
-      try {
-        const healthLogMenu = createHealthLogMenuFlexMessage();
-        await lineClient.replyMessage(replyToken, healthLogMenu);
-        console.log('✅ Health log menu sent');
-        return { success: true, type: 'health_log_menu' };
-      } catch (sendError) {
-        console.error('❌ Failed to send health log menu:', sendError);
-      }
-    }
 
     // Skip extraction pipeline for menu requests - go directly to orchestrator
     const menuPatterns = [
@@ -2884,7 +2876,7 @@ async function handleFollow(event: any) {
       } else {
         // Not yet consented - reply with consent flex immediately
         console.log('⚠️ User exists but not consented, sending consent flex');
-        await lineClient.replyMessage(replyToken, createConsentFlexMessage());
+        await lineClient.replyMessage(replyToken, createConsentFlexMessage(userId));
         return { success: true, needsConsent: true };
       }
     }
@@ -2900,7 +2892,7 @@ async function handleFollow(event: any) {
     }
 
     // Reply with consent flex immediately — greeting card comes AFTER consent
-    await lineClient.replyMessage(replyToken, createConsentFlexMessage());
+    await lineClient.replyMessage(replyToken, createConsentFlexMessage(userId));
     console.log('✅ Consent flex sent to new user');
 
     return { success: true };
