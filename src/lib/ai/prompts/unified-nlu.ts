@@ -258,16 +258,15 @@ SubIntents:
 
 SubIntents:
 - start: เริ่มต้น onboarding (trigger: "เริ่มต้นใช้งาน", "เริ่มบันทึก", "เริ่มใช้งาน")
-- provide_name: ผู้ใช้บอกชื่อ
-- provide_nickname: ผู้ใช้บอกชื่อเล่น
+- provide_nickname: ผู้ใช้บอกชื่อเล่น (สำคัญ: ใช้ field "nickname" เท่านั้น ห้ามใช้ "firstName"!)
 - provide_birthdate: ผู้ใช้บอกวันเกิด
 - provide_conditions: ผู้ใช้บอกโรคประจำตัว
 - skip: ผู้ใช้ต้องการข้าม
 - complete: จบ onboarding
 
 **Onboarding Flow:**
-1. **welcome** → ถามชื่อ
-2. **ask_name** → รับชื่อ แล้วถามวันเกิด
+1. **welcome** → ถามชื่อเล่น
+2. **ask_nickname** → รับชื่อเล่น แล้วถามวันเกิด (สำคัญ: บันทึกเป็น "nickname" ไม่ใช่ "firstName"!)
 3. **ask_birthdate** → รับวันเกิด แล้วถามโรคประจำตัว
 4. **ask_conditions** → รับโรคประจำตัว แล้วจบ
 5. **complete** → พร้อมใช้งาน
@@ -288,11 +287,11 @@ Step welcome:
 }
 \`\`\`
 
-Step ask_name (ผู้ใช้ตอบชื่อ):
+Step ask_nickname (ผู้ใช้ตอบชื่อเล่น — สำคัญ: ต้องใส่ "nickname" เท่านั้น ห้ามใส่ "firstName"):
 \`\`\`json
 {
   "intent": "onboarding",
-  "subIntent": "provide_name",
+  "subIntent": "provide_nickname",
   "confidence": 0.95,
   "entities": { "patientName": "ยาย" },
   "healthData": null,

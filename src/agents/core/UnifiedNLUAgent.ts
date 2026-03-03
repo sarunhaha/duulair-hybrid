@@ -195,6 +195,24 @@ ${userPrompt}`;
       const jsonMatch = response.match(/```(?:json)?\s*([\s\S]*?)```/);
       if (jsonMatch) {
         jsonStr = jsonMatch[1].trim();
+      } else {
+        // No code block — try to find first complete JSON object in response
+        const braceStart = response.indexOf('{');
+        if (braceStart !== -1) {
+          // Find the matching closing brace
+          let depth = 0;
+          let braceEnd = -1;
+          for (let i = braceStart; i < response.length; i++) {
+            if (response[i] === '{') depth++;
+            else if (response[i] === '}') {
+              depth--;
+              if (depth === 0) { braceEnd = i; break; }
+            }
+          }
+          if (braceEnd !== -1) {
+            jsonStr = response.substring(braceStart, braceEnd + 1);
+          }
+        }
       }
 
       // Try to parse as JSON
@@ -320,13 +338,28 @@ ${userPrompt}`;
    * Infer NLU result from free text response when JSON parsing fails
    */
   private inferFromFreeText(response: string, originalMessage: string): NLUResult {
+    // Safety net: if response looks like JSON, try to extract the "response" field
+    // to prevent raw JSON from being sent to the user
+    let cleanResponse = response;
+    if (response.includes('"response"') && response.includes('"intent"')) {
+      try {
+        const responseMatch = response.match(/"response"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+        if (responseMatch) {
+          cleanResponse = responseMatch[1].replace(/\\n/g, '\n').replace(/\\"/g, '"');
+          this.log('warn', 'Extracted response field from raw JSON fallback');
+        }
+      } catch {
+        // Keep original response
+      }
+    }
+
     // Check for emergency keywords first
     if (/ฉุกเฉิน|ช่วยด้วย|หมดสติ|ไม่หายใจ/.test(originalMessage)) {
       return {
         ...DEFAULT_NLU_RESULT,
         intent: 'emergency',
         confidence: 0.9,
-        response: response || 'โปรดโทร 1669 ทันทีค่ะ นี่คือกรณีฉุกเฉิน!',
+        response: cleanResponse || 'โปรดโทร 1669 ทันทีค่ะ นี่คือกรณีฉุกเฉิน!',
         action: { type: 'none' }
       };
     }
@@ -337,7 +370,7 @@ ${userPrompt}`;
         ...DEFAULT_NLU_RESULT,
         intent: 'greeting',
         confidence: 0.85,
-        response: response || 'สวัสดีค่ะ มีอะไรให้ช่วยไหมคะ?'
+        response: cleanResponse || 'สวัสดีค่ะ มีอะไรให้ช่วยไหมคะ?'
       };
     }
 
@@ -348,7 +381,7 @@ ${userPrompt}`;
         ...DEFAULT_NLU_RESULT,
         intent: 'health_log',
         confidence: 0.6,
-        response: response,
+        response: cleanResponse,
         action: { type: 'clarify' }
       };
     }
@@ -356,7 +389,7 @@ ${userPrompt}`;
     // Default to general chat with Claude's response
     return {
       ...DEFAULT_NLU_RESULT,
-      response: response
+      response: cleanResponse
     };
   }
 
