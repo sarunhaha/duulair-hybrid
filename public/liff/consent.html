@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#0FA968">
+  <meta name="theme-color" content="#0E6B3A">
   <title>ยอมรับข้อกำหนด - OONJAI</title>
 
   <!-- Preconnect -->
@@ -357,34 +357,57 @@
     async function init() {
       try {
         await liff.init({ liffId: LIFF_ID });
-
-        if (!liff.isLoggedIn()) {
-          // Redirect back to this page after login
-          liff.login({ redirectUri: window.location.href });
-          return;
-        }
-
-        liffProfile = await liff.getProfile();
-        console.log('LIFF Profile:', liffProfile.userId);
-
+        console.log('LIFF init OK, isLoggedIn:', liff.isLoggedIn(), 'isInClient:', liff.isInClient());
       } catch (error) {
         console.error('LIFF init failed:', error);
-        // Fallback: try to get profile from LIFF access token
-        try {
-          const accessToken = liff.getAccessToken();
-          if (accessToken) {
-            const res = await fetch('https://api.line.me/v2/profile', {
-              headers: { 'Authorization': 'Bearer ' + accessToken }
-            });
-            if (res.ok) {
-              liffProfile = await res.json();
-              console.log('LIFF Profile (fallback):', liffProfile.userId);
-            }
-          }
-        } catch (fbErr) {
-          console.error('Fallback profile fetch failed:', fbErr);
-        }
+        return;
       }
+
+      if (!liff.isLoggedIn()) {
+        liff.login({ redirectUri: window.location.href });
+        return;
+      }
+
+      // Try multiple methods to get user profile
+      // Method 1: liff.getProfile()
+      try {
+        liffProfile = await liff.getProfile();
+        console.log('Profile via LIFF:', liffProfile.userId);
+        return;
+      } catch (e) {
+        console.log('liff.getProfile() failed:', e);
+      }
+
+      // Method 2: LINE API with access token
+      try {
+        const token = liff.getAccessToken();
+        if (token) {
+          const res = await fetch('https://api.line.me/v2/profile', {
+            headers: { 'Authorization': 'Bearer ' + token }
+          });
+          if (res.ok) {
+            liffProfile = await res.json();
+            console.log('Profile via API:', liffProfile.userId);
+            return;
+          }
+        }
+      } catch (e) {
+        console.log('API profile failed:', e);
+      }
+
+      // Method 3: Decode ID token
+      try {
+        const context = liff.getContext();
+        if (context && context.userId) {
+          liffProfile = { userId: context.userId };
+          console.log('Profile via context:', liffProfile.userId);
+          return;
+        }
+      } catch (e) {
+        console.log('Context failed:', e);
+      }
+
+      console.error('All profile methods failed');
     }
 
     if (document.readyState === 'loading') {
