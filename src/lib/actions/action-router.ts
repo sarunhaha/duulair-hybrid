@@ -602,12 +602,12 @@ async function saveMedication(
       .from('medications')
       .insert({
         patient_id: context.patientId,
-        medication_name: data.name,
+        name: data.name,
         dosage_amount: data.dosage,
         dosage_unit: data.unit || 'mg',
         frequency: data.frequency || 'daily',
         times: data.times || [],
-        is_active: true,
+        active: true,
         created_at: new Date().toISOString()
       });
 
@@ -640,7 +640,7 @@ async function updateMedication(
     const client = supabaseService.getClient();
 
     const updateData: Record<string, any> = { updated_at: new Date().toISOString() };
-    if (data.name) updateData.medication_name = data.name;
+    if (data.name) updateData.name = data.name;
     if (data.dosage) updateData.dosage_amount = data.dosage;
     if (data.unit) updateData.dosage_unit = data.unit;
     if (data.frequency) updateData.frequency = data.frequency;
@@ -656,12 +656,12 @@ async function updateMedication(
       .from('medications')
       .update(updateData)
       .eq('patient_id', context.patientId)
-      .eq('is_active', true);
+      .eq('active', true);
 
     if (data.medicationId) {
       query = query.eq('id', data.medicationId);
     } else if (data.medicationName) {
-      query = query.ilike('medication_name', `%${data.medicationName}%`);
+      query = query.ilike('name', `%${data.medicationName}%`);
     }
 
     const { error } = await query;
@@ -693,15 +693,15 @@ async function deleteMedication(
     if (data.medicationName) {
       const { error } = await client
         .from('medications')
-        .update({ is_active: false, updated_at: new Date().toISOString() })
+        .update({ active: false, updated_at: new Date().toISOString() })
         .eq('patient_id', context.patientId)
-        .ilike('medication_name', `%${data.medicationName}%`);
+        .ilike('name', `%${data.medicationName}%`);
 
       if (error) throw error;
     } else if (data.medicationId) {
       const { error } = await client
         .from('medications')
-        .update({ is_active: false, updated_at: new Date().toISOString() })
+        .update({ active: false, updated_at: new Date().toISOString() })
         .eq('id', data.medicationId)
         .eq('patient_id', context.patientId);
 
@@ -737,9 +737,10 @@ async function saveReminder(
       .from('reminders')
       .insert({
         patient_id: context.patientId,
-        reminder_type: data.type || 'custom',
-        message: data.message || 'เตือนความจำ',
-        custom_time: data.time,
+        type: data.type || 'custom',
+        title: data.title || data.message || 'เตือนความจำ',
+        time: data.time || '08:00',
+        frequency: data.frequency || 'daily',
         is_active: true,
         created_at: new Date().toISOString()
       });
@@ -773,9 +774,9 @@ async function updateReminder(
     const client = supabaseService.getClient();
 
     const updateData: Record<string, any> = { updated_at: new Date().toISOString() };
-    if (data.newTime || data.time) updateData.custom_time = data.newTime || data.time;
-    if (data.message) updateData.message = data.message;
-    if (data.newType) updateData.reminder_type = data.newType;
+    if (data.newTime || data.time) updateData.time = data.newTime || data.time;
+    if (data.title || data.message) updateData.title = data.title || data.message;
+    if (data.newType) updateData.type = data.newType;
 
     if (Object.keys(updateData).length === 1) {
       return { success: true, savedRecords: 0 };
@@ -791,8 +792,8 @@ async function updateReminder(
     if (data.reminderId) {
       query = query.eq('id', data.reminderId);
     } else {
-      if (data.type) query = query.eq('reminder_type', data.type);
-      if (data.oldTime) query = query.eq('custom_time', data.oldTime);
+      if (data.type) query = query.eq('type', data.type);
+      if (data.oldTime) query = query.eq('time', data.oldTime);
     }
 
     const { error } = await query;
@@ -830,8 +831,8 @@ async function deleteReminder(
     if (data.reminderId) {
       query = query.eq('id', data.reminderId);
     } else if (data.type || data.time) {
-      if (data.type) query = query.eq('reminder_type', data.type);
-      if (data.time) query = query.eq('custom_time', data.time);
+      if (data.type) query = query.eq('type', data.type);
+      if (data.time) query = query.eq('time', data.time);
     } else {
       return { success: false, savedRecords: 0, errors: ['ไม่ทราบว่าจะลบเตือนตัวไหนค่ะ'] };
     }
