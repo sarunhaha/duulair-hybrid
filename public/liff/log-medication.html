@@ -1038,9 +1038,10 @@
       const emptyState = document.getElementById('emptyState');
 
       // Filter medications for current period
+      // If medication has no times set (added via simplified Settings), show in ALL periods
       const medsForPeriod = medications.filter(med => {
         const times = med.times || [];
-        return times.includes(currentPeriod);
+        return times.length === 0 || times.includes(currentPeriod);
       });
 
       if (medsForPeriod.length === 0) {
