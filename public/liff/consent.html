@@ -359,7 +359,8 @@
         await liff.init({ liffId: LIFF_ID });
 
         if (!liff.isLoggedIn()) {
-          liff.login();
+          // Redirect back to this page after login
+          liff.login({ redirectUri: window.location.href });
           return;
         }
 
@@ -368,6 +369,21 @@
 
       } catch (error) {
         console.error('LIFF init failed:', error);
+        // Fallback: try to get profile from LIFF access token
+        try {
+          const accessToken = liff.getAccessToken();
+          if (accessToken) {
+            const res = await fetch('https://api.line.me/v2/profile', {
+              headers: { 'Authorization': 'Bearer ' + accessToken }
+            });
+            if (res.ok) {
+              liffProfile = await res.json();
+              console.log('LIFF Profile (fallback):', liffProfile.userId);
+            }
+          }
+        } catch (fbErr) {
+          console.error('Fallback profile fetch failed:', fbErr);
+        }
       }
     }
 
