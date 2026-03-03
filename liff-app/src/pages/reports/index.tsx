@@ -1118,7 +1118,7 @@ export default function ReportsPage() {
         <div className="space-y-4 pt-2">
           <Button
             onClick={handleExportPDF}
-            className="w-full h-12 rounded-2xl bg-primary text-primary-foreground font-bold shadow-xl shadow-primary/20 relative z-[60]"
+            className="w-full h-12 rounded-2xl bg-primary text-primary-foreground font-bold shadow-xl shadow-primary/20"
             disabled={isReportLoading || !reportData || isExporting}
           >
             {isReportLoading || isExporting ? (
