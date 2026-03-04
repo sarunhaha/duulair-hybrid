@@ -2,8 +2,8 @@
 
 > **Brand:** OONJAI (formerly Duulair)
 > **Model:** Personal Health Tracking via LINE — for all demographics (not limited to elderly)
-> **AI Model:** Claude Sonnet 4.5 (Unified Pipeline)
-> **Last Updated:** 2026-02-19
+> **AI Model:** Claude Opus 4.6 via OpenRouter (Centralized AI_CONFIG)
+> **Last Updated:** 2026-02-21
 
 ---
 
@@ -33,7 +33,7 @@ User Message (LINE)
        ▼
 ┌──────────────────────────────────────┐
 │        UnifiedNLUAgent               │
-│    (Claude Sonnet 4.5 - Single Call) │
+│   (Claude Opus 4.6 via AI_CONFIG)   │
 │                                      │
 │  Output: {                           │
 │    intent, subIntent, confidence,    │
@@ -59,6 +59,7 @@ User Message (LINE)
 | Main Orchestrator | `src/agents/core/OrchestratorAgent.ts` |
 | NLU Agent | `src/agents/core/UnifiedNLUAgent.ts` |
 | NLU Prompt | `src/lib/ai/prompts/unified-nlu.ts` |
+| AI Config (Single Source) | `src/services/openrouter.service.ts` → `AI_CONFIG` |
 | Action Router | `src/lib/actions/action-router.ts` |
 | Intent Patterns (Legacy) | `src/agents/specialized/IntentAgent.ts` |
 | Supabase Service | `src/services/supabase.service.ts` |
@@ -143,8 +144,24 @@ OONJAI serves **all demographics** — not just elderly. Users include patients 
 
 ---
 
-## Configuration Flags
+## Configuration
 
+### AI Model Config (Per-Agent)
+```typescript
+// In src/services/openrouter.service.ts
+export const AGENT_MODELS = {
+  orchestrator:    GPT_4O_MINI (fallback) → GEMINI_2_5_FLASH
+  UnifiedNLUAgent: GPT_4_1_MINI  // Main NLU — impact มากสุด
+  dialog:          GPT_4O_MINI
+  health:          GPT_4O_MINI
+  report:          GPT_4_1_MINI
+  alert:           GEMINI_2_5_FLASH
+  profile_edit:    GEMINI_2_5_FLASH
+};
+```
+> Per-agent config in `AGENT_MODELS`, fallback in `AI_CONFIG`.
+
+### Feature Flags
 ```typescript
 // In OrchestratorAgent.ts & DialogAgent.ts
 const USE_NATURAL_CONVERSATION_MODE = true;  // Claude-first NLU (current)
@@ -206,14 +223,36 @@ users → caregiver_profiles → patient_caregivers → patient_id
 
 ---
 
-## Latest Session Summary (2025-12-26)
+## Latest Session Summary (2026-03-04)
 
-### Unified AI Flow
+### Onboarding & NLU Robustness Fixes
+- Fixed onboarding ถามชื่อเล่นแต่ใส่ผิด field (`firstName` แทน `nickname`)
+- Fixed NLU ส่ง raw JSON เป็น text message ให้ user เห็น (เพิ่ม fallback JSON parsing)
+- Fixed onboarding ค้าง — auto-complete เมื่อ user ใช้งานจริงแล้วแต่ onboarding ยังไม่จบ
+- Upgraded NLU model: GPT-4o mini → **GPT-4.1 mini** (ฉลาดขึ้น ราคา ~2.7x)
+- Renamed `GPT_5_MINI` → `GPT_4_1_MINI` ให้ตรงกับชื่อ model จริง
+- Disabled ปุ่ม "อัปเกรดเป็น Plus" ในหน้าตั้งค่า (เร็วๆ นี้)
+
+### Previous Session (2026-03-03)
+- Fixed medication filter bug, LIFF redirect rules, onboarding images
+- Simplified medication form, fixed PDF button z-index
+- Fixed medication/reminder DB column mismatches
+- Improved onboarding welcome message with comprehensive service guide
+
+### Previous Session (2026-02-21)
+- Upgraded from Claude Sonnet 4.5 → **Claude Opus 4.6** for better response quality
+- Created centralized `AI_CONFIG` in `openrouter.service.ts` — single source of truth
+- All agents now inherit model/maxTokens from `BaseAgent` defaults (no more hardcoding)
+- Increased default `maxTokens` from 500-1500 → **4096** across all agents
+- Fixed `ReportAgent` using legacy `claude-3-sonnet-20240229`
+- Fixed `analyzeImage()` and `extraction.ts` hardcoded `max_tokens: 1024`
+- Added `maxDuration: 10` in `vercel.json` for Hobby plan timeout
+- 15 files changed, fully audited with code-reviewer agent
+
+### Previous Session (2025-12-26)
 - Removed dual pipeline (Haiku + Sonnet) → Single Sonnet 4.5 pipeline
 - All messages go through `OrchestratorAgent.processWithNaturalConversation()`
 - Added conversation logging to DB
-
-### Documentation
 - Created `docs/implement_AI_model.md` - Complete AI architecture guide for team
 
 ---
