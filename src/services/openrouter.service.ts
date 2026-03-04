@@ -142,7 +142,7 @@ export const AI_CONFIG = {
 // ============================================
 export const AGENT_MODELS = {
   orchestrator:   { model: OPENROUTER_MODELS.GEMINI_2_5_FLASH,  maxTokens: 2048, temperature: 0.1 },
-  UnifiedNLUAgent:{ model: OPENROUTER_MODELS.GPT_4O_MINI,       maxTokens: 4096, temperature: 0.2 },
+  UnifiedNLUAgent:{ model: OPENROUTER_MODELS.GPT_5_MINI,        maxTokens: 4096, temperature: 0.2 },
   dialog:         { model: OPENROUTER_MODELS.GPT_4O_MINI,       maxTokens: 4096, temperature: 0.6 },
   health:         { model: OPENROUTER_MODELS.GPT_4O_MINI,       maxTokens: 4096, temperature: 0.3 },
   report:         { model: OPENROUTER_MODELS.GPT_5_MINI,        maxTokens: 8192, temperature: 0.5 },
