@@ -111,7 +111,7 @@ export const OPENROUTER_MODELS = {
   // OpenAI
   GPT_4O: 'openai/gpt-4o',
   GPT_4O_MINI: 'openai/gpt-4o-mini',
-  GPT_5_MINI: 'openai/gpt-4.1-mini',
+  GPT_4_1_MINI: 'openai/gpt-4.1-mini',
 
   // Google Gemini
   GEMINI_PRO: 'google/gemini-pro-1.5',
@@ -142,10 +142,10 @@ export const AI_CONFIG = {
 // ============================================
 export const AGENT_MODELS = {
   orchestrator:   { model: OPENROUTER_MODELS.GEMINI_2_5_FLASH,  maxTokens: 2048, temperature: 0.1 },
-  UnifiedNLUAgent:{ model: OPENROUTER_MODELS.GPT_5_MINI,        maxTokens: 4096, temperature: 0.2 },
+  UnifiedNLUAgent:{ model: OPENROUTER_MODELS.GPT_4_1_MINI,        maxTokens: 4096, temperature: 0.2 },
   dialog:         { model: OPENROUTER_MODELS.GPT_4O_MINI,       maxTokens: 4096, temperature: 0.6 },
   health:         { model: OPENROUTER_MODELS.GPT_4O_MINI,       maxTokens: 4096, temperature: 0.3 },
-  report:         { model: OPENROUTER_MODELS.GPT_5_MINI,        maxTokens: 8192, temperature: 0.5 },
+  report:         { model: OPENROUTER_MODELS.GPT_4_1_MINI,        maxTokens: 8192, temperature: 0.5 },
   alert:          { model: OPENROUTER_MODELS.GEMINI_2_5_FLASH,  maxTokens: 2048, temperature: 0.1 },
   profile_edit:   { model: OPENROUTER_MODELS.GEMINI_2_5_FLASH,  maxTokens: 2048, temperature: 0.2 },
   intent:         { model: OPENROUTER_MODELS.GPT_4O_MINI,       maxTokens: 2048, temperature: 0.1 },
