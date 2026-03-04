@@ -1,5 +1,78 @@
 # OONJAI Changelog
 
+## [2026-03-04] - Onboarding Fixes, NLU Robustness & Model Upgrade
+
+### Onboarding Nickname Field Mapping
+- NLU prompt: เปลี่ยน `provide_name` → `provide_nickname`, `ask_name` → `ask_nickname`
+- เพิ่มคำเตือนใน prompt: ใช้ field `nickname` เท่านั้น ห้ามใช้ `firstName`
+- แก้ DB: ย้าย `first_name` → `nickname` ให้ users ที่โดนใส่ผิด field
+
+### Prevent Raw JSON Responses to Users
+- `UnifiedNLUAgent.parseNLUResponse()`: เพิ่ม fallback JSON extraction เมื่อไม่มี code block wrapper
+- `UnifiedNLUAgent.inferFromFreeText()`: เพิ่ม safety net ดึง `"response"` field จาก raw JSON ก่อนส่งให้ user
+
+### Fix Stuck Onboarding
+- `OrchestratorAgent`: auto-complete onboarding เมื่อ user ส่ง non-onboarding intent (health_log, query) แต่ onboarding ยังไม่จบ
+- NLU prompt: เพิ่มกฎข้อ 5 — อนุญาตให้ classify intent อื่นได้ระหว่าง onboarding mode
+- แก้ DB: mark `onboarding_completed=true` ให้ users ที่ค้าง
+
+### NLU Model Upgrade
+- เปลี่ยน UnifiedNLUAgent จาก **GPT-4o mini** → **GPT-4.1 mini** เพื่อ response quality ที่ดีขึ้น
+- Rename constant `GPT_5_MINI` → `GPT_4_1_MINI` ให้ตรงกับชื่อ model จริง
+
+### UI Changes
+- Disable ปุ่ม "อัปเกรดเป็น Plus" ในหน้าตั้งค่า (แสดง "เร็วๆ นี้")
+
+### Files Changed
+- `src/agents/core/UnifiedNLUAgent.ts` — JSON parsing robustness + safety net
+- `src/agents/core/OrchestratorAgent.ts` — auto-complete stuck onboarding
+- `src/lib/ai/prompts/unified-nlu.ts` — nickname field mapping + onboarding flexibility
+- `src/services/openrouter.service.ts` — NLU model upgrade + constant rename
+- `liff-app/src/pages/settings/index.tsx` — disable Plus upgrade button
+
+### Commits
+- `10e5c66` Fix onboarding nickname field mapping and prevent raw JSON responses
+- `c6d2084` Fix stuck onboarding: auto-complete when user uses app normally
+- `92490fb` Upgrade NLU agent from GPT-4o mini to GPT-4.1 mini
+- `cb64acb` Rename GPT_5_MINI constant to GPT_4_1_MINI
+- `aaaf42f` Disable Plus upgrade button in settings page
+
+---
+
+## [2026-02-21] - Upgrade AI to Claude Opus 4.6 & Centralize Config
+
+### AI Model Migration
+- Upgraded from **Claude Sonnet 4.5** → **Claude Opus 4.6** for better intelligence and natural Thai responses
+- Fixed `ReportAgent` using legacy `claude-3-sonnet-20240229` (from 2024!)
+
+### Centralized AI_CONFIG
+- Created `AI_CONFIG` object in `src/services/openrouter.service.ts` as single source of truth
+- All agents inherit `model`, `maxTokens`, `temperature` from `BaseAgent` defaults
+- To change model: edit **1 line** in `AI_CONFIG.model` → applies to all agents automatically
+- Changed `Config` type to use `z.input` so agents can omit fields with defaults
+
+### Performance Improvements
+- Increased default `maxTokens`: 500-1500 → **4096** (agents no longer truncate responses)
+- `ReportAgent` maxTokens: 2000 → **8192** for detailed health reports
+- Fixed `analyzeImage()` and `extraction.ts` hardcoded `max_tokens: 1024` → uses `AI_CONFIG.maxTokens`
+
+### Infrastructure
+- Added `maxDuration: 10` in `vercel.json` (Hobby plan max)
+
+### Files Changed (15)
+- `src/services/openrouter.service.ts` — AI_CONFIG + CLAUDE_OPUS_4_6
+- `src/agents/core/BaseAgent.ts` — defaults from AI_CONFIG
+- `src/agents/core/UnifiedNLUAgent.ts` — removed hardcoded model
+- `src/agents/core/OrchestratorAgent.ts` — AI_CONFIG references
+- `src/agents/specialized/*` (6 agents) — removed hardcoded model/maxTokens
+- `src/index.ts` — AI_CONFIG for Vision calls
+- `src/lib/ai/extraction.ts` — AI_CONFIG
+- `src/lib/ai/index.ts` — AI_CONFIG metadata
+- `src/lib/health/event-creator.ts` — AI_CONFIG metadata
+- `vercel.json` — maxDuration
+
+---
+
 ## [2025-01-07] - Complete LIFF UI Redesign with OONJAI Design System
 
 ### Overview
