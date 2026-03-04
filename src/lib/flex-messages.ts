@@ -166,6 +166,27 @@ export function createWelcomeOnboardingMessages(displayName: string): Array<any>
             size: 'full',
             aspectRatio: '1:1',
             aspectMode: 'cover',
+            action: {
+              type: 'message',
+              label: 'เริ่มต้นใช้งาน',
+              text: 'เริ่มต้นใช้งาน',
+            },
+          },
+          footer: {
+            type: 'box',
+            layout: 'vertical',
+            contents: [
+              {
+                type: 'button',
+                style: 'primary',
+                color: OJ.primary,
+                action: {
+                  type: 'message',
+                  label: 'เริ่มต้นใช้งาน',
+                  text: 'เริ่มต้นใช้งาน',
+                },
+              },
+            ],
           },
         },
         // Card 2: ข้อมูลสุขภาพไม่กระจัดกระจาย
@@ -178,6 +199,27 @@ export function createWelcomeOnboardingMessages(displayName: string): Array<any>
             size: 'full',
             aspectRatio: '1:1',
             aspectMode: 'cover',
+            action: {
+              type: 'message',
+              label: 'เริ่มต้นใช้งาน',
+              text: 'เริ่มต้นใช้งาน',
+            },
+          },
+          footer: {
+            type: 'box',
+            layout: 'vertical',
+            contents: [
+              {
+                type: 'button',
+                style: 'primary',
+                color: OJ.primary,
+                action: {
+                  type: 'message',
+                  label: 'เริ่มต้นใช้งาน',
+                  text: 'เริ่มต้นใช้งาน',
+                },
+              },
+            ],
           },
         },
         // Card 3: ดูแนวโน้มสุขภาพได้ชัด
@@ -190,6 +232,27 @@ export function createWelcomeOnboardingMessages(displayName: string): Array<any>
             size: 'full',
             aspectRatio: '1:1',
             aspectMode: 'cover',
+            action: {
+              type: 'message',
+              label: 'เริ่มต้นใช้งาน',
+              text: 'เริ่มต้นใช้งาน',
+            },
+          },
+          footer: {
+            type: 'box',
+            layout: 'vertical',
+            contents: [
+              {
+                type: 'button',
+                style: 'primary',
+                color: OJ.primary,
+                action: {
+                  type: 'message',
+                  label: 'เริ่มต้นใช้งาน',
+                  text: 'เริ่มต้นใช้งาน',
+                },
+              },
+            ],
           },
         },
         // Card 4: เริ่มต้นใช้งาน — with CTA button
