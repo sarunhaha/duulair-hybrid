@@ -342,13 +342,13 @@ export default function SettingsPage() {
                     {userStatus === 'free' && (
                       <div className="space-y-2 pt-2">
                         <Button
-                          onClick={() => setShowUpgradeModal(true)}
-                          className="w-full bg-[#635BFF] hover:bg-[#5851E3] text-white font-bold h-12 rounded-xl shadow-lg shadow-indigo-200 dark:shadow-none flex items-center justify-center gap-2 transition-all hover:scale-[1.02]"
+                          disabled
+                          className="w-full bg-[#635BFF]/50 text-white font-bold h-12 rounded-xl flex items-center justify-center gap-2 cursor-not-allowed opacity-60"
                         >
                           อัปเกรดเป็น Plus
                         </Button>
                         <p className="text-[10px] text-center text-muted-foreground">
-                          ทดลองใช้ฟรี 15 วัน • ยกเลิกได้ตลอด
+                          เร็วๆ นี้
                         </p>
                       </div>
                     )}
