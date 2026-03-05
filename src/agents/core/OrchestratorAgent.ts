@@ -1625,16 +1625,28 @@ export class OrchestratorAgent extends BaseAgent {
    */
   private async updateOnboardingStep(userId: string, step: string, completed: boolean): Promise<void> {
     try {
-      await this.supabase.getClient()
+      this.log('info', `Updating onboarding: userId=${userId}, step=${step}, completed=${completed}`);
+      const { data, error, count } = await this.supabase.getClient()
         .from('users')
         .update({
           onboarding_step: step,
           onboarding_completed: completed,
           updated_at: new Date().toISOString()
         })
-        .eq('id', userId);
+        .eq('id', userId)
+        .select('id, onboarding_step, onboarding_completed');
 
-      this.log('info', `Updated onboarding: step=${step}, completed=${completed}`);
+      if (error) {
+        this.log('error', `DB error updating onboarding: ${error.message} (code: ${error.code})`, error);
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        this.log('warn', `updateOnboardingStep matched 0 rows! userId=${userId} may not exist in users table`);
+        return;
+      }
+
+      this.log('info', `Onboarding updated OK: ${JSON.stringify(data[0])}`);
     } catch (error) {
       this.log('error', 'Failed to update onboarding step', error);
     }
