@@ -230,18 +230,12 @@ export class OrchestratorAgent extends BaseAgent {
       }
 
       // Guard: if NLU returns onboarding but user already completed → treat as greeting
+      // Keep NLU's natural response — just redirect the intent so onboarding flow doesn't trigger
       if (nluResult.intent === 'onboarding' && (!onboardingContext || onboardingContext.completed)) {
         this.log('info', `Onboarding already completed, redirecting to greeting`);
-        const name = patientData?.nickname || patientData?.name || '';
-        const greetings = [
-          `สวัสดีค่ะ${name ? ' ' + name : ''} วันนี้มีอะไรให้ช่วยไหมคะ? 😊`,
-          `ว่าไงคะ${name ? ' ' + name : ''} อยากบันทึกอะไรวันนี้คะ? 📋`,
-          `สวัสดีค่ะ${name ? ' ' + name : ''} พร้อมดูแลสุขภาพไปด้วยกันนะคะ 💚`,
-          `หวัดดีค่ะ${name ? ' ' + name : ''} น้องอุ่นพร้อมช่วยเลยค่ะ ✨`,
-        ];
         nluResult.intent = 'greeting';
         nluResult.subIntent = 'general';
-        nluResult.response = greetings[Math.floor(Math.random() * greetings.length)];
+        // Let NLU's response pass through — don't override it
       }
 
       // Auto-complete stuck onboarding: if onboarding is not completed but user is already
