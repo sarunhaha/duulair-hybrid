@@ -1018,7 +1018,7 @@
           .from('medications')
           .select('*')
           .eq('patient_id', patientId)
-          .eq('active', true)
+          .eq('is_active', true)
           .order('created_at', { ascending: false });
 
         if (error) throw error;

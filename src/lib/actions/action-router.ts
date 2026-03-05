@@ -146,6 +146,30 @@ async function saveHealthData(
 
   const result = await processExtractedData(extractedData, processorContext);
 
+  // Food: save directly to activity_logs (no dedicated processor)
+  if (healthData.type === 'food' && context.patientId) {
+    try {
+      const { createClient } = await import('@supabase/supabase-js');
+      const supabase = createClient(
+        process.env.SUPABASE_URL || '',
+        process.env.SUPABASE_SERVICE_KEY || ''
+      );
+      const mealType = healthData.food?.mealType || 'meal';
+      await supabase.from('activity_logs').insert({
+        patient_id: context.patientId,
+        task_type: 'food',
+        value: mealType,
+        metadata: { meal_type: mealType, ai_extracted: true },
+        raw_text: rawText,
+        ai_confidence: 0.9,
+        timestamp: new Date().toISOString()
+      });
+      result.savedRecords.push({ type: 'food', id: 'activity_log', summary: `อาหาร (${mealType})` });
+    } catch (e) {
+      console.warn('Food activity_log save failed:', e);
+    }
+  }
+
   // Check for abnormal values
   const alerts: string[] = [];
   if (healthData.vitals) {
@@ -347,12 +371,7 @@ function convertToExtractedData(healthData: NLUHealthData): AIExtractedData {
       break;
 
     case 'food':
-      // Food is typically logged as activity
-      extracted.medication = {
-        medicationName: `อาหาร${healthData.food?.mealType ? ` (${healthData.food.mealType})` : ''}`,
-        taken: true,
-        timeTaken: undefined
-      };
+      // Food saved directly to activity_logs in saveHealthData
       break;
   }
 

@@ -853,6 +853,7 @@ async function getPatientDashboardSummary(patientId: string): Promise<DashboardS
       case 'glucose': return hasTodayGlucose;
       case 'exercise': return todayActivityTypes.has('exercise');
       case 'food': return todayActivityTypes.has('food') || todayActivityTypes.has('meal');
+      case 'water': return totalGlasses >= waterGoalGlasses;
       default: return false;
     }
   };

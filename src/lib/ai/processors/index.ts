@@ -381,6 +381,30 @@ async function processExercise(
 
   const summary = `${exercise.exerciseType}${exercise.durationMinutes ? ` ${exercise.durationMinutes} นาที` : ''}`;
 
+  // Dual-write: Also save to activity_logs for dashboard completion tracking
+  const client = supabaseService.getClient();
+  try {
+    await client
+      .from('activity_logs')
+      .insert({
+        patient_id: context.patientId,
+        task_type: 'exercise',
+        value: exercise.durationMinutes?.toString() || '0',
+        metadata: {
+          exercise_type: exercise.exerciseType,
+          duration_minutes: exercise.durationMinutes,
+          intensity: exercise.intensity,
+          ai_extracted: true,
+          exercise_log_id: recordId
+        },
+        ai_confidence: context.aiConfidence,
+        raw_text: context.rawText,
+        timestamp: new Date().toISOString()
+      });
+  } catch (e) {
+    console.warn('Dual-write exercise to activity_logs failed (non-critical):', e);
+  }
+
   // Create health event
   const healthEventId = await createHealthEvent({
     patient_id: context.patientId,

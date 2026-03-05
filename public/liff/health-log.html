@@ -1057,7 +1057,7 @@
             .from('medications')
             .select('id, medication_name, times')
             .eq('patient_id', patientId)
-            .eq('active', true);
+            .eq('is_active', true);
 
           if (!error && meds) {
             let totalDoses = 0;

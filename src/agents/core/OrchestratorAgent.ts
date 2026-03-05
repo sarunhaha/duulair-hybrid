@@ -104,7 +104,6 @@ export class OrchestratorAgent extends BaseAgent {
       let onboardingContext: { completed: boolean; step: string } | null = null;
       if (!isGroupChat && message.context.userId) {
         onboardingContext = await this.getOnboardingStatus(message.context.userId);
-        console.log(`🔍 [Onboarding] userId=${message.context.userId}, context=${JSON.stringify(onboardingContext)}`);
       }
 
       // Fallback: fetch patient profile by userId if patientId is not available (onboarding users)

@@ -178,22 +178,18 @@ async function aggregatePatientData(
 
     // Water intake
     supabase
-      .from('water_intake_logs')
+      .from('water_logs')
       .select('amount_ml')
       .eq('patient_id', patientId)
-      .gte('logged_at', startOfDay)
-      .lte('logged_at', endOfDay),
+      .gte('log_date', startOfDay.split('T')[0])
+      .lte('log_date', endOfDay.split('T')[0]),
 
-    // Water goal
-    supabase
-      .from('water_intake_goals')
-      .select('daily_goal_ml')
-      .eq('patient_id', patientId)
-      .single(),
+    // Water goal (no goal table — use default 2000ml)
+    Promise.resolve({ data: { daily_goal_ml: 2000 }, error: null }),
 
     // Medications scheduled for this patient
     supabase
-      .from('patient_medications')
+      .from('medications')
       .select('id, times, frequency_type, days_of_week')
       .eq('patient_id', patientId)
       .eq('is_active', true),
