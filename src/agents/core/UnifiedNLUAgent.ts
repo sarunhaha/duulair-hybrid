@@ -160,6 +160,7 @@ ${userPrompt}`;
     // Call Claude with unified NLU prompt (strip onboarding section if completed)
     const onboardingCompleted = onboardingContext?.completed ?? true;
     const systemPrompt = getSystemPrompt(onboardingCompleted);
+    console.log(`🔍 [NLU] onboardingCompleted=${onboardingCompleted}, promptHasOnboarding=${systemPrompt.includes('### onboarding')}, onboardingContext=${JSON.stringify(onboardingContext)}`);
     const response = await this.askClaude(userPrompt, systemPrompt);
 
     // Parse Claude's JSON response
