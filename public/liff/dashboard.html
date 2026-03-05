@@ -351,6 +351,9 @@
   <!-- API Client -->
   <script src="js/api.js"></script>
 
+  <!-- Consent Gate -->
+  <script src="js/consent-gate.js"></script>
+
   <script>
     // LIFF ID
     const LIFF_ID = '2008278683-5k69jxNq';
@@ -456,6 +459,9 @@
 
         // Get cached profile
         const profile = await getCachedProfile();
+
+        // Consent gate check
+        if (!(await checkConsentGate(profile.userId))) return;
 
         // Update UI with fresh profile
         document.getElementById('welcomeName').textContent = `สวัสดี ${profile.displayName}`;

@@ -37,6 +37,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     const profile = await initLiff();
     if (!profile) return;
 
+    // Consent gate check
+    if (typeof checkConsentGate === 'function') {
+      if (!(await checkConsentGate(profile.userId))) return;
+    }
+
     // Get LIFF access token
     liffAccessToken = liff.getAccessToken();
     if (!liffAccessToken) {

@@ -734,6 +734,12 @@
   <!-- Lucide Icons -->
   <script src="js/lucide-icons.js"></script>
 
+  <!-- API Client -->
+  <script src="js/api.js"></script>
+
+  <!-- Consent Gate -->
+  <script src="js/consent-gate.js"></script>
+
   <script>
     // API Base URL
     const API_BASE_URL = window.location.hostname === 'localhost'
@@ -869,15 +875,17 @@
           return;
         }
 
+        // Consent gate check
+        const profile = await getCachedProfile();
+        if (!(await checkConsentGate(profile.userId))) return;
+
         // Get context immediately
         const context = JSON.parse(localStorage.getItem('oonjai_context') || '{}');
         patientId = context.patientId;
         groupId = context.groupId;
 
         // Run in background
-        getCachedProfile().then(profile => {
-          checkUserRegistration(profile.userId).catch(e => console.error('Reg check:', e));
-        }).catch(e => console.error('Profile error:', e));
+        checkUserRegistration(profile.userId).catch(e => console.error('Reg check:', e));
 
       } catch (error) {
         console.error('LIFF init error:', error);

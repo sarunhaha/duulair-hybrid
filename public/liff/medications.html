@@ -707,6 +707,9 @@
   <!-- API Client -->
   <script src="js/api.js"></script>
 
+  <!-- Consent Gate -->
+  <script src="js/consent-gate.js"></script>
+
   <script>
     // Configuration
     const SUPABASE_URL = 'https://mqxklnzxfrupwwkwlwwc.supabase.co';
@@ -851,6 +854,7 @@
         }
 
         const profile = await getCachedProfile();
+        if (!(await checkConsentGate(profile.userId))) return;
         checkUserRegistration(profile.userId).catch(err => console.error('Registration check error:', err));
 
         const context = liff.getContext();

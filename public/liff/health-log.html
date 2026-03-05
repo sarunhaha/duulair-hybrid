@@ -839,6 +839,12 @@
     </div>
   </div>
 
+  <!-- API Client -->
+  <script src="js/api.js"></script>
+
+  <!-- Consent Gate -->
+  <script src="js/consent-gate.js"></script>
+
   <script>
     // ============================================
     // ICON INITIALIZATION
@@ -1004,6 +1010,9 @@
         groupId = context.groupId;
 
         const profile = await getCachedProfile();
+
+        // Consent gate check
+        if (!(await checkConsentGate(profile.userId))) return;
 
         if (!patientId && profile?.userId) {
           console.log('Fetching patientId from server...');

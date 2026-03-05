@@ -685,6 +685,9 @@
   <!-- API Client -->
   <script src="js/api.js"></script>
 
+  <!-- Consent Gate -->
+  <script src="js/consent-gate.js"></script>
+
   <script>
     // Configuration
     const LIFF_ID = '2008278683-5k69jxNq';
@@ -885,6 +888,7 @@
         }
 
         const profile = await getCachedProfile();
+        if (!(await checkConsentGate(profile.userId))) return;
         checkUserRegistration(profile.userId).catch(err => console.error('Registration check error:', err));
         loadUserData().catch(err => console.error('Load data error:', err));
 

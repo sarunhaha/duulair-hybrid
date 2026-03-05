@@ -844,6 +844,9 @@
   <!-- API Client -->
   <script src="js/api.js"></script>
 
+  <!-- Consent Gate -->
+  <script src="js/consent-gate.js"></script>
+
   <script>
     // Configuration
     const SUPABASE_URL = 'https://mqxklnzxfrupwwkwlwwc.supabase.co';
@@ -966,6 +969,14 @@
         if (!liff.isLoggedIn()) {
           liff.login();
           return;
+        }
+
+        // Consent gate check
+        try {
+          const profile = await liff.getProfile();
+          if (!(await checkConsentGate(profile.userId))) return;
+        } catch (e) {
+          console.warn('Consent gate profile check failed:', e);
         }
 
         const context = liff.getContext();

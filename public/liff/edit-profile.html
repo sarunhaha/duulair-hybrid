@@ -413,6 +413,9 @@
   <!-- API Client -->
   <script src="js/api.js"></script>
 
+  <!-- Consent Gate -->
+  <script src="js/consent-gate.js"></script>
+
   <script>
     let currentPatientId = null;
     let currentSection = null;
@@ -493,6 +496,17 @@
 
     // Initialize page
     async function init() {
+      // Consent gate check via LIFF
+      try {
+        await liff.init({ liffId: '2008278683-5k69jxNq' });
+        if (liff.isLoggedIn()) {
+          const profile = await liff.getProfile();
+          if (!(await checkConsentGate(profile.userId))) return;
+        }
+      } catch (e) {
+        console.warn('LIFF init for consent check failed:', e);
+      }
+
       if (!currentPatientId) {
         showError('ไม่พบ Patient ID');
         return;

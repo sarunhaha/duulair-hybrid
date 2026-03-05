@@ -656,6 +656,12 @@
   <!-- Lucide Icons -->
   <script src="js/lucide-icons.js"></script>
 
+  <!-- API Client -->
+  <script src="js/api.js"></script>
+
+  <!-- Consent Gate -->
+  <script src="js/consent-gate.js"></script>
+
   <script>
     // Configuration
     const API_BASE_URL = window.location.hostname === 'localhost'
@@ -802,6 +808,7 @@
         }
 
         const profile = await getCachedProfile();
+        if (!(await checkConsentGate(profile.userId))) return;
         checkUserRegistration(profile.userId).catch(err => console.error('Registration check error:', err));
 
         // Get context

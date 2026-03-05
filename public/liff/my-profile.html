@@ -535,6 +535,9 @@
   <!-- API Client -->
   <script src="js/api.js"></script>
 
+  <!-- Consent Gate -->
+  <script src="js/consent-gate.js"></script>
+
   <script>
     const LIFF_ID = '2008278683-5k69jxNq';
     let liffProfile = null;
@@ -619,6 +622,7 @@
         }
 
         liffProfile = await liff.getProfile();
+        if (!(await checkConsentGate(liffProfile.userId))) return;
         const result = await api.checkRegistration(liffProfile.userId);
 
         if (!result.exists) {
