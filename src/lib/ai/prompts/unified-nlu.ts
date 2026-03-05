@@ -897,8 +897,24 @@ export function buildConversationHistoryString(messages: any[]): string {
   return formatted.join('\n');
 }
 
+/**
+ * Get system prompt — strips onboarding section when user already completed onboarding
+ * This prevents NLU from generating onboarding responses for completed users
+ */
+export function getSystemPrompt(onboardingCompleted: boolean): string {
+  if (!onboardingCompleted) {
+    return UNIFIED_NLU_SYSTEM_PROMPT;
+  }
+  // Strip onboarding section (from "### onboarding" to "## การ Extract ข้อมูล")
+  return UNIFIED_NLU_SYSTEM_PROMPT.replace(
+    /### onboarding - ลงทะเบียนผู้ใช้ใหม่[\s\S]*?(?=## การ Extract ข้อมูล)/,
+    ''
+  );
+}
+
 export default {
   UNIFIED_NLU_SYSTEM_PROMPT,
+  getSystemPrompt,
   buildUnifiedNLUPrompt,
   buildPatientContextString,
   buildRecentActivitiesString,

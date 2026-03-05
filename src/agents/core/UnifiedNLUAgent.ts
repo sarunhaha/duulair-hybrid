@@ -13,6 +13,7 @@ import {
 } from '../../types/nlu.types';
 import {
   UNIFIED_NLU_SYSTEM_PROMPT,
+  getSystemPrompt,
   buildUnifiedNLUPrompt,
   buildPatientContextString,
   buildRecentActivitiesString,
@@ -156,8 +157,10 @@ export class UnifiedNLUAgent extends BaseAgent {
 ${userPrompt}`;
     }
 
-    // Call Claude with unified NLU prompt
-    const response = await this.askClaude(userPrompt, UNIFIED_NLU_SYSTEM_PROMPT);
+    // Call Claude with unified NLU prompt (strip onboarding section if completed)
+    const onboardingCompleted = onboardingContext?.completed ?? true;
+    const systemPrompt = getSystemPrompt(onboardingCompleted);
+    const response = await this.askClaude(userPrompt, systemPrompt);
 
     // Parse Claude's JSON response
     const nluResult = this.parseNLUResponse(response, message);
