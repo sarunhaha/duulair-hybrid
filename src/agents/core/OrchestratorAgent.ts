@@ -263,6 +263,14 @@ export class OrchestratorAgent extends BaseAgent {
 
       // Execute database action if needed
       let actionResult = null;
+
+      // Safety net: if NLU detected health_log with healthData but forgot action.type: "save",
+      // force it so data actually gets saved to DB
+      if (nluResult.intent === 'health_log' && nluResult.healthData && nluResult.action.type === 'none') {
+        console.log(`⚠️ [Orchestrator] Health data detected but action.type was "none" — forcing to "save"`);
+        nluResult.action = { ...nluResult.action, type: 'save', target: nluResult.action.target || 'activity_logs' };
+      }
+
       if (UnifiedNLUAgent.requiresAction(nluResult)) {
         actionResult = await executeAction(nluResult, nluContext);
 

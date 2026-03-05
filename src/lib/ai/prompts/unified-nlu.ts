@@ -89,12 +89,18 @@ SubIntents:
 - symptom: ปวด, เจ็บ, ไม่สบาย, มีอาการ
 - mood: อารมณ์, รู้สึก, เครียด
 
+⚠️ **กฎสำคัญที่สุดของ health_log:**
+เมื่อ intent = "health_log" และมี healthData → **ต้องใส่ action.type: "save" เสมอ!**
+ถ้าไม่มี action.type: "save" ข้อมูลจะไม่ถูกบันทึกลงฐานข้อมูล
+- action: { type: "save", target: "activity_logs" } สำหรับทุก health_log ที่มีข้อมูลครบ
+- action: { type: "clarify" } เฉพาะเมื่อต้องถามข้อมูลเพิ่มเท่านั้น
+
 ตัวอย่าง health_log:
-- "กินยาแล้วค่ะ" → healthData: { type: "medication", medication: { taken: true, allMedications: true } }
-- "กินยาแล้ว sarun" → healthData: { type: "medication", medication: { taken: true, allMedications: true } } (ชื่อ sarun คือชื่อผู้ป่วย ไม่ใช่ชื่อยา)
-- "กินยาความดันแล้ว" → healthData: { type: "medication", medication: { taken: true, medicationName: "ยาความดัน" } }
-- "ยังไม่ได้กินยา" → healthData: { type: "medication", medication: { taken: false, allMedications: true } }
-- "ยังไม่ได้กิน" → healthData: { type: "medication", medication: { taken: false, allMedications: true } }
+- "กินยาแล้วค่ะ" → healthData: { type: "medication", medication: { taken: true, allMedications: true } }, action: { type: "save", target: "activity_logs" }
+- "กินยาแล้ว sarun" → healthData: { type: "medication", medication: { taken: true, allMedications: true } }, action: { type: "save", target: "activity_logs" } (ชื่อ sarun คือชื่อผู้ป่วย ไม่ใช่ชื่อยา)
+- "กินยาความดันแล้ว" → healthData: { type: "medication", medication: { taken: true, medicationName: "ยาความดัน" } }, action: { type: "save", target: "activity_logs" }
+- "ยังไม่ได้กินยา" → healthData: { type: "medication", medication: { taken: false, allMedications: true } }, action: { type: "save", target: "activity_logs" }
+- "ยังไม่ได้กิน" → healthData: { type: "medication", medication: { taken: false, allMedications: true } }, action: { type: "save", target: "activity_logs" }
 
 **สำคัญมาก - การ match ชื่อยา:**
 - ถ้าผู้ใช้บอก "กินยาแล้ว" โดยไม่ระบุชื่อยา → ใช้ allMedications: true
@@ -102,38 +108,38 @@ SubIntents:
   - เช่น ถ้ายาในระบบคือ "biotin" แล้วผู้ใช้พูดว่า "กินไบโอตินแล้ว" → medicationName: "biotin"
   - เช่น ถ้ายาในระบบคือ "วิตามิน บำรุงตับ" แล้วผู้ใช้พูดว่า "กินวิตามินตับแล้ว" → medicationName: "วิตามิน บำรุงตับ"
 - ห้ามใช้ชื่อยาว่า "ยา" ถ้าสามารถ match กับยาจริงในระบบได้
-- "ความดัน 140/90" → healthData: { type: "vitals", vitals: { bloodPressure: { systolic: 140, diastolic: 90 } } }
-- "วัดความดันแล้ว" หรือ "วัดความดันแล้ว sarun" → ถามค่าความดัน (response: "วัดได้เท่าไหร่คะ? บอกค่า systolic/diastolic ได้เลยค่ะ เช่น 120/80")
-- "ชีพจร 75" → healthData: { type: "vitals", vitals: { heartRate: 75 } }
-- "น้ำตาล 120" → healthData: { type: "vitals", vitals: { bloodSugar: 120 } }
-- "ดื่มน้ำแล้ว" หรือ "ดื่มน้ำแล้ว sarun" → healthData: { type: "water", water: { glasses: 1, amount_ml: 250 } } (default 1 แก้ว)
-- "ดื่มน้ำ 2 แก้ว" → healthData: { type: "water", water: { glasses: 2, amount_ml: 500 } }
-- "ออกกำลังกายแล้ว" หรือ "ออกกำลังกายแล้ว sarun" → healthData: { type: "exercise", exercise: { type: "general", duration_minutes: 30 } } (default 30 นาที)
-- "เดินออกกำลังกาย 30 นาที" → healthData: { type: "exercise", exercise: { type: "walking", duration_minutes: 30 } }
-- "นอน 7 ชั่วโมง" → healthData: { type: "sleep", sleep: { duration_hours: 7 } }
-- "นอนหลับดี" → healthData: { type: "sleep", sleep: { duration_hours: 8, quality: "good" } }
-- "นอนไม่หลับเลย" → healthData: { type: "sleep", sleep: { duration_hours: 3, quality: "poor" } }
-- "เมื่อคืนตื่นมา 2 รอบ" → healthData: { type: "sleep", sleep: { quality: "fair" } }
-- "วันนี้รู้สึกดี" → healthData: { type: "mood", mood: { mood: "happy" } }
-- "เครียดมาก" → healthData: { type: "mood", mood: { mood: "stressed", stressLevel: 8 } }
-- "วันนี้เหนื่อย" → healthData: { type: "mood", mood: { mood: "tired", energyLevel: 3 } }
-- "รู้สึกเศร้า" → healthData: { type: "mood", mood: { mood: "sad" } }
-- "สบายดีค่ะ" → healthData: { type: "mood", mood: { mood: "happy" } }
-- "กังวลเรื่องสุขภาพ" → healthData: { type: "mood", mood: { mood: "anxious" } }
-- "อารมณ์ดี" → healthData: { type: "mood", mood: { mood: "happy" } }
-- "หงุดหงิด" → healthData: { type: "mood", mood: { mood: "stressed" } }
-- "ปวดหัวมาก" → healthData: { type: "symptom", symptom: { symptom: "ปวดหัว", severity: "severe" } }
-- "เจ็บคอนิดๆ" → healthData: { type: "symptom", symptom: { symptom: "เจ็บคอ", severity: "mild" } }
-- "ไอมีเสมหะ" → healthData: { type: "symptom", symptom: { symptom: "ไอมีเสมหะ", severity: "moderate" } }
-- "มีไข้ตัวร้อน" → healthData: { type: "symptom", symptom: { symptom: "มีไข้", severity: "moderate", hasTemperature: true } }
-- "ท้องเสีย 3 รอบแล้ว" → healthData: { type: "symptom", symptom: { symptom: "ท้องเสีย", severity: "moderate", count: 3 } }
-- "นอนไม่หลับ" → healthData: { type: "symptom", symptom: { symptom: "นอนไม่หลับ", severity: "moderate" } }
-- "เวียนหัว" → healthData: { type: "symptom", symptom: { symptom: "เวียนหัว", severity: "moderate" } }
-- "คลื่นไส้" → healthData: { type: "symptom", symptom: { symptom: "คลื่นไส้", severity: "moderate" } }
-- "ปวดท้อง" → healthData: { type: "symptom", symptom: { symptom: "ปวดท้อง", severity: "moderate" } }
-- "อ่อนเพลีย" → healthData: { type: "symptom", symptom: { symptom: "อ่อนเพลีย", severity: "mild" } }
-- "หายใจลำบาก" → healthData: { type: "symptom", symptom: { symptom: "หายใจลำบาก", severity: "severe" } }
-- "แน่นหน้าอก" → healthData: { type: "symptom", symptom: { symptom: "แน่นหน้าอก", severity: "severe" } }
+- "ความดัน 140/90" → healthData: { type: "vitals", vitals: { bloodPressure: { systolic: 140, diastolic: 90 } } }, action: { type: "save", target: "activity_logs" }
+- "วัดความดันแล้ว" → ถามค่าความดัน, action: { type: "clarify" } (ข้อมูลไม่ครบ)
+- "ชีพจร 75" → healthData: { type: "vitals", vitals: { heartRate: 75 } }, action: { type: "save", target: "activity_logs" }
+- "น้ำตาล 120" → healthData: { type: "vitals", vitals: { bloodSugar: 120 } }, action: { type: "save", target: "activity_logs" }
+- "ดื่มน้ำแล้ว" → healthData: { type: "water", water: { glasses: 1, amount_ml: 250 } }, action: { type: "save", target: "activity_logs" }
+- "ดื่มน้ำ 2 แก้ว" → healthData: { type: "water", water: { glasses: 2, amount_ml: 500 } }, action: { type: "save", target: "activity_logs" }
+- "ออกกำลังกายแล้ว" → healthData: { type: "exercise", exercise: { type: "general", duration_minutes: 30 } }, action: { type: "save", target: "activity_logs" }
+- "เดินออกกำลังกาย 30 นาที" → healthData: { type: "exercise", exercise: { type: "walking", duration_minutes: 30 } }, action: { type: "save", target: "activity_logs" }
+- "นอน 7 ชั่วโมง" → healthData: { type: "sleep", sleep: { duration_hours: 7 } }, action: { type: "save", target: "activity_logs" }
+- "นอนหลับดี" → healthData: { type: "sleep", sleep: { duration_hours: 8, quality: "good" } }, action: { type: "save", target: "activity_logs" }
+- "นอนไม่หลับเลย" → healthData: { type: "sleep", sleep: { duration_hours: 3, quality: "poor" } }, action: { type: "save", target: "activity_logs" }
+- "เมื่อคืนตื่นมา 2 รอบ" → healthData: { type: "sleep", sleep: { quality: "fair" } }, action: { type: "save", target: "activity_logs" }
+- "วันนี้รู้สึกดี" → healthData: { type: "mood", mood: { mood: "happy" } }, action: { type: "save", target: "activity_logs" }
+- "เครียดมาก" → healthData: { type: "mood", mood: { mood: "stressed", stressLevel: 8 } }, action: { type: "save", target: "activity_logs" }
+- "วันนี้เหนื่อย" → healthData: { type: "mood", mood: { mood: "tired", energyLevel: 3 } }, action: { type: "save", target: "activity_logs" }
+- "รู้สึกเศร้า" → healthData: { type: "mood", mood: { mood: "sad" } }, action: { type: "save", target: "activity_logs" }
+- "สบายดีค่ะ" → healthData: { type: "mood", mood: { mood: "happy" } }, action: { type: "save", target: "activity_logs" }
+- "กังวลเรื่องสุขภาพ" → healthData: { type: "mood", mood: { mood: "anxious" } }, action: { type: "save", target: "activity_logs" }
+- "อารมณ์ดี" → healthData: { type: "mood", mood: { mood: "happy" } }, action: { type: "save", target: "activity_logs" }
+- "หงุดหงิด" → healthData: { type: "mood", mood: { mood: "stressed" } }, action: { type: "save", target: "activity_logs" }
+- "ปวดหัวมาก" → healthData: { type: "symptom", symptom: { symptom: "ปวดหัว", severity: "severe" } }, action: { type: "save", target: "activity_logs" }
+- "เจ็บคอนิดๆ" → healthData: { type: "symptom", symptom: { symptom: "เจ็บคอ", severity: "mild" } }, action: { type: "save", target: "activity_logs" }
+- "ไอมีเสมหะ" → healthData: { type: "symptom", symptom: { symptom: "ไอมีเสมหะ", severity: "moderate" } }, action: { type: "save", target: "activity_logs" }
+- "มีไข้ตัวร้อน" → healthData: { type: "symptom", symptom: { symptom: "มีไข้", severity: "moderate", hasTemperature: true } }, action: { type: "save", target: "activity_logs" }
+- "ท้องเสีย 3 รอบแล้ว" → healthData: { type: "symptom", symptom: { symptom: "ท้องเสีย", severity: "moderate", count: 3 } }, action: { type: "save", target: "activity_logs" }
+- "นอนไม่หลับ" → healthData: { type: "symptom", symptom: { symptom: "นอนไม่หลับ", severity: "moderate" } }, action: { type: "save", target: "activity_logs" }
+- "เวียนหัว" → healthData: { type: "symptom", symptom: { symptom: "เวียนหัว", severity: "moderate" } }, action: { type: "save", target: "activity_logs" }
+- "คลื่นไส้" → healthData: { type: "symptom", symptom: { symptom: "คลื่นไส้", severity: "moderate" } }, action: { type: "save", target: "activity_logs" }
+- "ปวดท้อง" → healthData: { type: "symptom", symptom: { symptom: "ปวดท้อง", severity: "moderate" } }, action: { type: "save", target: "activity_logs" }
+- "อ่อนเพลีย" → healthData: { type: "symptom", symptom: { symptom: "อ่อนเพลีย", severity: "mild" } }, action: { type: "save", target: "activity_logs" }
+- "หายใจลำบาก" → healthData: { type: "symptom", symptom: { symptom: "หายใจลำบาก", severity: "severe" } }, action: { type: "save", target: "activity_logs" }
+- "แน่นหน้าอก" → healthData: { type: "symptom", symptom: { symptom: "แน่นหน้าอก", severity: "severe" } }, action: { type: "save", target: "activity_logs" }
 
 Severity Levels:
 - mild: นิดหน่อย, เล็กน้อย, ไม่มาก
