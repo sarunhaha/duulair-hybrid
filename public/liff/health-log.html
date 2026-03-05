@@ -100,6 +100,8 @@
     .summary-card.water { border-left-color: hsl(217 91% 60%); }
     .summary-card.vitals { border-left-color: hsl(var(--success)); }
     .summary-card.symptom { border-left-color: hsl(var(--accent)); }
+    .summary-card.sleep { border-left-color: hsl(234 89% 60%); }
+    .summary-card.mood { border-left-color: hsl(270 67% 58%); }
 
     .summary-icon {
       width: 2.5rem;
@@ -576,6 +578,20 @@
               <div class="value" id="symptomSummary">ปกติ</div>
             </div>
           </div>
+          <div class="summary-card sleep">
+            <div class="summary-icon sleep" id="sleepIcon"></div>
+            <div class="summary-info">
+              <div class="label">การนอน</div>
+              <div class="value" id="sleepSummary">ยังไม่บันทึก</div>
+            </div>
+          </div>
+          <div class="summary-card mood">
+            <div class="summary-icon mood" id="moodIcon"></div>
+            <div class="summary-info">
+              <div class="label">อารมณ์</div>
+              <div class="value" id="moodSummary">ยังไม่บันทึก</div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -857,6 +873,8 @@
       document.getElementById('waterIcon').innerHTML = icon('droplet');
       document.getElementById('vitalsIcon').innerHTML = icon('heartPulse');
       document.getElementById('symptomIcon').innerHTML = icon('thermometer');
+      document.getElementById('sleepIcon').innerHTML = icon('moon');
+      document.getElementById('moodIcon').innerHTML = icon('smile');
 
       // Category icons
       document.getElementById('catMedIcon').innerHTML = icon('pill', 'lucide-lg');
@@ -909,7 +927,9 @@
       medicationsTotal: 0,
       waterAmount: 0,
       latestVitals: null,
-      symptoms: []
+      symptoms: [],
+      sleepHours: null,
+      latestMood: null
     };
 
     // ============================================
@@ -1165,6 +1185,51 @@
         }
       }
 
+      // Sleep data
+      if (patientId && supabaseClient) {
+        try {
+          const { data: sleepLog, error: sleepError } = await supabaseClient
+            .from('sleep_logs')
+            .select('sleep_hours')
+            .eq('patient_id', patientId)
+            .eq('sleep_date', today)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (!sleepError && sleepLog) {
+            todaySummary.sleepHours = sleepLog.sleep_hours;
+          }
+        } catch (e) {
+          console.error('Error loading sleep:', e);
+        }
+      }
+
+      // Mood data
+      if (patientId && supabaseClient) {
+        try {
+          const tomorrow = new Date(today);
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+          const { data: moodLog, error: moodError } = await supabaseClient
+            .from('mood_logs')
+            .select('mood, timestamp')
+            .eq('patient_id', patientId)
+            .gte('timestamp', today + 'T00:00:00')
+            .lt('timestamp', tomorrowStr + 'T00:00:00')
+            .order('timestamp', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (!moodError && moodLog) {
+            todaySummary.latestMood = moodLog.mood;
+          }
+        } catch (e) {
+          console.error('Error loading mood:', e);
+        }
+      }
+
       updateSummaryUI();
     }
 
@@ -1205,6 +1270,28 @@
       } else {
         symptomEl.textContent = 'ปกติ';
         symptomEl.classList.add('complete');
+      }
+
+      const sleepEl = document.getElementById('sleepSummary');
+      if (todaySummary.sleepHours != null) {
+        sleepEl.textContent = `${todaySummary.sleepHours} ชม.`;
+        sleepEl.classList.add(todaySummary.sleepHours >= 7 ? 'complete' : 'incomplete');
+      } else {
+        sleepEl.textContent = 'ยังไม่บันทึก';
+        sleepEl.style.fontSize = '0.875rem';
+      }
+
+      const moodEl = document.getElementById('moodSummary');
+      if (todaySummary.latestMood) {
+        const moodMap = {
+          happy: '😊 มีความสุข', sad: '😢 เศร้า', stressed: '😤 เครียด',
+          tired: '😩 เหนื่อย', anxious: '😰 กังวล', calm: '😌 สงบ',
+          neutral: '😐 ปกติ', exhausted: '😫 หมดแรง', excited: '🤩 ตื่นเต้น'
+        };
+        moodEl.textContent = moodMap[todaySummary.latestMood] || todaySummary.latestMood;
+      } else {
+        moodEl.textContent = 'ยังไม่บันทึก';
+        moodEl.style.fontSize = '0.875rem';
       }
     }
 

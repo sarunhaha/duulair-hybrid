@@ -22,6 +22,8 @@ interface DashboardSummary {
     glucose: number | null;
     glucose_change: number | null;
   };
+  latestMood: { mood: string; timestamp: string } | null;
+  todaySymptoms: { count: number; names: string[] };
   aiInsight: { title: string; message: string; icon: string } | null;
 }
 
@@ -58,6 +60,8 @@ router.get('/summary/:patientId', async (req: Request, res: Response) => {
       todayReminderLogsResult,
       todayVitalsResult,
       todayActivityLogsResult,
+      todayMoodResult,
+      todaySymptomsResult,
     ] = await Promise.all([
       // Latest vitals (today or most recent)
       supabase
@@ -118,7 +122,6 @@ router.get('/summary/:patientId', async (req: Request, res: Response) => {
         .eq('log_date', todayStr),
 
       // Streak calculation - get recent activity dates from multiple tables
-      // Using activity_logs + medication_logs as reliable sources instead of daily_patient_summaries
       Promise.all([
         supabase
           .from('activity_logs')
@@ -144,6 +147,30 @@ router.get('/summary/:patientId', async (req: Request, res: Response) => {
           .eq('patient_id', patientId)
           .order('log_date', { ascending: false })
           .limit(50),
+        supabase
+          .from('mood_logs')
+          .select('timestamp')
+          .eq('patient_id', patientId)
+          .order('timestamp', { ascending: false })
+          .limit(50),
+        supabase
+          .from('symptoms')
+          .select('created_at')
+          .eq('patient_id', patientId)
+          .order('created_at', { ascending: false })
+          .limit(50),
+        supabase
+          .from('sleep_logs')
+          .select('sleep_date')
+          .eq('patient_id', patientId)
+          .order('sleep_date', { ascending: false })
+          .limit(50),
+        supabase
+          .from('exercise_logs')
+          .select('exercise_date')
+          .eq('patient_id', patientId)
+          .order('exercise_date', { ascending: false })
+          .limit(50),
       ]),
 
       // Today's reminder logs (for non-medication completion check)
@@ -167,6 +194,23 @@ router.get('/summary/:patientId', async (req: Request, res: Response) => {
         .select('task_type, timestamp')
         .eq('patient_id', patientId)
         .gte('timestamp', today.toISOString()),
+
+      // Today's latest mood
+      supabase
+        .from('mood_logs')
+        .select('mood, timestamp')
+        .eq('patient_id', patientId)
+        .gte('timestamp', today.toISOString())
+        .order('timestamp', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+
+      // Today's symptoms
+      supabase
+        .from('symptoms')
+        .select('symptom_name')
+        .eq('patient_id', patientId)
+        .gte('created_at', today.toISOString()),
     ]);
 
     // Process vitals
@@ -200,7 +244,7 @@ router.get('/summary/:patientId', async (req: Request, res: Response) => {
     // Calculate streak from actual health data across tables
     let streak = 0;
     {
-      const [activityResult, medLogResult, vitalsResult, waterResult] = streakResult as any;
+      const [activityResult, medLogResult, vitalsResult, waterResult, moodResult, symptomResult, sleepStreakResult, exerciseResult] = streakResult as any;
 
       // Collect all unique dates (Bangkok timezone) from all health tables
       const dateSet = new Set<string>();
@@ -216,6 +260,18 @@ router.get('/summary/:patientId', async (req: Request, res: Response) => {
       }
       for (const row of (waterResult.data || [])) {
         if (row.log_date) dateSet.add(row.log_date);
+      }
+      for (const row of (moodResult.data || [])) {
+        if (row.timestamp) dateSet.add(new Date(row.timestamp).toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' }));
+      }
+      for (const row of (symptomResult.data || [])) {
+        if (row.created_at) dateSet.add(new Date(row.created_at).toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' }));
+      }
+      for (const row of (sleepStreakResult.data || [])) {
+        if (row.sleep_date) dateSet.add(row.sleep_date);
+      }
+      for (const row of (exerciseResult.data || [])) {
+        if (row.exercise_date) dateSet.add(row.exercise_date);
       }
 
       // Sort dates descending
@@ -405,9 +461,26 @@ router.get('/summary/:patientId', async (req: Request, res: Response) => {
     // Calculate completed tasks
     const completedTasks = tasks.filter(t => t.done).length;
 
+    // Process mood and symptoms
+    const latestMood = todayMoodResult.data
+      ? { mood: todayMoodResult.data.mood, timestamp: todayMoodResult.data.timestamp }
+      : null;
+    const todaySymptomsList = todaySymptomsResult.data || [];
+    const todaySymptoms = {
+      count: todaySymptomsList.length,
+      names: todaySymptomsList.map((s: any) => s.symptom_name).filter(Boolean),
+    };
+
     // Generate AI insight (simple rule-based for now)
     let aiInsight = null;
-    if (sleep_hours !== null && sleep_hours < 6) {
+    const moodStr = latestMood?.mood?.toLowerCase();
+    if (['stressed', 'sad', 'anxious', 'tired', 'exhausted'].includes(moodStr || '')) {
+      aiInsight = {
+        title: 'อุ่นใจแนะนำ',
+        message: 'วันนี้อาจเครียดนิดหน่อย ลองหายใจลึกๆ หรือเดินเล่นสักครู่นะคะ',
+        icon: 'heart',
+      };
+    } else if (sleep_hours !== null && sleep_hours < 6) {
       aiInsight = {
         title: 'อุ่นใจแนะนำ',
         message: 'เมื่อคืนคุณนอนน้อย ลองพักสายตา 10 นาทีช่วงบ่ายนะคะ',
@@ -452,6 +525,8 @@ router.get('/summary/:patientId', async (req: Request, res: Response) => {
         glucose,
         glucose_change,
       },
+      latestMood,
+      todaySymptoms,
       aiInsight,
     };
 
@@ -578,6 +653,8 @@ function getEmptyDashboardSummary(): DashboardSummary {
       glucose: null,
       glucose_change: null,
     },
+    latestMood: null,
+    todaySymptoms: { count: 0, names: [] },
     aiInsight: null,
   };
 }
@@ -601,6 +678,8 @@ async function getPatientDashboardSummary(patientId: string): Promise<DashboardS
     todayReminderLogsResult,
     todayVitalsResult,
     todayActivityLogsResult,
+    todayMoodResult,
+    todaySymptomsResult,
   ] = await Promise.all([
     supabase
       .from('vitals_logs')
@@ -652,6 +731,10 @@ async function getPatientDashboardSummary(patientId: string): Promise<DashboardS
       supabase.from('medication_logs').select('taken_at').eq('patient_id', patientId).order('taken_at', { ascending: false }).limit(100),
       supabase.from('vitals_logs').select('measured_at').eq('patient_id', patientId).order('measured_at', { ascending: false }).limit(50),
       supabase.from('water_logs').select('log_date').eq('patient_id', patientId).order('log_date', { ascending: false }).limit(50),
+      supabase.from('mood_logs').select('timestamp').eq('patient_id', patientId).order('timestamp', { ascending: false }).limit(50),
+      supabase.from('symptoms').select('created_at').eq('patient_id', patientId).order('created_at', { ascending: false }).limit(50),
+      supabase.from('sleep_logs').select('sleep_date').eq('patient_id', patientId).order('sleep_date', { ascending: false }).limit(50),
+      supabase.from('exercise_logs').select('exercise_date').eq('patient_id', patientId).order('exercise_date', { ascending: false }).limit(50),
     ]),
     // Today's reminder logs (for non-medication completion check)
     supabase
@@ -672,6 +755,21 @@ async function getPatientDashboardSummary(patientId: string): Promise<DashboardS
       .select('task_type, timestamp')
       .eq('patient_id', patientId)
       .gte('timestamp', today.toISOString()),
+    // Today's latest mood
+    supabase
+      .from('mood_logs')
+      .select('mood, timestamp')
+      .eq('patient_id', patientId)
+      .gte('timestamp', today.toISOString())
+      .order('timestamp', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    // Today's symptoms
+    supabase
+      .from('symptoms')
+      .select('symptom_name')
+      .eq('patient_id', patientId)
+      .gte('created_at', today.toISOString()),
   ]);
 
   // Process vitals
@@ -705,7 +803,7 @@ async function getPatientDashboardSummary(patientId: string): Promise<DashboardS
   // Calculate streak from actual health data
   let streak = 0;
   {
-    const [activityResult, medLogResult, vitalsResult, waterResult] = streakResult as any;
+    const [activityResult, medLogResult, vitalsResult, waterResult, moodResult, symptomResult, sleepStreakResult, exerciseResult] = streakResult as any;
 
     const dateSet = new Set<string>();
     for (const row of ((activityResult as any).data || [])) {
@@ -719,6 +817,18 @@ async function getPatientDashboardSummary(patientId: string): Promise<DashboardS
     }
     for (const row of ((waterResult as any).data || [])) {
       if (row.log_date) dateSet.add(row.log_date);
+    }
+    for (const row of ((moodResult as any).data || [])) {
+      if (row.timestamp) dateSet.add(new Date(row.timestamp).toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' }));
+    }
+    for (const row of ((symptomResult as any).data || [])) {
+      if (row.created_at) dateSet.add(new Date(row.created_at).toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' }));
+    }
+    for (const row of ((sleepStreakResult as any).data || [])) {
+      if (row.sleep_date) dateSet.add(row.sleep_date);
+    }
+    for (const row of ((exerciseResult as any).data || [])) {
+      if (row.exercise_date) dateSet.add(row.exercise_date);
     }
 
     const sortedDates = Array.from(dateSet).sort((a, b) => b.localeCompare(a));
@@ -896,9 +1006,26 @@ async function getPatientDashboardSummary(patientId: string): Promise<DashboardS
 
   const completedTasks = tasks.filter(t => t.done).length;
 
+  // Process mood and symptoms
+  const latestMood = todayMoodResult.data
+    ? { mood: (todayMoodResult.data as any).mood, timestamp: (todayMoodResult.data as any).timestamp }
+    : null;
+  const todaySymptomsList = todaySymptomsResult.data || [];
+  const todaySymptoms = {
+    count: todaySymptomsList.length,
+    names: todaySymptomsList.map((s: any) => s.symptom_name).filter(Boolean),
+  };
+
   // Generate AI insight
   let aiInsight = null;
-  if (sleep_hours !== null && sleep_hours < 6) {
+  const moodStr = latestMood?.mood?.toLowerCase();
+  if (moodStr === 'stressed' || moodStr === 'sad' || moodStr === 'anxious') {
+    aiInsight = {
+      title: 'อุ่นใจแนะนำ',
+      message: 'วันนี้อาจเครียดนิดหน่อย ลองหายใจลึกๆ หรือเดินเล่นสักครู่นะคะ',
+      icon: 'heart',
+    };
+  } else if (sleep_hours !== null && sleep_hours < 6) {
     aiInsight = {
       title: 'อุ่นใจแนะนำ',
       message: 'เมื่อคืนนอนน้อย ลองพักสายตา 10 นาทีช่วงบ่ายนะคะ',
@@ -942,6 +1069,8 @@ async function getPatientDashboardSummary(patientId: string): Promise<DashboardS
       glucose,
       glucose_change,
     },
+    latestMood,
+    todaySymptoms,
     aiInsight,
   };
 }
