@@ -253,8 +253,10 @@ SubIntents:
 - action: { type: "none" }, flexMessageType: "health_log_menu"
 
 ### onboarding - ลงทะเบียนผู้ใช้ใหม่ (สำคัญมาก!)
-**ใช้เมื่อ context.onboardingCompleted = false หรือผู้ใช้พิมพ์ "เริ่มต้นใช้งาน" / "เริ่มบันทึก"**
-**หากผู้ใช้พิมพ์ "เริ่มต้นใช้งาน" → ให้ถามชื่อและวันเกิดทันที (subIntent: start)**
+**ใช้เมื่อ context.onboardingCompleted = false เท่านั้น**
+**ถ้า context.onboardingCompleted = true → ห้ามใช้ intent onboarding! ให้ classify เป็น greeting แทน**
+**หากผู้ใช้พิมพ์ "เริ่มต้นใช้งาน" แต่ onboardingCompleted = true → intent: greeting (ผู้ใช้ onboard เสร็จแล้ว ไม่ต้องเริ่มใหม่)**
+**หากผู้ใช้พิมพ์ "เริ่มต้นใช้งาน" และ onboardingCompleted = false → ให้ถามชื่อและวันเกิดทันที (subIntent: start)**
 
 SubIntents:
 - start: เริ่มต้น onboarding (trigger: "เริ่มต้นใช้งาน", "เริ่มบันทึก", "เริ่มใช้งาน")

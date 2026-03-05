@@ -229,6 +229,14 @@ export class OrchestratorAgent extends BaseAgent {
         return this.handleOnboardingResponse(message, nluResult, onboardingContext, startTime);
       }
 
+      // Guard: if NLU returns onboarding but user already completed → treat as greeting
+      if (nluResult.intent === 'onboarding' && (!onboardingContext || onboardingContext.completed)) {
+        this.log('info', `Onboarding already completed, redirecting to greeting`);
+        nluResult.intent = 'greeting';
+        nluResult.subIntent = 'general';
+        nluResult.response = nluResult.response || 'สวัสดีค่ะ มีอะไรให้ช่วยไหมคะ? 😊';
+      }
+
       // Auto-complete stuck onboarding: if onboarding is not completed but user is already
       // using the app normally (intent is not onboarding), mark it as complete so they don't
       // get stuck in onboarding mode forever
@@ -1561,11 +1569,25 @@ export class OrchestratorAgent extends BaseAgent {
         case 'start':
           nextStep = 'ask_name';
           break;
+        case 'complete':
+          nextStep = 'complete';
+          shouldComplete = true;
+          break;
+        default:
+          // Unknown subIntent during onboarding — if step was ask_conditions, assume completion
+          if (currentStep === 'ask_conditions') {
+            nextStep = 'complete';
+            shouldComplete = true;
+          }
+          break;
       }
 
       // Update onboarding step in database
       if (userId) {
         await this.updateOnboardingStep(userId, nextStep, shouldComplete);
+        this.log('info', `Onboarding update: userId=${userId}, step=${nextStep}, completed=${shouldComplete}, subIntent=${nluResult.subIntent}`);
+      } else {
+        this.log('warn', `Cannot update onboarding: userId is missing`);
       }
 
       return {
