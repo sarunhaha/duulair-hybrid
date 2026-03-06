@@ -868,25 +868,25 @@
         const profile = await getCachedProfile();
         if (!(await checkConsentGate(profile.userId))) return;
 
-        // Get context
+        // Always fetch patientId from server to ensure accuracy
         const context = JSON.parse(localStorage.getItem('oonjai_context') || '{}');
-        patientId = context.patientId;
         groupId = context.groupId;
 
-        // Fallback: fetch patientId from server if not in localStorage
-        if (!patientId && profile?.userId) {
-          try {
-            const response = await fetch(`${API_BASE_URL}/check-user/${profile.userId}`);
-            const result = await response.json();
-            if (result.exists && result.profile?.linked_patient_id) {
-              patientId = result.profile.linked_patient_id;
-              context.patientId = patientId;
-              localStorage.setItem('oonjai_context', JSON.stringify(context));
-            }
-          } catch (e) {
-            console.error('Failed to fetch patientId:', e);
+        try {
+          const response = await fetch(`${API_BASE_URL}/check-user/${profile.userId}`);
+          const result = await response.json();
+          if (result.exists && result.profile) {
+            patientId = result.profile.linked_patient_id || result.profile.id;
+            context.patientId = patientId;
+            localStorage.setItem('oonjai_context', JSON.stringify(context));
           }
+        } catch (e) {
+          // Fallback to cached
+          patientId = context.patientId;
+          console.error('Failed to fetch patientId, using cache:', e);
         }
+
+        console.log('patientId resolved:', patientId);
 
         // Load today's water data from server
         if (patientId) {
