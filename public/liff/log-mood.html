@@ -804,6 +804,19 @@
         const context = JSON.parse(localStorage.getItem('oonjai_context') || '{}');
         patientId = context.patientId;
 
+        // Fallback: fetch patientId from server if not cached
+        if (!patientId && profile?.userId) {
+          try {
+            const resp = await fetch(`${API_BASE_URL}/check-user/${profile.userId}`);
+            const data = await resp.json();
+            if (data.exists && data.profile?.linked_patient_id) {
+              patientId = data.profile.linked_patient_id;
+              context.patientId = patientId;
+              localStorage.setItem('oonjai_context', JSON.stringify(context));
+            }
+          } catch (e) { console.error('Failed to fetch patientId:', e); }
+        }
+
       } catch (error) {
         console.error('LIFF init error:', error);
         showToast('เกิดข้อผิดพลาด: ' + error.message, 'error');
