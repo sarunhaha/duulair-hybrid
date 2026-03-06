@@ -1170,98 +1170,70 @@ router.get('/today/:patientId', async (req: Request, res: Response) => {
  */
 router.get('/history/:patientId', async (req: Request, res: Response) => {
   const { patientId } = req.params;
-  const { days = '30' } = req.query;
+  const { days = '30', from, to } = req.query;
 
   if (!patientId) {
     return res.status(400).json({ error: 'Patient ID is required' });
   }
 
   try {
-    // Use Thailand timezone (GMT+7) for date calculations
-    const nowInThailand = new Date(new Date().getTime() + (7 * 60 * 60 * 1000));
-    const daysAgo = new Date(nowInThailand.getTime());
-    daysAgo.setDate(daysAgo.getDate() - parseInt(days as string));
+    let startDate: string;
+    let startDateTimeISO: string;
+    let endDateTimeISO: string | null = null;
+    let endDateOnly: string | null = null;
 
-    // Start of the day X days ago in Thailand timezone
-    const startDate = daysAgo.toISOString().split('T')[0];
-    const startDateTime = new Date(startDate + 'T00:00:00+07:00');
+    if (from && to) {
+      // Custom date range: from=YYYY-MM-DD&to=YYYY-MM-DD
+      startDate = from as string;
+      startDateTimeISO = new Date(startDate + 'T00:00:00+07:00').toISOString();
+      endDateOnly = to as string;
+      endDateTimeISO = new Date(endDateOnly + 'T23:59:59+07:00').toISOString();
+    } else {
+      // Days-based range (default)
+      const nowInThailand = new Date(new Date().getTime() + (7 * 60 * 60 * 1000));
+      const daysAgo = new Date(nowInThailand.getTime());
+      daysAgo.setDate(daysAgo.getDate() - parseInt(days as string));
+      startDate = daysAgo.toISOString().split('T')[0];
+      startDateTimeISO = new Date(startDate + 'T00:00:00+07:00').toISOString();
+    }
 
-    console.log('[/health/history] patientId:', patientId, 'days:', days, 'startDate:', startDate, 'startDateTime:', startDateTime.toISOString());
+    console.log('[/health/history] patientId:', patientId, 'days:', days, 'from:', from, 'to:', to, 'startDate:', startDate);
 
-    const startDateTimeISO = startDateTime.toISOString();
+    // Build queries — add .lte() upper bound when custom date range is provided
+    let vitalsQ = supabase.from('vitals_logs').select('*').eq('patient_id', patientId).gte('measured_at', startDateTimeISO);
+    let waterQ = supabase.from('water_logs').select('*').eq('patient_id', patientId).gte('log_date', startDate);
+    let medsQ = supabase.from('medication_logs').select('*').eq('patient_id', patientId).gte('taken_at', startDateTimeISO);
+    let sympQ = supabase.from('symptoms').select('*').eq('patient_id', patientId).gte('created_at', startDateTimeISO);
+    let sleepQ = supabase.from('sleep_logs').select('*').eq('patient_id', patientId).gte('sleep_date', startDate);
+    let exerQ = supabase.from('exercise_logs').select('*').eq('patient_id', patientId).gte('exercise_date', startDate);
+    let moodQ = supabase.from('mood_logs').select('*').eq('patient_id', patientId).gte('timestamp', startDateTimeISO);
+    let medNotesQ = supabase.from('medical_history').select('*').eq('patient_id', patientId).gte('event_date', startDate);
+    let labQ = supabase.from('lab_results').select('*').eq('patient_id', patientId).gte('lab_date', startDate);
+
+    if (endDateTimeISO) {
+      vitalsQ = vitalsQ.lte('measured_at', endDateTimeISO);
+      medsQ = medsQ.lte('taken_at', endDateTimeISO);
+      sympQ = sympQ.lte('created_at', endDateTimeISO);
+      moodQ = moodQ.lte('timestamp', endDateTimeISO);
+    }
+    if (endDateOnly) {
+      waterQ = waterQ.lte('log_date', endDateOnly);
+      sleepQ = sleepQ.lte('sleep_date', endDateOnly);
+      exerQ = exerQ.lte('exercise_date', endDateOnly);
+      medNotesQ = medNotesQ.lte('event_date', endDateOnly);
+      labQ = labQ.lte('lab_date', endDateOnly);
+    }
 
     const [vitals, water, medications, symptoms, sleep, exercise, mood, medicalNotes, labResults] = await Promise.all([
-      supabase
-        .from('vitals_logs')
-        .select('*')
-        .eq('patient_id', patientId)
-        .gte('measured_at', startDateTimeISO)
-        .order('measured_at', { ascending: false })
-        .limit(100),
-
-      supabase
-        .from('water_logs')
-        .select('*')
-        .eq('patient_id', patientId)
-        .gte('log_date', startDate)
-        .order('logged_at', { ascending: false })
-        .limit(100),
-
-      supabase
-        .from('medication_logs')
-        .select('*')
-        .eq('patient_id', patientId)
-        .gte('taken_at', startDateTimeISO)
-        .order('taken_at', { ascending: false })
-        .limit(100),
-
-      supabase
-        .from('symptoms')
-        .select('*')
-        .eq('patient_id', patientId)
-        .gte('created_at', startDateTimeISO)
-        .order('created_at', { ascending: false })
-        .limit(100),
-
-      supabase
-        .from('sleep_logs')
-        .select('*')
-        .eq('patient_id', patientId)
-        .gte('sleep_date', startDate)
-        .order('sleep_date', { ascending: false })
-        .limit(100),
-
-      supabase
-        .from('exercise_logs')
-        .select('*')
-        .eq('patient_id', patientId)
-        .gte('exercise_date', startDate)
-        .order('exercise_date', { ascending: false })
-        .limit(100),
-
-      supabase
-        .from('mood_logs')
-        .select('*')
-        .eq('patient_id', patientId)
-        .gte('timestamp', startDateTimeISO)
-        .order('timestamp', { ascending: false })
-        .limit(100),
-
-      supabase
-        .from('medical_history')
-        .select('*')
-        .eq('patient_id', patientId)
-        .gte('event_date', startDate)
-        .order('event_date', { ascending: false })
-        .limit(100),
-
-      supabase
-        .from('lab_results')
-        .select('*')
-        .eq('patient_id', patientId)
-        .gte('lab_date', startDate)
-        .order('lab_date', { ascending: false })
-        .limit(100),
+      vitalsQ.order('measured_at', { ascending: false }).limit(100),
+      waterQ.order('logged_at', { ascending: false }).limit(100),
+      medsQ.order('taken_at', { ascending: false }).limit(100),
+      sympQ.order('created_at', { ascending: false }).limit(100),
+      sleepQ.order('sleep_date', { ascending: false }).limit(100),
+      exerQ.order('exercise_date', { ascending: false }).limit(100),
+      moodQ.order('timestamp', { ascending: false }).limit(100),
+      medNotesQ.order('event_date', { ascending: false }).limit(100),
+      labQ.order('lab_date', { ascending: false }).limit(100),
     ]);
 
     console.log('[/health/history] Results - vitals:', vitals.data?.length || 0, 'sleep:', sleep.data?.length || 0);

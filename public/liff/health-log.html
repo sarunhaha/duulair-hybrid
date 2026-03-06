@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://static.line-scdn.net">
-  <link rel="preconnect" href="https://mqxklnzxfrupwwkwlwwc.supabase.co">
+  <!-- Supabase preconnect removed — data loaded via API -->
 
   <!-- Kanit Font -->
   <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -20,7 +20,7 @@
 
   <!-- External Scripts -->
   <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Supabase SDK removed — all data now loaded via API routes -->
   <script src="js/lucide-icons.js"></script>
 
   <style>
@@ -911,13 +911,6 @@
       : 'https://app.oonj.ai/api';
 
     const LIFF_ID = '2008278683-5k69jxNq';
-    const SUPABASE_URL = 'https://mqxklnzxfrupwwkwlwwc.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1xeGtsbnp4ZnJ1cHd3a3dsd3djIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNjcxMjYsImV4cCI6MjA3MjY0MzEyNn0.vPBkIGHdvrfotD3QMnFGrNRMTP3fFzn715XGwqKG-6Y';
-
-    let supabaseClient = null;
-    if (window.supabase && window.supabase.createClient) {
-      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    }
 
     let patientId = null;
     let groupId = null;
@@ -1068,166 +1061,60 @@
     // DATA LOADING
     // ============================================
     async function loadTodaySummary() {
-      const today = new Date().toISOString().split('T')[0];
-
-      if (patientId && supabaseClient) {
-        try {
-          // Load medications
-          const { data: meds, error } = await supabaseClient
-            .from('medications')
-            .select('id, medication_name, times')
-            .eq('patient_id', patientId)
-            .eq('is_active', true);
-
-          if (!error && meds) {
-            let totalDoses = 0;
-            meds.forEach(med => {
-              const times = med.times || [];
-              totalDoses += times.length;
-            });
-            todaySummary.medicationsTotal = totalDoses;
-            medications = meds;
-          }
-
-          // Get today's medication logs from medication_logs table
-          const { data: medLogs, error: medLogsError } = await supabaseClient
-            .from('medication_logs')
-            .select('id')
-            .eq('patient_id', patientId)
-            .gte('taken_at', today + 'T00:00:00')
-            .lt('taken_at', today + 'T23:59:59');
-
-          if (!medLogsError && medLogs) {
-            todaySummary.medicationsTaken = medLogs.length;
-          }
-
-        } catch (error) {
-          console.error('Error loading medications:', error);
-        }
+      if (!patientId) {
+        updateSummaryUI();
+        return;
       }
 
-      // Water data
-      const waterData = JSON.parse(localStorage.getItem(`water_${today}`) || '{"total": 0}');
-      todaySummary.waterAmount = waterData.total || 0;
+      try {
+        // 2 API calls instead of 8 Supabase queries
+        const [todayRes, medsRes] = await Promise.all([
+          fetch(`${API_BASE_URL}/health/today/${patientId}`),
+          fetch(`${API_BASE_URL}/medications/patient/${patientId}`)
+        ]);
 
-      if (patientId && supabaseClient) {
-        try {
-          const { data: waterLogs, error: waterError } = await supabaseClient
-            .from('water_logs')
-            .select('amount_ml')
-            .eq('patient_id', patientId)
-            .eq('log_date', today);
+        const todayData = await todayRes.json();
+        const medsData = await medsRes.json();
 
-          if (!waterError && waterLogs && waterLogs.length > 0) {
-            let totalWater = 0;
-            waterLogs.forEach(log => {
-              totalWater += (log.amount_ml || 0);
-            });
-            if (totalWater > todaySummary.waterAmount) {
-              todaySummary.waterAmount = totalWater;
-            }
+        // Medications: count total doses from active medications
+        const activeMeds = (medsData.medications || []).filter(m => m.is_active);
+        let totalDoses = 0;
+        activeMeds.forEach(med => {
+          totalDoses += (med.times || []).length;
+        });
+        todaySummary.medicationsTotal = totalDoses;
+        medications = activeMeds;
+        todaySummary.medicationsTaken = (todayData.medications || []).length;
+
+        // Water
+        const waterTotal = (todayData.water || []).reduce((s, w) => s + (w.amount_ml || 0), 0);
+        todaySummary.waterAmount = waterTotal;
+
+        // Vitals
+        const latestVital = (todayData.vitals || [])[0];
+        if (latestVital) {
+          if (latestVital.bp_systolic && latestVital.bp_diastolic) {
+            todaySummary.latestVitals = `${latestVital.bp_systolic}/${latestVital.bp_diastolic}`;
+          } else if (latestVital.glucose) {
+            todaySummary.latestVitals = `${latestVital.glucose} mg/dL`;
+          } else if (latestVital.temperature) {
+            todaySummary.latestVitals = `${latestVital.temperature}°C`;
           }
-        } catch (e) {
-          console.error('Error loading water:', e);
         }
-      }
 
-      // Vitals data
-      if (patientId && supabaseClient) {
-        try {
-          const { data: vitals, error: vitalsError } = await supabaseClient
-            .from('vitals_logs')
-            .select('bp_systolic, bp_diastolic, heart_rate, glucose, temperature, measured_at')
-            .eq('patient_id', patientId)
-            .gte('measured_at', today + 'T00:00:00')
-            .lt('measured_at', today + 'T23:59:59')
-            .order('measured_at', { ascending: false })
-            .limit(1);
+        // Symptoms
+        todaySummary.symptoms = todayData.symptoms || [];
 
-          if (!vitalsError && vitals && vitals.length > 0) {
-            const latest = vitals[0];
-            if (latest.bp_systolic && latest.bp_diastolic) {
-              todaySummary.latestVitals = `${latest.bp_systolic}/${latest.bp_diastolic}`;
-            } else if (latest.glucose) {
-              todaySummary.latestVitals = `${latest.glucose} mg/dL`;
-            } else if (latest.temperature) {
-              todaySummary.latestVitals = `${latest.temperature}°C`;
-            }
-          }
-        } catch (e) {
-          console.error('Error loading vitals:', e);
-        }
-      }
+        // Sleep
+        const latestSleep = (todayData.sleep || [])[0];
+        todaySummary.sleepHours = latestSleep?.sleep_hours || null;
 
-      if (!todaySummary.latestVitals) {
-        const vitalsData = JSON.parse(localStorage.getItem(`vitals_${today}`) || '{"readings": []}');
-        if (vitalsData.readings && vitalsData.readings.length > 0) {
-          const latest = vitalsData.readings[0];
-          todaySummary.latestVitals = `${latest.systolic}/${latest.diastolic}`;
-        }
-      }
+        // Mood
+        const latestMood = (todayData.mood || [])[0];
+        todaySummary.latestMood = latestMood?.mood || null;
 
-      // Symptoms
-      if (patientId && supabaseClient) {
-        try {
-          const { data: symptoms, error: symptomsError } = await supabaseClient
-            .from('symptoms')
-            .select('id, symptom_name')
-            .eq('patient_id', patientId)
-            .gte('created_at', today + 'T00:00:00')
-            .lt('created_at', today + 'T23:59:59');
-
-          if (!symptomsError && symptoms) {
-            todaySummary.symptoms = symptoms;
-          }
-        } catch (e) {
-          console.error('Error loading symptoms:', e);
-        }
-      }
-
-      // Sleep data
-      if (patientId && supabaseClient) {
-        try {
-          const { data: sleepLog, error: sleepError } = await supabaseClient
-            .from('sleep_logs')
-            .select('sleep_hours')
-            .eq('patient_id', patientId)
-            .eq('sleep_date', today)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle();
-
-          if (!sleepError && sleepLog) {
-            todaySummary.sleepHours = sleepLog.sleep_hours;
-          }
-        } catch (e) {
-          console.error('Error loading sleep:', e);
-        }
-      }
-
-      // Mood data
-      if (patientId && supabaseClient) {
-        try {
-          const tomorrow = new Date(today);
-          tomorrow.setDate(tomorrow.getDate() + 1);
-          const tomorrowStr = tomorrow.toISOString().split('T')[0];
-
-          const { data: moodLog, error: moodError } = await supabaseClient
-            .from('mood_logs')
-            .select('mood, timestamp')
-            .eq('patient_id', patientId)
-            .gte('timestamp', today + 'T00:00:00')
-            .lt('timestamp', tomorrowStr + 'T00:00:00')
-            .order('timestamp', { ascending: false })
-            .limit(1)
-            .maybeSingle();
-
-          if (!moodError && moodLog) {
-            todaySummary.latestMood = moodLog.mood;
-          }
-        } catch (e) {
-          console.error('Error loading mood:', e);
-        }
+      } catch (error) {
+        console.error('Error loading today summary:', error);
       }
 
       updateSummaryUI();
@@ -1326,18 +1213,22 @@
           return;
         }
 
-        const now = new Date().toISOString();
-        const medLogs = medsForPeriod.map(med => ({
-          patient_id: patientId,
-          medication_id: med.id,
-          medication_name: med.medication_name || null,
-          taken_at: now,
-          status: 'taken'
-        }));
-
-        const { error } = await supabaseClient.from('medication_logs').insert(medLogs);
-
-        if (error) throw error;
+        // Log each medication via API
+        const logPromises = medsForPeriod.map(med =>
+          fetch(`${API_BASE_URL}/health/medications`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              patient_id: patientId,
+              medication_id: med.id,
+              medication_name: med.medication_name || null,
+              status: 'taken'
+            })
+          })
+        );
+        const results = await Promise.all(logPromises);
+        const failed = results.filter(r => !r.ok);
+        if (failed.length > 0) throw new Error(`${failed.length} medication logs failed`);
 
         showToast(`บันทึกกินยา ${medsForPeriod.length} รายการเรียบร้อย`, 'success');
         todaySummary.medicationsTaken += medsForPeriod.length;
@@ -1379,268 +1270,172 @@
     let currentFilterDays = 7;
 
     async function loadActivityHistory(filterDays, customFrom, customTo) {
-      if (!patientId || !supabaseClient) {
-        document.getElementById('historyList').innerHTML = '<div class="empty-state"><p class="empty-description">ไม่พบข้อมูล</p></div>';
+      if (!patientId) {
+        document.getElementById('historyList').textContent = 'ไม่พบข้อมูล';
         return;
       }
 
       try {
-        let startDate, startDateOnly, endDate;
-
         // Use current filter state when called without arguments (e.g. after edit/delete)
         if (filterDays === undefined) filterDays = currentFilterDays;
 
-        if (filterDays === 'custom' && customFrom && customTo) {
-          startDate = new Date(customFrom + 'T00:00:00').toISOString();
-          startDateOnly = customFrom;
-          // Include the full end day
-          const endDateObj = new Date(customTo + 'T23:59:59');
-          endDate = endDateObj.toISOString();
-        } else if (filterDays === 'custom') {
-          // Custom mode but no dates provided — re-read from inputs
-          const from = document.getElementById('dateFrom').value;
-          const to = document.getElementById('dateTo').value;
+        // Build API URL with query params
+        let apiUrl;
+        if (filterDays === 'custom') {
+          let from = customFrom, to = customTo;
+          if (!from || !to) {
+            from = document.getElementById('dateFrom').value;
+            to = document.getElementById('dateTo').value;
+          }
           if (from && to) {
-            startDate = new Date(from + 'T00:00:00').toISOString();
-            startDateOnly = from;
-            endDate = new Date(to + 'T23:59:59').toISOString();
+            apiUrl = `${API_BASE_URL}/health/history/${patientId}?from=${from}&to=${to}`;
           } else {
-            // Fallback to 7 days
             filterDays = 7;
           }
         }
-
         if (filterDays !== 'custom') {
           const days = typeof filterDays === 'number' ? filterDays : 7;
-          const fromDate = new Date();
-          fromDate.setDate(fromDate.getDate() - days);
-          startDate = fromDate.toISOString();
-          startDateOnly = startDate.split('T')[0];
-          endDate = null; // no upper bound, use current time
+          apiUrl = `${API_BASE_URL}/health/history/${patientId}?days=${days}`;
         }
 
-        const endDateOnly = endDate ? endDate.split('T')[0] : null;
-        const maxRows = 50;
-
-        // Build queries — add .lte() upper bound only for custom date range
-        let medQ = supabaseClient.from('medication_logs').select('*')
-          .eq('patient_id', patientId).gte('taken_at', startDate);
-        if (endDate) medQ = medQ.lte('taken_at', endDate);
-        medQ = medQ.order('taken_at', { ascending: false }).limit(maxRows);
-
-        let waterQ = supabaseClient.from('water_logs').select('*')
-          .eq('patient_id', patientId).gte('log_date', startDateOnly);
-        if (endDateOnly) waterQ = waterQ.lte('log_date', endDateOnly);
-        waterQ = waterQ.order('created_at', { ascending: false }).limit(maxRows);
-
-        let vitalsQ = supabaseClient.from('vitals_logs').select('*')
-          .eq('patient_id', patientId).gte('measured_at', startDate);
-        if (endDate) vitalsQ = vitalsQ.lte('measured_at', endDate);
-        vitalsQ = vitalsQ.order('measured_at', { ascending: false }).limit(maxRows);
-
-        let symptomsQ = supabaseClient.from('symptoms').select('*')
-          .eq('patient_id', patientId).gte('created_at', startDate);
-        if (endDate) symptomsQ = symptomsQ.lte('created_at', endDate);
-        symptomsQ = symptomsQ.order('created_at', { ascending: false }).limit(maxRows);
-
-        let exerciseQ = supabaseClient.from('exercise_logs').select('*')
-          .eq('patient_id', patientId).gte('exercise_date', startDateOnly);
-        if (endDateOnly) exerciseQ = exerciseQ.lte('exercise_date', endDateOnly);
-        exerciseQ = exerciseQ.order('created_at', { ascending: false }).limit(maxRows);
-
-        let sleepQ = supabaseClient.from('sleep_logs').select('*')
-          .eq('patient_id', patientId).gte('sleep_date', startDateOnly);
-        if (endDateOnly) sleepQ = sleepQ.lte('sleep_date', endDateOnly);
-        sleepQ = sleepQ.order('created_at', { ascending: false }).limit(maxRows);
-
-        let moodQ = supabaseClient.from('mood_logs').select('*')
-          .eq('patient_id', patientId).gte('timestamp', startDate);
-        if (endDate) moodQ = moodQ.lte('timestamp', endDate);
-        moodQ = moodQ.order('timestamp', { ascending: false }).limit(maxRows);
-
-        let activityQ = supabaseClient.from('activity_logs').select('*')
-          .eq('patient_id', patientId).in('task_type', ['exercise', 'walk', 'food'])
-          .gte('created_at', startDate);
-        if (endDate) activityQ = activityQ.lte('created_at', endDate);
-        activityQ = activityQ.order('created_at', { ascending: false }).limit(maxRows);
-
-        const [
-          medResult,
-          waterResult,
-          vitalsResult,
-          symptomsResult,
-          exerciseResult,
-          sleepResult,
-          moodResult,
-          activityResult
-        ] = await Promise.all([
-          medQ, waterQ, vitalsQ, symptomsQ, exerciseQ, sleepQ, moodQ, activityQ
-        ]);
+        const res = await fetch(apiUrl);
+        const data = await res.json();
 
         activityHistory = [];
 
         // Medication logs
-        if (medResult.data) {
-          medResult.data.forEach(log => {
-            const name = log.medication_name || 'ยา';
-            const status = log.status === 'skipped' ? 'ข้าม' : 'ทานแล้ว';
-            activityHistory.push({
-              id: log.id,
-              table: 'medication_logs',
-              type: 'medication',
-              text: `กินยา ${name} (${status})`,
-              timestamp: new Date(log.taken_at || log.created_at),
-              iconName: 'pill',
-              rawData: log
-            });
+        (data.medications || []).forEach(log => {
+          const name = log.medication_name || 'ยา';
+          const status = log.status === 'skipped' ? 'ข้าม' : 'ทานแล้ว';
+          activityHistory.push({
+            id: log.id,
+            table: 'medication_logs',
+            type: 'medication',
+            text: `กินยา ${name} (${status})`,
+            timestamp: new Date(log.taken_at || log.created_at),
+            iconName: 'pill',
+            rawData: log
           });
-        }
+        });
 
         // Water logs
-        if (waterResult.data) {
-          waterResult.data.forEach(log => {
-            activityHistory.push({
-              id: log.id,
-              table: 'water_logs',
-              type: 'water',
-              text: `ดื่มน้ำ ${log.amount_ml} ml`,
-              timestamp: new Date(log.created_at || log.logged_at),
-              iconName: 'droplet',
-              rawData: log
-            });
+        (data.water || []).forEach(log => {
+          activityHistory.push({
+            id: log.id,
+            table: 'water_logs',
+            type: 'water',
+            text: `ดื่มน้ำ ${log.amount_ml} ml`,
+            timestamp: new Date(log.created_at || log.logged_at),
+            iconName: 'droplet',
+            rawData: log
           });
-        }
+        });
 
         // Vitals logs
-        if (vitalsResult.data) {
-          vitalsResult.data.forEach(v => {
-            let text = '';
-            const systolic = v.bp_systolic || v.systolic;
-            const diastolic = v.bp_diastolic || v.diastolic;
-            const pulse = v.heart_rate || v.pulse;
-            const bloodSugar = v.glucose || v.blood_sugar;
-            const temp = v.temperature;
-            const timestamp = v.created_at || v.measured_at;
+        (data.vitals || []).forEach(v => {
+          let text = '';
+          const systolic = v.bp_systolic || v.systolic;
+          const diastolic = v.bp_diastolic || v.diastolic;
+          const pulse = v.heart_rate || v.pulse;
+          const bloodSugar = v.glucose || v.blood_sugar;
+          const temp = v.temperature;
+          const timestamp = v.created_at || v.measured_at;
 
-            if (systolic && diastolic) {
-              text = `วัดความดัน ${systolic}/${diastolic} mmHg`;
-              if (pulse) text += ` ชีพจร ${pulse}`;
-            } else if (pulse && !systolic) {
-              text = `ชีพจร ${pulse} bpm`;
-            } else if (bloodSugar) {
-              text = `น้ำตาล ${bloodSugar} mg/dL`;
-            } else if (temp) {
-              text = `อุณหภูมิ ${temp}°C`;
-            }
+          if (systolic && diastolic) {
+            text = `วัดความดัน ${systolic}/${diastolic} mmHg`;
+            if (pulse) text += ` ชีพจร ${pulse}`;
+          } else if (pulse && !systolic) {
+            text = `ชีพจร ${pulse} bpm`;
+          } else if (bloodSugar) {
+            text = `น้ำตาล ${bloodSugar} mg/dL`;
+          } else if (temp) {
+            text = `อุณหภูมิ ${temp}°C`;
+          }
 
-            if (text) {
-              activityHistory.push({
-                id: v.id,
-                table: 'vitals_logs',
-                type: 'vitals',
-                text,
-                timestamp: new Date(timestamp),
-                iconName: 'heartPulse',
-                rawData: v
-              });
-            }
-          });
-        }
+          if (text) {
+            activityHistory.push({
+              id: v.id,
+              table: 'vitals_logs',
+              type: 'vitals',
+              text,
+              timestamp: new Date(timestamp),
+              iconName: 'heartPulse',
+              rawData: v
+            });
+          }
+        });
 
         // Symptoms
-        if (symptomsResult.data) {
-          symptomsResult.data.forEach(s => {
-            const severityText = s.severity_1to5 ?
-              (s.severity_1to5 <= 2 ? 'เล็กน้อย' : s.severity_1to5 <= 3 ? 'ปานกลาง' : 'รุนแรง') : '';
-            const symptomName = s.symptom_name || s.symptom || 'อาการ';
-            activityHistory.push({
-              id: s.id,
-              table: 'symptoms',
-              type: 'symptom',
-              text: severityText ? `${symptomName} (${severityText})` : symptomName,
-              timestamp: new Date(s.created_at),
-              iconName: 'thermometer',
-              rawData: s
-            });
+        (data.symptoms || []).forEach(s => {
+          const severityText = s.severity_1to5 ?
+            (s.severity_1to5 <= 2 ? 'เล็กน้อย' : s.severity_1to5 <= 3 ? 'ปานกลาง' : 'รุนแรง') : '';
+          const symptomName = s.symptom_name || s.symptom || 'อาการ';
+          activityHistory.push({
+            id: s.id,
+            table: 'symptoms',
+            type: 'symptom',
+            text: severityText ? `${symptomName} (${severityText})` : symptomName,
+            timestamp: new Date(s.created_at),
+            iconName: 'thermometer',
+            rawData: s
           });
-        }
+        });
 
         // Exercise logs
-        if (exerciseResult.data) {
-          exerciseResult.data.forEach(e => {
-            const exerciseType = e.exercise_type || 'ออกกำลังกาย';
-            const duration = e.duration_minutes ? ` ${e.duration_minutes} นาที` : '';
-            activityHistory.push({
-              id: e.id,
-              table: 'exercise_logs',
-              type: 'exercise',
-              text: `${exerciseType}${duration}`,
-              timestamp: new Date(e.created_at),
-              iconName: 'dumbbell',
-              rawData: e
-            });
+        (data.exercise || []).forEach(e => {
+          const exerciseType = e.exercise_type || 'ออกกำลังกาย';
+          const duration = e.duration_minutes ? ` ${e.duration_minutes} นาที` : '';
+          activityHistory.push({
+            id: e.id,
+            table: 'exercise_logs',
+            type: 'exercise',
+            text: `${exerciseType}${duration}`,
+            timestamp: new Date(e.created_at),
+            iconName: 'dumbbell',
+            rawData: e
           });
-        }
+        });
 
         // Sleep logs
-        if (sleepResult.data) {
-          sleepResult.data.forEach(s => {
-            const hours = s.sleep_hours ? `${s.sleep_hours} ชม.` : '';
-            const quality = s.sleep_quality ? ` (${s.sleep_quality})` : '';
-            activityHistory.push({
-              id: s.id,
-              table: 'sleep_logs',
-              type: 'sleep',
-              text: `นอน ${hours}${quality}`,
-              timestamp: new Date(s.created_at),
-              iconName: 'moon',
-              rawData: s
-            });
+        (data.sleep || []).forEach(s => {
+          const hours = s.sleep_hours ? `${s.sleep_hours} ชม.` : '';
+          const quality = s.sleep_quality ? ` (${s.sleep_quality})` : '';
+          activityHistory.push({
+            id: s.id,
+            table: 'sleep_logs',
+            type: 'sleep',
+            text: `นอน ${hours}${quality}`,
+            timestamp: new Date(s.created_at),
+            iconName: 'moon',
+            rawData: s
           });
-        }
+        });
 
         // Mood logs
-        if (moodResult.data) {
-          moodResult.data.forEach(m => {
-            const moodLabels = {
-              happy: 'มีความสุข', neutral: 'ปกติ', tired: 'เหนื่อย',
-              sad: 'เศร้า', anxious: 'กังวล', exhausted: 'อ่อนเพลีย',
-              stressed: 'เครียด', calm: 'สงบ', excited: 'ตื่นเต้น'
-            };
-            const moodText = moodLabels[m.mood] || m.mood || 'อารมณ์';
-            activityHistory.push({
-              id: m.id,
-              table: 'mood_logs',
-              type: 'mood',
-              text: `อารมณ์: ${moodText}`,
-              timestamp: new Date(m.timestamp || m.created_at),
-              iconName: 'smile',
-              rawData: m
-            });
+        (data.mood || []).forEach(m => {
+          const moodLabels = {
+            happy: 'มีความสุข', neutral: 'ปกติ', tired: 'เหนื่อย',
+            sad: 'เศร้า', anxious: 'กังวล', exhausted: 'อ่อนเพลีย',
+            stressed: 'เครียด', calm: 'สงบ', excited: 'ตื่นเต้น'
+          };
+          const moodText = moodLabels[m.mood] || m.mood || 'อารมณ์';
+          activityHistory.push({
+            id: m.id,
+            table: 'mood_logs',
+            type: 'mood',
+            text: `อารมณ์: ${moodText}`,
+            timestamp: new Date(m.timestamp || m.created_at),
+            iconName: 'smile',
+            rawData: m
           });
-        }
-
-        // Activity logs (only exercise/walk/food that don't have dedicated tables yet)
-        if (activityResult.data) {
-          activityResult.data.forEach(log => {
-            activityHistory.push({
-              id: log.id,
-              table: 'activity_logs',
-              type: log.task_type || 'activity',
-              text: formatActivityText(log),
-              timestamp: new Date(log.created_at),
-              iconName: getActivityIconName(log.task_type),
-              rawData: log
-            });
-          });
-        }
+        });
 
         activityHistory.sort((a, b) => b.timestamp - a.timestamp);
         renderActivityHistory();
 
       } catch (error) {
         console.error('Error loading activity history:', error);
-        document.getElementById('historyList').innerHTML = '<div class="empty-state"><p class="empty-description">ไม่สามารถโหลดข้อมูลได้</p></div>';
+        document.getElementById('historyList').textContent = 'ไม่สามารถโหลดข้อมูลได้';
       }
     }
 
@@ -2013,9 +1808,26 @@
           }
         }
 
-        const { error } = await supabaseClient.from(table).update(updateData).eq('id', id);
+        // Map table name to API type
+        const tableToApiType = {
+          'medication_logs': 'medications',
+          'water_logs': 'water',
+          'vitals_logs': 'vitals',
+          'symptoms': 'symptoms',
+          'exercise_logs': 'exercise',
+          'sleep_logs': 'sleep',
+          'mood_logs': 'mood'
+        };
+        const apiType = tableToApiType[table];
+        if (!apiType) throw new Error('Unsupported table: ' + table);
 
-        if (error) throw error;
+        const res = await fetch(`${API_BASE_URL}/health/${apiType}/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updateData)
+        });
+        const result = await res.json();
+        if (!res.ok) throw new Error(result.error || 'Update failed');
 
         showToast('บันทึกการแก้ไขเรียบร้อย', 'success');
         closeEditModal();
@@ -2054,9 +1866,23 @@
       const table = document.getElementById('deleteActivityTable').value;
 
       try {
-        const { error } = await supabaseClient.from(table).delete().eq('id', id);
+        const tableToApiType = {
+          'medication_logs': 'medications',
+          'water_logs': 'water',
+          'vitals_logs': 'vitals',
+          'symptoms': 'symptoms',
+          'exercise_logs': 'exercise',
+          'sleep_logs': 'sleep',
+          'mood_logs': 'mood'
+        };
+        const apiType = tableToApiType[table];
+        if (!apiType) throw new Error('Unsupported table: ' + table);
 
-        if (error) throw error;
+        const res = await fetch(`${API_BASE_URL}/health/${apiType}/${id}`, {
+          method: 'DELETE'
+        });
+        const result = await res.json();
+        if (!res.ok) throw new Error(result.error || 'Delete failed');
 
         showToast('ลบรายการเรียบร้อย', 'success');
         closeDeleteModal();
