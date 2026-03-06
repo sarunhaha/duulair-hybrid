@@ -10,8 +10,6 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://static.line-scdn.net">
-  <link rel="preconnect" href="https://mqxklnzxfrupwwkwlwwc.supabase.co">
-
   <!-- Kanit Font -->
   <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
@@ -642,9 +640,6 @@
   <!-- LIFF SDK -->
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
-  <!-- Supabase -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
   <!-- Lucide Icons -->
   <script src="js/lucide-icons.js"></script>
 
@@ -657,13 +652,6 @@
   <script>
     // Configuration
     const LIFF_ID = '2008278683-5k69jxNq';
-    const SUPABASE_URL = 'https://mqxklnzxfrupwwkwlwwc.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1xeGtsbnp4ZnJ1cHd3a3dsd3djIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNjcxMjYsImV4cCI6MjA3MjY0MzEyNn0.vPBkIGHdvrfotD3QMnFGrNRMTP3fFzn715XGwqKG-6Y';
-
-    let supabaseClient = null;
-    if (window.supabase && window.supabase.createClient) {
-      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    }
 
     let patientId = null;
 
@@ -957,16 +945,22 @@
           logged_at: new Date().toISOString()
         };
 
-        // Save to activity_logs
-        const { error } = await supabaseClient
-          .from('activity_logs')
-          .insert({
+        // Save via API — sends to symptoms table
+        const symptomName = symptomLabels.join(', ');
+        const res = await fetch(`${API_BASE_URL}/health/symptoms`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
             patient_id: patientId,
-            task_type: 'symptom',
-            metadata: symptomData
-          });
-
-        if (error) throw error;
+            symptom_name: symptomName,
+            severity_1to5: selectedSeverity,
+            body_location: selectedLocation,
+            duration_text: selectedDuration,
+            notes: note || null
+          })
+        });
+        const result = await res.json();
+        if (!res.ok) throw new Error(result.error || 'Failed');
 
         showToast(`บันทึก ${symptomLabels.length} อาการเรียบร้อย`, 'success');
 
@@ -1059,36 +1053,36 @@
     }
 
     async function loadHistory(fromDate, toDate) {
-      if (!supabaseClient || !patientId) {
-        document.getElementById('historyList').innerHTML = '<div class="history-empty">' + icon('alertCircle') + '<p>ไม่สามารถโหลดข้อมูลได้</p></div>';
+      const historyEl = document.getElementById('historyList');
+      if (!patientId) {
+        historyEl.textContent = 'ไม่สามารถโหลดข้อมูลได้';
         return;
       }
 
-      document.getElementById('historyList').innerHTML = '<div class="history-empty">กำลังโหลด...</div>';
+      historyEl.textContent = 'กำลังโหลด...';
 
+      let from, to;
       if (!fromDate) {
-        fromDate = new Date();
-        fromDate.setDate(fromDate.getDate() - historyPeriodDays);
+        const d = new Date();
+        d.setDate(d.getDate() - historyPeriodDays);
+        from = d.toISOString().split('T')[0];
+      } else {
+        from = fromDate instanceof Date ? fromDate.toISOString().split('T')[0] : fromDate;
       }
       if (!toDate) {
-        toDate = new Date();
+        to = new Date().toISOString().split('T')[0];
+      } else {
+        to = toDate instanceof Date ? toDate.toISOString().split('T')[0] : toDate;
       }
 
       try {
-        const { data, error } = await supabaseClient
-          .from('symptoms')
-          .select('*')
-          .eq('patient_id', patientId)
-          .gte('created_at', fromDate.toISOString())
-          .lte('created_at', toDate.toISOString())
-          .order('created_at', { ascending: false })
-          .limit(100);
-
-        if (error) throw error;
-        renderHistory(data || []);
+        const res = await fetch(`${API_BASE_URL}/health/history/${patientId}?from=${from}&to=${to}`);
+        const result = await res.json();
+        if (!res.ok) throw new Error(result.error || 'Failed');
+        renderHistory(result.symptoms || []);
       } catch (err) {
         console.error('Error loading history:', err);
-        document.getElementById('historyList').innerHTML = '<div class="history-empty">' + icon('alertCircle') + '<p>เกิดข้อผิดพลาดในการโหลด</p></div>';
+        historyEl.textContent = 'เกิดข้อผิดพลาดในการโหลด';
       }
     }
 

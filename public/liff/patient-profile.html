@@ -676,9 +676,6 @@
   <!-- LIFF SDK -->
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
-  <!-- Supabase SDK -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
   <!-- Lucide Icons -->
   <script src="js/lucide-icons.js"></script>
 
@@ -691,9 +688,6 @@
   <script>
     // Configuration
     const LIFF_ID = '2008278683-5k69jxNq';
-    const SUPABASE_URL = 'https://mqxklnzxfrupwwkwlwwc.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1xeGtsbnp4ZnJ1cHd3a3dsd3djIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNjcxMjYsImV4cCI6MjA3MjY0MzEyNn0.vPBkIGHdvrfotD3QMnFGrNRMTP3fFzn715XGwqKG-6Y';
-    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     // Thai month names
     const thaiMonths = [
@@ -1014,19 +1008,16 @@
     async function loadMedications() {
       const container = document.getElementById('medicationsList');
       try {
-        const { data, error } = await supabaseClient
-          .from('medications')
-          .select('*')
-          .eq('patient_id', patientId)
-          .eq('is_active', true)
-          .order('created_at', { ascending: false });
+        const res = await fetch(`${API_BASE_URL}/medications/patient/${patientId}`);
+        const result = await res.json();
+        if (!res.ok) throw new Error(result.error || 'Failed');
 
-        if (error) throw error;
-
-        const medications = (data || []).map(med => ({
-          ...med,
-          times: med.times ? (typeof med.times === 'string' ? JSON.parse(med.times) : med.times) : []
-        }));
+        const medications = (result.medications || [])
+          .filter(med => med.is_active !== false)
+          .map(med => ({
+            ...med,
+            times: med.times ? (typeof med.times === 'string' ? JSON.parse(med.times) : med.times) : []
+          }));
 
         if (medications.length === 0) {
           container.innerHTML = `

@@ -10,8 +10,6 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://static.line-scdn.net">
-  <link rel="preconnect" href="https://mqxklnzxfrupwwkwlwwc.supabase.co">
-
   <!-- Kanit Font -->
   <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
@@ -698,9 +696,6 @@
   <!-- LIFF SDK -->
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
-  <!-- Supabase -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
   <!-- Lucide Icons -->
   <script src="js/lucide-icons.js"></script>
 
@@ -712,10 +707,7 @@
 
   <script>
     // Configuration
-    const SUPABASE_URL = 'https://mqxklnzxfrupwwkwlwwc.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1xeGtsbnp4ZnJ1cHd3a3dsd3djIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNjcxMjYsImV4cCI6MjA3MjY0MzEyNn0.vPBkIGHdvrfotD3QMnFGrNRMTP3fFzn715XGwqKG-6Y';
     const LIFF_ID = '2008278683-5k69jxNq';
-    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     let patientId = null;
     let medications = [];
@@ -875,19 +867,14 @@
     // Load group data
     async function loadGroupData(groupId) {
       try {
-        const { data: group, error: groupError } = await supabaseClient
-          .from('caregiver_groups')
-          .select('patient_id')
-          .eq('line_group_id', groupId)
-          .single();
-
-        if (groupError) throw groupError;
-        if (!group) {
+        const res = await fetch(`${API_BASE_URL}/groups/by-line-id/${groupId}`);
+        const result = await res.json();
+        if (!res.ok || !result.success || !result.patient?.id) {
           showToast('ไม่พบข้อมูลกลุ่ม กรุณาลงทะเบียนก่อน', 'error');
           return;
         }
 
-        patientId = group.patient_id;
+        patientId = result.patient.id;
         await loadMedications();
       } catch (error) {
         console.error('Error loading data:', error);
@@ -936,15 +923,11 @@
     // Load medications
     async function loadMedications() {
       try {
-        const { data, error } = await supabaseClient
-          .from('medications')
-          .select('*')
-          .eq('patient_id', patientId)
-          .order('created_at', { ascending: false });
+        const res = await fetch(`${API_BASE_URL}/medications/patient/${patientId}`);
+        const result = await res.json();
+        if (!res.ok) throw new Error(result.error || 'Failed');
 
-        if (error) throw error;
-
-        medications = (data || []).map(med => ({
+        medications = (result.medications || []).map(med => ({
           ...med,
           days_of_week: med.days_of_week ? (typeof med.days_of_week === 'string' ? JSON.parse(med.days_of_week) : med.days_of_week) : undefined,
           times: med.times ? (typeof med.times === 'string' ? JSON.parse(med.times) : med.times) : []
@@ -1172,22 +1155,24 @@
       };
 
       try {
+        let res;
         if (editingMedicationId) {
-          const { error } = await supabaseClient
-            .from('medications')
-            .update(medicationData)
-            .eq('id', editingMedicationId);
-
-          if (error) throw error;
-          showToast('แก้ไขรายการยาเรียบร้อยแล้ว', 'success');
+          res = await fetch(`${API_BASE_URL}/medications/${editingMedicationId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(medicationData)
+          });
         } else {
-          const { error } = await supabaseClient
-            .from('medications')
-            .insert(medicationData);
-
-          if (error) throw error;
-          showToast('เพิ่มรายการยาเรียบร้อยแล้ว', 'success');
+          res = await fetch(`${API_BASE_URL}/medications`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(medicationData)
+          });
         }
+        const result = await res.json();
+        if (!res.ok) throw new Error(result.error || 'Failed');
+
+        showToast(editingMedicationId ? 'แก้ไขรายการยาเรียบร้อยแล้ว' : 'เพิ่มรายการยาเรียบร้อยแล้ว', 'success');
 
         await loadMedications();
         closeModal();
@@ -1207,12 +1192,11 @@
       if (!confirm('ต้องการลบรายการยานี้หรือไม่?')) return;
 
       try {
-        const { error } = await supabaseClient
-          .from('medications')
-          .delete()
-          .eq('id', id);
-
-        if (error) throw error;
+        const res = await fetch(`${API_BASE_URL}/medications/${id}`, { method: 'DELETE' });
+        if (!res.ok) {
+          const result = await res.json();
+          throw new Error(result.error || 'Failed');
+        }
 
         showToast('ลบรายการยาเรียบร้อยแล้ว', 'success');
         await loadMedications();

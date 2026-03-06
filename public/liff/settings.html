@@ -10,7 +10,6 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://static.line-scdn.net">
-  <link rel="preconnect" href="https://mqxklnzxfrupwwkwlwwc.supabase.co">
 
   <!-- Kanit Font -->
   <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -835,9 +834,6 @@
   <!-- LIFF SDK -->
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
-  <!-- Supabase -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
   <!-- Lucide Icons -->
   <script src="js/lucide-icons.js"></script>
 
@@ -849,10 +845,7 @@
 
   <script>
     // Configuration
-    const SUPABASE_URL = 'https://mqxklnzxfrupwwkwlwwc.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1xeGtsbnp4ZnJ1cHd3a3dsd3djIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNjcxMjYsImV4cCI6MjA3MjY0MzEyNn0.vPBkIGHdvrfotD3QMnFGrNRMTP3fFzn715XGwqKG-6Y';
     const LIFF_ID = '2008278683-5k69jxNq';
-    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     let groupId = null;
     let groupData = null;
@@ -1000,32 +993,26 @@
     // Load group data
     async function loadGroupData() {
       try {
-        const { data: group, error } = await supabaseClient
-          .from('groups')
-          .select('*, group_members(*), patient_profiles(*)')
-          .eq('line_group_id', groupId)
-          .single();
+        const res = await fetch(`${API_BASE_URL}/groups/by-line-id/${groupId}`);
+        const result = await res.json();
 
-        if (error) throw error;
-        if (!group) return;
+        if (!result || !result.success) return;
 
+        const group = result.group;
         groupData = group;
 
-        if (group.patient_id) {
-          const { data: linkCode } = await supabaseClient
-            .from('link_codes')
-            .select('code')
-            .eq('patient_id', group.patient_id)
-            .eq('used', false)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .single();
-
-          document.getElementById('linkCode').textContent = linkCode?.code || '------';
+        if (result.patient?.id) {
+          try {
+            const lcRes = await fetch(`${API_BASE_URL}/groups/${result.patient.id}/link-code`);
+            const lcData = await lcRes.json();
+            document.getElementById('linkCode').textContent = lcData?.code || '------';
+          } catch (e) {
+            document.getElementById('linkCode').textContent = '------';
+          }
         }
 
-        document.getElementById('groupName').value = group.group_name || '';
-        renderMembers(group.group_members || []);
+        document.getElementById('groupName').value = group.groupName || '';
+        renderMembers(result.members || []);
 
       } catch (error) {
         console.error('Load group data error:', error);
@@ -1058,7 +1045,8 @@
       }
 
       container.innerHTML = members.map(member => {
-        const initial = (member.display_name || 'U')[0].toUpperCase();
+        const name = member.displayName || member.display_name || 'U';
+        const initial = name[0].toUpperCase();
         const isPrimary = member.role === 'primary_caregiver';
         const roleText = isPrimary ? 'ผู้ดูแลหลัก' : 'สมาชิก';
 
@@ -1067,7 +1055,7 @@
             <div class="member-info">
               <div class="member-avatar">${initial}</div>
               <div>
-                <div class="member-name">${member.display_name || 'ไม่ระบุชื่อ'}</div>
+                <div class="member-name">${name === 'U' ? 'ไม่ระบุชื่อ' : name}</div>
                 <div class="member-role">${roleText}</div>
               </div>
             </div>
@@ -1098,12 +1086,14 @@
       if (!groupData?.id) return;
 
       try {
-        const { error } = await supabaseClient
-          .from('groups')
-          .update({ group_name: document.getElementById('groupName').value })
-          .eq('id', groupData.id);
+        const res = await fetch(`${API_BASE_URL}/groups/${groupData.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ group_name: document.getElementById('groupName').value })
+        });
+        const result = await res.json();
 
-        if (error) throw error;
+        if (!result.success) throw new Error(result.error);
         alert('บันทึกข้อมูลกลุ่มเรียบร้อยแล้ว');
       } catch (error) {
         console.error('Update group error:', error);

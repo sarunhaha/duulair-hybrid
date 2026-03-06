@@ -5,6 +5,7 @@
 
 import { Router, Request, Response } from 'express';
 import { groupService } from '../services/group.service';
+import { supabase } from '../services/supabase.service';
 import { GroupRegistrationForm, AddGroupMemberRequest } from '../types/user.types';
 
 const router = Router();
@@ -186,6 +187,73 @@ router.get('/:id/members', async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       error: error.message || 'ดึงข้อมูลสมาชิกไม่สำเร็จ'
+    });
+  }
+});
+
+/**
+ * PUT /api/groups/:id
+ * อัปเดตชื่อกลุ่ม
+ */
+router.put('/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { group_name } = req.body;
+
+    if (!group_name) {
+      return res.status(400).json({
+        success: false,
+        error: 'group_name is required'
+      });
+    }
+
+    const { error } = await supabase
+      .from('groups')
+      .update({ group_name })
+      .eq('id', id);
+
+    if (error) throw error;
+
+    res.json({ success: true });
+
+  } catch (error: any) {
+    console.error('❌ Update group error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'อัปเดตกลุ่มไม่สำเร็จ'
+    });
+  }
+});
+
+/**
+ * GET /api/groups/:patientId/link-code
+ * ดึง link code ที่ยังไม่ได้ใช้ของ patient
+ */
+router.get('/:patientId/link-code', async (req: Request, res: Response) => {
+  try {
+    const { patientId } = req.params;
+
+    const { data, error } = await supabase
+      .from('link_codes')
+      .select('code')
+      .eq('patient_id', patientId)
+      .eq('used', false)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) throw error;
+
+    res.json({
+      success: true,
+      code: data?.code || null
+    });
+
+  } catch (error: any) {
+    console.error('❌ Get link code error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'ดึง link code ไม่สำเร็จ'
     });
   }
 });

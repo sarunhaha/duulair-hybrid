@@ -10,8 +10,6 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://static.line-scdn.net">
-  <link rel="preconnect" href="https://mqxklnzxfrupwwkwlwwc.supabase.co">
-
   <!-- Kanit Font -->
   <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
@@ -607,9 +605,6 @@
   <!-- LIFF SDK -->
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
-  <!-- Supabase -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
   <!-- Lucide Icons -->
   <script src="js/lucide-icons.js"></script>
 
@@ -621,10 +616,7 @@
 
   <script>
     // Configuration
-    const SUPABASE_URL = 'https://mqxklnzxfrupwwkwlwwc.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1xeGtsbnp4ZnJ1cHd3a3dsd3djIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNjcxMjYsImV4cCI6MjA3MjY0MzEyNn0.vPBkIGHdvrfotD3QMnFGrNRMTP3fFzn715XGwqKG-6Y';
     const LIFF_ID = '2008278683-5k69jxNq';
-    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     let patientId = null;
     let reminders = [];
@@ -771,19 +763,14 @@
     // Load group data
     async function loadGroupData(groupId) {
       try {
-        const { data: group, error: groupError } = await supabaseClient
-          .from('caregiver_groups')
-          .select('patient_id')
-          .eq('line_group_id', groupId)
-          .single();
-
-        if (groupError) throw groupError;
-        if (!group) {
+        const res = await fetch(`${API_BASE_URL}/groups/by-line-id/${groupId}`);
+        const result = await res.json();
+        if (!res.ok || !result.success || !result.patient?.id) {
           showToast('ไม่พบข้อมูลกลุ่ม กรุณาลงทะเบียนก่อน', 'error');
           return;
         }
 
-        patientId = group.patient_id;
+        patientId = result.patient.id;
         await loadReminders();
       } catch (error) {
         console.error('Error loading data:', error);
@@ -832,17 +819,13 @@
     // Load reminders
     async function loadReminders() {
       try {
-        const { data, error } = await supabaseClient
-          .from('reminders')
-          .select('*')
-          .eq('patient_id', patientId)
-          .order('custom_time', { ascending: true });
+        const res = await fetch(`${API_BASE_URL}/reminders/patient/${patientId}`);
+        const result = await res.json();
+        if (!res.ok) throw new Error(result.error || 'Failed');
 
-        if (error) throw error;
-
-        reminders = (data || []).map(reminder => ({
+        reminders = (result.reminders || []).map(reminder => ({
           ...reminder,
-          days_of_week: reminder.days_of_week ? JSON.parse(reminder.days_of_week) : [],
+          days_of_week: reminder.days_of_week ? (typeof reminder.days_of_week === 'string' ? JSON.parse(reminder.days_of_week) : reminder.days_of_week) : [],
           reminder_type: reminder.reminder_type || reminder.type || 'custom'
         }));
 
@@ -1020,7 +1003,7 @@
 
       const reminderData = {
         patient_id: patientId,
-        type: currentReminderType || (editingReminderId ? reminders.find(r => r.id === editingReminderId)?.type : 'custom'),
+        type: currentReminderType || (editingReminderId ? reminders.find(r => r.id === editingReminderId)?.reminder_type : 'custom'),
         title: document.getElementById('reminderTitle').value,
         time: timeValue,
         custom_time: timeValue,
@@ -1031,22 +1014,24 @@
       };
 
       try {
+        let res;
         if (editingReminderId) {
-          const { error } = await supabaseClient
-            .from('reminders')
-            .update(reminderData)
-            .eq('id', editingReminderId);
-
-          if (error) throw error;
-          showToast('แก้ไขการเตือนเรียบร้อยแล้ว', 'success');
+          res = await fetch(`${API_BASE_URL}/reminders/${editingReminderId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(reminderData)
+          });
         } else {
-          const { error } = await supabaseClient
-            .from('reminders')
-            .insert(reminderData);
-
-          if (error) throw error;
-          showToast('เพิ่มการเตือนเรียบร้อยแล้ว', 'success');
+          res = await fetch(`${API_BASE_URL}/reminders`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(reminderData)
+          });
         }
+        const result = await res.json();
+        if (!res.ok) throw new Error(result.error || 'Failed');
+
+        showToast(editingReminderId ? 'แก้ไขการเตือนเรียบร้อยแล้ว' : 'เพิ่มการเตือนเรียบร้อยแล้ว', 'success');
 
         await loadReminders();
         closeModal();
@@ -1069,12 +1054,11 @@
       if (!confirm('ต้องการลบการเตือนนี้หรือไม่?')) return;
 
       try {
-        const { error } = await supabaseClient
-          .from('reminders')
-          .delete()
-          .eq('id', id);
-
-        if (error) throw error;
+        const res = await fetch(`${API_BASE_URL}/reminders/${id}`, { method: 'DELETE' });
+        if (!res.ok) {
+          const result = await res.json();
+          throw new Error(result.error || 'Failed');
+        }
 
         showToast('ลบการเตือนเรียบร้อยแล้ว', 'success');
         await loadReminders();
@@ -1087,12 +1071,15 @@
     // Toggle reminder
     async function toggleReminder(id, isActive) {
       try {
-        const { error } = await supabaseClient
-          .from('reminders')
-          .update({ is_active: isActive })
-          .eq('id', id);
-
-        if (error) throw error;
+        const res = await fetch(`${API_BASE_URL}/reminders/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ is_active: isActive })
+        });
+        if (!res.ok) {
+          const result = await res.json();
+          throw new Error(result.error || 'Failed');
+        }
 
         await loadReminders();
       } catch (error) {
