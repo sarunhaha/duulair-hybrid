@@ -1245,12 +1245,13 @@ app.get('/api/check-user/:lineUserId', async (req, res) => {
 
     const result = await userService.checkUserExists(lineUserId);
 
-    // Return format expected by patient-profile.html
+    // Return format expected by LIFF pages
     res.json({
       exists: result.exists,
       role: result.role || null,
       profile: result.profile ? {
         profile_id: result.profile.id,
+        linked_patient_id: result.profile.id,
         ...result.profile
       } : null
     });
