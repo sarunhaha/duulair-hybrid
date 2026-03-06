@@ -501,14 +501,17 @@ async function processWater(
   water: { amountMl?: number },
   context: ProcessorContext
 ): Promise<ProcessResult> {
-  const now = new Date().toISOString();
+  const now = new Date();
+  const nowIso = now.toISOString();
+  // Use Thailand timezone (GMT+7) for log_date to match /health/today query
+  const thaiDate = new Date(now.getTime() + (7 * 60 * 60 * 1000)).toISOString().split('T')[0];
   const amountMl = water.amountMl || 0;
   const summary = `${amountMl} ml`;
 
   // Primary: Save to water_logs
   const waterLogInsert: WaterLogInsert = {
     patient_id: context.patientId,
-    log_date: now.split('T')[0],
+    log_date: thaiDate,
     amount_ml: amountMl,
     glasses: Math.round(amountMl / 250),
     ai_confidence: context.aiConfidence,

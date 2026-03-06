@@ -158,7 +158,9 @@ router.post('/water', async (req: Request, res: Response) => {
   try {
     // Use provided logged_at or default to now
     const loggedAtTimestamp = logged_at ? new Date(logged_at) : new Date();
-    const logDate = loggedAtTimestamp.toISOString().split('T')[0];
+    // Use Thailand timezone for log_date to match /health/today query
+    const thaiTime = new Date(loggedAtTimestamp.getTime() + (7 * 60 * 60 * 1000));
+    const logDate = thaiTime.toISOString().split('T')[0];
 
     const { data, error } = await supabase
       .from('water_logs')
