@@ -876,23 +876,72 @@
         // Run in background
         checkUserRegistration(profile.userId).catch(e => console.error('Reg check:', e));
 
+        // Load today's water data from server
+        if (patientId) {
+          loadTodayFromServer();
+        }
+
       } catch (error) {
         console.error('LIFF init error:', error);
       }
     }
 
-    function addWater(amount) {
-      totalToday += amount;
+    async function loadTodayFromServer() {
+      try {
+        const res = await fetch(`${API_BASE_URL}/health/today/${patientId}`);
+        const result = await res.json();
+        if (!res.ok) return;
 
+        const waterLogs = result.water || [];
+        if (waterLogs.length > 0) {
+          totalToday = waterLogs.reduce((sum, w) => sum + (w.amount_ml || 0), 0);
+          todayLogs = waterLogs.map(w => ({
+            id: w.id,
+            time: w.logged_at ? new Date(w.logged_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '',
+            amount: w.amount_ml || 0,
+            serverId: w.id
+          }));
+          saveData();
+          updateUI();
+        }
+      } catch (err) {
+        console.error('Error loading today water:', err);
+      }
+    }
+
+    async function addWater(amount) {
+      // Optimistic UI update
+      const tempId = Date.now();
       const now = new Date();
+      totalToday += amount;
       todayLogs.unshift({
-        id: Date.now(),
-        time: now.toTimeString().slice(0, 5),
-        amount: amount
+        id: tempId,
+        time: now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
+        amount: amount,
+        serverId: null
       });
-
       saveData();
       updateUI();
+
+      // Sync to server
+      if (patientId) {
+        try {
+          const res = await fetch(`${API_BASE_URL}/health/water`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ patient_id: patientId, amount_ml: amount })
+          });
+          const result = await res.json();
+          if (res.ok && result.data?.id) {
+            // Update local log with server ID
+            const log = todayLogs.find(l => l.id === tempId);
+            if (log) log.serverId = result.data.id;
+            saveData();
+          }
+        } catch (err) {
+          console.error('Error saving water to server:', err);
+        }
+      }
     }
 
     function addCustomWater() {
@@ -955,15 +1004,24 @@
       }
     }
 
-    function deleteWaterLog(logId) {
+    async function deleteWaterLog(logId) {
       const log = todayLogs.find(l => l.id === logId);
       if (!log) return;
 
       totalToday -= log.amount;
       todayLogs = todayLogs.filter(l => l.id !== logId);
-
       saveData();
       updateUI();
+
+      // Delete from server
+      const serverId = log.serverId || log.id;
+      if (patientId && serverId) {
+        try {
+          await fetch(`${API_BASE_URL}/health/water/${serverId}`, { method: 'DELETE' });
+        } catch (err) {
+          console.error('Error deleting water from server:', err);
+        }
+      }
     }
 
     // --- Tab switching & History ---
