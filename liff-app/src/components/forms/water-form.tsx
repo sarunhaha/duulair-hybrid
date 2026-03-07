@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Droplet, Plus, Clock, Trash2, Target, Settings, Zap, Pencil, Check, X } from 'lucide-react';
+import { Droplet, Plus, Clock, Trash2, Target, Settings, Zap, Pencil, X } from 'lucide-react';
 import { TimeInput } from '@/components/ui/time-picker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
-import { useAddWater, useTodayWater } from '@/lib/api/hooks/use-health';
+import { useAddWater, useTodayWater, useDeleteWater } from '@/lib/api/hooks/use-health';
 import { TimeSelectorPill } from './time-selector-pill';
 
 interface WaterLog {
@@ -34,7 +34,8 @@ export function WaterForm({ onSuccess, onCancel }: WaterFormProps) {
 
   // API hooks
   const addWaterMutation = useAddWater();
-  const { refetch: refetchTodayWater } = useTodayWater(patientId);
+  const deleteWaterMutation = useDeleteWater();
+  const { data: todayWaterData, refetch: refetchTodayWater } = useTodayWater(patientId);
 
   const [totalToday, setTotalToday] = useState(0);
   const [dailyGoal, setDailyGoal] = useState(2000);
@@ -51,22 +52,37 @@ export function WaterForm({ onSuccess, onCancel }: WaterFormProps) {
     return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}`;
   };
 
-  // Load data on mount
+  // Load goal from localStorage on mount
   useEffect(() => {
     const today = getLocalDateString();
-    const savedData = JSON.parse(localStorage.getItem(`water_${today}`) || '{"total": 0, "logs": [], "goal": 2000}');
-    setTotalToday(savedData.total || 0);
-    setTodayLogs(savedData.logs || []);
+    const savedData = JSON.parse(localStorage.getItem(`water_${today}`) || '{"goal": 2000}');
     setDailyGoal(savedData.goal || 2000);
   }, []);
 
-  const saveData = (total: number, logs: WaterLog[], goal: number) => {
+  // Sync API data into component state whenever it changes
+  useEffect(() => {
+    if (!todayWaterData) return;
+    const apiLogs = todayWaterData.logs || [];
+    const apiTotal = todayWaterData.total || 0;
+
+    // Convert WaterLog (DB format) to local WaterLog format for display
+    const displayLogs: WaterLog[] = apiLogs.map((log) => {
+      const loggedAt = new Date(log.logged_at);
+      return {
+        id: log.id,
+        amount: log.amount_ml,
+        time: loggedAt.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
+        timestamp: log.logged_at,
+      };
+    });
+
+    setTotalToday(apiTotal);
+    setTodayLogs(displayLogs);
+  }, [todayWaterData]);
+
+  const saveGoal = (goal: number) => {
     const today = getLocalDateString();
-    localStorage.setItem(`water_${today}`, JSON.stringify({
-      total,
-      logs,
-      goal,
-    }));
+    localStorage.setItem(`water_${today}`, JSON.stringify({ goal }));
   };
 
   const addWater = async (amount: number, timeOverride?: string) => {
@@ -95,6 +111,16 @@ export function WaterForm({ onSuccess, onCancel }: WaterFormProps) {
       // Calculate glasses (1 glass = 250ml)
       const glasses = Math.round(amount / 250);
 
+      // Optimistic update for instant feedback
+      const optimisticLog: WaterLog = {
+        id: Date.now().toString(),
+        amount,
+        time: displayTime,
+        timestamp,
+      };
+      setTotalToday((prev) => prev + amount);
+      setTodayLogs((prev) => [optimisticLog, ...prev]);
+
       // Save to backend API
       if (patientId) {
         try {
@@ -104,29 +130,16 @@ export function WaterForm({ onSuccess, onCancel }: WaterFormProps) {
             amount_ml: amount,
             logged_at: timestamp,
           });
-          // Refetch to get updated data from API
+          // Refetch to sync real data (replaces optimistic update with DB data)
           refetchTodayWater();
         } catch {
-          // API error - still save locally
+          // Revert optimistic update on error
+          setTotalToday((prev) => prev - amount);
+          setTodayLogs((prev) => prev.filter((l) => l.id !== optimisticLog.id));
+          toast({ description: 'เกิดข้อผิดพลาดในการบันทึก', variant: 'destructive' });
+          return;
         }
-      } else {
-        // No patientId, skip API call
       }
-
-      // Also save to localStorage for local display
-      const log: WaterLog = {
-        id: Date.now().toString(),
-        amount,
-        time: displayTime,
-        timestamp,
-      };
-
-      const newTotal = totalToday + amount;
-      const newLogs = [log, ...todayLogs];
-
-      setTotalToday(newTotal);
-      setTodayLogs(newLogs);
-      saveData(newTotal, newLogs, dailyGoal);
 
       toast({ description: `เพิ่ม ${amount} ml เรียบร้อยแล้ว` });
     } catch {
@@ -180,27 +193,40 @@ export function WaterForm({ onSuccess, onCancel }: WaterFormProps) {
     });
 
     setTodayLogs(newLogs);
-    saveData(totalToday, newLogs, dailyGoal);
     setEditingLogId(null);
     setEditingTime('');
     toast({ description: 'อัพเดทเวลาเรียบร้อยแล้ว' });
   };
 
-  const deleteLog = (logId: string) => {
+  const deleteLog = async (logId: string) => {
     const log = todayLogs.find((l) => l.id === logId);
     if (!log) return;
 
-    const newTotal = totalToday - log.amount;
-    const newLogs = todayLogs.filter((l) => l.id !== logId);
+    // Optimistic update
+    const prevTotal = totalToday;
+    const prevLogs = todayLogs;
+    setTotalToday(totalToday - log.amount);
+    setTodayLogs(todayLogs.filter((l) => l.id !== logId));
 
-    setTotalToday(newTotal);
-    setTodayLogs(newLogs);
-    saveData(newTotal, newLogs, dailyGoal);
+    // Call DELETE API
+    if (patientId) {
+      try {
+        await deleteWaterMutation.mutateAsync({ id: logId, patientId });
+        refetchTodayWater();
+      } catch {
+        // Revert on error
+        setTotalToday(prevTotal);
+        setTodayLogs(prevLogs);
+        toast({ description: 'ไม่สามารถลบได้', variant: 'destructive' });
+        return;
+      }
+    }
+
     toast({ description: 'ลบรายการเรียบร้อยแล้ว' });
   };
 
   const updateGoal = () => {
-    saveData(totalToday, todayLogs, dailyGoal);
+    saveGoal(dailyGoal);
     setShowSettings(false);
     toast({ description: 'อัพเดทเป้าหมายแล้ว' });
   };
@@ -333,7 +359,6 @@ export function WaterForm({ onSuccess, onCancel }: WaterFormProps) {
                             return l;
                           });
                           setTodayLogs(newLogs);
-                          saveData(totalToday, newLogs, dailyGoal);
                           setEditingLogId(null);
                           setEditingTime('');
                           toast({ description: 'อัพเดทเวลาเรียบร้อยแล้ว' });
